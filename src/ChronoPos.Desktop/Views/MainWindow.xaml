@@ -1,0 +1,148 @@
+<Window x:Class="ChronoPos.Desktop.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ChronoPos - Point of Sale System" 
+        Height="800" 
+        Width="1200"
+        WindowState="Maximized"
+        WindowStartupLocation="CenterScreen">
+    
+    <Grid Background="#FFF5F5F5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="60"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="30"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#FF2E3B4E" BorderThickness="0,0,0,1" BorderBrush="#FFCCCCCC">
+            <Grid Margin="20,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="ChronoPos" 
+                               FontSize="24" 
+                               FontWeight="Bold" 
+                               Foreground="White" 
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text="Point of Sale System" 
+                               FontSize="14" 
+                               Foreground="#FFCCCCCC" 
+                               VerticalAlignment="Center" 
+                               Margin="15,0,0,0"/>
+                </StackPanel>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding CurrentDateTime}" 
+                               FontSize="12" 
+                               Foreground="White" 
+                               VerticalAlignment="Center" 
+                               Margin="0,0,20,0"/>
+                    <TextBlock Text="{Binding CurrentUser}" 
+                               FontSize="12" 
+                               Foreground="#FFCCCCCC" 
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="1" Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Sidebar Navigation -->
+            <Border Grid.Column="0" Background="White" CornerRadius="5" Margin="0,0,10,0">
+                <StackPanel Margin="10">
+                    <TextBlock Text="Navigation" FontSize="16" FontWeight="Bold" Margin="0,0,0,15"/>
+                    
+                    <Button Content="🏠 Dashboard" 
+                            Style="{StaticResource ModernButtonStyle}"
+                            Height="40" 
+                            HorizontalAlignment="Stretch" 
+                            Margin="0,0,0,5"
+                            Command="{Binding ShowDashboardCommand}"/>
+                    
+                    <Button Content="🛒 Point of Sale" 
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Height="40" 
+                            HorizontalAlignment="Stretch" 
+                            Margin="0,0,0,5"
+                            Command="{Binding ShowPointOfSaleCommand}"/>
+                    
+                    <Button Content="📦 Products" 
+                            Style="{StaticResource ModernButtonStyle}"
+                            Height="40" 
+                            HorizontalAlignment="Stretch" 
+                            Margin="0,0,0,5"
+                            Command="{Binding ShowProductsCommand}"/>
+                    
+                    <Button Content="👥 Customers" 
+                            Style="{StaticResource ModernButtonStyle}"
+                            Height="40" 
+                            HorizontalAlignment="Stretch" 
+                            Margin="0,0,0,5"
+                            Command="{Binding ShowCustomersCommand}"/>
+                    
+                    <Button Content="📊 Sales History" 
+                            Style="{StaticResource ModernButtonStyle}"
+                            Height="40" 
+                            HorizontalAlignment="Stretch" 
+                            Margin="0,0,0,5"
+                            Command="{Binding ShowSalesCommand}"/>
+                    
+                    <Button Content="📈 Reports" 
+                            Style="{StaticResource ModernButtonStyle}"
+                            Height="40" 
+                            HorizontalAlignment="Stretch" 
+                            Margin="0,0,0,25"
+                            Command="{Binding ShowReportsCommand}"/>
+                    
+                    <Separator Margin="0,0,0,10"/>
+                    
+                    <Button Content="⚙️ Settings" 
+                            Style="{StaticResource ModernButtonStyle}"
+                            Height="40" 
+                            HorizontalAlignment="Stretch" 
+                            Margin="0,0,0,5"
+                            Command="{Binding ShowSettingsCommand}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Content Area -->
+            <Border Grid.Column="1" Background="White" CornerRadius="5">
+                <Grid Margin="20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Page Title -->
+                    <TextBlock Grid.Row="0" 
+                               Text="{Binding CurrentPageTitle}" 
+                               FontSize="20" 
+                               FontWeight="Bold" 
+                               Margin="0,0,0,20"/>
+
+                    <!-- Content Frame -->
+                    <ContentControl Grid.Row="1" Content="{Binding CurrentView}"/>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Status Bar -->
+        <StatusBar Grid.Row="2" Background="#FF2E3B4E">
+            <StatusBarItem>
+                <TextBlock Text="Ready" Foreground="White"/>
+            </StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <TextBlock Text="{Binding StatusMessage}" Foreground="White"/>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>

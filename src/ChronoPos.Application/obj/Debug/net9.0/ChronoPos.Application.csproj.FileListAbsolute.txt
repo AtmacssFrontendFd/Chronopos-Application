@@ -1,0 +1,15 @@
+C:\Users\saswa\OneDrive\Desktop\chronopos\src\ChronoPos.Application\bin\Debug\net9.0\ChronoPos.Application.deps.json
+C:\Users\saswa\OneDrive\Desktop\chronopos\src\ChronoPos.Application\bin\Debug\net9.0\ChronoPos.Application.dll
+C:\Users\saswa\OneDrive\Desktop\chronopos\src\ChronoPos.Application\bin\Debug\net9.0\ChronoPos.Application.pdb
+C:\Users\saswa\OneDrive\Desktop\chronopos\src\ChronoPos.Application\bin\Debug\net9.0\ChronoPos.Domain.dll
+C:\Users\saswa\OneDrive\Desktop\chronopos\src\ChronoPos.Application\bin\Debug\net9.0\ChronoPos.Domain.pdb
+C:\Users\saswa\OneDrive\Desktop\chronopos\src\ChronoPos.Application\obj\Debug\net9.0\ChronoPos.Application.csproj.AssemblyReference.cache
+C:\Users\saswa\OneDrive\Desktop\chronopos\src\ChronoPos.Application\obj\Debug\net9.0\ChronoPos.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\saswa\OneDrive\Desktop\chronopos\src\ChronoPos.Application\obj\Debug\net9.0\ChronoPos.Application.AssemblyInfoInputs.cache
+C:\Users\saswa\OneDrive\Desktop\chronopos\src\ChronoPos.Application\obj\Debug\net9.0\ChronoPos.Application.AssemblyInfo.cs
+C:\Users\saswa\OneDrive\Desktop\chronopos\src\ChronoPos.Application\obj\Debug\net9.0\ChronoPos.Application.csproj.CoreCompileInputs.cache
+C:\Users\saswa\OneDrive\Desktop\chronopos\src\ChronoPos.Application\obj\Debug\net9.0\ChronoPo.0CB412A4.Up2Date
+C:\Users\saswa\OneDrive\Desktop\chronopos\src\ChronoPos.Application\obj\Debug\net9.0\ChronoPos.Application.dll
+C:\Users\saswa\OneDrive\Desktop\chronopos\src\ChronoPos.Application\obj\Debug\net9.0\refint\ChronoPos.Application.dll
+C:\Users\saswa\OneDrive\Desktop\chronopos\src\ChronoPos.Application\obj\Debug\net9.0\ChronoPos.Application.pdb
+C:\Users\saswa\OneDrive\Desktop\chronopos\src\ChronoPos.Application\obj\Debug\net9.0\ref\ChronoPos.Application.dll
