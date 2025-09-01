@@ -29,22 +29,25 @@ This project follows Clean Architecture principles with the following layers:
 
 ## Technologies
 
-- .NET 9
-- WPF (Windows Presentation Foundation)
+- .NET 9 (Latest LTS)
+- WPF (Windows Presentation Foundation) with Touchscreen Support
 - MVVM Pattern with CommunityToolkit.Mvvm
-- Entity Framework Core
-- SQL Server / LocalDB
+- Entity Framework Core with SQLite
 - Dependency Injection with Microsoft.Extensions.Hosting
 - xUnit for testing
+- **Planned**: ZXing.Net for barcode generation/scanning
+- **Planned**: ESC-POS .NET for thermal receipt printing
+- **Planned**: SignalR for multi-user real-time sync
 
 ## Getting Started
 
 ### Prerequisites
 
 - .NET 9 SDK
-- SQL Server or SQL Server LocalDB
-- Windows 10/11
+- Windows 10/11 with touchscreen support (optional)
 - Visual Studio 2022 (recommended) or VS Code
+
+**Note**: No database installation required! ChronoPos uses SQLite which is included with .NET.
 
 ### Setup Instructions
 
@@ -61,12 +64,13 @@ This project follows Clean Architecture principles with the following layers:
    dotnet restore
    ```
 
-3. **Create and run database migrations**
+3. **Setup Database (Automatic)**
+
+   The application automatically creates and initializes a SQLite database on first run:
 
    ```powershell
-   cd src\ChronoPos.Infrastructure
-   dotnet ef migrations add InitialCreate --startup-project ..\ChronoPos.Desktop
-   dotnet ef database update --startup-project ..\ChronoPos.Desktop
+   # Database will be created at: %LocalAppData%\ChronoPos\chronopos.db
+   # No manual setup required!
    ```
 
 4. **Run the Desktop Application**
@@ -109,10 +113,13 @@ dotnet test tests\ChronoPos.Domain.Tests
 
 - **Offline Operation** - Works without internet connection
 - **Real-time Updates** - Live clock and status information
-- **Modern UI** - Clean, professional WPF interface
+- **Modern UI** - Clean, professional WPF interface optimized for touchscreens
 - **Keyboard Shortcuts** - Efficient operation for cashiers
+- **Hardware Integration** - Support for POS peripherals (barcode scanners, printers, etc.)
 - **Print Support** - Receipt and report printing
 - **Data Export** - Export data to Excel/CSV formats
+- **Barcode Support** - Generate and scan barcodes for products (planned)
+- **Multi-user Ready** - Architecture supports multiple terminals (planned)
 
 ## Development Guidelines
 
@@ -145,9 +152,10 @@ dotnet publish src\ChronoPos.Desktop -c Release -r win-x64 --self-contained
 ### System Requirements
 
 - Windows 10 version 1903 or later
-- Windows 11 (recommended)
+- Windows 11 (recommended for best touchscreen experience)
 - .NET 9 Runtime (included in self-contained deployment)
-- SQL Server Express LocalDB (included with .NET SDK)
+- SQLite (included with .NET, no separate installation needed)
+- **Hardware Support**: Barcode scanners, thermal printers, cash drawers, weighing scales
 
 ## Contributing
 

@@ -4266,23 +4266,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\saswa\\.nuget\\packages\\": {},
+    "C:\\Users\\adars\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\saswa\\OneDrive\\Desktop\\chronopos\\src\\ChronoPos.Desktop\\ChronoPos.Desktop.csproj",
+      "projectUniqueName": "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Desktop\\ChronoPos.Desktop.csproj",
       "projectName": "ChronoPos.Desktop",
-      "projectPath": "C:\\Users\\saswa\\OneDrive\\Desktop\\chronopos\\src\\ChronoPos.Desktop\\ChronoPos.Desktop.csproj",
-      "packagesPath": "C:\\Users\\saswa\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\saswa\\OneDrive\\Desktop\\chronopos\\src\\ChronoPos.Desktop\\obj\\",
+      "projectPath": "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Desktop\\ChronoPos.Desktop.csproj",
+      "packagesPath": "C:\\Users\\adars\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Desktop\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\saswa\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\adars\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -4297,11 +4297,11 @@
         "net9.0-windows7.0": {
           "targetAlias": "net9.0-windows",
           "projectReferences": {
-            "C:\\Users\\saswa\\OneDrive\\Desktop\\chronopos\\src\\ChronoPos.Application\\ChronoPos.Application.csproj": {
-              "projectPath": "C:\\Users\\saswa\\OneDrive\\Desktop\\chronopos\\src\\ChronoPos.Application\\ChronoPos.Application.csproj"
+            "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Application\\ChronoPos.Application.csproj": {
+              "projectPath": "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Application\\ChronoPos.Application.csproj"
             },
-            "C:\\Users\\saswa\\OneDrive\\Desktop\\chronopos\\src\\ChronoPos.Infrastructure\\ChronoPos.Infrastructure.csproj": {
-              "projectPath": "C:\\Users\\saswa\\OneDrive\\Desktop\\chronopos\\src\\ChronoPos.Infrastructure\\ChronoPos.Infrastructure.csproj"
+            "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Infrastructure\\ChronoPos.Infrastructure.csproj": {
+              "projectPath": "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Infrastructure\\ChronoPos.Infrastructure.csproj"
             }
           }
         }

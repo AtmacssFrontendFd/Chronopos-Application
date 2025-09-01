@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\saswa\\OneDrive\\Desktop\\chronopos\\src\\ChronoPos.Domain\\ChronoPos.Domain.csproj": {}
+    "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Domain\\ChronoPos.Domain.csproj": {}
   },
   "projects": {
-    "C:\\Users\\saswa\\OneDrive\\Desktop\\chronopos\\src\\ChronoPos.Domain\\ChronoPos.Domain.csproj": {
+    "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Domain\\ChronoPos.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\saswa\\OneDrive\\Desktop\\chronopos\\src\\ChronoPos.Domain\\ChronoPos.Domain.csproj",
+        "projectUniqueName": "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Domain\\ChronoPos.Domain.csproj",
         "projectName": "ChronoPos.Domain",
-        "projectPath": "C:\\Users\\saswa\\OneDrive\\Desktop\\chronopos\\src\\ChronoPos.Domain\\ChronoPos.Domain.csproj",
-        "packagesPath": "C:\\Users\\saswa\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\saswa\\OneDrive\\Desktop\\chronopos\\src\\ChronoPos.Domain\\obj\\",
+        "projectPath": "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Domain\\ChronoPos.Domain.csproj",
+        "packagesPath": "C:\\Users\\adars\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\saswa\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\adars\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
