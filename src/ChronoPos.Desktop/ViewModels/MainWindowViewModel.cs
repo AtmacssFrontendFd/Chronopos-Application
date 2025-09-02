@@ -2,6 +2,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Windows.Input;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Views;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -11,6 +14,7 @@ namespace ChronoPos.Desktop.ViewModels;
 public partial class MainWindowViewModel : ObservableObject
 {
     private readonly IProductService _productService;
+    private readonly IServiceProvider _serviceProvider;
 
     [ObservableProperty]
     private string currentPageTitle = "Dashboard";
@@ -27,9 +31,13 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private string statusMessage = "System Ready";
 
-    public MainWindowViewModel(IProductService productService)
+    [ObservableProperty]
+    private string selectedPage = "Dashboard";
+
+    public MainWindowViewModel(IProductService productService, IServiceProvider serviceProvider)
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
+        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         
         // Start timer to update date/time
         var timer = new System.Windows.Threading.DispatcherTimer();
@@ -44,6 +52,7 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void ShowDashboard()
     {
+        SelectedPage = "Dashboard";
         CurrentPageTitle = "Dashboard";
         StatusMessage = "Dashboard loaded";
         
@@ -72,14 +81,15 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ShowPointOfSale()
+    private void ShowTransactions()
     {
-        CurrentPageTitle = "Point of Sale";
-        StatusMessage = "Point of Sale interface loaded";
+        SelectedPage = "Transactions";
+        CurrentPageTitle = "Transactions";
+        StatusMessage = "Transactions interface loaded";
         
-        var posContent = new System.Windows.Controls.Grid();
-        posContent.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(2, System.Windows.GridUnitType.Star) });
-        posContent.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
+        var transactionsContent = new System.Windows.Controls.Grid();
+        transactionsContent.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(2, System.Windows.GridUnitType.Star) });
+        transactionsContent.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
         
         // Product selection area
         var productArea = new System.Windows.Controls.Border
@@ -104,7 +114,7 @@ public partial class MainWindowViewModel : ObservableObject
             CornerRadius = new System.Windows.CornerRadius(5),
             Child = new System.Windows.Controls.TextBlock
             {
-                Text = "Shopping Cart\n(Cart items will be shown here)",
+                Text = "Transaction Cart\n(Cart items will be shown here)",
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
                 VerticalAlignment = System.Windows.VerticalAlignment.Center,
                 FontSize = 16
@@ -112,25 +122,26 @@ public partial class MainWindowViewModel : ObservableObject
         };
         System.Windows.Controls.Grid.SetColumn(cartArea, 1);
         
-        posContent.Children.Add(productArea);
-        posContent.Children.Add(cartArea);
-        CurrentView = posContent;
+        transactionsContent.Children.Add(productArea);
+        transactionsContent.Children.Add(cartArea);
+        CurrentView = transactionsContent;
     }
 
     [RelayCommand]
-    private async Task ShowProducts()
+    private async Task ShowManagement()
     {
-        CurrentPageTitle = "Products Management";
-        StatusMessage = "Loading products...";
+        SelectedPage = "Management";
+        CurrentPageTitle = "Management";
+        StatusMessage = "Loading management...";
         
         try
         {
             var products = await _productService.GetAllProductsAsync();
             
-            var productsContent = new System.Windows.Controls.StackPanel();
-            productsContent.Children.Add(new System.Windows.Controls.TextBlock 
+            var managementContent = new System.Windows.Controls.StackPanel();
+            managementContent.Children.Add(new System.Windows.Controls.TextBlock 
             { 
-                Text = $"Products ({products.Count()})", 
+                Text = $"Management ({products.Count()})", 
                 FontSize = 16, 
                 FontWeight = System.Windows.FontWeights.Bold,
                 Margin = new System.Windows.Thickness(0, 0, 0, 10) 
@@ -152,12 +163,12 @@ public partial class MainWindowViewModel : ObservableObject
                         Width = 300
                     });
                     
-                    productsContent.Children.Add(productPanel);
+                    managementContent.Children.Add(productPanel);
                 }
             }
             else
             {
-                productsContent.Children.Add(new System.Windows.Controls.TextBlock 
+                managementContent.Children.Add(new System.Windows.Controls.TextBlock 
                 { 
                     Text = "No products found. Add some products to get started.",
                     FontStyle = System.Windows.FontStyles.Italic,
@@ -165,7 +176,7 @@ public partial class MainWindowViewModel : ObservableObject
                 });
             }
             
-            CurrentView = productsContent;
+            CurrentView = managementContent;
             StatusMessage = $"Loaded {products.Count()} products";
         }
         catch (Exception ex)
@@ -175,40 +186,43 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ShowCustomers()
+    private void ShowReservation()
     {
-        CurrentPageTitle = "Customers Management";
-        StatusMessage = "Customers interface loaded";
+        SelectedPage = "Reservation";
+        CurrentPageTitle = "Reservation Management";
+        StatusMessage = "Reservation interface loaded";
         
-        var customersContent = new System.Windows.Controls.TextBlock
+        var reservationContent = new System.Windows.Controls.TextBlock
         {
-            Text = "Customers Management\n(Customer management interface will be implemented here)",
+            Text = "Reservation Management\n(Customer reservation interface will be implemented here)",
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center,
             FontSize = 16
         };
-        CurrentView = customersContent;
+        CurrentView = reservationContent;
     }
 
     [RelayCommand]
-    private void ShowSales()
+    private void ShowOrderTable()
     {
-        CurrentPageTitle = "Sales History";
-        StatusMessage = "Sales history loaded";
+        SelectedPage = "OrderTable";
+        CurrentPageTitle = "Order Table";
+        StatusMessage = "Order table loaded";
         
-        var salesContent = new System.Windows.Controls.TextBlock
+        var orderTableContent = new System.Windows.Controls.TextBlock
         {
-            Text = "Sales History\n(Sales history and reports will be shown here)",
+            Text = "Order Table\n(Order history and management will be shown here)",
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center,
             FontSize = 16
         };
-        CurrentView = salesContent;
+        CurrentView = orderTableContent;
     }
 
     [RelayCommand]
     private void ShowReports()
     {
+        SelectedPage = "Reports";
         CurrentPageTitle = "Reports";
         StatusMessage = "Reports interface loaded";
         
@@ -225,17 +239,48 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void ShowSettings()
     {
+        SelectedPage = "Settings";
         CurrentPageTitle = "Settings";
         StatusMessage = "Settings loaded";
         
-        var settingsContent = new System.Windows.Controls.TextBlock
+        // Create and configure the settings view
+        var settingsView = new SettingsView();
+        var settingsViewModel = _serviceProvider.GetRequiredService<SettingsViewModel>();
+        settingsView.DataContext = settingsViewModel;
+        
+        CurrentView = settingsView;
+    }
+
+    [RelayCommand]
+    private void Logout()
+    {
+        var result = System.Windows.MessageBox.Show(
+            "Are you sure you want to logout?", 
+            "Confirm Logout", 
+            System.Windows.MessageBoxButton.YesNo, 
+            System.Windows.MessageBoxImage.Question);
+        
+        if (result == System.Windows.MessageBoxResult.Yes)
         {
-            Text = "Application Settings\n(System configuration options will be available here)",
-            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-            VerticalAlignment = System.Windows.VerticalAlignment.Center,
-            FontSize = 16
-        };
-        CurrentView = settingsContent;
+            StatusMessage = "Logging out...";
+            
+            // Here you can add any cleanup logic like:
+            // - Clear user session
+            // - Save any pending data
+            // - Clear sensitive information
+            
+            // For now, we'll just show a confirmation and reset to dashboard
+            System.Windows.MessageBox.Show(
+                "You have been successfully logged out.", 
+                "Logout Complete", 
+                System.Windows.MessageBoxButton.OK, 
+                System.Windows.MessageBoxImage.Information);
+            
+            // Reset to dashboard
+            ShowDashboard();
+            CurrentUser = "Guest";
+            StatusMessage = "Please login to continue";
+        }
     }
 
     private System.Windows.Controls.Border CreateStatsCard(string title, string value, string colorHex)

@@ -10,6 +10,7 @@ using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Services;
 using ChronoPos.Desktop.ViewModels;
 using ChronoPos.Desktop.Views;
+using ChronoPos.Desktop.Services;
 
 namespace ChronoPos.Desktop;
 
@@ -41,11 +42,18 @@ public partial class App : System.Windows.Application
                 // Register application services
                 services.AddScoped<IProductService, ProductService>();
 
+                // Register theme service
+                services.AddSingleton<IThemeService, ThemeService>();
+
+                // Register font service
+                services.AddSingleton<IFontService, FontService>();
+
                 // Register ViewModels
                 services.AddTransient<MainWindowViewModel>();
                 services.AddTransient<ProductsViewModel>();
                 services.AddTransient<SalesViewModel>();
                 services.AddTransient<CustomersViewModel>();
+                services.AddTransient<SettingsViewModel>();
 
                 // Register Views
                 services.AddTransient<MainWindow>();
@@ -56,6 +64,14 @@ public partial class App : System.Windows.Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         await _host.StartAsync();
+
+        // Initialize theme service
+        var themeService = _host.Services.GetRequiredService<IThemeService>();
+        themeService.LoadThemeFromSettings();
+
+        // Initialize font service
+        var fontService = _host.Services.GetRequiredService<IFontService>();
+        fontService.LoadFontFromSettings();
 
         // Initialize database on startup
         await InitializeDatabaseAsync();

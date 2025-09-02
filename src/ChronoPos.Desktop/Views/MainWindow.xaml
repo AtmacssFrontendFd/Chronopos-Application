@@ -5,9 +5,10 @@
         Height="800" 
         Width="1200"
         WindowState="Maximized"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource MainBackground}">
     
-    <Grid Background="#FFF5F5F5">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="60"/>
             <RowDefinition Height="*"/>
@@ -15,7 +16,10 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" Background="#FF2E3B4E" BorderThickness="0,0,0,1" BorderBrush="#FFCCCCCC">
+        <Border Grid.Row="0" 
+                Background="{DynamicResource SurfaceBackground}" 
+                BorderThickness="0,0,0,1" 
+                BorderBrush="{DynamicResource BorderLight}">
             <Grid Margin="20,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -26,11 +30,11 @@
                     <TextBlock Text="ChronoPos" 
                                FontSize="24" 
                                FontWeight="Bold" 
-                               Foreground="White" 
+                               Foreground="{DynamicResource TextPrimary}" 
                                VerticalAlignment="Center"/>
                     <TextBlock Text="Point of Sale System" 
                                FontSize="14" 
-                               Foreground="#FFCCCCCC" 
+                               Foreground="{DynamicResource TextSecondary}" 
                                VerticalAlignment="Center" 
                                Margin="15,0,0,0"/>
                 </StackPanel>
@@ -38,12 +42,12 @@
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="{Binding CurrentDateTime}" 
                                FontSize="12" 
-                               Foreground="White" 
+                               Foreground="{DynamicResource TextPrimary}" 
                                VerticalAlignment="Center" 
                                Margin="0,0,20,0"/>
                     <TextBlock Text="{Binding CurrentUser}" 
                                FontSize="12" 
-                               Foreground="#FFCCCCCC" 
+                               Foreground="{DynamicResource TextSecondary}" 
                                VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
@@ -57,65 +61,157 @@
             </Grid.ColumnDefinitions>
 
             <!-- Sidebar Navigation -->
-            <Border Grid.Column="0" Background="White" CornerRadius="5" Margin="0,0,10,0">
+            <Border Grid.Column="0" 
+                    Background="{DynamicResource CardBackground}" 
+                    CornerRadius="5" 
+                    Margin="0,0,10,0"
+                    BorderBrush="{DynamicResource BorderLight}"
+                    BorderThickness="1">
                 <StackPanel Margin="10">
-                    <TextBlock Text="Navigation" FontSize="16" FontWeight="Bold" Margin="0,0,0,15"/>
+                    <TextBlock Text="Navigation" 
+                               FontSize="16" 
+                               FontWeight="Bold" 
+                               Foreground="{DynamicResource TextPrimary}"
+                               Margin="0,0,0,15"/>
                     
                     <Button Content="🏠 Dashboard" 
-                            Style="{StaticResource ModernButtonStyle}"
                             Height="40" 
                             HorizontalAlignment="Stretch" 
                             Margin="0,0,0,5"
-                            Command="{Binding ShowDashboardCommand}"/>
+                            Command="{Binding ShowDashboardCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Dashboard">
+                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                     
-                    <Button Content="🛒 Point of Sale" 
-                            Style="{StaticResource PrimaryButtonStyle}"
+                    <Button Content="💳 Transactions" 
                             Height="40" 
                             HorizontalAlignment="Stretch" 
                             Margin="0,0,0,5"
-                            Command="{Binding ShowPointOfSaleCommand}"/>
+                            Command="{Binding ShowTransactionsCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Transactions">
+                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                     
-                    <Button Content="📦 Products" 
-                            Style="{StaticResource ModernButtonStyle}"
+                    <Button Content="📦 Management" 
                             Height="40" 
                             HorizontalAlignment="Stretch" 
                             Margin="0,0,0,5"
-                            Command="{Binding ShowProductsCommand}"/>
+                            Command="{Binding ShowManagementCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Management">
+                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                     
-                    <Button Content="👥 Customers" 
-                            Style="{StaticResource ModernButtonStyle}"
+                    <Button Content="🏨 Reservation" 
                             Height="40" 
                             HorizontalAlignment="Stretch" 
                             Margin="0,0,0,5"
-                            Command="{Binding ShowCustomersCommand}"/>
+                            Command="{Binding ShowReservationCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Reservation">
+                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                     
-                    <Button Content="📊 Sales History" 
-                            Style="{StaticResource ModernButtonStyle}"
+                    <Button Content="📋 Order Table" 
                             Height="40" 
                             HorizontalAlignment="Stretch" 
                             Margin="0,0,0,5"
-                            Command="{Binding ShowSalesCommand}"/>
+                            Command="{Binding ShowOrderTableCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedPage}" Value="OrderTable">
+                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                     
                     <Button Content="📈 Reports" 
-                            Style="{StaticResource ModernButtonStyle}"
                             Height="40" 
                             HorizontalAlignment="Stretch" 
                             Margin="0,0,0,25"
-                            Command="{Binding ShowReportsCommand}"/>
+                            Command="{Binding ShowReportsCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Reports">
+                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                     
-                    <Separator Margin="0,0,0,10"/>
+                    <Separator Background="{DynamicResource BorderLight}" Margin="0,0,0,10"/>
                     
                     <Button Content="⚙️ Settings" 
-                            Style="{StaticResource ModernButtonStyle}"
+                            Height="40" 
+                            HorizontalAlignment="Stretch" 
+                            Margin="0,0,0,15"
+                            Command="{Binding ShowSettingsCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Settings">
+                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    
+                    <Button Content="🚪 Logout" 
+                            Style="{DynamicResource ModernButtonStyle}"
                             Height="40" 
                             HorizontalAlignment="Stretch" 
                             Margin="0,0,0,5"
-                            Command="{Binding ShowSettingsCommand}"/>
+                            Background="{DynamicResource Error}"
+                            Foreground="White"
+                            Command="{Binding LogoutCommand}"/>
                 </StackPanel>
             </Border>
 
             <!-- Content Area -->
-            <Border Grid.Column="1" Background="White" CornerRadius="5">
+            <Border Grid.Column="1" 
+                    Background="{DynamicResource CardBackground}" 
+                    CornerRadius="5"
+                    BorderBrush="{DynamicResource BorderLight}"
+                    BorderThickness="1">
                 <Grid Margin="20">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -127,6 +223,7 @@
                                Text="{Binding CurrentPageTitle}" 
                                FontSize="20" 
                                FontWeight="Bold" 
+                               Foreground="{DynamicResource TextPrimary}"
                                Margin="0,0,0,20"/>
 
                     <!-- Content Frame -->
@@ -136,12 +233,12 @@
         </Grid>
 
         <!-- Status Bar -->
-        <StatusBar Grid.Row="2" Background="#FF2E3B4E">
+        <StatusBar Grid.Row="2" Background="{DynamicResource SurfaceBackground}">
             <StatusBarItem>
-                <TextBlock Text="Ready" Foreground="White"/>
+                <TextBlock Text="Ready" Foreground="{DynamicResource TextPrimary}"/>
             </StatusBarItem>
             <StatusBarItem HorizontalAlignment="Right">
-                <TextBlock Text="{Binding StatusMessage}" Foreground="White"/>
+                <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource TextPrimary}"/>
             </StatusBarItem>
         </StatusBar>
     </Grid>

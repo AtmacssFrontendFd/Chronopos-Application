@@ -337,3 +337,8 @@ C:\Users\adars\Desktop\pos-software\src\ChronoPos.Desktop\obj\Debug\net9.0-windo
 C:\Users\adars\Desktop\pos-software\src\ChronoPos.Desktop\obj\Debug\net9.0-windows\ChronoPos.Desktop.pdb
 C:\Users\adars\Desktop\pos-software\src\ChronoPos.Desktop\obj\Debug\net9.0-windows\ChronoPos.Desktop.genruntimeconfig.cache
 C:\Users\adars\Desktop\pos-software\src\ChronoPos.Desktop\obj\Debug\net9.0-windows\ref\ChronoPos.Desktop.dll
+C:\Users\adars\Desktop\pos-software\src\ChronoPos.Desktop\obj\Debug\net9.0-windows\Themes\DarkTheme.baml
+C:\Users\adars\Desktop\pos-software\src\ChronoPos.Desktop\obj\Debug\net9.0-windows\Themes\LightTheme.baml
+C:\Users\adars\Desktop\pos-software\src\ChronoPos.Desktop\obj\Debug\net9.0-windows\Views\SettingsView.baml
+C:\Users\adars\Desktop\pos-software\src\ChronoPos.Desktop\obj\Debug\net9.0-windows\Views\SettingsView.g.cs
+C:\Users\adars\Desktop\pos-software\src\ChronoPos.Desktop\bin\Debug\net9.0-windows\ChronoPos.Desktop.dll.config
