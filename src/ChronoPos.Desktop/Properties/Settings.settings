@@ -8,5 +8,17 @@
     <Setting Name="FontSize" Type="System.String" Scope="User">
       <Value Profile="(Default)">Medium</Value>
     </Setting>
+    <Setting Name="Language" Type="System.String" Scope="User">
+      <Value Profile="(Default)">English</Value>
+    </Setting>
+    <Setting Name="PrimaryColor" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Golden</Value>
+    </Setting>
+    <Setting Name="BackgroundColor" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Default</Value>
+    </Setting>
+    <Setting Name="LayoutDirection" Type="System.String" Scope="User">
+      <Value Profile="(Default)">LeftToRight</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

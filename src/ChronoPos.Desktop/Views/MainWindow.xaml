@@ -6,7 +6,8 @@
         Width="1200"
         WindowState="Maximized"
         WindowStartupLocation="CenterScreen"
-        Background="{DynamicResource MainBackground}">
+        Background="{DynamicResource MainBackground}"
+        FlowDirection="{DynamicResource AppFlowDirection}">
     
     <Grid>
         <Grid.RowDefinitions>
@@ -201,7 +202,7 @@
                             HorizontalAlignment="Stretch" 
                             Margin="0,0,0,5"
                             Background="{DynamicResource Error}"
-                            Foreground="White"
+                            Foreground="{DynamicResource TextPrimary}"
                             Command="{Binding LogoutCommand}"/>
                 </StackPanel>
             </Border>
