@@ -241,14 +241,40 @@ public partial class MainWindowViewModel : ObservableObject
     {
         SelectedPage = "Settings";
         CurrentPageTitle = "Settings";
-        StatusMessage = "Settings loaded";
+        StatusMessage = "Loading settings...";
         
-        // Create and configure the settings view
-        var settingsView = new SettingsView();
-        var settingsViewModel = _serviceProvider.GetRequiredService<SettingsViewModel>();
-        settingsView.DataContext = settingsViewModel;
-        
-        CurrentView = settingsView;
+        try
+        {
+            Console.WriteLine("ShowSettings: Starting to load settings");
+            
+            // Create and configure the settings view
+            Console.WriteLine("ShowSettings: Creating SettingsView");
+            var settingsView = new SettingsView();
+            Console.WriteLine("ShowSettings: SettingsView created successfully");
+            
+            Console.WriteLine("ShowSettings: Getting SettingsViewModel from service provider");
+            var settingsViewModel = _serviceProvider.GetRequiredService<SettingsViewModel>();
+            Console.WriteLine("ShowSettings: SettingsViewModel retrieved successfully");
+            
+            Console.WriteLine("ShowSettings: Setting DataContext");
+            settingsView.DataContext = settingsViewModel;
+            Console.WriteLine("ShowSettings: DataContext set successfully");
+            
+            Console.WriteLine("ShowSettings: Setting CurrentView");
+            CurrentView = settingsView;
+            Console.WriteLine("ShowSettings: CurrentView set successfully");
+            
+            StatusMessage = "Settings loaded";
+            Console.WriteLine("ShowSettings: Settings loaded successfully");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"ShowSettings: Error occurred - {ex.Message}");
+            Console.WriteLine($"ShowSettings: Stack trace - {ex.StackTrace}");
+            StatusMessage = $"Error loading settings: {ex.Message}";
+            System.Windows.MessageBox.Show($"Failed to load settings: {ex.Message}\n\nStack trace:\n{ex.StackTrace}", 
+                "Settings Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
     }
 
     [RelayCommand]

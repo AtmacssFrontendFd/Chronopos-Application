@@ -329,6 +329,7 @@ CREATE TABLE `category_translation` (
   `description` text,
   `created_at` timestamp DEFAULT (now())
 );
+
 --product module
 CREATE TABLE `product` (
   `id` int PRIMARY KEY AUTO_INCREMENT,
