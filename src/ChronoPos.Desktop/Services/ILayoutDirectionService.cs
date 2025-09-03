@@ -40,5 +40,5 @@ public interface ILayoutDirectionService
     /// <summary>
     /// Gets all available layout directions
     /// </summary>
-    Dictionary<LayoutDirection, string> GetAvailableDirections();
+    List<KeyValuePair<LayoutDirection, string>> GetAvailableDirections();
 }

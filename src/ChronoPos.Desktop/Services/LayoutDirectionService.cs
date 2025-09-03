@@ -51,12 +51,12 @@ public class LayoutDirectionService : ILayoutDirectionService
         }
     }
 
-    public Dictionary<LayoutDirection, string> GetAvailableDirections()
+    public List<KeyValuePair<LayoutDirection, string>> GetAvailableDirections()
     {
-        return new Dictionary<LayoutDirection, string>
+        return new List<KeyValuePair<LayoutDirection, string>>
         {
-            { LayoutDirection.LeftToRight, "Left to Right (LTR)" },
-            { LayoutDirection.RightToLeft, "Right to Left (RTL)" }
+            new(LayoutDirection.LeftToRight, "Left to Right (LTR)"),
+            new(LayoutDirection.RightToLeft, "Right to Left (RTL)")
         };
     }
 

@@ -18,6 +18,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly IDatabaseLocalizationService _databaseLocalizationService;
     private readonly IColorSchemeService _colorSchemeService;
     private readonly ILayoutDirectionService _layoutDirectionService;
+    private readonly IZoomService _zoomService;
 
     [ObservableProperty]
     private bool _isDarkTheme;
@@ -41,6 +42,12 @@ public partial class SettingsViewModel : ObservableObject
     private string _selectedLayoutDirection = "LeftToRight";
 
     [ObservableProperty]
+    private ZoomLevel _selectedZoomLevel = ZoomLevel.Zoom100;
+
+    [ObservableProperty]
+    private string _selectedZoomLevelDisplay = "100% - Normal (Default)";
+
+    [ObservableProperty]
     private string _statusMessage = "Ready";
 
     [ObservableProperty]
@@ -58,10 +65,14 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<KeyValuePair<LayoutDirection, string>> _availableLayoutDirections = new();
 
+    [ObservableProperty]
+    private ObservableCollection<KeyValuePair<ZoomLevel, string>> _availableZoomLevels = new();
+
     public SettingsViewModel(IThemeService themeService, IFontService fontService, 
                             ILocalizationService localizationService, IDatabaseLocalizationService databaseLocalizationService,
                             IColorSchemeService colorSchemeService, 
-                            ILayoutDirectionService layoutDirectionService)
+                            ILayoutDirectionService layoutDirectionService,
+                            IZoomService zoomService)
     {
         Console.WriteLine("SettingsViewModel: Constructor starting");
         
@@ -80,6 +91,8 @@ public partial class SettingsViewModel : ObservableObject
             Console.WriteLine("SettingsViewModel: ColorSchemeService validated");
             _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
             Console.WriteLine("SettingsViewModel: LayoutDirectionService validated");
+            _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
+            Console.WriteLine("SettingsViewModel: ZoomService validated");
             
             Console.WriteLine("SettingsViewModel: Subscribing to service events");
             // Subscribe to service events
@@ -97,14 +110,16 @@ public partial class SettingsViewModel : ObservableObject
             Console.WriteLine("SettingsViewModel: BackgroundColorChanged event subscribed");
             _layoutDirectionService.DirectionChanged += OnLayoutDirectionChanged;
             Console.WriteLine("SettingsViewModel: DirectionChanged event subscribed");
+            _zoomService.ZoomChanged += OnZoomChanged;
+            Console.WriteLine("SettingsViewModel: ZoomChanged event subscribed");
             
             Console.WriteLine("SettingsViewModel: Initializing settings");
-            // Initialize with current settings
-            InitializeSettings();
+            // Initialize with current settings - wrapped in try-catch to prevent errors
+            SafelyInitializeSettings();
             Console.WriteLine("SettingsViewModel: Settings initialized");
             
             Console.WriteLine("SettingsViewModel: Loading available options");
-            LoadAvailableOptions();
+            SafelyLoadAvailableOptions();
             Console.WriteLine("SettingsViewModel: Available options loaded");
             
             Console.WriteLine("SettingsViewModel: Constructor completed successfully");
@@ -113,7 +128,10 @@ public partial class SettingsViewModel : ObservableObject
         {
             Console.WriteLine($"SettingsViewModel: Constructor error - {ex.Message}");
             Console.WriteLine($"SettingsViewModel: Constructor stack trace - {ex.StackTrace}");
-            throw;
+            
+            // Set safe default values if construction fails
+            SetSafeDefaults();
+            StatusMessage = "Settings loaded with defaults due to initialization error";
         }
     }
 
@@ -232,6 +250,35 @@ public partial class SettingsViewModel : ObservableObject
         StatusMessage = "Layout direction changed to Right-to-Left";
     }
 
+    // Zoom Commands
+    [RelayCommand]
+    private void SetZoomLevel(ZoomLevel zoomLevel)
+    {
+        _zoomService.ChangeZoomLevel(zoomLevel);
+        StatusMessage = $"Zoom level changed to {(int)zoomLevel}%";
+    }
+
+    [RelayCommand]
+    private void ZoomIn()
+    {
+        _zoomService.ZoomIn();
+        StatusMessage = $"Zoomed in to {_zoomService.CurrentZoomPercentage}%";
+    }
+
+    [RelayCommand]
+    private void ZoomOut()
+    {
+        _zoomService.ZoomOut();
+        StatusMessage = $"Zoomed out to {_zoomService.CurrentZoomPercentage}%";
+    }
+
+    [RelayCommand]
+    private void ResetZoom()
+    {
+        _zoomService.ResetZoom();
+        StatusMessage = "Zoom reset to 100%";
+    }
+
     // Save All Settings Command
     [RelayCommand]
     private async Task SaveAllSettingsAsync()
@@ -293,14 +340,302 @@ public partial class SettingsViewModel : ObservableObject
         UpdateLayoutDirectionProperties(newDirection);
     }
 
+    private void OnZoomChanged(ZoomLevel newZoomLevel)
+    {
+        UpdateZoomProperties(newZoomLevel);
+    }
+
+    private void SetSafeDefaults()
+    {
+        try
+        {
+            // Set safe default values
+            IsDarkTheme = false;
+            SelectedTheme = "Light";
+            SelectedFontSize = "Medium";
+            SelectedLanguage = "English";
+            SelectedLayoutDirection = "LeftToRight";
+            SelectedZoomLevel = ZoomLevel.Zoom100;
+            SelectedZoomLevelDisplay = "100% - Normal (Default)";
+            StatusMessage = "Settings loaded with safe defaults";
+            
+            // Initialize collections with safe defaults
+            AvailableLanguagesFromDb.Clear();
+            AvailablePrimaryColors.Clear();
+            AvailableBackgroundColors.Clear();
+            AvailableLayoutDirections.Clear();
+            AvailableZoomLevels.Clear();
+            
+            // Add basic defaults
+            AvailableZoomLevels.Add(new KeyValuePair<ZoomLevel, string>(ZoomLevel.Zoom100, "100% - Normal (Default)"));
+            
+            Console.WriteLine("Safe defaults set successfully");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error setting safe defaults: {ex.Message}");
+        }
+    }
+
+    private void SafelyInitializeSettings()
+    {
+        try
+        {
+            InitializeSettings();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in InitializeSettings: {ex.Message}");
+            SetSafeDefaults();
+        }
+    }
+
+    private void SafelyLoadAvailableOptions()
+    {
+        try
+        {
+            LoadAvailableOptions();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in LoadAvailableOptions: {ex.Message}");
+            LoadSafeAvailableOptions();
+        }
+    }
+
+    private void LoadSafeAvailableOptions()
+    {
+        try
+        {
+            Console.WriteLine("Loading safe available options...");
+            
+            // Load primary colors safely
+            try
+            {
+                AvailablePrimaryColors.Clear();
+                var primaryColors = _colorSchemeService?.GetAvailablePrimaryColors() ?? new List<ColorOption>();
+                foreach (var color in primaryColors)
+                {
+                    AvailablePrimaryColors.Add(color);
+                }
+                
+                if (AvailablePrimaryColors.Count == 0)
+                {
+                    // Add a default color if none available
+                    AvailablePrimaryColors.Add(new ColorOption { Name = "Default", DisplayName = "Default", HexValue = "#E1AF23" });
+                }
+                
+                SelectedPrimaryColor = AvailablePrimaryColors.FirstOrDefault() ?? new ColorOption { Name = "Default", DisplayName = "Default", HexValue = "#E1AF23" };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading primary colors: {ex.Message}");
+                SelectedPrimaryColor = new ColorOption { Name = "Default", DisplayName = "Default", HexValue = "#E1AF23" };
+            }
+
+            // Load background colors safely
+            try
+            {
+                AvailableBackgroundColors.Clear();
+                var backgroundColors = _colorSchemeService?.GetAvailableBackgroundColors() ?? new List<ColorOption>();
+                foreach (var color in backgroundColors)
+                {
+                    AvailableBackgroundColors.Add(color);
+                }
+                
+                if (AvailableBackgroundColors.Count == 0)
+                {
+                    // Add a default color if none available
+                    AvailableBackgroundColors.Add(new ColorOption { Name = "Default", DisplayName = "Default", HexValue = "#FFFFFF" });
+                }
+                
+                SelectedBackgroundColor = AvailableBackgroundColors.FirstOrDefault() ?? new ColorOption { Name = "Default", DisplayName = "Default", HexValue = "#FFFFFF" };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading background colors: {ex.Message}");
+                SelectedBackgroundColor = new ColorOption { Name = "Default", DisplayName = "Default", HexValue = "#FFFFFF" };
+            }
+
+            // Load layout directions safely
+            try
+            {
+                AvailableLayoutDirections.Clear();
+                var layoutDirections = _layoutDirectionService?.GetAvailableDirections() ?? new List<KeyValuePair<LayoutDirection, string>>();
+                foreach (var direction in layoutDirections)
+                {
+                    AvailableLayoutDirections.Add(direction);
+                }
+                
+                if (AvailableLayoutDirections.Count == 0)
+                {
+                    // Add defaults if none available
+                    AvailableLayoutDirections.Add(new KeyValuePair<LayoutDirection, string>(LayoutDirection.LeftToRight, "Left to Right (LTR)"));
+                    AvailableLayoutDirections.Add(new KeyValuePair<LayoutDirection, string>(LayoutDirection.RightToLeft, "Right to Left (RTL)"));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading layout directions: {ex.Message}");
+            }
+
+            // Load zoom levels safely
+            try
+            {
+                AvailableZoomLevels.Clear();
+                var zoomLevels = _zoomService?.GetAvailableZoomLevels() ?? new List<KeyValuePair<ZoomLevel, string>>();
+                foreach (var zoomLevel in zoomLevels)
+                {
+                    AvailableZoomLevels.Add(zoomLevel);
+                }
+                
+                if (AvailableZoomLevels.Count == 0)
+                {
+                    // Add default zoom levels if none available
+                    AvailableZoomLevels.Add(new KeyValuePair<ZoomLevel, string>(ZoomLevel.Zoom50, "50% - Very Small"));
+                    AvailableZoomLevels.Add(new KeyValuePair<ZoomLevel, string>(ZoomLevel.Zoom100, "100% - Normal (Default)"));
+                    AvailableZoomLevels.Add(new KeyValuePair<ZoomLevel, string>(ZoomLevel.Zoom150, "150% - Maximum"));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading zoom levels: {ex.Message}");
+            }
+
+            // Load database languages asynchronously but safely
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    Console.WriteLine("Loading database languages asynchronously...");
+                    var languages = await _databaseLocalizationService.GetAvailableLanguagesAsync();
+                    
+                    System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+                    {
+                        AvailableLanguagesFromDb.Clear();
+                        foreach (var language in languages)
+                        {
+                            AvailableLanguagesFromDb.Add(language);
+                        }
+
+                        // Set current language
+                        if (AvailableLanguagesFromDb.Count > 0)
+                        {
+                            var currentLanguage = _databaseLocalizationService.GetCurrentLanguageCode();
+                            SelectedLanguageFromDb = AvailableLanguagesFromDb.FirstOrDefault(l => l.LanguageCode == currentLanguage) 
+                                                   ?? AvailableLanguagesFromDb.FirstOrDefault();
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading database languages: {ex.Message}");
+                    
+                    // Add default languages if database loading fails
+                    System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+                    {
+                        AvailableLanguagesFromDb.Clear();
+                        AvailableLanguagesFromDb.Add(new ChronoPos.Domain.Entities.Language 
+                        { 
+                            Id = 1, 
+                            LanguageName = "English", 
+                            LanguageCode = "en", 
+                            IsRtl = false 
+                        });
+                        AvailableLanguagesFromDb.Add(new ChronoPos.Domain.Entities.Language 
+                        { 
+                            Id = 2, 
+                            LanguageName = "اردو", 
+                            LanguageCode = "ur", 
+                            IsRtl = true 
+                        });
+                        
+                        SelectedLanguageFromDb = AvailableLanguagesFromDb.FirstOrDefault();
+                    });
+                }
+            });
+
+            Console.WriteLine("Safe available options loaded successfully");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in LoadSafeAvailableOptions: {ex.Message}");
+        }
+    }
+
     private void InitializeSettings()
     {
-        UpdateThemeProperties(_themeService.CurrentTheme);
-        UpdateFontProperties(_fontService.CurrentFontSize);
-        UpdateLanguageProperties(_localizationService.CurrentLanguage);
-        UpdatePrimaryColorProperties(_colorSchemeService.CurrentPrimaryColor);
-        UpdateBackgroundColorProperties(_colorSchemeService.CurrentBackgroundColor);
-        UpdateLayoutDirectionProperties(_layoutDirectionService.CurrentDirection);
+        try
+        {
+            UpdateThemeProperties(_themeService.CurrentTheme);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating theme properties: {ex.Message}");
+            SelectedTheme = "Light";
+            IsDarkTheme = false;
+        }
+        
+        try
+        {
+            UpdateFontProperties(_fontService.CurrentFontSize);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating font properties: {ex.Message}");
+            SelectedFontSize = "Medium";
+        }
+        
+        try
+        {
+            UpdateLanguageProperties(_localizationService.CurrentLanguage);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating language properties: {ex.Message}");
+            SelectedLanguage = "English";
+        }
+        
+        try
+        {
+            UpdatePrimaryColorProperties(_colorSchemeService.CurrentPrimaryColor);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating primary color properties: {ex.Message}");
+            SelectedPrimaryColor = new ColorOption { Name = "Default", DisplayName = "Default", HexValue = "#E1AF23" };
+        }
+        
+        try
+        {
+            UpdateBackgroundColorProperties(_colorSchemeService.CurrentBackgroundColor);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating background color properties: {ex.Message}");
+            SelectedBackgroundColor = new ColorOption { Name = "Default", DisplayName = "Default", HexValue = "#FFFFFF" };
+        }
+        
+        try
+        {
+            UpdateLayoutDirectionProperties(_layoutDirectionService.CurrentDirection);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating layout direction properties: {ex.Message}");
+            SelectedLayoutDirection = "LeftToRight";
+        }
+        
+        try
+        {
+            UpdateZoomProperties(_zoomService.CurrentZoomLevel);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating zoom properties: {ex.Message}");
+            SelectedZoomLevel = ZoomLevel.Zoom100;
+            SelectedZoomLevelDisplay = "100% - Normal (Default)";
+        }
     }
 
     private async void LoadAvailableOptions()
@@ -344,6 +679,13 @@ public partial class SettingsViewModel : ObservableObject
         {
             AvailableLayoutDirections.Add(direction);
         }
+
+        // Load available zoom levels
+        AvailableZoomLevels.Clear();
+        foreach (var zoomLevel in _zoomService.GetAvailableZoomLevels())
+        {
+            AvailableZoomLevels.Add(zoomLevel);
+        }
     }
 
     private void UpdateThemeProperties(Theme theme)
@@ -375,5 +717,40 @@ public partial class SettingsViewModel : ObservableObject
     private void UpdateLayoutDirectionProperties(LayoutDirection direction)
     {
         SelectedLayoutDirection = direction.ToString();
+    }
+
+    private void UpdateZoomProperties(ZoomLevel zoomLevel)
+    {
+        SelectedZoomLevel = zoomLevel;
+        var zoomOption = AvailableZoomLevels.FirstOrDefault(z => z.Key == zoomLevel);
+        SelectedZoomLevelDisplay = zoomOption.Value ?? $"{(int)zoomLevel}%";
+    }
+
+    /// <summary>
+    /// Called when SelectedZoomLevel property changes
+    /// This enables the ComboBox to actually change the zoom level
+    /// </summary>
+    partial void OnSelectedZoomLevelChanged(ZoomLevel value)
+    {
+        try
+        {
+            Console.WriteLine($"SelectedZoomLevel changed to: {value} ({(int)value}%)");
+            
+            // Apply the zoom level change through the zoom service
+            _zoomService?.ChangeZoomLevel(value);
+            
+            // Update the display text
+            var zoomOption = AvailableZoomLevels.FirstOrDefault(z => z.Key == value);
+            SelectedZoomLevelDisplay = zoomOption.Value ?? $"{(int)value}%";
+            
+            StatusMessage = $"Zoom level changed to {(int)value}%";
+            
+            Console.WriteLine($"Zoom level successfully applied: {value} ({(int)value}%)");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error changing zoom level: {ex.Message}");
+            StatusMessage = $"Error changing zoom level: {ex.Message}";
+        }
     }
 }

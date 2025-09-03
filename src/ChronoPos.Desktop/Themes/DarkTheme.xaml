@@ -6,12 +6,35 @@
     <FontFamily x:Key="PoppinsFontFallback">Segoe UI, Arial, sans-serif</FontFamily>
 
     <!-- Font Sizes (will be updated by FontService) -->
-    <system:Double x:Key="FontSizeVerySmall" xmlns:system="clr-namespace:System;assembly=mscorlib">12</system:Double>
-    <system:Double x:Key="FontSizeSmall" xmlns:system="clr-namespace:System;assembly=mscorlib">14</system:Double>
-    <system:Double x:Key="FontSizeMedium" xmlns:system="clr-namespace:System;assembly=mscorlib">16</system:Double>
-    <system:Double x:Key="FontSizeLarge" xmlns:system="clr-namespace:System;assembly=mscorlib">18</system:Double>
-    <system:Double x:Key="FontSizeXLarge" xmlns:system="clr-namespace:System;assembly=mscorlib">20</system:Double>
-    <system:Double x:Key="FontSizeXXLarge" xmlns:system="clr-namespace:System;assembly=mscorlib">24</system:Double>
+    <system:Double x:Key="FontSizeVerySmall" xmlns:system="clr-namespace:System;assembly=mscorlib">13</system:Double>
+    <system:Double x:Key="FontSizeSmall" xmlns:system="clr-namespace:System;assembly=mscorlib">15</system:Double>
+    <system:Double x:Key="FontSizeMedium" xmlns:system="clr-namespace:System;assembly=mscorlib">17</system:Double>
+    <system:Double x:Key="FontSizeLarge" xmlns:system="clr-namespace:System;assembly=mscorlib">19</system:Double>
+    <system:Double x:Key="FontSizeXLarge" xmlns:system="clr-namespace:System;assembly=mscorlib">22</system:Double>
+    <system:Double x:Key="FontSizeXXLarge" xmlns:system="clr-namespace:System;assembly=mscorlib">26</system:Double>
+
+    <!-- Zoom Resources (will be updated by ZoomService) -->
+    <system:Double x:Key="CurrentZoomScale" xmlns:system="clr-namespace:System;assembly=mscorlib">1.0</system:Double>
+    <system:Double x:Key="CurrentZoomPercentage" xmlns:system="clr-namespace:System;assembly=mscorlib">100</system:Double>
+    <system:String x:Key="CurrentZoomLevel" xmlns:system="clr-namespace:System;assembly=mscorlib">Zoom100</system:String>
+
+    <!-- Layout Resources (will be updated by ZoomService) -->
+    <system:Double x:Key="DefaultMargin" xmlns:system="clr-namespace:System;assembly=mscorlib">10</system:Double>
+    <system:Double x:Key="DefaultPadding" xmlns:system="clr-namespace:System;assembly=mscorlib">15</system:Double>
+    <system:Double x:Key="ButtonHeight" xmlns:system="clr-namespace:System;assembly=mscorlib">45</system:Double>
+    <system:Double x:Key="ButtonMinWidth" xmlns:system="clr-namespace:System;assembly=mscorlib">80</system:Double>
+    <system:Double x:Key="CardPadding" xmlns:system="clr-namespace:System;assembly=mscorlib">20</system:Double>
+    <system:Double x:Key="BorderRadius" xmlns:system="clr-namespace:System;assembly=mscorlib">8</system:Double>
+    <system:Double x:Key="IconSize" xmlns:system="clr-namespace:System;assembly=mscorlib">16</system:Double>
+
+    <!-- Thickness Resources (will be updated by ZoomService) -->
+    <Thickness x:Key="DefaultMarginThickness">10</Thickness>
+    <Thickness x:Key="DefaultPaddingThickness">15</Thickness>
+    <Thickness x:Key="CardPaddingThickness">20</Thickness>
+    
+    <!-- CornerRadius Resources -->
+    <CornerRadius x:Key="BorderCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="CardCornerRadius">8</CornerRadius>
 
     <!-- Backgrounds -->
     <SolidColorBrush x:Key="MainBackground" Color="#111315"/>
@@ -48,21 +71,26 @@
         <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="BorderBrush" Value="{StaticResource BorderLight}"/>
-        <Setter Property="Padding" Value="15,8"/>
-        <Setter Property="FontWeight" Value="Normal"/>
-        <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+        <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeMedium}"/>
         <Setter Property="FontFamily" Value="{StaticResource PoppinsFontFallback}"/>
         <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+        <Setter Property="MinWidth" Value="{DynamicResource ButtonMinWidth}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border Background="{TemplateBinding Background}" 
-                            CornerRadius="4"
+                            CornerRadius="{DynamicResource BorderCornerRadius}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}">
-                        <ContentPresenter HorizontalAlignment="Center" 
-                                        VerticalAlignment="Center"
-                                        Margin="{TemplateBinding Padding}"/>
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                        Margin="{TemplateBinding Padding}"
+                                        RecognizesAccessKey="True"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -103,8 +131,20 @@
         </Style.Triggers>
     </Style>
 
+    <!-- Navigation Button Style - Ensures text is always visible -->
+    <Style x:Key="NavigationButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeMedium}"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="MinHeight" Value="45"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="12,8,12,8"/>
+        <Setter Property="Margin" Value="0,0,0,5"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+
     <Style x:Key="ModernTextBoxStyle" TargetType="TextBox">
-        <Setter Property="Padding" Value="8,6"/>
+        <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
         <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
         <Setter Property="FontFamily" Value="{StaticResource PoppinsFontFallback}"/>
         <Setter Property="Background" Value="{StaticResource CardBackground}"/>
@@ -117,7 +157,7 @@
                     <Border Background="{TemplateBinding Background}" 
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="3">
+                            CornerRadius="{DynamicResource BorderCornerRadius}">
                         <ScrollViewer x:Name="PART_ContentHost" 
                                     Margin="{TemplateBinding Padding}"/>
                     </Border>

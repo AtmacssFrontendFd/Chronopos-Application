@@ -20,5 +20,8 @@
     <Setting Name="LayoutDirection" Type="System.String" Scope="User">
       <Value Profile="(Default)">LeftToRight</Value>
     </Setting>
+    <Setting Name="ZoomLevel" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">100</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

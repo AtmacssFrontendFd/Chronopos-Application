@@ -64,6 +64,7 @@ public partial class [ScreenName]ViewModel : ObservableObject
     private readonly ThemeService _themeService;
     private readonly ColorSchemeService _colorSchemeService;
     private readonly LayoutDirectionService _layoutDirectionService;
+    private readonly ZoomService _zoomService;
 
     [ObservableProperty]
     private string _title = "[Screen Title]";
@@ -80,22 +81,28 @@ public partial class [ScreenName]ViewModel : ObservableObject
     [ObservableProperty]
     private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
 
+    [ObservableProperty]
+    private ZoomLevel _currentZoomLevel = ZoomLevel.Zoom100;
+
     public [ScreenName]ViewModel(
         I[ServiceName] service,
         DatabaseLocalizationService localizationService,
         ThemeService themeService,
         ColorSchemeService colorSchemeService,
-        LayoutDirectionService layoutDirectionService)
+        LayoutDirectionService layoutDirectionService,
+        ZoomService zoomService)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _colorSchemeService = colorSchemeService ?? throw new ArgumentNullException(nameof(colorSchemeService));
         _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
+        _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
 
         // Subscribe to settings changes
         _layoutDirectionService.LayoutDirectionChanged += OnLayoutDirectionChanged;
         _localizationService.LanguageChanged += OnLanguageChanged;
+        _zoomService.ZoomChanged += OnZoomChanged;
 
         InitializeAsync();
     }
@@ -105,6 +112,7 @@ public partial class [ScreenName]ViewModel : ObservableObject
         await LoadTranslationsAsync();
         await LoadDataAsync();
         UpdateLayoutDirection();
+        UpdateZoomLevel();
     }
 
     private async Task LoadTranslationsAsync()
@@ -134,9 +142,21 @@ public partial class [ScreenName]ViewModel : ObservableObject
         CurrentFlowDirection = direction;
     }
 
+    private void OnZoomChanged(object? sender, ZoomLevel zoomLevel)
+    {
+        CurrentZoomLevel = zoomLevel;
+        // UI elements will automatically scale through dynamic resources
+        // Additional zoom-specific logic can be added here if needed
+    }
+
     private void UpdateLayoutDirection()
     {
         CurrentFlowDirection = _layoutDirectionService.CurrentDirection;
+    }
+
+    private void UpdateZoomLevel()
+    {
+        CurrentZoomLevel = _zoomService.CurrentZoomLevel;
     }
 
     [RelayCommand]
@@ -209,6 +229,7 @@ public partial class [ScreenName]ViewModel : ObservableObject
     {
         _layoutDirectionService.LayoutDirectionChanged -= OnLayoutDirectionChanged;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        _zoomService.ZoomChanged -= OnZoomChanged;
     }
 }
 ```
@@ -491,6 +512,7 @@ services.AddTransient<[ScreenName]ViewModel>();
 services.AddSingleton<ThemeService>();
 services.AddSingleton<ColorSchemeService>();
 services.AddSingleton<LayoutDirectionService>();
+services.AddSingleton<ZoomService>();
 services.AddSingleton<DatabaseLocalizationService>();
 
 // If you need a new business service, also register it:
@@ -824,35 +846,308 @@ HorizontalContentAlignment="{Binding CurrentFlowDirection, Converter={StaticReso
 
 ### Font System Implementation
 
-#### Responsive Font Sizing
+#### Responsive Font Sizing with Zoom Integration
 
-Use the font system for consistent, user-customizable text sizes:
+The font system automatically scales with user zoom preferences and font size settings:
 
 ```xml
-<!-- Available font sizes (automatically scaled based on user preference) -->
-FontSize="{DynamicResource FontSizeVerySmall}"    <!-- 10-14px range -->
-FontSize="{DynamicResource FontSizeSmall}"        <!-- 12-16px range -->
-FontSize="{DynamicResource FontSizeMedium}"       <!-- 14-18px range -->
-FontSize="{DynamicResource FontSizeLarge}"        <!-- 16-20px range -->
+<!-- Available font sizes (automatically scaled based on user preference and zoom level) -->
+FontSize="{DynamicResource FontSizeVerySmall}"    <!-- 13-20px range depending on zoom -->
+FontSize="{DynamicResource FontSizeSmall}"        <!-- 15-22px range depending on zoom -->
+FontSize="{DynamicResource FontSizeMedium}"       <!-- 17-26px range depending on zoom -->
+FontSize="{DynamicResource FontSizeLarge}"        <!-- 19-29px range depending on zoom -->
+FontSize="{DynamicResource FontSizeXLarge}"       <!-- 22-33px range depending on zoom -->
+FontSize="{DynamicResource FontSizeXXLarge}"      <!-- 26-39px range depending on zoom -->
 
 <!-- Always pair with Poppins font family -->
 FontFamily="{DynamicResource PoppinsFontFallback}"
 
-<!-- Complete text element example -->
+<!-- Complete text element example with zoom support -->
 <TextBlock Text="Responsive Text"
            FontFamily="{DynamicResource PoppinsFontFallback}"
            FontSize="{DynamicResource FontSizeMedium}"
            Foreground="{DynamicResource TextPrimary}"/>
 ```
 
-#### Font Weight Guidelines
+#### Font Weight Guidelines with Zoom Considerations
 
 ```xml
-FontWeight="Light"      <!-- For less important text -->
-FontWeight="Normal"     <!-- Default text weight -->
-FontWeight="Medium"     <!-- Slightly emphasized text -->
-FontWeight="SemiBold"   <!-- Section headers, labels -->
-FontWeight="Bold"       <!-- Page titles, important headers -->
+FontWeight="Light"      <!-- For less important text - scales with zoom -->
+FontWeight="Normal"     <!-- Default text weight - scales with zoom -->
+FontWeight="Medium"     <!-- Slightly emphasized text - scales with zoom -->
+FontWeight="SemiBold"   <!-- Section headers, labels - scales with zoom -->
+FontWeight="Bold"       <!-- Page titles, important headers - scales with zoom -->
+```
+
+## 🔍 Zoom Level System Integration
+
+### Understanding the Zoom System
+
+ChronoPos includes a comprehensive zoom system that allows users to scale the entire UI from 50% to 150%:
+
+- **Zoom50** (50%) - Very Small UI elements
+- **Zoom60** (60%) - Small UI elements  
+- **Zoom70** (70%) - Smaller UI elements
+- **Zoom80** (80%) - Small Normal UI elements
+- **Zoom90** (90%) - Almost Normal UI elements
+- **Zoom100** (100%) - Normal (Default) UI elements
+- **Zoom110** (110%) - Slightly Large UI elements
+- **Zoom120** (120%) - Large UI elements
+- **Zoom130** (130%) - Larger UI elements
+- **Zoom140** (140%) - Very Large UI elements
+- **Zoom150** (150%) - Maximum UI elements
+
+### Zoom-Aware Resource Usage
+
+#### Layout Resources that Scale with Zoom
+
+```xml
+<!-- Spacing and sizing that automatically scales with zoom level -->
+Margin="{DynamicResource DefaultMarginThickness}"      <!-- 10px base, scales 5-15px -->
+Padding="{DynamicResource DefaultPaddingThickness}"    <!-- 15px base, scales 7.5-22.5px -->
+Height="{DynamicResource ButtonHeight}"                <!-- 45px base, scales 22.5-67.5px -->
+MinWidth="{DynamicResource ButtonMinWidth}"            <!-- 80px base, scales 40-120px -->
+
+<!-- Corner radius that scales with zoom -->
+CornerRadius="{DynamicResource BorderCornerRadius}"    <!-- 8px base, scales 4-12px -->
+
+<!-- Icon sizes that scale with zoom -->
+Width="{DynamicResource IconSize}"                     <!-- 16px base, scales 8-24px -->
+Height="{DynamicResource IconSize}"                    <!-- 16px base, scales 8-24px -->
+```
+
+#### Card and Panel Padding with Zoom
+
+```xml
+<!-- Card containers with zoom-aware padding -->
+<Border Background="{DynamicResource CardBackground}" 
+        CornerRadius="{DynamicResource CardCornerRadius}"
+        Padding="{DynamicResource CardPaddingThickness}"      <!-- 20px base, scales 10-30px -->
+        Margin="{DynamicResource DefaultMarginThickness}"     <!-- 10px base, scales 5-15px -->
+        BorderBrush="{DynamicResource BorderLight}"
+        BorderThickness="1">
+    
+    <!-- Content automatically scales with container -->
+    
+</Border>
+```
+
+### ViewModel Integration with Zoom Service
+
+```csharp
+public partial class [ScreenName]ViewModel : ObservableObject
+{
+    private readonly ZoomService _zoomService;
+    
+    [ObservableProperty]
+    private ZoomLevel _currentZoomLevel = ZoomLevel.Zoom100;
+    
+    [ObservableProperty]
+    private double _currentZoomScale = 1.0;
+    
+    [ObservableProperty]
+    private int _currentZoomPercentage = 100;
+
+    public [ScreenName]ViewModel(ZoomService zoomService, /* other services */)
+    {
+        _zoomService = zoomService;
+        
+        // Subscribe to zoom changes
+        _zoomService.ZoomChanged += OnZoomChanged;
+        
+        // Initialize current zoom state
+        UpdateZoomLevel();
+    }
+
+    private void OnZoomChanged(object? sender, ZoomLevel zoomLevel)
+    {
+        CurrentZoomLevel = zoomLevel;
+        CurrentZoomScale = _zoomService.CurrentZoomScale;
+        CurrentZoomPercentage = _zoomService.CurrentZoomPercentage;
+        
+        // Optional: Custom zoom handling for specific elements
+        HandleCustomZoomLogic();
+    }
+
+    private void UpdateZoomLevel()
+    {
+        CurrentZoomLevel = _zoomService.CurrentZoomLevel;
+        CurrentZoomScale = _zoomService.CurrentZoomScale;
+        CurrentZoomPercentage = _zoomService.CurrentZoomPercentage;
+    }
+    
+    private void HandleCustomZoomLogic()
+    {
+        // Example: Adjust data grid column widths based on zoom
+        // Example: Show/hide certain UI elements based on available space
+        // Example: Adjust image quality based on zoom level
+    }
+
+    public void Dispose()
+    {
+        _zoomService.ZoomChanged -= OnZoomChanged;
+        // Other cleanup
+    }
+}
+```
+
+### XAML Components with Zoom-Awareness
+
+#### Buttons with Zoom Scaling
+
+```xml
+<!-- Navigation buttons that scale properly with zoom -->
+<Button Content="🏠 Dashboard"
+        Style="{DynamicResource NavigationButtonStyle}"     <!-- Includes zoom-aware sizing -->
+        FontFamily="{DynamicResource PoppinsFontFallback}"
+        FontSize="{DynamicResource FontSizeMedium}"         <!-- Scales 17-26px with zoom -->
+        Height="{DynamicResource ButtonHeight}"             <!-- Scales 45-67.5px with zoom -->
+        Margin="{DynamicResource DefaultMarginThickness}"   <!-- Scales margins appropriately -->
+        Command="{Binding NavigateCommand}"/>
+```
+
+#### Input Controls with Zoom Support
+
+```xml
+<!-- Text inputs that scale with zoom level -->
+<TextBox Text="{Binding InputValue}"
+         Style="{DynamicResource ModernTextBoxStyle}"
+         FontFamily="{DynamicResource PoppinsFontFallback}"
+         FontSize="{DynamicResource FontSizeSmall}"         <!-- Scales 15-22px with zoom -->
+         Padding="{DynamicResource DefaultPaddingThickness}" <!-- Scales 15-22.5px with zoom -->
+         Margin="{DynamicResource DefaultMarginThickness}"   <!-- Scales 10-15px with zoom -->
+         MinHeight="{DynamicResource ButtonHeight}"/>        <!-- Consistent with button heights -->
+```
+
+#### Data Grids with Zoom Integration
+
+```xml
+<DataGrid ItemsSource="{Binding Items}"
+          FontFamily="{DynamicResource PoppinsFontFallback}"
+          FontSize="{DynamicResource FontSizeSmall}"         <!-- Text scales with zoom -->
+          Background="{DynamicResource CardBackground}"
+          Foreground="{DynamicResource TextPrimary}"
+          BorderBrush="{DynamicResource BorderLight}"
+          RowHeight="{DynamicResource ButtonHeight}">         <!-- Row height scales with zoom -->
+    
+    <DataGrid.ColumnHeaderStyle>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+            <!-- All properties scale with zoom automatically -->
+        </Style>
+    </DataGrid.ColumnHeaderStyle>
+    
+    <DataGrid.CellStyle>
+        <Style TargetType="DataGridCell">
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+            <!-- Cells automatically scale with zoom -->
+        </Style>
+    </DataGrid.CellStyle>
+</DataGrid>
+```
+
+#### Icons and Images with Zoom Scaling
+
+```xml
+<!-- Icons that scale appropriately with zoom level -->
+<TextBlock Text="🔍"
+           FontSize="{DynamicResource IconSize}"             <!-- Scales 16-24px with zoom -->
+           VerticalAlignment="Center"
+           Margin="{DynamicResource DefaultMarginThickness}"/>
+
+<!-- Custom icons with zoom-aware sizing -->
+<Image Source="icon.png"
+       Width="{DynamicResource IconSize}"                   <!-- Scales with zoom -->
+       Height="{DynamicResource IconSize}"                  <!-- Maintains aspect ratio -->
+       Margin="{DynamicResource DefaultMarginThickness}"/>
+```
+
+### Advanced Zoom Considerations
+
+#### Responsive Layout with Zoom
+
+```csharp
+// ViewModel method to handle zoom-based layout changes
+private void HandleCustomZoomLogic()
+{
+    // Adjust layout based on zoom level
+    switch (CurrentZoomLevel)
+    {
+        case ZoomLevel.Zoom50:
+        case ZoomLevel.Zoom60:
+        case ZoomLevel.Zoom70:
+            // Compact layout for small zoom levels
+            IsCompactMode = true;
+            ShowDetailedInfo = false;
+            break;
+            
+        case ZoomLevel.Zoom80:
+        case ZoomLevel.Zoom90:
+        case ZoomLevel.Zoom100:
+            // Normal layout
+            IsCompactMode = false;
+            ShowDetailedInfo = true;
+            break;
+            
+        case ZoomLevel.Zoom110:
+        case ZoomLevel.Zoom120:
+        case ZoomLevel.Zoom130:
+        case ZoomLevel.Zoom140:
+        case ZoomLevel.Zoom150:
+            // Expanded layout for large zoom levels
+            IsCompactMode = false;
+            ShowDetailedInfo = true;
+            ShowExtraDetails = true;
+            break;
+    }
+}
+```
+
+#### Conditional UI Elements Based on Zoom
+
+```xml
+<!-- Show detailed information only at higher zoom levels -->
+<StackPanel Visibility="{Binding ShowDetailedInfo, Converter={StaticResource BooleanToVisibilityConverter}}">
+    <TextBlock Text="{Binding DetailedDescription}"
+               FontFamily="{DynamicResource PoppinsFontFallback}"
+               FontSize="{DynamicResource FontSizeSmall}"
+               Foreground="{DynamicResource TextSecondary}"
+               Margin="{DynamicResource DefaultMarginThickness}"/>
+</StackPanel>
+
+<!-- Compact mode for smaller zoom levels -->
+<Grid Visibility="{Binding IsCompactMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+    <!-- Simplified UI for compact mode -->
+</Grid>
+```
+
+### Testing Zoom Integration
+
+#### Zoom Testing Checklist for New Screens
+
+- [ ] **50% Zoom**: Verify all text is readable and UI elements are usable
+- [ ] **75% Zoom**: Check that layout remains functional and attractive
+- [ ] **100% Zoom**: Confirm default appearance matches design specifications
+- [ ] **125% Zoom**: Ensure larger elements don't break layout
+- [ ] **150% Zoom**: Verify maximum zoom maintains usability
+
+#### Zoom-Specific Test Cases
+
+```csharp
+// Test scenarios for zoom functionality
+1. Load screen at 100% zoom - verify normal appearance
+2. Change to 50% zoom - verify UI scales down appropriately
+3. Change to 150% zoom - verify UI scales up without breaking
+4. Navigate between screens with different zoom levels - verify consistency
+5. Input text at various zoom levels - verify text entry works correctly
+6. Test data grids with scrolling at different zoom levels
+7. Verify button click targets scale appropriately with zoom
+8. Test form validation messages at different zoom levels
 ```
 
 ### Pre-built Component Styles
@@ -1194,6 +1489,22 @@ dotnet run --project src\ChronoPos.Desktop\ChronoPos.Desktop.csproj
 - [ ] **Font Consistency**: Check all elements use Poppins font (or fallback)
 - [ ] **Font Weights**: Verify different font weights (light, normal, semibold, bold) work correctly
 
+#### Zoom Level System Testing
+- [ ] **50% Zoom (Very Small)**: Verify all UI elements scale down and remain usable
+- [ ] **60% Zoom (Small)**: Check text readability and button accessibility
+- [ ] **70% Zoom (Smaller)**: Verify layout maintains proper proportions
+- [ ] **80% Zoom (Small Normal)**: Test form inputs and data grid functionality
+- [ ] **90% Zoom (Almost Normal)**: Check navigation and interaction elements
+- [ ] **100% Zoom (Normal)**: Verify default appearance matches specifications
+- [ ] **110% Zoom (Slightly Large)**: Test larger elements don't break layout
+- [ ] **120% Zoom (Large)**: Verify accessibility for users requiring larger UI
+- [ ] **130% Zoom (Larger)**: Check advanced layouts handle scaling properly
+- [ ] **140% Zoom (Very Large)**: Test maximum usability with large elements
+- [ ] **150% Zoom (Maximum)**: Verify UI remains functional at maximum zoom
+- [ ] **Zoom Transitions**: Test smooth scaling when changing zoom levels
+- [ ] **Cross-Screen Consistency**: Verify zoom applies consistently across all screens
+- [ ] **Zoom Persistence**: Check zoom level persists across app restarts
+
 #### Screen-Specific Functionality Testing
 - [ ] **Navigation**: Click navigation button - screen loads correctly
 - [ ] **Data Loading**: Test data loading with proper loading indicators
@@ -1352,11 +1663,13 @@ public partial class InventoryViewModel : ObservableObject, IDisposable
     private readonly ThemeService _themeService;
     private readonly ColorSchemeService _colorSchemeService;
     private readonly LayoutDirectionService _layoutDirectionService;
+    private readonly ZoomService _zoomService;
 
     [ObservableProperty] private string _title = "Inventory Management";
     [ObservableProperty] private string _searchButtonText = "🔍 Search";
     [ObservableProperty] private string _addNewButtonText = "➕ Add Product";
     [ObservableProperty] private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
+    [ObservableProperty] private ZoomLevel _currentZoomLevel = ZoomLevel.Zoom100;
     [ObservableProperty] private bool _isLoading = false;
     [ObservableProperty] private string _statusMessage = "Ready";
     [ObservableProperty] private ObservableCollection<ProductViewModel> _products = new();
@@ -1365,16 +1678,19 @@ public partial class InventoryViewModel : ObservableObject, IDisposable
         DatabaseLocalizationService localizationService,
         ThemeService themeService,
         ColorSchemeService colorSchemeService,
-        LayoutDirectionService layoutDirectionService)
+        LayoutDirectionService layoutDirectionService,
+        ZoomService zoomService)
     {
         _localizationService = localizationService;
         _themeService = themeService;
         _colorSchemeService = colorSchemeService;
         _layoutDirectionService = layoutDirectionService;
+        _zoomService = zoomService;
 
         // Subscribe to settings changes
         _layoutDirectionService.LayoutDirectionChanged += OnLayoutDirectionChanged;
         _localizationService.LanguageChanged += OnLanguageChanged;
+        _zoomService.ZoomChanged += OnZoomChanged;
 
         InitializeAsync();
     }
@@ -1384,6 +1700,7 @@ public partial class InventoryViewModel : ObservableObject, IDisposable
         await EnsureKeywordsExistAsync();
         await LoadTranslationsAsync();
         UpdateLayoutDirection();
+        UpdateZoomLevel();
         await LoadDataAsync();
     }
 
@@ -1431,7 +1748,9 @@ public partial class InventoryViewModel : ObservableObject, IDisposable
 
     private void OnLanguageChanged(object? sender, EventArgs e) => _ = LoadTranslationsAsync();
     private void OnLayoutDirectionChanged(object? sender, FlowDirection direction) => CurrentFlowDirection = direction;
+    private void OnZoomChanged(object? sender, ZoomLevel zoomLevel) => CurrentZoomLevel = zoomLevel;
     private void UpdateLayoutDirection() => CurrentFlowDirection = _layoutDirectionService.CurrentDirection;
+    private void UpdateZoomLevel() => CurrentZoomLevel = _zoomService.CurrentZoomLevel;
 
     [RelayCommand]
     private async Task LoadDataAsync()
@@ -1439,7 +1758,7 @@ public partial class InventoryViewModel : ObservableObject, IDisposable
         IsLoading = true;
         StatusMessage = await _localizationService.GetTranslationAsync("status_loading") ?? "Loading...";
         
-        // Simulate data loading
+        // Simulate data loading - scales work automatically with zoom through dynamic resources
         await Task.Delay(1000);
         
         StatusMessage = await _localizationService.GetTranslationAsync("status_loaded") ?? "Products loaded";
@@ -1450,6 +1769,7 @@ public partial class InventoryViewModel : ObservableObject, IDisposable
     {
         _layoutDirectionService.LayoutDirectionChanged -= OnLayoutDirectionChanged;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        _zoomService.ZoomChanged -= OnZoomChanged;
     }
 }
 ```
@@ -1486,22 +1806,26 @@ This comprehensive guide ensures that all new screens you create will be fully i
 - [ ] Plan status messages and user feedback text
 
 ### ✅ ViewModel Requirements
-- [ ] Inject all settings services: `DatabaseLocalizationService`, `ThemeService`, `ColorSchemeService`, `LayoutDirectionService`
+- [ ] Inject all settings services: `DatabaseLocalizationService`, `ThemeService`, `ColorSchemeService`, `LayoutDirectionService`, `ZoomService`
 - [ ] Add `FlowDirection` property for RTL support
+- [ ] Add `ZoomLevel` property for zoom level awareness
 - [ ] Create translated properties for all user-visible text
-- [ ] Subscribe to `LanguageChanged` and `LayoutDirectionChanged` events
+- [ ] Subscribe to `LanguageChanged`, `LayoutDirectionChanged`, and `ZoomChanged` events
 - [ ] Implement `LoadTranslationsAsync()` method
 - [ ] Add keywords to database using `LanguageManager`
 - [ ] Provide fallback values for all translations
+- [ ] Handle zoom-specific logic if needed (optional)
 
 ### ✅ XAML Requirements
 - [ ] Set `FlowDirection="{Binding CurrentFlowDirection}"` on root element
-- [ ] Use `{DynamicResource}` for all colors and fonts
+- [ ] Use `{DynamicResource}` for all colors, fonts, and layout dimensions
 - [ ] Bind all text to translated properties from ViewModel
 - [ ] Use responsive font sizes: `FontSizeVerySmall`, `FontSizeSmall`, `FontSizeMedium`, `FontSizeLarge`
 - [ ] Apply `PoppinsFontFallback` font family
+- [ ] Use zoom-aware layout resources: `DefaultMarginThickness`, `DefaultPaddingThickness`, `ButtonHeight`
 - [ ] Use direction-aware text alignment converters
 - [ ] Implement proper theme-aware styles for all controls
+- [ ] Ensure all interactive elements scale properly with zoom levels
 
 ### ✅ Registration and Navigation
 - [ ] Register ViewModel in `App.xaml.cs` dependency injection

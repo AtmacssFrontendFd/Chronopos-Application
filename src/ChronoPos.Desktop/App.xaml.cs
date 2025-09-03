@@ -82,6 +82,10 @@ public partial class App : System.Windows.Application
                     services.AddSingleton<ILayoutDirectionService, LayoutDirectionService>();
                     LogMessage("LayoutDirectionService registered");
 
+                    // Register zoom service
+                    services.AddSingleton<IZoomService, ZoomService>();
+                    LogMessage("ZoomService registered");
+
                     // Register ViewModels
                     services.AddTransient<MainWindowViewModel>();
                     LogMessage("MainWindowViewModel registered");
@@ -207,6 +211,22 @@ public partial class App : System.Windows.Application
             {
                 LogMessage($"Layout direction service error: {ex.Message}");
                 LogMessage($"Layout direction service stack trace: {ex.StackTrace}");
+            }
+
+            // Initialize zoom service
+            try 
+            {
+                LogMessage("Initializing zoom service...");
+                var zoomService = _host.Services.GetRequiredService<IZoomService>();
+                LogMessage("Zoom service retrieved");
+                zoomService.LoadZoomFromSettings();
+                LogMessage("Zoom service initialized successfully");
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"Zoom service error: {ex.Message}");
+                LogMessage($"Zoom service stack trace: {ex.StackTrace}");
+                // Don't fail the app if zoom service fails
             }
 
             // Initialize database on startup

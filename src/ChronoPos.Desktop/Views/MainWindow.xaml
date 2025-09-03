@@ -21,7 +21,7 @@
                 Background="{DynamicResource SurfaceBackground}" 
                 BorderThickness="0,0,0,1" 
                 BorderBrush="{DynamicResource BorderLight}">
-            <Grid Margin="20,0">
+            <Grid Margin="{DynamicResource CardPaddingThickness}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -29,12 +29,12 @@
                 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="ChronoPos" 
-                               FontSize="24" 
+                               FontSize="{DynamicResource FontSizeXXLarge}" 
                                FontWeight="Bold" 
                                Foreground="{DynamicResource TextPrimary}" 
                                VerticalAlignment="Center"/>
                     <TextBlock Text="Point of Sale System" 
-                               FontSize="14" 
+                               FontSize="{DynamicResource FontSizeSmall}" 
                                Foreground="{DynamicResource TextSecondary}" 
                                VerticalAlignment="Center" 
                                Margin="15,0,0,0"/>
@@ -42,12 +42,12 @@
                 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="{Binding CurrentDateTime}" 
-                               FontSize="12" 
+                               FontSize="{DynamicResource FontSizeVerySmall}" 
                                Foreground="{DynamicResource TextPrimary}" 
                                VerticalAlignment="Center" 
                                Margin="0,0,20,0"/>
                     <TextBlock Text="{Binding CurrentUser}" 
-                               FontSize="12" 
+                               FontSize="{DynamicResource FontSizeVerySmall}" 
                                Foreground="{DynamicResource TextSecondary}" 
                                VerticalAlignment="Center"/>
                 </StackPanel>
@@ -55,7 +55,7 @@
         </Border>
 
         <!-- Main Content -->
-        <Grid Grid.Row="1" Margin="10">
+        <Grid Grid.Row="1" Margin="{DynamicResource DefaultMarginThickness}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="200"/>
                 <ColumnDefinition Width="*"/>
@@ -64,24 +64,21 @@
             <!-- Sidebar Navigation -->
             <Border Grid.Column="0" 
                     Background="{DynamicResource CardBackground}" 
-                    CornerRadius="5" 
+                    CornerRadius="{DynamicResource BorderCornerRadius}" 
                     Margin="0,0,10,0"
                     BorderBrush="{DynamicResource BorderLight}"
                     BorderThickness="1">
-                <StackPanel Margin="10">
+                <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
                     <TextBlock Text="Navigation" 
-                               FontSize="16" 
+                               FontSize="{DynamicResource FontSizeMedium}" 
                                FontWeight="Bold" 
                                Foreground="{DynamicResource TextPrimary}"
                                Margin="0,0,0,15"/>
                     
                     <Button Content="🏠 Dashboard" 
-                            Height="40" 
-                            HorizontalAlignment="Stretch" 
-                            Margin="0,0,0,5"
                             Command="{Binding ShowDashboardCommand}">
                         <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding SelectedPage}" Value="Dashboard">
                                         <Setter Property="Background" Value="{DynamicResource Primary}"/>
@@ -93,12 +90,9 @@
                     </Button>
                     
                     <Button Content="💳 Transactions" 
-                            Height="40" 
-                            HorizontalAlignment="Stretch" 
-                            Margin="0,0,0,5"
                             Command="{Binding ShowTransactionsCommand}">
                         <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding SelectedPage}" Value="Transactions">
                                         <Setter Property="Background" Value="{DynamicResource Primary}"/>
@@ -110,12 +104,9 @@
                     </Button>
                     
                     <Button Content="📦 Management" 
-                            Height="40" 
-                            HorizontalAlignment="Stretch" 
-                            Margin="0,0,0,5"
                             Command="{Binding ShowManagementCommand}">
                         <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding SelectedPage}" Value="Management">
                                         <Setter Property="Background" Value="{DynamicResource Primary}"/>
@@ -127,12 +118,9 @@
                     </Button>
                     
                     <Button Content="🏨 Reservation" 
-                            Height="40" 
-                            HorizontalAlignment="Stretch" 
-                            Margin="0,0,0,5"
                             Command="{Binding ShowReservationCommand}">
                         <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding SelectedPage}" Value="Reservation">
                                         <Setter Property="Background" Value="{DynamicResource Primary}"/>
@@ -144,12 +132,9 @@
                     </Button>
                     
                     <Button Content="📋 Order Table" 
-                            Height="40" 
-                            HorizontalAlignment="Stretch" 
-                            Margin="0,0,0,5"
                             Command="{Binding ShowOrderTableCommand}">
                         <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding SelectedPage}" Value="OrderTable">
                                         <Setter Property="Background" Value="{DynamicResource Primary}"/>
@@ -161,12 +146,10 @@
                     </Button>
                     
                     <Button Content="📈 Reports" 
-                            Height="40" 
-                            HorizontalAlignment="Stretch" 
                             Margin="0,0,0,25"
                             Command="{Binding ShowReportsCommand}">
                         <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding SelectedPage}" Value="Reports">
                                         <Setter Property="Background" Value="{DynamicResource Primary}"/>
@@ -177,15 +160,12 @@
                         </Button.Style>
                     </Button>
                     
-                    <Separator Background="{DynamicResource BorderLight}" Margin="0,0,0,10"/>
+                    <Separator Background="{DynamicResource BorderLight}" Margin="0,15,0,10"/>
                     
                     <Button Content="⚙️ Settings" 
-                            Height="40" 
-                            HorizontalAlignment="Stretch" 
-                            Margin="0,0,0,15"
                             Command="{Binding ShowSettingsCommand}">
                         <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding SelectedPage}" Value="Settings">
                                         <Setter Property="Background" Value="{DynamicResource Primary}"/>
@@ -197,23 +177,27 @@
                     </Button>
                     
                     <Button Content="🚪 Logout" 
-                            Style="{DynamicResource ModernButtonStyle}"
-                            Height="40" 
-                            HorizontalAlignment="Stretch" 
-                            Margin="0,0,0,5"
                             Background="{DynamicResource Error}"
-                            Foreground="{DynamicResource TextPrimary}"
-                            Command="{Binding LogoutCommand}"/>
+                            Foreground="White"
+                            Margin="0,15,0,5"
+                            Command="{Binding LogoutCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
+                                <Setter Property="Background" Value="{DynamicResource Error}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                 </StackPanel>
             </Border>
 
             <!-- Content Area -->
             <Border Grid.Column="1" 
                     Background="{DynamicResource CardBackground}" 
-                    CornerRadius="5"
+                    CornerRadius="{DynamicResource BorderCornerRadius}"
                     BorderBrush="{DynamicResource BorderLight}"
                     BorderThickness="1">
-                <Grid Margin="20">
+                <Grid Margin="{DynamicResource CardPaddingThickness}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -222,7 +206,7 @@
                     <!-- Page Title -->
                     <TextBlock Grid.Row="0" 
                                Text="{Binding CurrentPageTitle}" 
-                               FontSize="20" 
+                               FontSize="{DynamicResource FontSizeLarge}" 
                                FontWeight="Bold" 
                                Foreground="{DynamicResource TextPrimary}"
                                Margin="0,0,0,20"/>
