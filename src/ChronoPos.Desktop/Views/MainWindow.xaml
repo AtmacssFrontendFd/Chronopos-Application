@@ -75,8 +75,11 @@
                                Foreground="{DynamicResource TextPrimary}"
                                Margin="0,0,0,15"/>
                     
-                    <Button Content="🏠 Dashboard" 
-                            Command="{Binding ShowDashboardCommand}">
+                    <Button Command="{Binding ShowDashboardCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🏠" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="{Binding DashboardButtonText}" VerticalAlignment="Center"/>
+                        </StackPanel>
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
                                 <Style.Triggers>
@@ -89,8 +92,11 @@
                         </Button.Style>
                     </Button>
                     
-                    <Button Content="💳 Transactions" 
-                            Command="{Binding ShowTransactionsCommand}">
+                    <Button Command="{Binding ShowTransactionsCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="💳" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="{Binding TransactionsButtonText}" VerticalAlignment="Center"/>
+                        </StackPanel>
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
                                 <Style.Triggers>
@@ -103,8 +109,11 @@
                         </Button.Style>
                     </Button>
                     
-                    <Button Content="📦 Management" 
-                            Command="{Binding ShowManagementCommand}">
+                    <Button Command="{Binding ShowManagementCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📦" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="{Binding ManagementButtonText}" VerticalAlignment="Center"/>
+                        </StackPanel>
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
                                 <Style.Triggers>
@@ -117,8 +126,11 @@
                         </Button.Style>
                     </Button>
                     
-                    <Button Content="🏨 Reservation" 
-                            Command="{Binding ShowReservationCommand}">
+                    <Button Command="{Binding ShowReservationCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🏨" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="{Binding ReservationButtonText}" VerticalAlignment="Center"/>
+                        </StackPanel>
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
                                 <Style.Triggers>
@@ -131,8 +143,11 @@
                         </Button.Style>
                     </Button>
                     
-                    <Button Content="📋 Order Table" 
-                            Command="{Binding ShowOrderTableCommand}">
+                    <Button Command="{Binding ShowOrderTableCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📋" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="{Binding OrderTableButtonText}" VerticalAlignment="Center"/>
+                        </StackPanel>
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
                                 <Style.Triggers>
@@ -145,9 +160,12 @@
                         </Button.Style>
                     </Button>
                     
-                    <Button Content="📈 Reports" 
-                            Margin="0,0,0,25"
+                    <Button Margin="0,0,0,25"
                             Command="{Binding ShowReportsCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📈" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="{Binding ReportsButtonText}" VerticalAlignment="Center"/>
+                        </StackPanel>
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
                                 <Style.Triggers>
@@ -162,8 +180,11 @@
                     
                     <Separator Background="{DynamicResource BorderLight}" Margin="0,15,0,10"/>
                     
-                    <Button Content="⚙️ Settings" 
-                            Command="{Binding ShowSettingsCommand}">
+                    <Button Command="{Binding ShowSettingsCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚙️" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="{Binding SettingsButtonText}" VerticalAlignment="Center"/>
+                        </StackPanel>
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
                                 <Style.Triggers>
@@ -176,11 +197,14 @@
                         </Button.Style>
                     </Button>
                     
-                    <Button Content="🚪 Logout" 
-                            Background="{DynamicResource Error}"
+                    <Button Background="{DynamicResource Error}"
                             Foreground="White"
                             Margin="0,15,0,5"
                             Command="{Binding LogoutCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🚪" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="{Binding LogoutButtonText}" VerticalAlignment="Center"/>
+                        </StackPanel>
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
                                 <Setter Property="Background" Value="{DynamicResource Error}"/>

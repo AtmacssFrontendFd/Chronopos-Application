@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ChronoPos.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bebb9021bee1e1336396ca9f3509372ca5f260b7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a7ed7af6216330e2a743492e9fb388743956f044")]
 [assembly: System.Reflection.AssemblyProductAttribute("ChronoPos.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ChronoPos.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

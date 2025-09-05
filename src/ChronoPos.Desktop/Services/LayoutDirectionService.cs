@@ -91,6 +91,14 @@ public class LayoutDirectionService : ILayoutDirectionService
             
         System.Windows.Application.Current?.Resources?.Remove("AppHorizontalAlignment");
         System.Windows.Application.Current?.Resources?.Add("AppHorizontalAlignment", horizontalAlignment);
+        
+        // Update reverse horizontal alignment (opposite of main alignment)
+        var reverseHorizontalAlignment = direction == LayoutDirection.RightToLeft 
+            ? HorizontalAlignment.Left 
+            : HorizontalAlignment.Right;
+            
+        System.Windows.Application.Current?.Resources?.Remove("AppReverseHorizontalAlignment");
+        System.Windows.Application.Current?.Resources?.Add("AppReverseHorizontalAlignment", reverseHorizontalAlignment);
     }
 
     private void SaveDirectionToSettings(LayoutDirection direction)

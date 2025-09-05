@@ -756,6 +756,8 @@ CREATE TABLE `supplier_purchase_item` (
   `received_quantity` decimal(10,3),
   `status` varchar(20) DEFAULT 'Active'
 );
+
+
 --warranty tables can be used in different tables like product, sales, etc.
 CREATE TABLE `warranty_type` (
   `id` int PRIMARY KEY AUTO_INCREMENT,

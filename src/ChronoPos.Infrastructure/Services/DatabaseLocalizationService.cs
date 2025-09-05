@@ -40,14 +40,19 @@ namespace ChronoPos.Infrastructure.Services
             try
             {
                 languageCode ??= GetCurrentLanguageCode();
+                Console.WriteLine($"🔍 [DatabaseLocalizationService] GetTranslationAsync - Key: '{key}', Language: '{languageCode}'");
                 
                 // Check cache first
                 var cacheKey = $"{languageCode}:{key}";
                 if (_cachedTranslations.ContainsKey(cacheKey) && 
                     DateTime.UtcNow - _lastCacheUpdate < _cacheExpiry)
                 {
-                    return _cachedTranslations[cacheKey];
+                    var cachedValue = _cachedTranslations[cacheKey];
+                    Console.WriteLine($"📋 [DatabaseLocalizationService] Found in cache: '{cachedValue}'");
+                    return cachedValue;
                 }
+
+                Console.WriteLine($"🔍 [DatabaseLocalizationService] Not in cache, querying database...");
 
                 // Get from database
                 var translation = await _context.LabelTranslations
@@ -59,13 +64,17 @@ namespace ChronoPos.Infrastructure.Services
 
                 if (translation != null)
                 {
+                    Console.WriteLine($"✅ [DatabaseLocalizationService] Found translation: '{translation.Value}' for key '{key}' in language '{languageCode}'");
                     _cachedTranslations[cacheKey] = translation.Value;
                     return translation.Value;
                 }
 
+                Console.WriteLine($"⚠️ [DatabaseLocalizationService] No translation found for key '{key}' in language '{languageCode}'");
+
                 // Fallback to English if not found
                 if (languageCode != "en")
                 {
+                    Console.WriteLine($"🔄 [DatabaseLocalizationService] Trying fallback to English for key '{key}'");
                     var englishTranslation = await _context.LabelTranslations
                         .Include(lt => lt.Language)
                         .FirstOrDefaultAsync(lt => 
@@ -75,17 +84,20 @@ namespace ChronoPos.Infrastructure.Services
 
                     if (englishTranslation != null)
                     {
+                        Console.WriteLine($"✅ [DatabaseLocalizationService] Found English fallback: '{englishTranslation.Value}' for key '{key}'");
                         return englishTranslation.Value;
                     }
                 }
 
+                Console.WriteLine($"❌ [DatabaseLocalizationService] No translation found anywhere for key '{key}', returning key itself");
                 // Return key if no translation found
                 return key;
             }
             catch (Exception ex)
             {
                 // Log exception if logging is available
-                Console.WriteLine($"Error getting translation for key '{key}': {ex.Message}");
+                Console.WriteLine($"❌ [DatabaseLocalizationService] Error getting translation for key '{key}': {ex.Message}");
+                Console.WriteLine($"❌ [DatabaseLocalizationService] Stack trace: {ex.StackTrace}");
                 return key;
             }
         }
@@ -138,28 +150,44 @@ namespace ChronoPos.Infrastructure.Services
         {
             try
             {
+                Console.WriteLine($"🔄 [DatabaseLocalizationService] SetCurrentLanguageAsync called with: '{languageCode}'");
+                
                 var language = await _context.Languages
                     .FirstOrDefaultAsync(l => l.LanguageCode == languageCode && l.Status == "Active");
 
                 if (language != null)
                 {
+                    Console.WriteLine($"✅ [DatabaseLocalizationService] Found language: {language.LanguageName} ({language.LanguageCode})");
+                    
+                    var previousLanguage = _currentLanguage?.LanguageCode ?? "none";
                     _currentLanguage = language;
+                    
+                    Console.WriteLine($"🔄 [DatabaseLocalizationService] Language changed from '{previousLanguage}' to '{languageCode}'");
                     
                     // Set culture for formatting
                     var culture = new CultureInfo(languageCode == "ur" ? "ur-PK" : "en-US");
                     CultureInfo.CurrentCulture = culture;
                     CultureInfo.CurrentUICulture = culture;
+                    Console.WriteLine($"🌐 [DatabaseLocalizationService] Culture set to: {culture.Name}");
 
                     // Clear cache to force reload
+                    var cacheCount = _cachedTranslations.Count;
                     _cachedTranslations.Clear();
+                    Console.WriteLine($"🗑️ [DatabaseLocalizationService] Cleared {cacheCount} cached translations");
                     
                     // Notify about language change
+                    Console.WriteLine($"📢 [DatabaseLocalizationService] Firing LanguageChanged event with '{languageCode}'");
                     LanguageChanged?.Invoke(this, languageCode);
+                }
+                else
+                {
+                    Console.WriteLine($"❌ [DatabaseLocalizationService] Language '{languageCode}' not found in database!");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error setting current language to '{languageCode}': {ex.Message}");
+                Console.WriteLine($"❌ [DatabaseLocalizationService] Error setting current language to '{languageCode}': {ex.Message}");
+                Console.WriteLine($"❌ [DatabaseLocalizationService] Stack trace: {ex.StackTrace}");
             }
         }
 
@@ -176,7 +204,9 @@ namespace ChronoPos.Infrastructure.Services
 
         public string GetCurrentLanguageCode()
         {
-            return _currentLanguage?.LanguageCode ?? "en";
+            var code = _currentLanguage?.LanguageCode ?? "en";
+            Console.WriteLine($"🎯 [DatabaseLocalizationService] GetCurrentLanguageCode returning: '{code}'");
+            return code;
         }
 
         public bool IsRightToLeft()
