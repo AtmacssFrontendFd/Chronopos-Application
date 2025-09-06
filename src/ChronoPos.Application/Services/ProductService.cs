@@ -61,11 +61,15 @@ public class ProductService : IProductService
             
         existingProduct.Name = productDto.Name;
         existingProduct.Description = productDto.Description;
-        existingProduct.SKU = productDto.Sku;
+        existingProduct.SKU = productDto.SKU;
         existingProduct.Price = productDto.Price;
-        existingProduct.Stock = productDto.StockQuantity;
+        existingProduct.StockQuantity = productDto.StockQuantity;
         existingProduct.CategoryId = productDto.CategoryId;
         existingProduct.IsActive = productDto.IsActive;
+        existingProduct.Cost = productDto.CostPrice;
+        existingProduct.Markup = productDto.Markup;
+        existingProduct.ImagePath = productDto.ImagePath;
+        existingProduct.Color = productDto.Color;
         existingProduct.UpdatedAt = DateTime.UtcNow;
         
         await _unitOfWork.Products.UpdateAsync(existingProduct);
@@ -86,19 +90,76 @@ public class ProductService : IProductService
         return products.Select(MapToDto);
     }
     
+    // Category management methods
+    public async Task<IEnumerable<CategoryDto>> GetAllCategoriesAsync()
+    {
+        var categories = await _unitOfWork.Categories.GetAllAsync();
+        return categories.Select(MapCategoryToDto);
+    }
+    
+    public async Task<CategoryDto> CreateCategoryAsync(CategoryDto categoryDto)
+    {
+        var category = MapCategoryToEntity(categoryDto);
+        var createdCategory = await _unitOfWork.Categories.AddAsync(category);
+        await _unitOfWork.SaveChangesAsync();
+        
+        return MapCategoryToDto(createdCategory);
+    }
+    
+    public async Task<CategoryDto> UpdateCategoryAsync(CategoryDto categoryDto)
+    {
+        var existingCategory = await _unitOfWork.Categories.GetByIdAsync(categoryDto.Id);
+        if (existingCategory == null)
+            throw new ArgumentException($"Category with ID {categoryDto.Id} not found.");
+            
+        existingCategory.Name = categoryDto.Name;
+        existingCategory.Description = categoryDto.Description;
+        existingCategory.IsActive = categoryDto.IsActive;
+        existingCategory.UpdatedAt = DateTime.UtcNow;
+        
+        await _unitOfWork.Categories.UpdateAsync(existingCategory);
+        await _unitOfWork.SaveChangesAsync();
+        
+        return MapCategoryToDto(existingCategory);
+    }
+    
+    public async Task DeleteCategoryAsync(int id)
+    {
+        await _unitOfWork.Categories.DeleteAsync(id);
+        await _unitOfWork.SaveChangesAsync();
+    }
+    
     private static ProductDto MapToDto(Product product)
     {
         return new ProductDto
         {
             Id = product.Id,
             Name = product.Name,
-            Description = product.Description,
-            Sku = product.SKU,
+            Description = product.Description ?? string.Empty,
+            SKU = product.SKU,
             Price = product.Price,
-            StockQuantity = product.Stock,
+            StockQuantity = product.StockQuantity,
             CategoryId = product.CategoryId,
             CategoryName = product.Category?.Name ?? string.Empty,
-            IsActive = product.IsActive
+            IsActive = product.IsActive,
+            CostPrice = product.Cost,
+            Markup = product.Markup,
+            ImagePath = product.ImagePath,
+            Color = product.Color ?? "#FFC107",
+            // Stock Control Properties
+            IsStockTracked = product.IsStockTracked,
+            AllowNegativeStock = product.AllowNegativeStock,
+            IsUsingSerialNumbers = product.IsUsingSerialNumbers,
+            InitialStock = product.InitialStock,
+            MinimumStock = product.MinimumStock,
+            MaximumStock = product.MaximumStock,
+            ReorderLevel = product.ReorderLevel,
+            ReorderQuantity = product.ReorderQuantity,
+            AverageCost = product.AverageCost,
+            LastCost = product.LastCost,
+            SelectedStoreId = 1, // Default store - could be enhanced to get from context
+            CreatedAt = product.CreatedAt,
+            UpdatedAt = product.UpdatedAt
         };
     }
     
@@ -107,12 +168,53 @@ public class ProductService : IProductService
         return new Product
         {
             Id = dto.Id,
+            Code = dto.SKU ?? string.Empty,
             Name = dto.Name,
             Description = dto.Description,
-            SKU = dto.Sku,
+            SKU = dto.SKU,
             Price = dto.Price,
-            Stock = dto.StockQuantity,
+            StockQuantity = dto.StockQuantity,
             CategoryId = dto.CategoryId,
+            IsActive = dto.IsActive,
+            Cost = dto.CostPrice,
+            Markup = dto.Markup,
+            ImagePath = dto.ImagePath,
+            Color = dto.Color ?? "#FFC107",
+            // Stock Control Properties
+            IsStockTracked = dto.IsStockTracked,
+            AllowNegativeStock = dto.AllowNegativeStock,
+            IsUsingSerialNumbers = dto.IsUsingSerialNumbers,
+            InitialStock = dto.InitialStock,
+            MinimumStock = dto.MinimumStock,
+            MaximumStock = dto.MaximumStock,
+            ReorderLevel = dto.ReorderLevel,
+            ReorderQuantity = dto.ReorderQuantity,
+            AverageCost = dto.AverageCost,
+            LastCost = dto.LastCost,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+    }
+    
+    private static CategoryDto MapCategoryToDto(Category category)
+    {
+        return new CategoryDto
+        {
+            Id = category.Id,
+            Name = category.Name,
+            Description = category.Description,
+            IsActive = category.IsActive,
+            ProductCount = category.Products?.Count ?? 0
+        };
+    }
+    
+    private static Category MapCategoryToEntity(CategoryDto dto)
+    {
+        return new Category
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Description = dto.Description,
             IsActive = dto.IsActive
         };
     }

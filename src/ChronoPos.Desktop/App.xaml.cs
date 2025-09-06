@@ -61,6 +61,10 @@ public partial class App : System.Windows.Application
                     services.AddScoped<IStockAdjustmentService, StockAdjustmentService>();
                     LogMessage("StockAdjustmentService registered");
 
+                    // Register stock service
+                    services.AddScoped<IStockService, Infrastructure.Services.StockService>();
+                    LogMessage("StockService registered");
+
                     // Register theme service
                     services.AddSingleton<IThemeService, ThemeService>();
                     LogMessage("ThemeService registered");
@@ -94,6 +98,10 @@ public partial class App : System.Windows.Application
                     LogMessage("MainWindowViewModel registered");
                     services.AddTransient<ProductsViewModel>();
                     LogMessage("ProductsViewModel registered");
+                    services.AddTransient<ProductManagementViewModel>();
+                    LogMessage("ProductManagementViewModel registered");
+                    services.AddTransient<AddProductViewModel>();
+                    LogMessage("AddProductViewModel registered");
                     services.AddTransient<SalesViewModel>();
                     LogMessage("SalesViewModel registered");
                     services.AddTransient<CustomersViewModel>();
@@ -265,14 +273,16 @@ public partial class App : System.Windows.Application
             using var scope = _host.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
             
-            // Create database and apply any pending migrations
+            // For development: Always recreate database to ensure schema is correct
+            LogMessage("Ensuring fresh database with correct schema...");
+            await dbContext.Database.EnsureDeletedAsync();
             await dbContext.Database.EnsureCreatedAsync();
             
-            // Alternative: Use migrations for production
-            // await dbContext.Database.MigrateAsync();
+            LogMessage("Database initialized successfully");
         }
         catch (Exception ex)
         {
+            LogMessage($"Database initialization failed: {ex.Message}");
             // Log error but don't crash the application
             MessageBox.Show($"Database initialization failed: {ex.Message}\nThe application will continue without database functionality.", 
                           "Database Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
