@@ -1,0 +1,1 @@
+﻿<UserControl x:Class="ChronoPos.Desktop.Views.StockAdjustmentView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"><Grid Margin="20"><TextBlock Text="Stock Adjustment View" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid></UserControl>

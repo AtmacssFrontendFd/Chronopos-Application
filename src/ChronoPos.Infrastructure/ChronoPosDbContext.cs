@@ -24,6 +24,17 @@ public class ChronoPosDbContext : DbContext
     public DbSet<Domain.Entities.Language> Languages { get; set; }
     public DbSet<Domain.Entities.LanguageKeyword> LanguageKeywords { get; set; }
     public DbSet<Domain.Entities.LabelTranslation> LabelTranslations { get; set; }
+    
+    // Stock Management entities
+    public DbSet<Domain.Entities.StockAdjustment> StockAdjustments { get; set; }
+    public DbSet<Domain.Entities.StockAdjustmentItem> StockAdjustmentItems { get; set; }
+    public DbSet<Domain.Entities.StockAdjustmentReason> StockAdjustmentReasons { get; set; }
+    public DbSet<Domain.Entities.StockMovement> StockMovements { get; set; }
+    public DbSet<Domain.Entities.StockTransfer> StockTransfers { get; set; }
+    public DbSet<Domain.Entities.StockTransferItem> StockTransferItems { get; set; }
+    public DbSet<Domain.Entities.User> Users { get; set; }
+    public DbSet<Domain.Entities.ShopLocation> ShopLocations { get; set; }
+    public DbSet<Domain.Entities.UnitOfMeasurement> UnitsOfMeasurement { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -160,6 +171,252 @@ public class ChronoPosDbContext : DbContext
             entity.HasIndex(e => new { e.LanguageId, e.TranslationKey }).IsUnique();
         });
 
+        // Configure StockAdjustment entity
+        modelBuilder.Entity<Domain.Entities.StockAdjustment>(entity =>
+        {
+            entity.HasKey(e => e.AdjustmentId);
+            entity.Property(e => e.AdjustmentNo).IsRequired().HasMaxLength(30);
+            entity.Property(e => e.AdjustmentDate).IsRequired();
+            entity.Property(e => e.StoreLocationId).IsRequired();
+            entity.Property(e => e.ReasonId).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Pending");
+            entity.Property(e => e.CreatedBy).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(d => d.StoreLocation)
+                .WithMany()
+                .HasForeignKey(d => d.StoreLocationId)
+                .OnDelete(DeleteBehavior.Restrict);
+                
+            entity.HasOne(d => d.Reason)
+                .WithMany(p => p.Adjustments)
+                .HasForeignKey(d => d.ReasonId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Creator)
+                .WithMany()
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Updater)
+                .WithMany()
+                .HasForeignKey(d => d.UpdatedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Index on adjustment number for quick lookup
+            entity.HasIndex(e => e.AdjustmentNo).IsUnique();
+        });
+
+        // Configure StockAdjustmentItem entity
+        modelBuilder.Entity<Domain.Entities.StockAdjustmentItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AdjustmentId).IsRequired();
+            entity.Property(e => e.ProductId).IsRequired();
+            entity.Property(e => e.UomId).IsRequired();
+            entity.Property(e => e.BatchNo).HasMaxLength(50);
+            entity.Property(e => e.QuantityBefore).HasPrecision(10, 3);
+            entity.Property(e => e.QuantityAfter).HasPrecision(10, 3);
+            entity.Property(e => e.DifferenceQty).HasPrecision(10, 3);
+            entity.Property(e => e.ReasonLine).HasMaxLength(100);
+
+            // Foreign key relationships
+            entity.HasOne(d => d.Adjustment)
+                .WithMany(p => p.Items)
+                .HasForeignKey(d => d.AdjustmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            entity.HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Uom)
+                .WithMany()
+                .HasForeignKey(d => d.UomId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Configure StockAdjustmentReason entity
+        modelBuilder.Entity<Domain.Entities.StockAdjustmentReason>(entity =>
+        {
+            entity.HasKey(e => e.StockAdjustmentReasonsId);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Description).HasMaxLength(255);
+            entity.Property(e => e.Status).HasMaxLength(255).HasDefaultValue("Active");
+
+            entity.HasOne(d => d.Creator)
+                .WithMany()
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(d => d.Updater)
+                .WithMany()
+                .HasForeignKey(d => d.UpdatedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Configure StockMovement entity
+        modelBuilder.Entity<Domain.Entities.StockMovement>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ProductId).IsRequired();
+            entity.Property(e => e.UomId).IsRequired();
+            entity.Property(e => e.MovementType).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.Quantity).HasPrecision(12, 4);
+            entity.Property(e => e.ReferenceType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.ReferenceId).IsRequired();
+            entity.Property(e => e.CreatedBy).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+                
+            entity.HasOne(d => d.Uom)
+                .WithMany()
+                .HasForeignKey(d => d.UomId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Location)
+                .WithMany()
+                .HasForeignKey(d => d.LocationId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(d => d.Creator)
+                .WithMany()
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.ProductId);
+            entity.HasIndex(e => new { e.ReferenceType, e.ReferenceId });
+        });
+
+        // Configure StockTransfer entity
+        modelBuilder.Entity<Domain.Entities.StockTransfer>(entity =>
+        {
+            entity.HasKey(e => e.TransferId);
+            entity.Property(e => e.TransferNo).IsRequired().HasMaxLength(30);
+            entity.Property(e => e.TransferDate).IsRequired();
+            entity.Property(e => e.FromStoreId).IsRequired();
+            entity.Property(e => e.ToStoreId).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Pending");
+            entity.Property(e => e.CreatedBy).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(d => d.FromStore)
+                .WithMany()
+                .HasForeignKey(d => d.FromStoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+                
+            entity.HasOne(d => d.ToStore)
+                .WithMany()
+                .HasForeignKey(d => d.ToStoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Creator)
+                .WithMany()
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Updater)
+                .WithMany()
+                .HasForeignKey(d => d.UpdatedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Index on transfer number for quick lookup
+            entity.HasIndex(e => e.TransferNo).IsUnique();
+        });
+
+        // Configure StockTransferItem entity
+        modelBuilder.Entity<Domain.Entities.StockTransferItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.TransferId).IsRequired();
+            entity.Property(e => e.ProductId).IsRequired();
+            entity.Property(e => e.UomId).IsRequired();
+            entity.Property(e => e.BatchNo).HasMaxLength(50);
+            entity.Property(e => e.QuantitySent).HasPrecision(10, 3);
+            entity.Property(e => e.QuantityReceived).HasPrecision(10, 3);
+            entity.Property(e => e.DamagedQty).HasPrecision(10, 3);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Pending");
+
+            // Foreign key relationships
+            entity.HasOne(d => d.Transfer)
+                .WithMany(p => p.Items)
+                .HasForeignKey(d => d.TransferId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            entity.HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Uom)
+                .WithMany()
+                .HasForeignKey(d => d.UomId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Configure User entity
+        modelBuilder.Entity<Domain.Entities.User>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.FullName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Password).IsRequired();
+            entity.Property(e => e.Role).HasMaxLength(50);
+            entity.Property(e => e.PhoneNo).HasMaxLength(20);
+            entity.Property(e => e.UaeId).HasMaxLength(50);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Index on email for quick lookup
+            entity.HasIndex(e => e.Email).IsUnique();
+        });
+
+        // Configure ShopLocation entity
+        modelBuilder.Entity<Domain.Entities.ShopLocation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ShopId).IsRequired();
+            entity.Property(e => e.LocationType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.LocationName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.AddressLine1).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.AddressLine2).HasMaxLength(255);
+            entity.Property(e => e.Building).HasMaxLength(100);
+            entity.Property(e => e.Area).HasMaxLength(100);
+            entity.Property(e => e.PoBox).HasMaxLength(20);
+            entity.Property(e => e.City).HasMaxLength(100);
+            entity.Property(e => e.LandlineNumber).HasMaxLength(20);
+            entity.Property(e => e.MobileNumber).HasMaxLength(20);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            entity.Property(e => e.LocationLatitude).HasPrecision(10, 8);
+            entity.Property(e => e.LocationLongitude).HasPrecision(11, 8);
+        });
+
+        // Configure UnitOfMeasurement entity
+        modelBuilder.Entity<Domain.Entities.UnitOfMeasurement>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Abbreviation).IsRequired().HasMaxLength(10);
+            entity.Property(e => e.ConversionFactor).HasPrecision(10, 4);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Self-referencing relationship for base UOM
+            entity.HasOne(d => d.BaseUom)
+                .WithMany(p => p.DerivedUnits)
+                .HasForeignKey(d => d.BaseUomId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         // Seed initial data
         SeedData(modelBuilder);
     }
@@ -256,18 +513,19 @@ public class ChronoPosDbContext : DbContext
             new Domain.Entities.LanguageKeyword { Id = 38, Key = "stock.transfer", Description = "Stock Transfer module" },
             new Domain.Entities.LanguageKeyword { Id = 39, Key = "stock.goods_received", Description = "Goods Received module" },
             new Domain.Entities.LanguageKeyword { Id = 40, Key = "stock.goods_return", Description = "Goods Return module" },
+            new Domain.Entities.LanguageKeyword { Id = 41, Key = "stock.goods_replaced", Description = "Goods Replaced module" },
 
             // Management Modules (All 6 original modules)
-            new Domain.Entities.LanguageKeyword { Id = 41, Key = "management.stock", Description = "Stock Management" },
-            new Domain.Entities.LanguageKeyword { Id = 42, Key = "management.products", Description = "Products" },
-            new Domain.Entities.LanguageKeyword { Id = 43, Key = "management.supplier", Description = "Supplier" },
-            new Domain.Entities.LanguageKeyword { Id = 44, Key = "management.customers", Description = "Customer Module" },
-            new Domain.Entities.LanguageKeyword { Id = 45, Key = "management.payment", Description = "Payment Options" },
-            new Domain.Entities.LanguageKeyword { Id = 46, Key = "management.service", Description = "Service Charge" },
+            new Domain.Entities.LanguageKeyword { Id = 42, Key = "management.stock", Description = "Stock Management" },
+            new Domain.Entities.LanguageKeyword { Id = 43, Key = "management.products", Description = "Products" },
+            new Domain.Entities.LanguageKeyword { Id = 44, Key = "management.supplier", Description = "Supplier" },
+            new Domain.Entities.LanguageKeyword { Id = 45, Key = "management.customers", Description = "Customer Module" },
+            new Domain.Entities.LanguageKeyword { Id = 46, Key = "management.payment", Description = "Payment Options" },
+            new Domain.Entities.LanguageKeyword { Id = 47, Key = "management.service", Description = "Service Charge" },
 
             // UI Buttons
-            new Domain.Entities.LanguageKeyword { Id = 47, Key = "btn.back", Description = "Back button" },
-            new Domain.Entities.LanguageKeyword { Id = 48, Key = "btn.refresh", Description = "Refresh button" }
+            new Domain.Entities.LanguageKeyword { Id = 48, Key = "btn.back", Description = "Back button" },
+            new Domain.Entities.LanguageKeyword { Id = 49, Key = "btn.refresh", Description = "Refresh button" }
         );
 
         // Seed Label Translations - English
@@ -319,78 +577,80 @@ public class ChronoPosDbContext : DbContext
             new Domain.Entities.LabelTranslation { Id = 34, LanguageId = 1, TranslationKey = "stock.transfer", Value = "Stock Transfer", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
             new Domain.Entities.LabelTranslation { Id = 35, LanguageId = 1, TranslationKey = "stock.goods_received", Value = "Goods Received", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
             new Domain.Entities.LabelTranslation { Id = 36, LanguageId = 1, TranslationKey = "stock.goods_return", Value = "Goods Return", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 37, LanguageId = 1, TranslationKey = "stock.goods_replaced", Value = "Goods Replaced", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
 
             // Management Modules - English (All 6 original modules)
-            new Domain.Entities.LabelTranslation { Id = 37, LanguageId = 1, TranslationKey = "management.stock", Value = "Stock Management", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 38, LanguageId = 1, TranslationKey = "management.products", Value = "Products", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 39, LanguageId = 1, TranslationKey = "management.supplier", Value = "Supplier", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 40, LanguageId = 1, TranslationKey = "management.customers", Value = "Customer Module", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 41, LanguageId = 1, TranslationKey = "management.payment", Value = "Payment Options", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 42, LanguageId = 1, TranslationKey = "management.service", Value = "Service Charge", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 38, LanguageId = 1, TranslationKey = "management.stock", Value = "Stock Management", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 39, LanguageId = 1, TranslationKey = "management.products", Value = "Products", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 40, LanguageId = 1, TranslationKey = "management.supplier", Value = "Supplier", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 41, LanguageId = 1, TranslationKey = "management.customers", Value = "Customer Module", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 42, LanguageId = 1, TranslationKey = "management.payment", Value = "Payment Options", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 43, LanguageId = 1, TranslationKey = "management.service", Value = "Service Charge", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
 
             // UI Buttons - English
-            new Domain.Entities.LabelTranslation { Id = 43, LanguageId = 1, TranslationKey = "btn.back", Value = "Back", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 44, LanguageId = 1, TranslationKey = "btn.refresh", Value = "Refresh", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 44, LanguageId = 1, TranslationKey = "btn.back", Value = "Back", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 45, LanguageId = 1, TranslationKey = "btn.refresh", Value = "Refresh", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
 
             // Navigation - Urdu
-            new Domain.Entities.LabelTranslation { Id = 45, LanguageId = 2, TranslationKey = "nav.dashboard", Value = "ڈیش بورڈ", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 46, LanguageId = 2, TranslationKey = "nav.management", Value = "انتظام", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 47, LanguageId = 2, TranslationKey = "nav.customers", Value = "گاہک", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 48, LanguageId = 2, TranslationKey = "nav.sales", Value = "فروخت", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 49, LanguageId = 2, TranslationKey = "nav.settings", Value = "ترتیبات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 50, LanguageId = 2, TranslationKey = "nav.logout", Value = "لاگ آؤٹ", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 46, LanguageId = 2, TranslationKey = "nav.dashboard", Value = "ڈیش بورڈ", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 47, LanguageId = 2, TranslationKey = "nav.management", Value = "انتظام", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 48, LanguageId = 2, TranslationKey = "nav.customers", Value = "گاہک", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 49, LanguageId = 2, TranslationKey = "nav.sales", Value = "فروخت", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 50, LanguageId = 2, TranslationKey = "nav.settings", Value = "ترتیبات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 51, LanguageId = 2, TranslationKey = "nav.logout", Value = "لاگ آؤٹ", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
 
             // Buttons - Urdu
-            new Domain.Entities.LabelTranslation { Id = 51, LanguageId = 2, TranslationKey = "btn.save", Value = "محفوظ کریں", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 52, LanguageId = 2, TranslationKey = "btn.cancel", Value = "منسوخ", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 53, LanguageId = 2, TranslationKey = "btn.edit", Value = "ترمیم", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 54, LanguageId = 2, TranslationKey = "btn.delete", Value = "حذف", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 55, LanguageId = 2, TranslationKey = "btn.add", Value = "شامل کریں", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 56, LanguageId = 2, TranslationKey = "btn.search", Value = "تلاش", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 52, LanguageId = 2, TranslationKey = "btn.save", Value = "محفوظ کریں", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 53, LanguageId = 2, TranslationKey = "btn.cancel", Value = "منسوخ", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 54, LanguageId = 2, TranslationKey = "btn.edit", Value = "ترمیم", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 55, LanguageId = 2, TranslationKey = "btn.delete", Value = "حذف", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 56, LanguageId = 2, TranslationKey = "btn.add", Value = "شامل کریں", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 57, LanguageId = 2, TranslationKey = "btn.search", Value = "تلاش", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
 
             // Settings - Urdu
-            new Domain.Entities.LabelTranslation { Id = 57, LanguageId = 2, TranslationKey = "settings.language", Value = "🌐 زبان کی ترتیبات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 58, LanguageId = 2, TranslationKey = "settings.theme", Value = "🎨 تھیم کی ترتیبات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 59, LanguageId = 2, TranslationKey = "settings.color_scheme", Value = "🎨 رنگ سکیم", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 60, LanguageId = 2, TranslationKey = "settings.layout_direction", Value = "📱 لے آؤٹ کی سمت", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 61, LanguageId = 2, TranslationKey = "settings.font", Value = "🔤 فونٹ کی ترتیبات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 62, LanguageId = 2, TranslationKey = "settings.actions", Value = "⚙️ عمل", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 58, LanguageId = 2, TranslationKey = "settings.language", Value = "🌐 زبان کی ترتیبات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 59, LanguageId = 2, TranslationKey = "settings.theme", Value = "🎨 تھیم کی ترتیبات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 60, LanguageId = 2, TranslationKey = "settings.color_scheme", Value = "🎨 رنگ سکیم", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 61, LanguageId = 2, TranslationKey = "settings.layout_direction", Value = "📱 لے آؤٹ کی سمت", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 62, LanguageId = 2, TranslationKey = "settings.font", Value = "🔤 فونٹ کی ترتیبات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 63, LanguageId = 2, TranslationKey = "settings.actions", Value = "⚙️ عمل", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
 
             // Stock Management Modules - Urdu
-            new Domain.Entities.LabelTranslation { Id = 63, LanguageId = 2, TranslationKey = "stock.adjustment", Value = "اسٹاک کی تشخیص", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 64, LanguageId = 2, TranslationKey = "stock.transfer", Value = "اسٹاک ٹرانسفر", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 65, LanguageId = 2, TranslationKey = "stock.goods_received", Value = "مال کی آمد", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 66, LanguageId = 2, TranslationKey = "stock.goods_return", Value = "مال کی واپسی", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 64, LanguageId = 2, TranslationKey = "stock.adjustment", Value = "اسٹاک کی تشخیص", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 65, LanguageId = 2, TranslationKey = "stock.transfer", Value = "اسٹاک ٹرانسفر", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 66, LanguageId = 2, TranslationKey = "stock.goods_received", Value = "مال کی آمد", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 67, LanguageId = 2, TranslationKey = "stock.goods_return", Value = "مال کی واپسی", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 68, LanguageId = 2, TranslationKey = "stock.goods_replaced", Value = "مال کی تبدیلی", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
 
             // Management Modules - Urdu (All 6 original modules)
-            new Domain.Entities.LabelTranslation { Id = 67, LanguageId = 2, TranslationKey = "management.stock", Value = "اسٹاک انتظام", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 68, LanguageId = 2, TranslationKey = "management.products", Value = "مصنوعات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 69, LanguageId = 2, TranslationKey = "management.supplier", Value = "سپلائر", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 70, LanguageId = 2, TranslationKey = "management.customers", Value = "کسٹمر ماڈیول", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 71, LanguageId = 2, TranslationKey = "management.payment", Value = "ادائیگی کے اختیارات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 72, LanguageId = 2, TranslationKey = "management.service", Value = "سروس چارج", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 69, LanguageId = 2, TranslationKey = "management.stock", Value = "اسٹاک انتظام", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 70, LanguageId = 2, TranslationKey = "management.products", Value = "مصنوعات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 71, LanguageId = 2, TranslationKey = "management.supplier", Value = "سپلائر", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 72, LanguageId = 2, TranslationKey = "management.customers", Value = "کسٹمر ماڈیول", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 73, LanguageId = 2, TranslationKey = "management.payment", Value = "ادائیگی کے اختیارات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 74, LanguageId = 2, TranslationKey = "management.service", Value = "سروس چارج", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
 
             // UI Buttons - Urdu
-            new Domain.Entities.LabelTranslation { Id = 73, LanguageId = 2, TranslationKey = "btn.back", Value = "واپس", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 74, LanguageId = 2, TranslationKey = "btn.refresh", Value = "تازہ کریں", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 75, LanguageId = 2, TranslationKey = "btn.back", Value = "واپس", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 76, LanguageId = 2, TranslationKey = "btn.refresh", Value = "تازہ کریں", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
 
             // Products - Urdu
-            new Domain.Entities.LabelTranslation { Id = 75, LanguageId = 2, TranslationKey = "products.title", Value = "مصنوعات کا انتظام", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 76, LanguageId = 2, TranslationKey = "products.name", Value = "مصنوع کا نام", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 77, LanguageId = 2, TranslationKey = "products.price", Value = "قیمت", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 78, LanguageId = 2, TranslationKey = "products.category", Value = "قسم", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 79, LanguageId = 2, TranslationKey = "products.stock", Value = "اسٹاک", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 77, LanguageId = 2, TranslationKey = "products.title", Value = "مصنوعات کا انتظام", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 78, LanguageId = 2, TranslationKey = "products.name", Value = "مصنوع کا نام", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 79, LanguageId = 2, TranslationKey = "products.price", Value = "قیمت", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 80, LanguageId = 2, TranslationKey = "products.category", Value = "قسم", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 81, LanguageId = 2, TranslationKey = "products.stock", Value = "اسٹاک", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
 
             // Common Labels - Urdu
-            new Domain.Entities.LabelTranslation { Id = 80, LanguageId = 2, TranslationKey = "label.current", Value = "موجودہ", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 81, LanguageId = 2, TranslationKey = "label.ready", Value = "تیار", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 82, LanguageId = 2, TranslationKey = "theme.light", Value = "ہلکا تھیم", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 83, LanguageId = 2, TranslationKey = "theme.dark", Value = "گہرا تھیم", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 84, LanguageId = 2, TranslationKey = "layout.ltr", Value = "بائیں سے دائیں (LTR)", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 85, LanguageId = 2, TranslationKey = "layout.rtl", Value = "دائیں سے بائیں (RTL)", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 86, LanguageId = 2, TranslationKey = "font.small", Value = "چھوٹا", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 87, LanguageId = 2, TranslationKey = "font.medium", Value = "درمیانہ", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 88, LanguageId = 2, TranslationKey = "font.large", Value = "بڑا", Status = "Active", CreatedBy = "System", CreatedAt = baseDate }
+            new Domain.Entities.LabelTranslation { Id = 82, LanguageId = 2, TranslationKey = "label.current", Value = "موجودہ", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 83, LanguageId = 2, TranslationKey = "label.ready", Value = "تیار", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 84, LanguageId = 2, TranslationKey = "theme.light", Value = "ہلکا تھیم", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 85, LanguageId = 2, TranslationKey = "theme.dark", Value = "گہرا تھیم", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 86, LanguageId = 2, TranslationKey = "layout.ltr", Value = "بائیں سے دائیں (LTR)", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 87, LanguageId = 2, TranslationKey = "layout.rtl", Value = "دائیں سے بائیں (RTL)", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 88, LanguageId = 2, TranslationKey = "font.small", Value = "چھوٹا", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 89, LanguageId = 2, TranslationKey = "font.medium", Value = "درمیانہ", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 90, LanguageId = 2, TranslationKey = "font.large", Value = "بڑا", Status = "Active", CreatedBy = "System", CreatedAt = baseDate }
         );
     }
 }

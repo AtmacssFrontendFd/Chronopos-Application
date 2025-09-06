@@ -58,6 +58,9 @@ public partial class App : System.Windows.Application
                     services.AddScoped<IProductService, ProductService>();
                     LogMessage("ProductService registered");
 
+                    services.AddScoped<IStockAdjustmentService, StockAdjustmentService>();
+                    LogMessage("StockAdjustmentService registered");
+
                     // Register theme service
                     services.AddSingleton<IThemeService, ThemeService>();
                     LogMessage("ThemeService registered");
@@ -97,6 +100,8 @@ public partial class App : System.Windows.Application
                     LogMessage("CustomersViewModel registered");
                     services.AddTransient<SettingsViewModel>();
                     LogMessage("SettingsViewModel registered");
+                    services.AddTransient<StockAdjustmentViewModel>();
+                    LogMessage("StockAdjustmentViewModel registered");
 
                     // Register Views
                     services.AddTransient<MainWindow>();

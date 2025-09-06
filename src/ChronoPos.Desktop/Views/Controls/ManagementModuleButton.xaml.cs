@@ -40,6 +40,10 @@ public partial class ManagementModuleButton : UserControl
         DependencyProperty.Register(nameof(ButtonBackground), typeof(Brush), typeof(ManagementModuleButton), 
             new PropertyMetadata(new SolidColorBrush(Colors.White)));
 
+    public static readonly DependencyProperty IsSelectedProperty =
+        DependencyProperty.Register(nameof(IsSelected), typeof(bool), typeof(ManagementModuleButton), 
+            new PropertyMetadata(false));
+
     #endregion
 
     #region Properties
@@ -105,6 +109,15 @@ public partial class ManagementModuleButton : UserControl
     {
         get => (Brush)GetValue(ButtonBackgroundProperty);
         set => SetValue(ButtonBackgroundProperty, value);
+    }
+
+    /// <summary>
+    /// Whether this module button is currently selected
+    /// </summary>
+    public bool IsSelected
+    {
+        get => (bool)GetValue(IsSelectedProperty);
+        set => SetValue(IsSelectedProperty, value);
     }
 
     #endregion

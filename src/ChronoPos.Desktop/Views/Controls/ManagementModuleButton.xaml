@@ -22,7 +22,7 @@
         <Button.Template>
             <ControlTemplate TargetType="Button">
                 <Border x:Name="ButtonBorder"
-                        Background="{Binding ButtonBackground, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        Background="{DynamicResource CardBackgroundBrush}"
                         BorderBrush="{DynamicResource BorderLight}"
                         BorderThickness="1"
                         CornerRadius="8"
@@ -33,50 +33,38 @@
                 </Border>
                 
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True">
+                    <!-- Selected state trigger - highest priority -->
+                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                        <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource Primary}" />
+                        <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource Primary}" />
+                    </DataTrigger>
+                    
+                    <!-- Normal/unselected state uses ButtonBackground -->
+                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
+                        <Setter TargetName="ButtonBorder" Property="Background" Value="{Binding ButtonBackground, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                    </DataTrigger>
+                    
+                    <!-- Hover and pressed triggers - only when not selected -->
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False"/>
+                            <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
+                        </MultiDataTrigger.Conditions>
                         <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
                         <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-                    </Trigger>
-                    <Trigger Property="IsPressed" Value="True">
+                    </MultiDataTrigger>
+                    
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False"/>
+                            <Condition Binding="{Binding IsPressed, RelativeSource={RelativeSource Self}}" Value="True"/>
+                        </MultiDataTrigger.Conditions>
                         <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
-                    </Trigger>
+                    </MultiDataTrigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate>
         </Button.Template>
         
-        <Button.Style>
-            <Style TargetType="Button">
-                <Setter Property="Background" Value="{Binding ButtonBackground, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-                <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
-                <Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="{DynamicResource BorderCornerRadius}">
-                                <ContentPresenter HorizontalAlignment="Stretch"
-                                                  VerticalAlignment="Stretch"
-                                                  Margin="{TemplateBinding Padding}"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
-                                    <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
-                                </Trigger>
-                                <Trigger Property="IsPressed" Value="True">
-                                    <Setter Property="Background" Value="{DynamicResource Primary}"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
-        </Button.Style>
-
         <!-- Main Layout with Canvas for absolute positioning -->
         <Canvas>
             <!-- Icon positioned absolutely at top-right -->
@@ -97,10 +85,54 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- 4 small squares -->
-                    <Rectangle Grid.Row="0" Grid.Column="0" Fill="Black" Width="12" Height="12" RadiusX="2" RadiusY="2"/>
-                    <Rectangle Grid.Row="0" Grid.Column="1" Fill="Black" Width="12" Height="12" RadiusX="2" RadiusY="2"/>
-                    <Rectangle Grid.Row="1" Grid.Column="0" Fill="Black" Width="12" Height="12" RadiusX="2" RadiusY="2"/>
-                    <Rectangle Grid.Row="1" Grid.Column="1" Fill="Black" Width="12" Height="12" RadiusX="2" RadiusY="2"/>
+                    <Rectangle x:Name="Icon1" Grid.Row="0" Grid.Column="0" Fill="Black" Width="12" Height="12" RadiusX="2" RadiusY="2">
+                        <Rectangle.Style>
+                            <Style TargetType="Rectangle">
+                                <Setter Property="Fill" Value="Black"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                        <Setter Property="Fill" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Rectangle.Style>
+                    </Rectangle>
+                    <Rectangle x:Name="Icon2" Grid.Row="0" Grid.Column="1" Fill="Black" Width="12" Height="12" RadiusX="2" RadiusY="2">
+                        <Rectangle.Style>
+                            <Style TargetType="Rectangle">
+                                <Setter Property="Fill" Value="Black"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                        <Setter Property="Fill" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Rectangle.Style>
+                    </Rectangle>
+                    <Rectangle x:Name="Icon3" Grid.Row="1" Grid.Column="0" Fill="Black" Width="12" Height="12" RadiusX="2" RadiusY="2">
+                        <Rectangle.Style>
+                            <Style TargetType="Rectangle">
+                                <Setter Property="Fill" Value="Black"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                        <Setter Property="Fill" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Rectangle.Style>
+                    </Rectangle>
+                    <Rectangle x:Name="Icon4" Grid.Row="1" Grid.Column="1" Fill="Black" Width="12" Height="12" RadiusX="2" RadiusY="2">
+                        <Rectangle.Style>
+                            <Style TargetType="Rectangle">
+                                <Setter Property="Fill" Value="Black"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                        <Setter Property="Fill" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Rectangle.Style>
+                    </Rectangle>
                 </Grid>
             </Border>
 
@@ -113,16 +145,35 @@
                            FontSize="{DynamicResource FontSizeSmall}"
                            FontWeight="SemiBold"
                            FontFamily="{DynamicResource PoppinsFontFallback}"
-                           Foreground="{DynamicResource TextPrimary}"
                            TextAlignment="Left"
                            TextWrapping="Wrap"
-                           Margin="0,0,0,2"/>
+                           Margin="0,0,0,2">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                    <Setter Property="Foreground" Value="White"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
                 
                 <!-- Item Count -->
                 <TextBlock FontSize="{DynamicResource FontSizeVerySmall}"
                            FontFamily="{DynamicResource PoppinsFontFallback}"
-                           Foreground="{DynamicResource TextSecondary}"
                            TextAlignment="Left">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                    <Setter Property="Foreground" Value="White"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
                     <Run Text="{Binding ItemCount, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                     <Run Text="{Binding ItemCountLabel, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                 </TextBlock>

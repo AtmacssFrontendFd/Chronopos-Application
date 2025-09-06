@@ -10,11 +10,11 @@ none
 false
 TRACE;DEBUG;NET;NET9_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NET9_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
 C:\Users\adars\Desktop\pos-software\src\ChronoPos.Desktop\App.xaml
-8-725009482
+9-229198656
 
-321354401396
+35-1934472560
 242987357956
-Themes\DarkTheme.xaml;Themes\LightTheme.xaml;Views\Controls\ManagementModuleButton.xaml;Views\Controls\RefreshButton.xaml;Views\MainWindow.xaml;Views\ManagementView.xaml;Views\SettingsView.xaml;Views\StockManagementView.xaml;
+Themes\DarkTheme.xaml;Themes\LightTheme.xaml;Views\Controls\ManagementModuleButton.xaml;Views\Controls\RefreshButton.xaml;Views\MainWindow.xaml;Views\ManagementView.xaml;Views\SettingsView.xaml;Views\StockAdjustmentView.xaml;Views\StockManagementView.xaml;
 
 False
 

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ChronoPos.Application.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a7ed7af6216330e2a743492e9fb388743956f044")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f259c45d26615f060ec65ba6130bffa2eac37093")]
 [assembly: System.Reflection.AssemblyProductAttribute("ChronoPos.Application.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ChronoPos.Application.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
