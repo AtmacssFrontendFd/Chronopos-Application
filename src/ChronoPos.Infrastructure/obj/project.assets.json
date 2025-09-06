@@ -1090,7 +1090,8 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v9.0",
         "dependencies": {
-          "ChronoPos.Domain": "1.0.0"
+          "ChronoPos.Domain": "1.0.0",
+          "Microsoft.EntityFrameworkCore": "9.0.0"
         },
         "compile": {
           "bin/placeholder/ChronoPos.Application.dll": {}
@@ -3146,23 +3147,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\adars\\.nuget\\packages\\": {},
+    "C:\\Users\\saswa\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Infrastructure\\ChronoPos.Infrastructure.csproj",
+      "projectUniqueName": "D:\\chronopos\\ChronoPosRevised\\src\\ChronoPos.Infrastructure\\ChronoPos.Infrastructure.csproj",
       "projectName": "ChronoPos.Infrastructure",
-      "projectPath": "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Infrastructure\\ChronoPos.Infrastructure.csproj",
-      "packagesPath": "C:\\Users\\adars\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Infrastructure\\obj\\",
+      "projectPath": "D:\\chronopos\\ChronoPosRevised\\src\\ChronoPos.Infrastructure\\ChronoPos.Infrastructure.csproj",
+      "packagesPath": "C:\\Users\\saswa\\.nuget\\packages\\",
+      "outputPath": "D:\\chronopos\\ChronoPosRevised\\src\\ChronoPos.Infrastructure\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\adars\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\saswa\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -3177,11 +3178,11 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "projectReferences": {
-            "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Application\\ChronoPos.Application.csproj": {
-              "projectPath": "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Application\\ChronoPos.Application.csproj"
+            "D:\\chronopos\\ChronoPosRevised\\src\\ChronoPos.Application\\ChronoPos.Application.csproj": {
+              "projectPath": "D:\\chronopos\\ChronoPosRevised\\src\\ChronoPos.Application\\ChronoPos.Application.csproj"
             },
-            "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Domain\\ChronoPos.Domain.csproj": {
-              "projectPath": "C:\\Users\\adars\\Desktop\\pos-software\\src\\ChronoPos.Domain\\ChronoPos.Domain.csproj"
+            "D:\\chronopos\\ChronoPosRevised\\src\\ChronoPos.Domain\\ChronoPos.Domain.csproj": {
+              "projectPath": "D:\\chronopos\\ChronoPosRevised\\src\\ChronoPos.Domain\\ChronoPos.Domain.csproj"
             }
           }
         }

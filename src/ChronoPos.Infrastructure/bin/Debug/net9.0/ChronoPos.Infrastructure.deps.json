@@ -771,7 +771,8 @@
       "System.Threading.Channels/7.0.0": {},
       "ChronoPos.Application/1.0.0": {
         "dependencies": {
-          "ChronoPos.Domain": "1.0.0"
+          "ChronoPos.Domain": "1.0.0",
+          "Microsoft.EntityFrameworkCore": "9.0.8"
         },
         "runtime": {
           "ChronoPos.Application.dll": {

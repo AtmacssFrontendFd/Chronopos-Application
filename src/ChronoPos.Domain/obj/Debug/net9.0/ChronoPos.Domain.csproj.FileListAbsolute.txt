@@ -21,3 +21,15 @@ C:\Users\adars\Desktop\pos-software\src\ChronoPos.Domain\obj\Debug\net9.0\Chrono
 C:\Users\adars\Desktop\pos-software\src\ChronoPos.Domain\obj\Debug\net9.0\refint\ChronoPos.Domain.dll
 C:\Users\adars\Desktop\pos-software\src\ChronoPos.Domain\obj\Debug\net9.0\ChronoPos.Domain.pdb
 C:\Users\adars\Desktop\pos-software\src\ChronoPos.Domain\obj\Debug\net9.0\ref\ChronoPos.Domain.dll
+D:\chronopos\ChronoPosRevised\src\ChronoPos.Domain\bin\Debug\net9.0\ChronoPos.Domain.deps.json
+D:\chronopos\ChronoPosRevised\src\ChronoPos.Domain\bin\Debug\net9.0\ChronoPos.Domain.dll
+D:\chronopos\ChronoPosRevised\src\ChronoPos.Domain\bin\Debug\net9.0\ChronoPos.Domain.pdb
+D:\chronopos\ChronoPosRevised\src\ChronoPos.Domain\obj\Debug\net9.0\ChronoPos.Domain.GeneratedMSBuildEditorConfig.editorconfig
+D:\chronopos\ChronoPosRevised\src\ChronoPos.Domain\obj\Debug\net9.0\ChronoPos.Domain.AssemblyInfoInputs.cache
+D:\chronopos\ChronoPosRevised\src\ChronoPos.Domain\obj\Debug\net9.0\ChronoPos.Domain.AssemblyInfo.cs
+D:\chronopos\ChronoPosRevised\src\ChronoPos.Domain\obj\Debug\net9.0\ChronoPos.Domain.csproj.CoreCompileInputs.cache
+D:\chronopos\ChronoPosRevised\src\ChronoPos.Domain\obj\Debug\net9.0\ChronoPos.Domain.sourcelink.json
+D:\chronopos\ChronoPosRevised\src\ChronoPos.Domain\obj\Debug\net9.0\ChronoPos.Domain.dll
+D:\chronopos\ChronoPosRevised\src\ChronoPos.Domain\obj\Debug\net9.0\refint\ChronoPos.Domain.dll
+D:\chronopos\ChronoPosRevised\src\ChronoPos.Domain\obj\Debug\net9.0\ChronoPos.Domain.pdb
+D:\chronopos\ChronoPosRevised\src\ChronoPos.Domain\obj\Debug\net9.0\ref\ChronoPos.Domain.dll

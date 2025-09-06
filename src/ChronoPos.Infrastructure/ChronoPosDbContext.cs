@@ -20,6 +20,19 @@ public class ChronoPosDbContext : DbContext
     public DbSet<Domain.Entities.Sale> Sales { get; set; }
     public DbSet<Domain.Entities.SaleItem> SaleItems { get; set; }
     
+    // Product related entities
+    public DbSet<Domain.Entities.ProductBarcode> ProductBarcodes { get; set; }
+    public DbSet<Domain.Entities.ProductComment> ProductComments { get; set; }
+    public DbSet<Domain.Entities.ProductTax> ProductTaxes { get; set; }
+    public DbSet<Domain.Entities.MeasurementUnit> MeasurementUnits { get; set; }
+    public DbSet<Domain.Entities.Tax> Taxes { get; set; }
+    
+    // Stock management entities
+    public DbSet<Domain.Entities.StockTransaction> StockTransactions { get; set; }
+    public DbSet<Domain.Entities.StockAlert> StockAlerts { get; set; }
+    public DbSet<Domain.Entities.Store> Stores { get; set; }
+    public DbSet<Domain.Entities.StockLevel> StockLevels { get; set; }
+    
     // Language system entities
     public DbSet<Domain.Entities.Language> Languages { get; set; }
     public DbSet<Domain.Entities.LanguageKeyword> LanguageKeywords { get; set; }
@@ -33,11 +46,31 @@ public class ChronoPosDbContext : DbContext
         modelBuilder.Entity<Domain.Entities.Product>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
-            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.Code).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(300);
             entity.Property(e => e.Price).HasPrecision(18, 2);
+            entity.Property(e => e.Cost).HasPrecision(18, 2);
+            entity.Property(e => e.LastPurchasePrice).HasPrecision(18, 2);
+            entity.Property(e => e.Markup).HasPrecision(18, 2);
+            entity.Property(e => e.TaxRate).HasPrecision(5, 2);
+            entity.Property(e => e.Excise).HasPrecision(18, 2);
+            entity.Property(e => e.MaxDiscount).HasPrecision(5, 2);
+            entity.Property(e => e.SKU).HasMaxLength(50);
+            entity.Property(e => e.Color).HasMaxLength(50);
+            entity.Property(e => e.MeasurementUnit).HasMaxLength(10);
+            entity.Property(e => e.ImagePath).HasMaxLength(500);
             entity.Property(e => e.CreatedAt).IsRequired();
             entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Index on Code for quick lookup
+            entity.HasIndex(e => e.Code).IsUnique();
+            
+            // Index on SKU for quick lookup
+            entity.HasIndex(e => e.SKU).IsUnique();
+            
+            // Index on PLU for quick lookup
+            entity.HasIndex(e => e.PLU).IsUnique();
 
             // Foreign key relationship with Category
             entity.HasOne(p => p.Category)
@@ -54,6 +87,84 @@ public class ChronoPosDbContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(300);
             entity.Property(e => e.CreatedAt).IsRequired();
             entity.Property(e => e.UpdatedAt).IsRequired();
+        });
+
+        // Configure ProductBarcode entity
+        modelBuilder.Entity<Domain.Entities.ProductBarcode>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Value).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Unique constraint on barcode value
+            entity.HasIndex(e => e.Value).IsUnique();
+
+            // Foreign key relationship with Product
+            entity.HasOne(pb => pb.Product)
+                  .WithMany(p => p.ProductBarcodes)
+                  .HasForeignKey(pb => pb.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configure ProductComment entity
+        modelBuilder.Entity<Domain.Entities.ProductComment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Comment).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+
+            // Foreign key relationship with Product
+            entity.HasOne(pc => pc.Product)
+                  .WithMany(p => p.ProductComments)
+                  .HasForeignKey(pc => pc.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configure MeasurementUnit entity
+        modelBuilder.Entity<Domain.Entities.MeasurementUnit>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Symbol).HasMaxLength(10);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Unique constraint on name
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        // Configure Tax entity
+        modelBuilder.Entity<Domain.Entities.Tax>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Rate).HasPrecision(5, 2);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Unique constraint on name
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        // Configure ProductTax entity
+        modelBuilder.Entity<Domain.Entities.ProductTax>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationship with Product
+            entity.HasOne(pt => pt.Product)
+                  .WithMany(p => p.ProductTaxes)
+                  .HasForeignKey(pt => pt.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Foreign key relationship with Tax
+            entity.HasOne(pt => pt.Tax)
+                  .WithMany()
+                  .HasForeignKey(pt => pt.TaxId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Unique constraint on Product-Tax combination
+            entity.HasIndex(e => new { e.ProductId, e.TaxId }).IsUnique();
         });
 
         // Configure Customer entity
@@ -160,6 +271,106 @@ public class ChronoPosDbContext : DbContext
             entity.HasIndex(e => new { e.LanguageId, e.TranslationKey }).IsUnique();
         });
 
+        // Configure StockTransaction entity
+        modelBuilder.Entity<Domain.Entities.StockTransaction>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.MovementType).IsRequired();
+            entity.Property(e => e.Quantity).IsRequired();
+            entity.Property(e => e.PreviousStock).IsRequired();
+            entity.Property(e => e.NewStock).IsRequired();
+            entity.Property(e => e.ReferenceNumber).HasMaxLength(200);
+            entity.Property(e => e.ReferenceType).HasMaxLength(50);
+            entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.Property(e => e.UnitCost).HasPrecision(18, 2);
+            entity.Property(e => e.SupplierName).HasMaxLength(100);
+            entity.Property(e => e.BatchNumber).HasMaxLength(50);
+            entity.Property(e => e.Created).IsRequired();
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+
+            // Foreign key relationship with Product
+            entity.HasOne(st => st.Product)
+                  .WithMany(p => p.StockTransactions)
+                  .HasForeignKey(st => st.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Foreign key relationship with Store
+            entity.HasOne(st => st.Store)
+                  .WithMany(s => s.StockTransactions)
+                  .HasForeignKey(st => st.StoreId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Index on ProductId and Created for performance
+            entity.HasIndex(e => new { e.ProductId, e.Created });
+        });
+
+        // Configure StockAlert entity
+        modelBuilder.Entity<Domain.Entities.StockAlert>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AlertType).IsRequired();
+            entity.Property(e => e.Message).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.CurrentStock).IsRequired();
+            entity.Property(e => e.TriggerLevel).IsRequired();
+            entity.Property(e => e.IsActive).IsRequired();
+            entity.Property(e => e.IsRead).IsRequired();
+            entity.Property(e => e.CreatedDate).IsRequired();
+            entity.Property(e => e.ReadBy).HasMaxLength(100);
+
+            // Foreign key relationship with Product
+            entity.HasOne(sa => sa.Product)
+                  .WithMany(p => p.StockAlerts)
+                  .HasForeignKey(sa => sa.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Index on ProductId and AlertType for performance
+            entity.HasIndex(e => new { e.ProductId, e.AlertType, e.IsActive });
+        });
+
+        // Configure Store entity
+        modelBuilder.Entity<Domain.Entities.Store>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Address).HasMaxLength(200);
+            entity.Property(e => e.PhoneNumber).HasMaxLength(50);
+            entity.Property(e => e.Email).HasMaxLength(100);
+            entity.Property(e => e.ManagerName).HasMaxLength(100);
+            entity.Property(e => e.IsActive).IsRequired();
+            entity.Property(e => e.IsDefault).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Unique constraint on name
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        // Configure StockLevel entity
+        modelBuilder.Entity<Domain.Entities.StockLevel>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CurrentStock).HasPrecision(18, 3);
+            entity.Property(e => e.ReservedStock).HasPrecision(18, 3);
+            entity.Property(e => e.AverageCost).HasPrecision(18, 2);
+            entity.Property(e => e.LastCost).HasPrecision(18, 2);
+            entity.Property(e => e.LastUpdated).IsRequired();
+
+            // Foreign key relationship with Product
+            entity.HasOne(sl => sl.Product)
+                  .WithMany(p => p.StockLevels)
+                  .HasForeignKey(sl => sl.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Foreign key relationship with Store
+            entity.HasOne(sl => sl.Store)
+                  .WithMany(s => s.StockLevels)
+                  .HasForeignKey(sl => sl.StoreId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Unique constraint on Product-Store combination
+            entity.HasIndex(e => new { e.ProductId, e.StoreId }).IsUnique();
+        });
+
         // Seed initial data
         SeedData(modelBuilder);
     }
@@ -176,13 +387,136 @@ public class ChronoPosDbContext : DbContext
             new Domain.Entities.Category { Id = 4, Name = "Books", Description = "Books and educational materials", CreatedAt = baseDate, UpdatedAt = baseDate }
         );
 
+        // Seed Stores
+        modelBuilder.Entity<Domain.Entities.Store>().HasData(
+            new Domain.Entities.Store { Id = 1, Name = "Main Store", Address = "123 Main Street", PhoneNumber = "+1234567890", Email = "main@chronopos.com", ManagerName = "John Doe", IsActive = true, IsDefault = true, CreatedAt = baseDate, UpdatedAt = baseDate },
+            new Domain.Entities.Store { Id = 2, Name = "Branch Store", Address = "456 Branch Avenue", PhoneNumber = "+1234567891", Email = "branch@chronopos.com", ManagerName = "Jane Smith", IsActive = true, IsDefault = false, CreatedAt = baseDate, UpdatedAt = baseDate }
+        );
+
         // Seed Products
         modelBuilder.Entity<Domain.Entities.Product>().HasData(
-            new Domain.Entities.Product { Id = 1, Name = "Wireless Mouse", Description = "Ergonomic wireless mouse", Price = 25.99m, CategoryId = 1, Stock = 50, CreatedAt = baseDate, UpdatedAt = baseDate },
-            new Domain.Entities.Product { Id = 2, Name = "Bluetooth Headphones", Description = "Noise-cancelling headphones", Price = 89.99m, CategoryId = 1, Stock = 30, CreatedAt = baseDate, UpdatedAt = baseDate },
-            new Domain.Entities.Product { Id = 3, Name = "Cotton T-Shirt", Description = "100% cotton comfortable t-shirt", Price = 19.99m, CategoryId = 2, Stock = 100, CreatedAt = baseDate, UpdatedAt = baseDate },
-            new Domain.Entities.Product { Id = 4, Name = "Coffee Beans", Description = "Premium arabica coffee beans", Price = 12.99m, CategoryId = 3, Stock = 75, CreatedAt = baseDate, UpdatedAt = baseDate },
-            new Domain.Entities.Product { Id = 5, Name = "Programming Guide", Description = "Complete C# programming guide", Price = 39.99m, CategoryId = 4, Stock = 25, CreatedAt = baseDate, UpdatedAt = baseDate }
+            new Domain.Entities.Product 
+            { 
+                Id = 1, 
+                Code = "MOUSE001", 
+                PLU = 1001,
+                Name = "Wireless Mouse", 
+                Description = "Ergonomic wireless mouse", 
+                Price = 25.99m, 
+                Cost = 15.00m,
+                CategoryId = 1, 
+                StockQuantity = 50, 
+                MeasurementUnit = "pcs",
+                IsActive = true,
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Product 
+            { 
+                Id = 2, 
+                Code = "HEAD001", 
+                PLU = 1002,
+                Name = "Bluetooth Headphones", 
+                Description = "Noise-cancelling headphones", 
+                Price = 89.99m, 
+                Cost = 60.00m,
+                CategoryId = 1, 
+                StockQuantity = 30, 
+                MeasurementUnit = "pcs",
+                IsActive = true,
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Product 
+            { 
+                Id = 3, 
+                Code = "SHIRT001", 
+                PLU = 1003,
+                Name = "Cotton T-Shirt", 
+                Description = "100% cotton comfortable t-shirt", 
+                Price = 19.99m, 
+                Cost = 12.00m,
+                CategoryId = 2, 
+                StockQuantity = 100, 
+                MeasurementUnit = "pcs",
+                IsActive = true,
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Product 
+            { 
+                Id = 4, 
+                Code = "COFFEE001", 
+                PLU = 1004,
+                Name = "Coffee Beans", 
+                Description = "Premium arabica coffee beans", 
+                Price = 12.99m, 
+                Cost = 8.00m,
+                CategoryId = 3, 
+                StockQuantity = 75, 
+                MeasurementUnit = "kg",
+                IsActive = true,
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Product 
+            { 
+                Id = 5, 
+                Code = "BOOK001", 
+                PLU = 1005,
+                Name = "Programming Guide", 
+                Description = "Complete C# programming guide", 
+                Price = 39.99m, 
+                Cost = 25.00m,
+                CategoryId = 4, 
+                StockQuantity = 25, 
+                MeasurementUnit = "pcs",
+                IsActive = true,
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            }
+        );
+
+        // Seed MeasurementUnits
+        modelBuilder.Entity<Domain.Entities.MeasurementUnit>().HasData(
+            new Domain.Entities.MeasurementUnit { Id = 1, Name = "Pieces", Symbol = "pcs", IsDefault = true, IsActive = true, CreatedAt = baseDate },
+            new Domain.Entities.MeasurementUnit { Id = 2, Name = "Kilograms", Symbol = "kg", IsDefault = false, IsActive = true, CreatedAt = baseDate },
+            new Domain.Entities.MeasurementUnit { Id = 3, Name = "Pounds", Symbol = "lbs", IsDefault = false, IsActive = true, CreatedAt = baseDate },
+            new Domain.Entities.MeasurementUnit { Id = 4, Name = "Liters", Symbol = "L", IsDefault = false, IsActive = true, CreatedAt = baseDate },
+            new Domain.Entities.MeasurementUnit { Id = 5, Name = "Meters", Symbol = "m", IsDefault = false, IsActive = true, CreatedAt = baseDate }
+        );
+
+        // Seed Taxes
+        modelBuilder.Entity<Domain.Entities.Tax>().HasData(
+            new Domain.Entities.Tax { Id = 1, Name = "VAT", Rate = 10.00m, IsPercentage = true, IsDefault = true, IsActive = true, CreatedAt = baseDate },
+            new Domain.Entities.Tax { Id = 2, Name = "Sales Tax", Rate = 5.00m, IsPercentage = true, IsDefault = false, IsActive = true, CreatedAt = baseDate },
+            new Domain.Entities.Tax { Id = 3, Name = "Luxury Tax", Rate = 15.00m, IsPercentage = true, IsDefault = false, IsActive = true, CreatedAt = baseDate }
+        );
+
+        // Seed ProductBarcodes
+        modelBuilder.Entity<Domain.Entities.ProductBarcode>().HasData(
+            new Domain.Entities.ProductBarcode { Id = 1, ProductId = 1, Value = "1234567890123", CreatedAt = baseDate },
+            new Domain.Entities.ProductBarcode { Id = 2, ProductId = 1, Value = "MOUSE001BC", CreatedAt = baseDate },
+            new Domain.Entities.ProductBarcode { Id = 3, ProductId = 2, Value = "2345678901234", CreatedAt = baseDate },
+            new Domain.Entities.ProductBarcode { Id = 4, ProductId = 3, Value = "3456789012345", CreatedAt = baseDate },
+            new Domain.Entities.ProductBarcode { Id = 5, ProductId = 4, Value = "4567890123456", CreatedAt = baseDate },
+            new Domain.Entities.ProductBarcode { Id = 6, ProductId = 5, Value = "5678901234567", CreatedAt = baseDate }
+        );
+
+        // Seed ProductComments
+        modelBuilder.Entity<Domain.Entities.ProductComment>().HasData(
+            new Domain.Entities.ProductComment { Id = 1, ProductId = 1, Comment = "Popular item - stock frequently", CreatedBy = "Admin", CreatedAt = baseDate },
+            new Domain.Entities.ProductComment { Id = 2, ProductId = 2, Comment = "Check battery life before selling", CreatedBy = "Admin", CreatedAt = baseDate }
+        );
+
+        // Seed ProductTaxes
+        modelBuilder.Entity<Domain.Entities.ProductTax>().HasData(
+            new Domain.Entities.ProductTax { Id = 1, ProductId = 1, TaxId = 1, CreatedAt = baseDate }, // Mouse with VAT
+            new Domain.Entities.ProductTax { Id = 2, ProductId = 2, TaxId = 1, CreatedAt = baseDate }, // Headphones with VAT
+            new Domain.Entities.ProductTax { Id = 3, ProductId = 2, TaxId = 3, CreatedAt = baseDate }, // Headphones with Luxury Tax
+            new Domain.Entities.ProductTax { Id = 4, ProductId = 3, TaxId = 2, CreatedAt = baseDate }, // T-Shirt with Sales Tax
+            new Domain.Entities.ProductTax { Id = 5, ProductId = 4, TaxId = 1, CreatedAt = baseDate }, // Coffee with VAT
+            new Domain.Entities.ProductTax { Id = 6, ProductId = 5, TaxId = 2, CreatedAt = baseDate }  // Book with Sales Tax
         );
 
         // Seed Customers

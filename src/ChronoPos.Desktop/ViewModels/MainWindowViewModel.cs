@@ -688,6 +688,9 @@ public partial class MainWindowViewModel : ObservableObject
             {
                 switch (moduleType)
                 {
+                    case "Product":
+                        ShowProductManagement();
+                        break;
                     case "Stock":
                         ShowStockManagement();
                         break;
@@ -724,6 +727,97 @@ public partial class MainWindowViewModel : ObservableObject
             { 
                 Text = $"Error loading management modules: {ex.Message}",
                 FontStyle = System.Windows.FontStyles.Italic,
+                Foreground = System.Windows.Media.Brushes.Red,
+                Margin = new System.Windows.Thickness(0, 20, 0, 0)
+            });
+            
+            CurrentView = errorContent;
+        }
+    }
+
+    [RelayCommand]
+    private void ShowProductManagement()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Product Management";
+        StatusMessage = "Loading product management...";
+        
+        try
+        {
+            // Create the ProductManagementView and get its ViewModel from the service provider
+            var productManagementView = new ProductManagementView();
+            var productManagementViewModel = new ProductManagementViewModel(
+                _serviceProvider.GetRequiredService<IProductService>(),
+                () => ShowAddProduct()
+            );
+            
+            productManagementView.DataContext = productManagementViewModel;
+            CurrentView = productManagementView;
+            
+            StatusMessage = "Product management loaded successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading product management: {ex.Message}";
+            
+            // Fallback to simple error display
+            var errorContent = new System.Windows.Controls.StackPanel();
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = "Product Management", 
+                FontSize = 16, 
+                FontWeight = System.Windows.FontWeights.Bold,
+                Margin = new System.Windows.Thickness(0, 0, 0, 20) 
+            });
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = $"Error loading product management: {ex.Message}",
+                FontSize = 12,
+                Foreground = System.Windows.Media.Brushes.Red,
+                Margin = new System.Windows.Thickness(0, 20, 0, 0)
+            });
+            
+            CurrentView = errorContent;
+        }
+    }
+
+    [RelayCommand]
+    private void ShowAddProduct()
+    {
+        CurrentPageTitle = "Add Product";
+        StatusMessage = "Loading add product form...";
+        
+        try
+        {
+            // Create the AddProductView and get its ViewModel from the service provider
+            var addProductView = new AddProductView();
+            var addProductViewModel = new AddProductViewModel(
+                _serviceProvider.GetRequiredService<IProductService>(),
+                () => ShowProductManagement()
+            );
+            
+            addProductView.DataContext = addProductViewModel;
+            CurrentView = addProductView;
+            
+            StatusMessage = "Add product form loaded successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading add product form: {ex.Message}";
+            
+            // Fallback to simple error display
+            var errorContent = new System.Windows.Controls.StackPanel();
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = "Add Product", 
+                FontSize = 16, 
+                FontWeight = System.Windows.FontWeights.Bold,
+                Margin = new System.Windows.Thickness(0, 0, 0, 20) 
+            });
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = $"Error loading add product form: {ex.Message}",
+                FontSize = 12,
                 Foreground = System.Windows.Media.Brushes.Red,
                 Margin = new System.Windows.Thickness(0, 20, 0, 0)
             });

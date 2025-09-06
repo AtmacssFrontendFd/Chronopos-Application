@@ -53,4 +53,27 @@ public interface IProductService
     /// </summary>
     /// <param name="threshold">Stock threshold</param>
     Task<IEnumerable<ProductDto>> GetLowStockProductsAsync(int threshold = 10);
+    
+    /// <summary>
+    /// Gets all categories asynchronously
+    /// </summary>
+    Task<IEnumerable<CategoryDto>> GetAllCategoriesAsync();
+    
+    /// <summary>
+    /// Creates a new category asynchronously
+    /// </summary>
+    /// <param name="categoryDto">Category data</param>
+    Task<CategoryDto> CreateCategoryAsync(CategoryDto categoryDto);
+    
+    /// <summary>
+    /// Updates an existing category asynchronously
+    /// </summary>
+    /// <param name="categoryDto">Category data</param>
+    Task<CategoryDto> UpdateCategoryAsync(CategoryDto categoryDto);
+    
+    /// <summary>
+    /// Deletes a category asynchronously
+    /// </summary>
+    /// <param name="id">Category ID</param>
+    Task DeleteCategoryAsync(int id);
 }
