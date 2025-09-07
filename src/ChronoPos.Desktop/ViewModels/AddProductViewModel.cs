@@ -172,6 +172,19 @@ public partial class AddProductViewModel : ObservableObject
     [ObservableProperty]
     private string currentSection = "ProductInfo";
 
+    // Category panel properties
+    [ObservableProperty]
+    private bool isCategoryPanelOpen = false;
+
+    [ObservableProperty]
+    private CategoryDto currentCategory = new();
+
+    [ObservableProperty]
+    private bool isCategoryEditMode = false;
+
+    [ObservableProperty]
+    private ObservableCollection<CategoryDto> parentCategories = new();
+
     #endregion
 
     #region Barcode Management Classes
@@ -364,10 +377,15 @@ public partial class AddProductViewModel : ObservableObject
     {
         var categoryList = await _productService.GetAllCategoriesAsync();
         Categories.Clear();
+        ParentCategories.Clear();
+        
+        // Add "No Parent" option for parent categories
+        ParentCategories.Add(new CategoryDto { Id = 0, Name = "No Parent Category", Description = "Top Level Category" });
         
         foreach (var category in categoryList)
         {
             Categories.Add(category);
+            ParentCategories.Add(category);
         }
     }
 
@@ -678,6 +696,103 @@ public partial class AddProductViewModel : ObservableObject
         HasBarcodeValidationError = false;
         
         StatusMessage = "Form reset - ready for new product";
+    }
+
+    #endregion
+
+    #region Category Panel Commands
+
+    [RelayCommand]
+    private void OpenAddCategoryPanel()
+    {
+        CurrentCategory = new CategoryDto { IsActive = true, DisplayOrder = 0 };
+        IsCategoryEditMode = false;
+        IsCategoryPanelOpen = true;
+    }
+
+    [RelayCommand]
+    private void CloseCategoryPanel()
+    {
+        IsCategoryPanelOpen = false;
+        CurrentCategory = new CategoryDto();
+    }
+
+    [RelayCommand]
+    private async Task SaveCategory()
+    {
+        try
+        {
+            IsLoading = true;
+            StatusMessage = "Saving category...";
+
+            if (!ValidateCategoryForm())
+            {
+                StatusMessage = "Please fix category validation errors";
+                return;
+            }
+
+            CategoryDto savedCategory;
+            if (IsCategoryEditMode)
+            {
+                savedCategory = await _productService.UpdateCategoryAsync(CurrentCategory);
+                StatusMessage = "Category updated successfully";
+            }
+            else
+            {
+                savedCategory = await _productService.CreateCategoryAsync(CurrentCategory);
+                StatusMessage = "Category created successfully";
+            }
+
+            // Refresh categories list
+            await LoadCategoriesAsync();
+            
+            // Select the newly created/updated category
+            CategoryId = savedCategory.Id;
+
+            // Close the panel
+            IsCategoryPanelOpen = false;
+            
+            MessageBox.Show("Category saved successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error saving category: {ex.Message}";
+            MessageBox.Show($"Failed to save category: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private bool ValidateCategoryForm()
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(CurrentCategory.Name))
+            errors.Add("Category name is required");
+        
+        if (CurrentCategory.Name.Length > 100)
+            errors.Add("Category name cannot exceed 100 characters");
+
+        if (!string.IsNullOrWhiteSpace(CurrentCategory.Description) && CurrentCategory.Description.Length > 500)
+            errors.Add("Category description cannot exceed 500 characters");
+
+        if (!string.IsNullOrWhiteSpace(CurrentCategory.NameArabic) && CurrentCategory.NameArabic.Length > 100)
+            errors.Add("Category name (Arabic) cannot exceed 100 characters");
+
+        if (CurrentCategory.DisplayOrder < 0)
+            errors.Add("Display order cannot be negative");
+
+        if (errors.Any())
+        {
+            ValidationMessage = string.Join(Environment.NewLine, errors);
+            HasValidationErrors = true;
+            return false;
+        }
+
+        HasValidationErrors = false;
+        return true;
     }
 
     #endregion

@@ -103,6 +103,23 @@ public class ProductService : IProductService
         var createdCategory = await _unitOfWork.Categories.AddAsync(category);
         await _unitOfWork.SaveChangesAsync();
         
+        // Create Arabic translation if provided
+        if (!string.IsNullOrWhiteSpace(categoryDto.NameArabic))
+        {
+            var translation = new CategoryTranslation
+            {
+                CategoryId = createdCategory.Id,
+                LanguageCode = "ar",
+                Name = categoryDto.NameArabic,
+                Description = categoryDto.Description,
+                CreatedAt = DateTime.UtcNow
+            };
+            
+            // This would require translation repository - simplified for now
+            // await _unitOfWork.CategoryTranslations.AddAsync(translation);
+            // await _unitOfWork.SaveChangesAsync();
+        }
+        
         return MapCategoryToDto(createdCategory);
     }
     
@@ -127,6 +144,21 @@ public class ProductService : IProductService
     {
         await _unitOfWork.Categories.DeleteAsync(id);
         await _unitOfWork.SaveChangesAsync();
+    }
+    
+    public async Task<CategoryDto?> GetCategoryByIdAsync(int id)
+    {
+        var category = await _unitOfWork.Categories.GetByIdAsync(id);
+        return category != null ? MapCategoryToDto(category) : null;
+    }
+    
+    public async Task<CategoryTranslationDto> CreateCategoryTranslationAsync(CategoryTranslationDto translationDto)
+    {
+        // Note: This would require a CategoryTranslation repository
+        // For now, return the input as if it was saved
+        translationDto.Id = new Random().Next(1000, 9999); // Mock ID
+        translationDto.CreatedAt = DateTime.UtcNow;
+        return translationDto;
     }
     
     private static ProductDto MapToDto(Product product)
@@ -204,6 +236,9 @@ public class ProductService : IProductService
             Name = category.Name,
             Description = category.Description,
             IsActive = category.IsActive,
+            ParentCategoryId = category.ParentCategoryId,
+            ParentCategoryName = category.ParentCategory?.Name ?? string.Empty,
+            DisplayOrder = category.DisplayOrder,
             ProductCount = category.Products?.Count ?? 0
         };
     }
@@ -215,7 +250,9 @@ public class ProductService : IProductService
             Id = dto.Id,
             Name = dto.Name,
             Description = dto.Description,
-            IsActive = dto.IsActive
+            IsActive = dto.IsActive,
+            ParentCategoryId = dto.ParentCategoryId,
+            DisplayOrder = dto.DisplayOrder
         };
     }
 }

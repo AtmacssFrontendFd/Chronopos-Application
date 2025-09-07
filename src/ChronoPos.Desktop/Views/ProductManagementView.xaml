@@ -87,13 +87,16 @@
         </Style>
     </UserControl.Resources>
 
+    <!-- Root Container Grid -->
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="60"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+        <!-- Main Content -->
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="60"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
         <!-- Title Header -->
         <Border Grid.Row="0" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
@@ -543,5 +546,271 @@
                            HorizontalAlignment="Center"/>
             </StackPanel>
         </Border>
+
+        </Grid>
+
+        <!-- Category Side Panel - FULL SCREEN OVERLAY -->
+        <Border Background="White"
+                BorderBrush="#E0E0E0"
+                BorderThickness="1"
+                CornerRadius="8"
+                Width="400"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Stretch"
+                Margin="0,0,0,0"
+                Panel.ZIndex="1000">
+            
+            <Border.Effect>
+                <DropShadowEffect Color="Black" Direction="320" ShadowDepth="8" Opacity="0.3" BlurRadius="15"/>
+            </Border.Effect>
+
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsCategoryFormVisible}" Value="True">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+
+            <Grid Margin="25">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <Grid Grid.Row="0" Margin="0,0,0,25">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <TextBlock Text="📁" FontSize="20" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock Text="Add New Category" 
+                                   FontSize="18" 
+                                   FontWeight="SemiBold"
+                                   Foreground="#495057"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <Button Grid.Column="1" 
+                            Content="✕" 
+                            Command="{Binding CancelCategoryFormCommand}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="#6C757D"
+                            FontSize="16"
+                            Padding="8"
+                            Cursor="Hand"
+                            ToolTip="Close panel"/>
+                </Grid>
+
+                <!-- Form Content -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        
+                        <!-- Category Name -->
+                        <StackPanel Margin="0,0,0,20">
+                            <TextBlock Text="Category Name *" 
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="#6C757D"
+                                       Margin="0,0,0,5"/>
+                            <TextBox Text="{Binding CurrentCategory.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                     Height="35"
+                                     Padding="10"
+                                     BorderBrush="#DEE2E6"
+                                     BorderThickness="1"
+                                     Background="White"
+                                     FontSize="13"
+                                     MaxLength="100"/>
+                        </StackPanel>
+
+                        <!-- Category Name (Arabic) -->
+                        <StackPanel Margin="0,0,0,20">
+                            <TextBlock Text="Category Name (Arabic)" 
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="#6C757D"
+                                       Margin="0,0,0,5"/>
+                            <TextBox Text="{Binding CurrentCategory.NameArabic, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                     Height="35"
+                                     Padding="10"
+                                     BorderBrush="#DEE2E6"
+                                     BorderThickness="1"
+                                     Background="White"
+                                     FontSize="13"
+                                     MaxLength="100"
+                                     FlowDirection="RightToLeft"/>
+                        </StackPanel>
+
+                        <!-- Parent Category -->
+                        <StackPanel Margin="0,0,0,20">
+                            <TextBlock Text="Parent Category" 
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="#6C757D"
+                                       Margin="0,0,0,5"/>
+                            <ComboBox ItemsSource="{Binding ParentCategories}"
+                                      SelectedValue="{Binding CurrentCategory.ParentCategoryId, Mode=TwoWay}"
+                                      SelectedValuePath="Id"
+                                      DisplayMemberPath="Name"
+                                      Height="35"/>
+                        </StackPanel>
+
+                        <!-- Display Order -->
+                        <StackPanel Margin="0,0,0,20">
+                            <TextBlock Text="Display Order" 
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="#6C757D"
+                                       Margin="0,0,0,5"/>
+                            <TextBox Text="{Binding CurrentCategory.DisplayOrder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                     Height="35"
+                                     Padding="10"
+                                     BorderBrush="#DEE2E6"
+                                     BorderThickness="1"
+                                     Background="White"
+                                     FontSize="13"/>
+                            <TextBlock Text="Lower numbers appear first in the list" 
+                                       FontSize="11" 
+                                       Foreground="#6C757D" 
+                                       Margin="0,5,0,0"/>
+                        </StackPanel>
+
+                        <!-- Description -->
+                        <StackPanel Margin="0,0,0,20">
+                            <TextBlock Text="Description" 
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="#6C757D"
+                                       Margin="0,0,0,5"/>
+                            <TextBox Text="{Binding CurrentCategory.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                     Height="80"
+                                     Padding="10"
+                                     BorderBrush="#DEE2E6"
+                                     BorderThickness="1"
+                                     Background="White"
+                                     FontSize="13"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="True"
+                                     VerticalScrollBarVisibility="Auto"
+                                     MaxLength="500"/>
+                        </StackPanel>
+
+                        <!-- Active Status -->
+                        <CheckBox Content="Active Category" 
+                                  IsChecked="{Binding CurrentCategory.IsActive, Mode=TwoWay}"
+                                  FontSize="13"
+                                  Margin="0,10,0,20"/>
+
+                        <!-- Information Panel -->
+                        <Border BorderBrush="#17A2B8" 
+                                BorderThickness="1" 
+                                CornerRadius="6" 
+                                Padding="15" 
+                                Background="#E7F8FD" 
+                                Margin="0,10,0,0">
+                            <StackPanel>
+                                <TextBlock Text="ℹ️ Category Information" 
+                                           FontWeight="SemiBold" 
+                                           FontSize="12" 
+                                           Foreground="#17A2B8" 
+                                           Margin="0,0,0,8"/>
+                                <TextBlock Text="• Category name is required and will be used in product listings" 
+                                           FontSize="11" 
+                                           Foreground="#495057" 
+                                           Margin="0,0,0,3"/>
+                                <TextBlock Text="• Arabic name is optional for multilingual support" 
+                                           FontSize="11" 
+                                           Foreground="#495057" 
+                                           Margin="0,0,0,3"/>
+                                <TextBlock Text="• Parent category creates a hierarchical structure" 
+                                           FontSize="11" 
+                                           Foreground="#495057" 
+                                           Margin="0,0,0,3"/>
+                                <TextBlock Text="• Display order controls the sorting in category lists" 
+                                           FontSize="11" 
+                                           Foreground="#495057"/>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Footer Actions -->
+                <StackPanel Grid.Row="2" 
+                            Orientation="Vertical" 
+                            Margin="0,20,0,0">
+                    
+                    <Button Content="Save Category" 
+                            Command="{Binding SaveCategoryCommand}"
+                            Height="40"
+                            Padding="20,8"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Background="#FFC107"
+                            Foreground="White"
+                            Margin="0,0,0,10">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        CornerRadius="6">
+                                    <ContentPresenter HorizontalAlignment="Center" 
+                                                    VerticalAlignment="Center"
+                                                    Margin="{TemplateBinding Padding}"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Opacity" Value="0.9"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter Property="Opacity" Value="0.8"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    
+                    <Button Content="Cancel" 
+                            Command="{Binding CancelCategoryFormCommand}"
+                            Height="40"
+                            Padding="20,8"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Background="#6C757D"
+                            Foreground="White">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        CornerRadius="6">
+                                    <ContentPresenter HorizontalAlignment="Center" 
+                                                    VerticalAlignment="Center"
+                                                    Margin="{TemplateBinding Padding}"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Opacity" Value="0.9"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter Property="Opacity" Value="0.8"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
     </Grid>
 </UserControl>

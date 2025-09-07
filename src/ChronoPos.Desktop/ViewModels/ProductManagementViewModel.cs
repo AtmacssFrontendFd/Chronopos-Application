@@ -57,6 +57,9 @@ public partial class ProductManagementViewModel : ObservableObject
     [ObservableProperty]
     private CategoryDto currentCategory = new();
 
+    [ObservableProperty]
+    private ObservableCollection<CategoryDto> parentCategories = new();
+
     #endregion
 
     #region Constructor
@@ -104,13 +107,18 @@ public partial class ProductManagementViewModel : ObservableObject
     {
         var categoryList = await _productService.GetAllCategoriesAsync();
         Categories.Clear();
+        ParentCategories.Clear();
         
         // Add "All Categories" option
         Categories.Add(new CategoryDto { Id = 0, Name = "All", Description = "All Categories" });
         
+        // Add "No Parent" option for parent categories
+        ParentCategories.Add(new CategoryDto { Id = 0, Name = "No Parent Category", Description = "Top Level Category" });
+        
         foreach (var category in categoryList)
         {
             Categories.Add(category);
+            ParentCategories.Add(category);
         }
 
         // Select "All Categories" by default
@@ -281,7 +289,7 @@ public partial class ProductManagementViewModel : ObservableObject
     [RelayCommand]
     private void AddNewCategory()
     {
-        CurrentCategory = new CategoryDto { IsActive = true };
+        CurrentCategory = new CategoryDto { IsActive = true, DisplayOrder = 0 };
         IsEditMode = false;
         IsCategoryFormVisible = true;
     }
@@ -296,7 +304,10 @@ public partial class ProductManagementViewModel : ObservableObject
             Id = category.Id,
             Name = category.Name,
             Description = category.Description,
-            IsActive = category.IsActive
+            IsActive = category.IsActive,
+            ParentCategoryId = category.ParentCategoryId,
+            DisplayOrder = category.DisplayOrder,
+            NameArabic = category.NameArabic
         };
         IsEditMode = true;
         IsCategoryFormVisible = true;
@@ -309,6 +320,12 @@ public partial class ProductManagementViewModel : ObservableObject
         {
             IsLoading = true;
             StatusMessage = "Saving category...";
+
+            if (!ValidateCategoryForm())
+            {
+                StatusMessage = "Please fix category validation errors";
+                return;
+            }
 
             if (IsEditMode)
             {
@@ -333,6 +350,41 @@ public partial class ProductManagementViewModel : ObservableObject
         {
             IsLoading = false;
         }
+    }
+
+    private bool ValidateCategoryForm()
+    {
+        if (string.IsNullOrWhiteSpace(CurrentCategory.Name))
+        {
+            MessageBox.Show("Category name is required", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+        
+        if (CurrentCategory.Name.Length > 100)
+        {
+            MessageBox.Show("Category name cannot exceed 100 characters", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(CurrentCategory.Description) && CurrentCategory.Description.Length > 500)
+        {
+            MessageBox.Show("Category description cannot exceed 500 characters", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(CurrentCategory.NameArabic) && CurrentCategory.NameArabic.Length > 100)
+        {
+            MessageBox.Show("Category name (Arabic) cannot exceed 100 characters", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+
+        if (CurrentCategory.DisplayOrder < 0)
+        {
+            MessageBox.Show("Display order cannot be negative", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+
+        return true;
     }
 
     [RelayCommand]

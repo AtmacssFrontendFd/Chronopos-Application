@@ -22,5 +22,13 @@ public class Category
     
     public bool IsActive { get; set; } = true;
     
-    public ICollection<Product> Products { get; set; } = new List<Product>();
+    public int? ParentCategoryId { get; set; }
+    
+    public int DisplayOrder { get; set; } = 0;
+    
+    // Navigation properties
+    public virtual Category? ParentCategory { get; set; }
+    public virtual ICollection<Category> SubCategories { get; set; } = new List<Category>();
+    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+    public virtual ICollection<CategoryTranslation> CategoryTranslations { get; set; } = new List<CategoryTranslation>();
 }

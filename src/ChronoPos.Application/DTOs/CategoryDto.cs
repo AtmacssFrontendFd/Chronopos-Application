@@ -18,5 +18,14 @@ public class CategoryDto
     
     public bool IsActive { get; set; } = true;
     
+    public int? ParentCategoryId { get; set; }
+    
+    public string ParentCategoryName { get; set; } = string.Empty;
+    
+    public int DisplayOrder { get; set; } = 0;
+    
     public int ProductCount { get; set; }
+    
+    // Arabic name for translation
+    public string NameArabic { get; set; } = string.Empty;
 }

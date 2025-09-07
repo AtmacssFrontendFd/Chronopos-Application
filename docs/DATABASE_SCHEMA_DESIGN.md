@@ -4,9 +4,9 @@
 
 This document outlines the complete database schema for ChronoPos - a comprehensive Point of Sale system with multi-language support, multi-location capabilities, and advanced business features.
 
-**Database Engine**: MySQL/MariaDB  
-**Total Tables**: 80+ tables  
-**Architecture**: Multi-tenant, Multi-language, Enterprise-grade  
+**Database Engine**: MySQL/MariaDB
+**Total Tables**: 80+ tables
+**Architecture**: Multi-tenant, Multi-language, Enterprise-grade
 
 ---
 
@@ -306,6 +306,429 @@ CREATE TABLE `user_permission_overrides` (
   `created_by` int,
   `created_at` timestamp DEFAULT (now())
 );
+
+-- ✅ ENHANCED: Document Types for Stock Control (CRITICAL MISSING)
+CREATE TABLE `document_types` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `code` varchar(20) UNIQUE NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `name_ar` varchar(100),
+  `stock_direction` ENUM('IN', 'OUT', 'NONE') NOT NULL DEFAULT 'NONE',
+  `editor_type` ENUM('STANDARD', 'INVENTORY', 'LOSS_AND_DAMAGE') DEFAULT 'STANDARD',
+  `is_auto_manufacture_enabled` boolean DEFAULT false,
+  `manufacture_document_type_code` varchar(20),
+  `default_warehouse_id` int,
+  `print_template` varchar(255),
+  `status` varchar(20) DEFAULT 'Active',
+  `created_by` int,
+  `created_at` timestamp DEFAULT (now()),
+  `updated_by` int,
+  `updated_at` timestamp DEFAULT (now()),
+  `deleted_at` timestamp,
+  `deleted_by` int
+);
+
+-- ✅ CRITICAL: Current Stock Levels (MISSING)
+CREATE TABLE `stock_levels` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `product_id` int NOT NULL,
+  `shop_location_id` int NOT NULL,
+  `batch_id` int,
+  `current_quantity` decimal(12,4) NOT NULL DEFAULT 0,
+  `reserved_quantity` decimal(12,4) DEFAULT 0,
+  `available_quantity` decimal(12,4) GENERATED ALWAYS AS (current_quantity - reserved_quantity) STORED,
+  `reorder_level` decimal(12,4) DEFAULT 0,
+  `max_stock_level` decimal(12,4),
+  `last_updated` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `created_at` timestamp DEFAULT (now()),
+  UNIQUE KEY `unique_product_location_batch` (`product_id`, `shop_location_id`, `batch_id`)
+);
+
+-- ✅ ENHANCED: Stock History with Document Integration
+CREATE TABLE `stock_history` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `product_id` int NOT NULL,
+  `shop_location_id` int NOT NULL,
+  `batch_id` int,
+  `document_id` int,
+  `document_item_id` int,
+  `document_type_id` int,
+  `movement_type` varchar(20) NOT NULL COMMENT 'Purchase, Sale, Transfer, Adjustment, Waste, Return',
+  `quantity_changed` decimal(12,4) NOT NULL,
+  `quantity_before` decimal(12,4) NOT NULL,
+  `quantity_after` decimal(12,4) NOT NULL,
+  `expected_quantity` decimal(12,4) COMMENT 'For inventory counts',
+  `is_matching_expected` boolean DEFAULT true,
+  `cost_price` decimal(12,2),
+  `reference_type` varchar(50) COMMENT 'Transaction, Transfer, Adjustment',
+  `reference_id` int NOT NULL,
+  `notes` text,
+  `created_by` int NOT NULL,
+  `created_at` timestamp DEFAULT (now()),
+  INDEX `idx_product_location` (`product_id`, `shop_location_id`),
+  INDEX `idx_document` (`document_id`),
+  INDEX `idx_movement_date` (`created_at`)
+);
+
+-- ✅ ENHANCED: Stock Reservations
+CREATE TABLE `stock_reservations` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `product_id` int NOT NULL,
+  `shop_location_id` int NOT NULL,
+  `customer_id` int,
+  `transaction_id` int,
+  `reserved_quantity` decimal(12,4) NOT NULL,
+  `reservation_type` varchar(20) DEFAULT 'SALE' COMMENT 'SALE, TRANSFER, HOLD',
+  `expires_at` timestamp,
+  `status` varchar(20) DEFAULT 'ACTIVE',
+  `created_by` int NOT NULL,
+  `created_at` timestamp DEFAULT (now()),
+  `released_at` timestamp,
+  `released_by` int,
+  INDEX `idx_product_location` (`product_id`, `shop_location_id`),
+  INDEX `idx_expiry` (`expires_at`)
+);
+
+-- ✅ ENHANCED: Stock Valuation Methods
+CREATE TABLE `stock_valuation_methods` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `method_code` varchar(20) UNIQUE NOT NULL,
+  `method_name` varchar(100) NOT NULL,
+  `description` text,
+  `is_active` boolean DEFAULT true,
+  `created_at` timestamp DEFAULT (now())
+);
+
+-- Insert default valuation methods
+INSERT INTO `stock_valuation_methods` (`method_code`, `method_name`, `description`) VALUES
+('FIFO', 'First In First Out', 'Oldest stock is consumed first'),
+('LIFO', 'Last In First Out', 'Newest stock is consumed first'),
+('AVERAGE', 'Weighted Average', 'Average cost of all stock'),
+('SPECIFIC', 'Specific Identification', 'Track specific items by serial/batch');
+
+-- ✅ ENHANCED: Product with Stock Control
+ALTER TABLE `product` ADD COLUMN `is_service` boolean DEFAULT false AFTER `type`;
+ALTER TABLE `product` ADD COLUMN `track_stock` boolean DEFAULT true AFTER `is_service`;
+ALTER TABLE `product` ADD COLUMN `allow_negative_stock` boolean DEFAULT false AFTER `track_stock`;
+ALTER TABLE `product` ADD COLUMN `stock_valuation_method_id` int DEFAULT 1 AFTER `allow_negative_stock`;
+
+-- ✅ ENHANCED: Product Info with Stock Settings
+ALTER TABLE `product_info` ADD COLUMN `min_stock_level` decimal(12,4) DEFAULT 0 AFTER `reorder_level`;
+ALTER TABLE `product_info` ADD COLUMN `max_stock_level` decimal(12,4) AFTER `min_stock_level`;
+ALTER TABLE `product_info` ADD COLUMN `lead_time_days` int DEFAULT 0 AFTER `max_stock_level`;
+ALTER TABLE `product_info` ADD COLUMN `shelf_life_days` int AFTER `expiry_days`;
+
+-- ✅ ENHANCED: Stock Movement with Better Tracking
+ALTER TABLE `stock_movement` ADD COLUMN `document_id` int AFTER `reference_id`;
+ALTER TABLE `stock_movement` ADD COLUMN `document_item_id` int AFTER `document_id`;
+ALTER TABLE `stock_movement` ADD COLUMN `previous_quantity` decimal(12,4) AFTER `quantity`;
+ALTER TABLE `stock_movement` ADD COLUMN `new_quantity` decimal(12,4) AFTER `previous_quantity`;
+ALTER TABLE `stock_movement` ADD COLUMN `cost_price` decimal(12,2) AFTER `new_quantity`;
+ALTER TABLE `stock_movement` ADD COLUMN `is_system_generated` boolean DEFAULT true AFTER `cost_price`;
+
+-- ✅ ENHANCED: Transactions with Document Type
+ALTER TABLE `transactions` ADD COLUMN `document_type_id` int AFTER `id`;
+ALTER TABLE `transactions` ADD COLUMN `document_number` varchar(50) AFTER `document_type_id`;
+ALTER TABLE `transactions` ADD COLUMN `reference_document_number` varchar(50) AFTER `document_number`;
+ALTER TABLE `transactions` ADD COLUMN `stock_date` timestamp DEFAULT CURRENT_TIMESTAMP AFTER `selling_time`;
+ALTER TABLE `transactions` ADD COLUMN `is_inventory_count` boolean DEFAULT false AFTER `stock_date`;
+
+-- ✅ ENHANCED: Transaction Products with UOM Calculations
+ALTER TABLE `transaction_products` ADD COLUMN `expected_quantity` decimal(12,4) DEFAULT 0 AFTER `quantity` COMMENT 'For inventory counts';
+ALTER TABLE `transaction_products` ADD COLUMN `uom_quantity` decimal(12,4) GENERATED ALWAYS AS (
+  quantity * COALESCE((
+    SELECT conversion_factor 
+    FROM unit_option_conversion uoc 
+    JOIN product_variants pv ON uoc.unit_value_from_id = pv.variant_id 
+    WHERE pv.unit_option_id = product_unit_id 
+    LIMIT 1
+  ), 1)
+) STORED COMMENT 'Calculated quantity in base units';
+ALTER TABLE `transaction_products` ADD COLUMN `cost_price` decimal(12,2) AFTER `buyer_cost`;
+ALTER TABLE `transaction_products` ADD COLUMN `batch_id` int AFTER `cost_price`;
+
+-- ✅ NEW: Stock Alerts
+CREATE TABLE `stock_alerts` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `product_id` int NOT NULL,
+  `shop_location_id` int NOT NULL,
+  `alert_type` ENUM('LOW_STOCK', 'OUT_OF_STOCK', 'OVERSTOCK', 'EXPIRY_WARNING') NOT NULL,
+  `current_quantity` decimal(12,4),
+  `threshold_quantity` decimal(12,4),
+  `alert_message` text,
+  `is_acknowledged` boolean DEFAULT false,
+  `acknowledged_by` int,
+  `acknowledged_at` timestamp,
+  `created_at` timestamp DEFAULT (now()),
+  INDEX `idx_product_location` (`product_id`, `shop_location_id`),
+  INDEX `idx_alert_type` (`alert_type`),
+  INDEX `idx_unacknowledged` (`is_acknowledged`)
+);
+
+-- ✅ NEW: Stock Count Sessions
+CREATE TABLE `stock_count_sessions` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `session_number` varchar(50) UNIQUE NOT NULL,
+  `shop_location_id` int NOT NULL,
+  `count_date` date NOT NULL,
+  `count_type` ENUM('FULL', 'PARTIAL', 'CYCLE') DEFAULT 'PARTIAL',
+  `status` ENUM('PLANNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED') DEFAULT 'PLANNED',
+  `planned_by` int NOT NULL,
+  `started_by` int,
+  `completed_by` int,
+  `started_at` timestamp,
+  `completed_at` timestamp,
+  `notes` text,
+  `created_at` timestamp DEFAULT (now())
+);
+
+CREATE TABLE `stock_count_items` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `session_id` int NOT NULL,
+  `product_id` int NOT NULL,
+  `batch_id` int,
+  `expected_quantity` decimal(12,4) NOT NULL,
+  `counted_quantity` decimal(12,4),
+  `variance_quantity` decimal(12,4) GENERATED ALWAYS AS (counted_quantity - expected_quantity) STORED,
+  `variance_value` decimal(12,2),
+  `reason_code` varchar(50),
+  `notes` text,
+  `counted_by` int,
+  `counted_at` timestamp,
+  `is_processed` boolean DEFAULT false,
+  `processed_at` timestamp,
+  INDEX `idx_session` (`session_id`),
+  INDEX `idx_product` (`product_id`)
+);
+
+-- ✅ ENHANCED: Add Foreign Key Constraints for Stock Tables
+ALTER TABLE `stock_levels` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
+ALTER TABLE `stock_levels` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
+ALTER TABLE `stock_levels` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
+
+ALTER TABLE `stock_history` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
+ALTER TABLE `stock_history` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
+ALTER TABLE `stock_history` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
+ALTER TABLE `stock_history` ADD FOREIGN KEY (`document_id`) REFERENCES `transactions` (`id`);
+ALTER TABLE `stock_history` ADD FOREIGN KEY (`document_item_id`) REFERENCES `transaction_products` (`id`);
+ALTER TABLE `stock_history` ADD FOREIGN KEY (`document_type_id`) REFERENCES `document_types` (`id`);
+ALTER TABLE `stock_history` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
+
+ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
+ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
+ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`);
+ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`id`);
+ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
+ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`released_by`) REFERENCES `users` (`id`);
+
+ALTER TABLE `stock_alerts` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
+ALTER TABLE `stock_alerts` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
+ALTER TABLE `stock_alerts` ADD FOREIGN KEY (`acknowledged_by`) REFERENCES `users` (`id`);
+
+ALTER TABLE `stock_count_sessions` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
+ALTER TABLE `stock_count_sessions` ADD FOREIGN KEY (`planned_by`) REFERENCES `users` (`id`);
+ALTER TABLE `stock_count_sessions` ADD FOREIGN KEY (`started_by`) REFERENCES `users` (`id`);
+ALTER TABLE `stock_count_sessions` ADD FOREIGN KEY (`completed_by`) REFERENCES `users` (`id`);
+
+ALTER TABLE `stock_count_items` ADD FOREIGN KEY (`session_id`) REFERENCES `stock_count_sessions` (`id`);
+ALTER TABLE `stock_count_items` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
+ALTER TABLE `stock_count_items` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
+ALTER TABLE `stock_count_items` ADD FOREIGN KEY (`counted_by`) REFERENCES `users` (`id`);
+
+ALTER TABLE `document_types` ADD FOREIGN KEY (`default_warehouse_id`) REFERENCES `shop_locations` (`id`);
+ALTER TABLE `document_types` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
+ALTER TABLE `document_types` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
+ALTER TABLE `document_types` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
+
+ALTER TABLE `product` ADD FOREIGN KEY (`stock_valuation_method_id`) REFERENCES `stock_valuation_methods` (`id`);
+
+ALTER TABLE `transactions` ADD FOREIGN KEY (`document_type_id`) REFERENCES `document_types` (`id`);
+
+ALTER TABLE `transaction_products` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
+
+-- ✅ ENHANCED: Stock Management Triggers
+DELIMITER $$
+
+-- Trigger to update stock levels after stock movement
+CREATE TRIGGER `update_stock_levels_after_movement`
+AFTER INSERT ON `stock_movement`
+FOR EACH ROW
+BEGIN
+  DECLARE current_stock DECIMAL(12,4) DEFAULT 0;
+  
+  -- Get current stock
+  SELECT COALESCE(current_quantity, 0) INTO current_stock
+  FROM stock_levels 
+  WHERE product_id = NEW.product_id 
+    AND shop_location_id = NEW.location_id 
+    AND (batch_id = NEW.batch_id OR (batch_id IS NULL AND NEW.batch_id IS NULL));
+  
+  -- Update or insert stock level
+  INSERT INTO stock_levels (product_id, shop_location_id, batch_id, current_quantity)
+  VALUES (NEW.product_id, NEW.location_id, NEW.batch_id, NEW.quantity)
+  ON DUPLICATE KEY UPDATE 
+    current_quantity = current_quantity + NEW.quantity,
+    last_updated = CURRENT_TIMESTAMP;
+    
+  -- Create stock history record
+  INSERT INTO stock_history (
+    product_id, shop_location_id, batch_id, movement_type,
+    quantity_changed, quantity_before, quantity_after,
+    reference_type, reference_id, created_by
+  ) VALUES (
+    NEW.product_id, NEW.location_id, NEW.batch_id, NEW.movement_type,
+    NEW.quantity, current_stock, current_stock + NEW.quantity,
+    NEW.reference_type, NEW.reference_id, NEW.created_by
+  );
+  
+  -- Check for stock alerts
+  CALL check_stock_alerts(NEW.product_id, NEW.location_id);
+END$$
+
+-- Trigger to create stock movement from transaction products
+CREATE TRIGGER `create_stock_movement_from_transaction`
+AFTER INSERT ON `transaction_products`
+FOR EACH ROW
+BEGIN
+  DECLARE doc_stock_direction VARCHAR(10);
+  DECLARE movement_qty DECIMAL(12,4);
+  DECLARE is_service_product BOOLEAN DEFAULT FALSE;
+  
+  -- Check if product is a service
+  SELECT is_service INTO is_service_product
+  FROM product WHERE id = NEW.product_id;
+  
+  -- Only process if not a service
+  IF NOT is_service_product THEN
+    -- Get document stock direction
+    SELECT dt.stock_direction INTO doc_stock_direction
+    FROM transactions t
+    JOIN document_types dt ON t.document_type_id = dt.id
+    WHERE t.id = NEW.transaction_id;
+    
+    -- Calculate movement quantity based on direction
+    SET movement_qty = CASE 
+      WHEN doc_stock_direction = 'OUT' THEN -NEW.uom_quantity
+      WHEN doc_stock_direction = 'IN' THEN NEW.uom_quantity
+      ELSE 0
+    END;
+    
+    -- Create stock movement if quantity is not zero
+    IF movement_qty != 0 THEN
+      INSERT INTO stock_movement (
+        product_id, batch_id, uom_id, movement_type, quantity,
+        reference_type, reference_id, location_id, document_id, document_item_id,
+        previous_quantity, new_quantity, cost_price, created_by
+      ) VALUES (
+        NEW.product_id, NEW.batch_id, NEW.product_unit_id, 
+        CASE WHEN doc_stock_direction = 'OUT' THEN 'Sale' ELSE 'Purchase' END,
+        movement_qty, 'Transaction', NEW.transaction_id, NEW.shop_location_id,
+        NEW.transaction_id, NEW.id, 0, 0, NEW.cost_price, NEW.created_by
+      );
+    END IF;
+  END IF;
+END$$
+
+-- Procedure to check stock alerts
+CREATE PROCEDURE `check_stock_alerts`(IN p_product_id INT, IN p_location_id INT)
+BEGIN
+  DECLARE current_stock DECIMAL(12,4);
+  DECLARE reorder_level DECIMAL(12,4);
+  DECLARE max_level DECIMAL(12,4);
+  
+  -- Get current stock and levels
+  SELECT 
+    COALESCE(sl.current_quantity, 0),
+    COALESCE(pi.reorder_level, 0),
+    COALESCE(pi.max_stock_level, 999999)
+  INTO current_stock, reorder_level, max_level
+  FROM product p
+  JOIN product_info pi ON p.id = pi.product_id
+  LEFT JOIN stock_levels sl ON p.id = sl.product_id AND sl.shop_location_id = p_location_id
+  WHERE p.id = p_product_id;
+  
+  -- Check for low stock
+  IF current_stock <= reorder_level AND current_stock > 0 THEN
+    INSERT IGNORE INTO stock_alerts (product_id, shop_location_id, alert_type, current_quantity, threshold_quantity, alert_message)
+    VALUES (p_product_id, p_location_id, 'LOW_STOCK', current_stock, reorder_level, 'Stock level is below reorder point');
+  END IF;
+  
+  -- Check for out of stock
+  IF current_stock <= 0 THEN
+    INSERT IGNORE INTO stock_alerts (product_id, shop_location_id, alert_type, current_quantity, threshold_quantity, alert_message)
+    VALUES (p_product_id, p_location_id, 'OUT_OF_STOCK', current_stock, 0, 'Product is out of stock');
+  END IF;
+  
+  -- Check for overstock
+  IF current_stock > max_level THEN
+    INSERT IGNORE INTO stock_alerts (product_id, shop_location_id, alert_type, current_quantity, threshold_quantity, alert_message)
+    VALUES (p_product_id, p_location_id, 'OVERSTOCK', current_stock, max_level, 'Stock level exceeds maximum limit');
+  END IF;
+END$$
+
+-- Function to get available stock
+CREATE FUNCTION `get_available_stock`(p_product_id INT, p_location_id INT) 
+RETURNS DECIMAL(12,4)
+READS SQL DATA
+DETERMINISTIC
+BEGIN
+  DECLARE available_qty DECIMAL(12,4) DEFAULT 0;
+  
+  SELECT COALESCE(available_quantity, 0) INTO available_qty
+  FROM stock_levels 
+  WHERE product_id = p_product_id AND shop_location_id = p_location_id;
+  
+  RETURN available_qty;
+END$$
+
+-- Function to check if stock reduction is allowed
+CREATE FUNCTION `can_reduce_stock`(p_product_id INT, p_location_id INT, p_quantity DECIMAL(12,4))
+RETURNS BOOLEAN
+READS SQL DATA
+DETERMINISTIC
+BEGIN
+  DECLARE current_stock DECIMAL(12,4) DEFAULT 0;
+  DECLARE allow_negative BOOLEAN DEFAULT FALSE;
+  
+  -- Get current stock and negative stock setting
+  SELECT 
+    COALESCE(sl.available_quantity, 0),
+    COALESCE(p.allow_negative_stock, FALSE)
+  INTO current_stock, allow_negative
+  FROM product p
+  LEFT JOIN stock_levels sl ON p.id = sl.product_id AND sl.shop_location_id = p_location_id
+  WHERE p.id = p_product_id;
+  
+  -- Allow if sufficient stock or negative stock is allowed
+  RETURN (current_stock >= p_quantity) OR allow_negative;
+END$$
+
+DELIMITER ;
+
+-- ✅ Insert Default Document Types
+INSERT INTO `document_types` (`code`, `name`, `name_ar`, `stock_direction`, `editor_type`, `status`) VALUES
+('SALE', 'Sales Invoice', 'فاتورة مبيعات', 'OUT', 'STANDARD', 'Active'),
+('PURCHASE', 'Purchase Order', 'أمر شراء', 'IN', 'STANDARD', 'Active'),
+('RETURN_SALE', 'Sales Return', 'مرتجع مبيعات', 'IN', 'STANDARD', 'Active'),
+('RETURN_PURCHASE', 'Purchase Return', 'مرتجع مشتريات', 'OUT', 'STANDARD', 'Active'),
+('INVENTORY', 'Stock Count', 'جرد المخزون', 'NONE', 'INVENTORY', 'Active'),
+('ADJUSTMENT_IN', 'Stock Adjustment In', 'تعديل مخزون داخل', 'IN', 'STANDARD', 'Active'),
+('ADJUSTMENT_OUT', 'Stock Adjustment Out', 'تعديل مخزون خارج', 'OUT', 'LOSS_AND_DAMAGE', 'Active'),
+('TRANSFER_OUT', 'Transfer Out', 'تحويل خارج', 'OUT', 'STANDARD', 'Active'),
+('TRANSFER_IN', 'Transfer In', 'تحويل داخل', 'IN', 'STANDARD', 'Active'),
+('WASTE', 'Waste/Damage', 'تالف/هدر', 'OUT', 'LOSS_AND_DAMAGE', 'Active');
+
+CREATE TABLE `user_permission_overrides` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `permission_id` int NOT NULL,
+  `is_allowed` boolean DEFAULT true,
+  `reason` text,
+  `valid_from` timestamp,
+  `valid_to` timestamp,
+  `created_by` int,
+  `created_at` timestamp DEFAULT (now())
+);
 --category module
 
 CREATE TABLE `category` (
@@ -321,6 +744,7 @@ CREATE TABLE `category` (
   `created_at` timestamp DEFAULT (now()),
   `updated_at` timestamp DEFAULT (now())
 );
+
 CREATE TABLE `category_translation` (
   `id` int PRIMARY KEY AUTO_INCREMENT,
   `category_id` int NOT NULL,
@@ -2847,11 +3271,11 @@ public class ChronoPosDbContext : DbContext
 #### **Phase 2: Data Migration Scripts**
 ```sql
 -- Migrate existing data to new structure
-INSERT INTO product (type, status) 
+INSERT INTO product (type, status)
 SELECT 'Physical', 'Active' FROM legacy_products;
 
 INSERT INTO product_info (product_id, product_name, sku, category_id)
-SELECT p.id, lp.name, lp.sku, lp.category_id 
+SELECT p.id, lp.name, lp.sku, lp.category_id
 FROM product p JOIN legacy_products lp ON p.id = lp.id;
 ```
 
@@ -2894,3 +3318,263 @@ FROM product p JOIN legacy_products lp ON p.id = lp.id;
 4. Performance optimization
 
 **This comprehensive database schema provides the foundation for a world-class, enterprise-grade POS system! 🚀**
+
+-- ✅ ENHANCED: Document Types for Stock Control (CRITICAL MISSING)
+CREATE TABLE `document_types` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `code` varchar(20) UNIQUE NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `name_ar` varchar(100),
+  `stock_direction` ENUM('IN', 'OUT', 'NONE') NOT NULL DEFAULT 'NONE',
+  `editor_type` ENUM('STANDARD', 'INVENTORY', 'LOSS_AND_DAMAGE') DEFAULT 'STANDARD',
+  `is_auto_manufacture_enabled` boolean DEFAULT false,
+  `manufacture_document_type_code` varchar(20),
+  `default_warehouse_id` int,
+  `print_template` varchar(255),
+  `status` varchar(20) DEFAULT 'Active',
+  `created_by` int,
+  `created_at` timestamp DEFAULT (now()),
+  `updated_by` int,
+  `updated_at` timestamp DEFAULT (now()),
+  `deleted_at` timestamp,
+  `deleted_by` int
+);
+
+-- ✅ CRITICAL: Current Stock Levels (MISSING)
+CREATE TABLE `stock_levels` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `product_id` int NOT NULL,
+  `shop_location_id` int NOT NULL,
+  `batch_id` int,
+  `current_quantity` decimal(12,4) NOT NULL DEFAULT 0,
+  `reserved_quantity` decimal(12,4) DEFAULT 0,
+  `available_quantity` decimal(12,4) GENERATED ALWAYS AS (current_quantity - reserved_quantity) STORED,
+  `reorder_level` decimal(12,4) DEFAULT 0,
+  `max_stock_level` decimal(12,4),
+  `last_updated` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `created_at` timestamp DEFAULT (now()),
+  UNIQUE KEY `unique_product_location_batch` (`product_id`, `shop_location_id`, `batch_id`)
+);
+
+-- ✅ ENHANCED: Stock History with Document Integration
+CREATE TABLE `stock_history` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `product_id` int NOT NULL,
+  `shop_location_id` int NOT NULL,
+  `batch_id` int,
+  `document_id` int,
+  `document_item_id` int,
+  `document_type_id` int,
+  `movement_type` varchar(20) NOT NULL COMMENT 'Purchase, Sale, Transfer, Adjustment, Waste, Return',
+  `quantity_changed` decimal(12,4) NOT NULL,
+  `quantity_before` decimal(12,4) NOT NULL,
+  `quantity_after` decimal(12,4) NOT NULL,
+  `expected_quantity` decimal(12,4) COMMENT 'For inventory counts',
+  `is_matching_expected` boolean DEFAULT true,
+  `cost_price` decimal(12,2),
+  `reference_type` varchar(50) COMMENT 'Transaction, Transfer, Adjustment',
+  `reference_id` int NOT NULL,
+  `notes` text,
+  `created_by` int NOT NULL,
+  `created_at` timestamp DEFAULT (now()),
+  INDEX `idx_product_location` (`product_id`, `shop_location_id`),
+  INDEX `idx_document` (`document_id`),
+  INDEX `idx_movement_date` (`created_at`)
+);
+
+-- ✅ ENHANCED: Stock Reservations
+CREATE TABLE `stock_reservations` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `product_id` int NOT NULL,
+  `shop_location_id` int NOT NULL,
+  `customer_id` int,
+  `transaction_id` int,
+  `reserved_quantity` decimal(12,4) NOT NULL,
+  `reservation_type` varchar(20) DEFAULT 'SALE' COMMENT 'SALE, TRANSFER, HOLD',
+  `expires_at` timestamp,
+  `status` varchar(20) DEFAULT 'ACTIVE',
+  `created_by` int NOT NULL,
+  `created_at` timestamp DEFAULT (now()),
+  `released_at` timestamp,
+  `released_by` int,
+  INDEX `idx_product_location` (`product_id`, `shop_location_id`),
+  INDEX `idx_expiry` (`expires_at`)
+);
+
+-- ✅ ENHANCED: Stock Valuation Methods
+CREATE TABLE `stock_valuation_methods` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `method_code` varchar(20) UNIQUE NOT NULL,
+  `method_name` varchar(100) NOT NULL,
+  `description` text,
+  `is_active` boolean DEFAULT true,
+  `created_at` timestamp DEFAULT (now())
+);
+
+-- ✅ NEW: Stock Alerts
+CREATE TABLE `stock_alerts` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `product_id` int NOT NULL,
+  `shop_location_id` int NOT NULL,
+  `alert_type` ENUM('LOW_STOCK', 'OUT_OF_STOCK', 'OVERSTOCK', 'EXPIRY_WARNING') NOT NULL,
+  `current_quantity` decimal(12,4),
+  `threshold_quantity` decimal(12,4),
+  `alert_message` text,
+  `is_acknowledged` boolean DEFAULT false,
+  `acknowledged_by` int,
+  `acknowledged_at` timestamp,
+  `created_at` timestamp DEFAULT (now()),
+  INDEX `idx_product_location` (`product_id`, `shop_location_id`),
+  INDEX `idx_alert_type` (`alert_type`),
+  INDEX `idx_unacknowledged` (`is_acknowledged`)
+);
+
+-- ✅ NEW: Stock Count Sessions
+CREATE TABLE `stock_count_sessions` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `session_number` varchar(50) UNIQUE NOT NULL,
+  `shop_location_id` int NOT NULL,
+  `count_date` date NOT NULL,
+  `count_type` ENUM('FULL', 'PARTIAL', 'CYCLE') DEFAULT 'PARTIAL',
+  `status` ENUM('PLANNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED') DEFAULT 'PLANNED',
+  `planned_by` int NOT NULL,
+  `started_by` int,
+  `completed_by` int,
+  `started_at` timestamp,
+  `completed_at` timestamp,
+  `notes` text,
+  `created_at` timestamp DEFAULT (now())
+);
+
+CREATE TABLE `stock_count_items` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `session_id` int NOT NULL,
+  `product_id` int NOT NULL,
+  `batch_id` int,
+  `expected_quantity` decimal(12,4) NOT NULL,
+  `counted_quantity` decimal(12,4),
+  `variance_quantity` decimal(12,4) GENERATED ALWAYS AS (counted_quantity - expected_quantity) STORED,
+  `variance_value` decimal(12,2),
+  `reason_code` varchar(50),
+  `notes` text,
+  `counted_by` int,
+  `counted_at` timestamp,
+  `is_processed` boolean DEFAULT false,
+  `processed_at` timestamp,
+  INDEX `idx_session` (`session_id`),
+  INDEX `idx_product` (`product_id`)
+);
+
+-- ✅ ENHANCED: Product with Stock Control
+ALTER TABLE `product` ADD COLUMN `is_service` boolean DEFAULT false AFTER `type`;
+ALTER TABLE `product` ADD COLUMN `track_stock` boolean DEFAULT true AFTER `is_service`;
+ALTER TABLE `product` ADD COLUMN `allow_negative_stock` boolean DEFAULT false AFTER `track_stock`;
+ALTER TABLE `product` ADD COLUMN `stock_valuation_method_id` int DEFAULT 1 AFTER `allow_negative_stock`;
+
+-- ✅ ENHANCED: Product Info with Stock Settings
+ALTER TABLE `product_info` ADD COLUMN `min_stock_level` decimal(12,4) DEFAULT 0 AFTER `reorder_level`;
+ALTER TABLE `product_info` ADD COLUMN `max_stock_level` decimal(12,4) AFTER `min_stock_level`;
+ALTER TABLE `product_info` ADD COLUMN `lead_time_days` int DEFAULT 0 AFTER `max_stock_level`;
+ALTER TABLE `product_info` ADD COLUMN `shelf_life_days` int AFTER `expiry_days`;
+
+-- ✅ ENHANCED: Stock Movement with Better Tracking
+ALTER TABLE `stock_movement` ADD COLUMN `document_id` int AFTER `reference_id`;
+ALTER TABLE `stock_movement` ADD COLUMN `document_item_id` int AFTER `document_id`;
+ALTER TABLE `stock_movement` ADD COLUMN `previous_quantity` decimal(12,4) AFTER `quantity`;
+ALTER TABLE `stock_movement` ADD COLUMN `new_quantity` decimal(12,4) AFTER `previous_quantity`;
+ALTER TABLE `stock_movement` ADD COLUMN `cost_price` decimal(12,2) AFTER `new_quantity`;
+ALTER TABLE `stock_movement` ADD COLUMN `is_system_generated` boolean DEFAULT true AFTER `cost_price`;
+
+-- ✅ ENHANCED: Transactions with Document Type
+ALTER TABLE `transactions` ADD COLUMN `document_type_id` int AFTER `id`;
+ALTER TABLE `transactions` ADD COLUMN `document_number` varchar(50) AFTER `document_type_id`;
+ALTER TABLE `transactions` ADD COLUMN `reference_document_number` varchar(50) AFTER `document_number`;
+ALTER TABLE `transactions` ADD COLUMN `stock_date` timestamp DEFAULT CURRENT_TIMESTAMP AFTER `selling_time`;
+ALTER TABLE `transactions` ADD COLUMN `is_inventory_count` boolean DEFAULT false AFTER `stock_date`;
+
+-- ✅ ENHANCED: Transaction Products with UOM Calculations
+ALTER TABLE `transaction_products` ADD COLUMN `expected_quantity` decimal(12,4) DEFAULT 0 AFTER `quantity` COMMENT 'For inventory counts';
+ALTER TABLE `transaction_products` ADD COLUMN `uom_quantity` decimal(12,4) GENERATED ALWAYS AS (
+  quantity * COALESCE((
+    SELECT conversion_factor 
+    FROM unit_option_conversion uoc 
+    JOIN product_variants pv ON uoc.unit_value_from_id = pv.variant_id 
+    WHERE pv.unit_option_id = product_unit_id 
+    LIMIT 1
+  ), 1)
+) STORED COMMENT 'Calculated quantity in base units';
+ALTER TABLE `transaction_products` ADD COLUMN `cost_price` decimal(12,2) AFTER `buyer_cost`;
+ALTER TABLE `transaction_products` ADD COLUMN `batch_id` int AFTER `cost_price`;
+
+-- Insert default valuation methods
+INSERT INTO `stock_valuation_methods` (`method_code`, `method_name`, `description`) VALUES
+('FIFO', 'First In First Out', 'Oldest stock is consumed first'),
+('LIFO', 'Last In First Out', 'Newest stock is consumed first'),
+('AVERAGE', 'Weighted Average', 'Average cost of all stock'),
+('SPECIFIC', 'Specific Identification', 'Track specific items by serial/batch');
+
+-- Insert Default Document Types
+INSERT INTO `document_types` (`code`, `name`, `name_ar`, `stock_direction`, `editor_type`, `status`) VALUES
+('SALE', 'Sales Invoice', 'فاتورة مبيعات', 'OUT', 'STANDARD', 'Active'),
+('PURCHASE', 'Purchase Order', 'أمر شراء', 'IN', 'STANDARD', 'Active'),
+('RETURN_SALE', 'Sales Return', 'مرتجع مبيعات', 'IN', 'STANDARD', 'Active'),
+('RETURN_PURCHASE', 'Purchase Return', 'مرتجع مشتريات', 'OUT', 'STANDARD', 'Active'),
+('INVENTORY', 'Stock Count', 'جرد المخزون', 'NONE', 'INVENTORY', 'Active'),
+('ADJUSTMENT_IN', 'Stock Adjustment In', 'تعديل مخزون داخل', 'IN', 'STANDARD', 'Active'),
+('ADJUSTMENT_OUT', 'Stock Adjustment Out', 'تعديل مخزون خارج', 'OUT', 'LOSS_AND_DAMAGE', 'Active'),
+('TRANSFER_OUT', 'Transfer Out', 'تحويل خارج', 'OUT', 'STANDARD', 'Active'),
+('TRANSFER_IN', 'Transfer In', 'تحويل داخل', 'IN', 'STANDARD', 'Active'),
+('WASTE', 'Waste/Damage', 'تالف/هدر', 'OUT', 'LOSS_AND_DAMAGE', 'Active');
+
+-- ✅ COMPREHENSIVE FOREIGN KEY RELATIONSHIPS
+-- Stock Management Foreign Keys
+ALTER TABLE `stock_levels` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
+ALTER TABLE `stock_levels` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
+ALTER TABLE `stock_levels` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
+
+ALTER TABLE `stock_history` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
+ALTER TABLE `stock_history` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
+ALTER TABLE `stock_history` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
+ALTER TABLE `stock_history` ADD FOREIGN KEY (`document_id`) REFERENCES `transactions` (`id`);
+ALTER TABLE `stock_history` ADD FOREIGN KEY (`document_item_id`) REFERENCES `transaction_products` (`id`);
+ALTER TABLE `stock_history` ADD FOREIGN KEY (`document_type_id`) REFERENCES `document_types` (`id`);
+ALTER TABLE `stock_history` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
+
+ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
+ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
+ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`);
+ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`id`);
+ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
+ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`released_by`) REFERENCES `users` (`id`);
+
+ALTER TABLE `stock_alerts` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
+ALTER TABLE `stock_alerts` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
+ALTER TABLE `stock_alerts` ADD FOREIGN KEY (`acknowledged_by`) REFERENCES `users` (`id`);
+
+ALTER TABLE `stock_count_sessions` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
+ALTER TABLE `stock_count_sessions` ADD FOREIGN KEY (`planned_by`) REFERENCES `users` (`id`);
+ALTER TABLE `stock_count_sessions` ADD FOREIGN KEY (`started_by`) REFERENCES `users` (`id`);
+ALTER TABLE `stock_count_sessions` ADD FOREIGN KEY (`completed_by`) REFERENCES `users` (`id`);
+
+ALTER TABLE `stock_count_items` ADD FOREIGN KEY (`session_id`) REFERENCES `stock_count_sessions` (`id`);
+ALTER TABLE `stock_count_items` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
+ALTER TABLE `stock_count_items` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
+ALTER TABLE `stock_count_items` ADD FOREIGN KEY (`counted_by`) REFERENCES `users` (`id`);
+
+ALTER TABLE `document_types` ADD FOREIGN KEY (`default_warehouse_id`) REFERENCES `shop_locations` (`id`);
+ALTER TABLE `document_types` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
+ALTER TABLE `document_types` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
+ALTER TABLE `document_types` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
+
+ALTER TABLE `product` ADD FOREIGN KEY (`stock_valuation_method_id`) REFERENCES `stock_valuation_methods` (`id`);
+ALTER TABLE `transactions` ADD FOREIGN KEY (`document_type_id`) REFERENCES `document_types` (`id`);
+ALTER TABLE `transaction_products` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
+
+-- Enhanced Stock Movement Foreign Keys
+ALTER TABLE `stock_movement` ADD FOREIGN KEY (`document_id`) REFERENCES `transactions` (`id`);
+ALTER TABLE `stock_movement` ADD FOREIGN KEY (`document_item_id`) REFERENCES `transaction_products` (`id`);
+
+-- User Permission Foreign Keys
+ALTER TABLE `user_permission_overrides` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+ALTER TABLE `user_permission_overrides` ADD FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`permission_id`);
+ALTER TABLE `user_permission_overrides` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);

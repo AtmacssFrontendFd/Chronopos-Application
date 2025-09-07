@@ -251,7 +251,26 @@
 
                             <!-- Category and Supplier -->
                             <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="Category" Style="{StaticResource FieldLabelStyle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <TextBlock Grid.Column="0" Text="Category" Style="{StaticResource FieldLabelStyle}"/>
+                                    
+                                    <Button Grid.Column="1" 
+                                            Content="+ Add New"
+                                            Command="{Binding OpenAddCategoryPanelCommand}"
+                                            Background="#28A745"
+                                            Foreground="White"
+                                            BorderThickness="0"
+                                            Padding="8,4"
+                                            FontSize="10"
+                                            Cursor="Hand"
+                                            ToolTip="Add a new category"/>
+                                </Grid>
+                                
                                 <ComboBox ItemsSource="{Binding Categories}"
                                           SelectedValue="{Binding CategoryId, Mode=TwoWay}"
                                           SelectedValuePath="Id"
@@ -775,6 +794,191 @@
                            FontSize="14" 
                            HorizontalAlignment="Center"/>
             </StackPanel>
+        </Border>
+
+        <!-- Category Side Panel - FULL SCREEN OVERLAY -->
+        <Border Grid.RowSpan="3"
+                Background="White"
+                BorderBrush="#E0E0E0"
+                BorderThickness="1"
+                CornerRadius="8"
+                Width="400"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Stretch"
+                Margin="0,20,20,20"
+                Panel.ZIndex="20">
+            
+            <Border.Effect>
+                <DropShadowEffect Color="Black" Direction="320" ShadowDepth="8" Opacity="0.3" BlurRadius="15"/>
+            </Border.Effect>
+
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsCategoryPanelOpen}" Value="True">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+
+            <Grid Margin="25">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <Grid Grid.Row="0" Margin="0,0,0,25">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <TextBlock Text="📁" FontSize="20" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock Text="Add New Category" 
+                                   FontSize="18" 
+                                   FontWeight="SemiBold"
+                                   Foreground="#495057"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <Button Grid.Column="1" 
+                            Content="✕" 
+                            Command="{Binding CloseCategoryPanelCommand}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="#6C757D"
+                            FontSize="16"
+                            Padding="8"
+                            Cursor="Hand"
+                            ToolTip="Close panel"/>
+                </Grid>
+
+                <!-- Form Content -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        
+                        <!-- Category Name -->
+                        <StackPanel Margin="0,0,0,20">
+                            <TextBlock Text="Category Name *" Style="{StaticResource FieldLabelStyle}"/>
+                            <TextBox Text="{Binding CurrentCategory.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                     Style="{StaticResource FormTextBoxStyle}"
+                                     MaxLength="100"/>
+                        </StackPanel>
+
+                        <!-- Category Name (Arabic) -->
+                        <StackPanel Margin="0,0,0,20">
+                            <TextBlock Text="Category Name (Arabic)" Style="{StaticResource FieldLabelStyle}"/>
+                            <TextBox Text="{Binding CurrentCategory.NameArabic, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                     Style="{StaticResource FormTextBoxStyle}"
+                                     MaxLength="100"
+                                     FlowDirection="RightToLeft"/>
+                        </StackPanel>
+
+                        <!-- Parent Category -->
+                        <StackPanel Margin="0,0,0,20">
+                            <TextBlock Text="Parent Category" Style="{StaticResource FieldLabelStyle}"/>
+                            <ComboBox ItemsSource="{Binding ParentCategories}"
+                                      SelectedValue="{Binding CurrentCategory.ParentCategoryId, Mode=TwoWay}"
+                                      SelectedValuePath="Id"
+                                      DisplayMemberPath="Name"
+                                      Height="35"/>
+                        </StackPanel>
+
+                        <!-- Display Order -->
+                        <StackPanel Margin="0,0,0,20">
+                            <TextBlock Text="Display Order" Style="{StaticResource FieldLabelStyle}"/>
+                            <TextBox Text="{Binding CurrentCategory.DisplayOrder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                     Style="{StaticResource FormTextBoxStyle}"/>
+                            <TextBlock Text="Lower numbers appear first in the list" 
+                                       FontSize="11" 
+                                       Foreground="#6C757D" 
+                                       Margin="0,5,0,0"/>
+                        </StackPanel>
+
+                        <!-- Description -->
+                        <StackPanel Margin="0,0,0,20">
+                            <TextBlock Text="Description" Style="{StaticResource FieldLabelStyle}"/>
+                            <TextBox Text="{Binding CurrentCategory.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                     Style="{StaticResource FormTextBoxStyle}"
+                                     Height="80"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="True"
+                                     VerticalScrollBarVisibility="Auto"
+                                     MaxLength="500"/>
+                        </StackPanel>
+
+                        <!-- Active Status -->
+                        <CheckBox Content="Active Category" 
+                                  IsChecked="{Binding CurrentCategory.IsActive, Mode=TwoWay}"
+                                  FontSize="13"
+                                  Margin="0,10,0,20"/>
+
+                        <!-- Information Panel -->
+                        <Border BorderBrush="#17A2B8" 
+                                BorderThickness="1" 
+                                CornerRadius="6" 
+                                Padding="15" 
+                                Background="#E7F8FD" 
+                                Margin="0,10,0,0">
+                            <StackPanel>
+                                <TextBlock Text="ℹ️ Category Information" 
+                                           FontWeight="SemiBold" 
+                                           FontSize="12" 
+                                           Foreground="#17A2B8" 
+                                           Margin="0,0,0,8"/>
+                                <TextBlock Text="• Category name is required and will be used in product listings" 
+                                           FontSize="11" 
+                                           Foreground="#495057" 
+                                           Margin="0,0,0,3"/>
+                                <TextBlock Text="• Arabic name is optional for multilingual support" 
+                                           FontSize="11" 
+                                           Foreground="#495057" 
+                                           Margin="0,0,0,3"/>
+                                <TextBlock Text="• Parent category creates a hierarchical structure" 
+                                           FontSize="11" 
+                                           Foreground="#495057" 
+                                           Margin="0,0,0,3"/>
+                                <TextBlock Text="• Display order controls the sorting in category lists" 
+                                           FontSize="11" 
+                                           Foreground="#495057"/>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Footer Actions -->
+                <StackPanel Grid.Row="2" 
+                            Orientation="Vertical" 
+                            Margin="0,20,0,0">
+                    
+                    <!-- Validation Messages -->
+                    <TextBlock Text="{Binding ValidationMessage}" 
+                               FontSize="12" 
+                               Foreground="#DC3545"
+                               TextWrapping="Wrap"
+                               Visibility="{Binding HasValidationErrors, Converter={StaticResource BoolToVisibilityConverter}}"
+                               Margin="0,0,0,15"/>
+                    
+                    <Button Content="Save Category" 
+                            Command="{Binding SaveCategoryCommand}"
+                            Style="{StaticResource FormButtonStyle}"
+                            Background="#FFC107"
+                            Foreground="White"
+                            Margin="0,0,0,10"/>
+                    
+                    <Button Content="Cancel" 
+                            Command="{Binding CloseCategoryPanelCommand}"
+                            Style="{StaticResource FormButtonStyle}"
+                            Background="#6C757D"
+                            Foreground="White"/>
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

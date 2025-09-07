@@ -1,14 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using ChronoPos.Domain.Entities;
 using ChronoPos.Domain.Enums;
-using ChronoPos.Application.Interfaces;
 
 namespace ChronoPos.Infrastructure;
 
 /// <summary>
 /// Database context for ChronoPos application using SQLite
 /// </summary>
-public class ChronoPosDbContext : DbContext, IChronoPosDbContext
+public class ChronoPosDbContext : DbContext
 {
     public ChronoPosDbContext(DbContextOptions<ChronoPosDbContext> options) : base(options)
     {

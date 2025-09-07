@@ -76,4 +76,16 @@ public interface IProductService
     /// </summary>
     /// <param name="id">Category ID</param>
     Task DeleteCategoryAsync(int id);
+    
+    /// <summary>
+    /// Gets category by ID with translations asynchronously
+    /// </summary>
+    /// <param name="id">Category ID</param>
+    Task<CategoryDto?> GetCategoryByIdAsync(int id);
+    
+    /// <summary>
+    /// Creates a category translation asynchronously
+    /// </summary>
+    /// <param name="translationDto">Category translation data</param>
+    Task<CategoryTranslationDto> CreateCategoryTranslationAsync(CategoryTranslationDto translationDto);
 }
