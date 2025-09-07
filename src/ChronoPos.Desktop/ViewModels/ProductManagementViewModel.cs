@@ -14,6 +14,7 @@ public partial class ProductManagementViewModel : ObservableObject
 {
     private readonly IProductService _productService;
     private readonly Action? _navigateToAddProduct;
+    private readonly Action? _navigateBack;
 
     #region Observable Properties
 
@@ -60,10 +61,11 @@ public partial class ProductManagementViewModel : ObservableObject
 
     #region Constructor
 
-    public ProductManagementViewModel(IProductService productService, Action? navigateToAddProduct = null)
+    public ProductManagementViewModel(IProductService productService, Action? navigateToAddProduct = null, Action? navigateBack = null)
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
         _navigateToAddProduct = navigateToAddProduct;
+        _navigateBack = navigateBack;
         _ = InitializeAsync();
     }
 
@@ -367,6 +369,12 @@ public partial class ProductManagementViewModel : ObservableObject
         };
         IsEditMode = false;
         IsProductFormVisible = true;
+    }
+
+    [RelayCommand]
+    private void NavigateBack()
+    {
+        _navigateBack?.Invoke();
     }
 
     #endregion

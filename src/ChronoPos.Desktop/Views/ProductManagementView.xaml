@@ -89,13 +89,41 @@
 
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="60"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <!-- Title Header -->
+        <Border Grid.Row="0" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+            <Grid Margin="20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Background="Transparent" 
+                            BorderThickness="0" 
+                            Padding="0" 
+                            Cursor="Hand"
+                            ToolTip="Go back to Management"
+                            Command="{Binding NavigateBackCommand}">
+                        <TextBlock Text="🔙" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    </Button>
+                    <TextBlock Text="Product Management" FontSize="18" FontWeight="Bold" Foreground="#495057" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="👤" FontSize="14" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock Text="Administrator" FontSize="12" Foreground="#6C757D" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!-- Header with Search and Actions -->
-        <Border Grid.Row="0" Background="White" Padding="20" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+        <Border Grid.Row="1" Background="White" Padding="20" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -157,7 +185,7 @@
         </Border>
 
         <!-- Categories Section -->
-        <Border Grid.Row="1" Background="#F8F9FA" Padding="20,15">
+        <Border Grid.Row="2" Background="#F8F9FA" Padding="20,15">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -223,7 +251,7 @@
         </Border>
 
         <!-- Products Section -->
-        <Grid Grid.Row="2" Margin="20">
+        <Grid Grid.Row="3" Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>

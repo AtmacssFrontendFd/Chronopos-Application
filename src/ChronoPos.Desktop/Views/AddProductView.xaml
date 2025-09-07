@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
              xmlns:controls="clr-namespace:ChronoPos.Desktop.Controls"
+             xmlns:local="clr-namespace:ChronoPos.Desktop.Views"
              mc:Ignorable="d" 
              Background="#F8F9FA">
 
@@ -16,6 +17,44 @@
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
         <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
         
+        <!-- Section Button Style -->
+        <Style x:Key="SidebarButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="15,12"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Foreground" Value="#6C757D"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Margin="8,2">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#F8F9FA"/>
+                            </Trigger>
+                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=(local:AddProductView.IsSelected)}" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#FFC107"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="FormSectionStyle" TargetType="Border">
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="#E0E0E0"/>
@@ -26,10 +65,10 @@
         </Style>
 
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontSize" Value="18"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="#495057"/>
-            <Setter Property="Margin" Value="0,0,0,15"/>
+            <Setter Property="Margin" Value="0,0,0,20"/>
         </Style>
 
         <Style x:Key="FieldLabelStyle" TargetType="TextBlock">
@@ -96,7 +135,14 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="🔙" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0" Cursor="Hand"/>
+                    <Button Background="Transparent" 
+                            BorderThickness="0" 
+                            Padding="0" 
+                            Command="{Binding CancelCommand}"
+                            Cursor="Hand"
+                            ToolTip="Go back to Products">
+                        <TextBlock Text="🔙" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    </Button>
                     <TextBlock Text="Add Product" FontSize="18" FontWeight="Bold" Foreground="#495057" VerticalAlignment="Center"/>
                 </StackPanel>
 
@@ -107,484 +153,579 @@
             </Grid>
         </Border>
 
-        <!-- Main Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="300"/>
-                </Grid.ColumnDefinitions>
+        <!-- Main Content with Sidebar -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-                <!-- Left Panel - Form Fields -->
-                <StackPanel Grid.Column="0" Margin="0,0,20,0">
+            <!-- Left Sidebar Navigation -->
+            <Border Grid.Column="0" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0">
+                <StackPanel Margin="10,20">
                     
-                    <!-- Basic Information Section -->
-                    <Border Style="{StaticResource FormSectionStyle}">
-                        <StackPanel>
-                            <TextBlock Text="📝 Basic Information" Style="{StaticResource SectionHeaderStyle}"/>
-                            
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
+                    <!-- Sidebar Header -->
+                    <TextBlock Text="💰 Product Information" 
+                               FontSize="14" 
+                               FontWeight="SemiBold" 
+                               Foreground="#FFC107" 
+                               Margin="15,0,0,15"/>
+                    
+                    <!-- Navigation Buttons -->
+                    <Button Content="📝 Product Information" 
+                            Name="ProductInfoButton"
+                            Style="{StaticResource SidebarButtonStyle}"
+                            Tag="ProductInfo"
+                            Click="SidebarButton_Click"/>
+                    
+                    <Button Content="💰 Tax &amp; Pricing" 
+                            Name="TaxPricingButton"
+                            Style="{StaticResource SidebarButtonStyle}"
+                            Tag="TaxPricing"
+                            Click="SidebarButton_Click"/>
+                    
+                    <Button Content="📊 Product Barcodes" 
+                            Name="BarcodesButton"
+                            Style="{StaticResource SidebarButtonStyle}"
+                            Tag="Barcodes"
+                            Click="SidebarButton_Click"/>
+                    
+                    <Button Content="�️ Product Pictures" 
+                            Name="PicturesButton"
+                            Style="{StaticResource SidebarButtonStyle}"
+                            Tag="Pictures"
+                            Click="SidebarButton_Click"/>
+                    
+                    <Button Content="�📏 Product Attributes" 
+                            Name="AttributesButton"
+                            Style="{StaticResource SidebarButtonStyle}"
+                            Tag="Attributes"
+                            Click="SidebarButton_Click"/>
+                    
+                    <Button Content="📦 Unit Prices" 
+                            Name="UnitPricesButton"
+                            Style="{StaticResource SidebarButtonStyle}"
+                            Tag="UnitPrices"
+                            Click="SidebarButton_Click"/>
 
-                                <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                    <TextBlock Text="Product Code *" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding Code, UpdateSourceTrigger=PropertyChanged}" 
-                                             Style="{StaticResource FormTextBoxStyle}"
-                                             IsReadOnly="True"
-                                             Background="#F8F9FA"/>
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                    <TextBlock Text="Product Name *" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                             Style="{StaticResource FormTextBoxStyle}"
-                                             MaxLength="100"/>
-                                </StackPanel>
-                            </Grid>
-
-                            <TextBlock Text="Description" Style="{StaticResource FieldLabelStyle}"/>
-                            <TextBox Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                     Style="{StaticResource FormTextBoxStyle}"
-                                     Height="80"
-                                     TextWrapping="Wrap"
-                                     AcceptsReturn="True"
-                                     VerticalScrollBarVisibility="Auto"
-                                     MaxLength="300"/>
-
-                            <TextBlock Text="Category" Style="{StaticResource FieldLabelStyle}"/>
-                            <ComboBox ItemsSource="{Binding Categories}"
-                                      SelectedValue="{Binding CategoryId, Mode=TwoWay}"
-                                      SelectedValuePath="Id"
-                                      DisplayMemberPath="Name"
-                                      Height="35"
-                                      Margin="0,0,0,15"/>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Pricing Section -->
-                    <Border Style="{StaticResource FormSectionStyle}">
-                        <StackPanel>
-                            <TextBlock Text="💰 Pricing &amp; Costs" Style="{StaticResource SectionHeaderStyle}"/>
-                            
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                    <TextBlock Text="Selling Price *" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding Price, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="1" Margin="5,0,5,0">
-                                    <TextBlock Text="Cost Price" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding Cost, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="2" Margin="10,0,0,0">
-                                    <TextBlock Text="Markup %" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding Markup, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
-                                             Style="{StaticResource FormTextBoxStyle}"
-                                             IsReadOnly="True"
-                                             Background="#F8F9FA"/>
-                                </StackPanel>
-                            </Grid>
-
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                    <CheckBox Content="Tax Inclusive Price" 
-                                              IsChecked="{Binding IsTaxInclusivePrice, Mode=TwoWay}"
-                                              FontSize="12"
-                                              Margin="0,0,0,10"/>
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                    <TextBlock Text="Excise" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding Excise, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                </StackPanel>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Measurement &amp; Business Rules -->
-                    <Border Style="{StaticResource FormSectionStyle}">
-                        <StackPanel>
-                            <TextBlock Text="📏 Measurement &amp; Rules" Style="{StaticResource SectionHeaderStyle}"/>
-                            
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                    <TextBlock Text="Measurement Unit" Style="{StaticResource FieldLabelStyle}"/>
-                                    <ComboBox Text="{Binding MeasurementUnit, Mode=TwoWay}" 
-                                              IsEditable="True"
-                                              Height="35" 
-                                              Margin="0,0,0,15">
-                                        <ComboBoxItem Content="pcs"/>
-                                        <ComboBoxItem Content="kg"/>
-                                        <ComboBoxItem Content="lbs"/>
-                                        <ComboBoxItem Content="liters"/>
-                                        <ComboBoxItem Content="meters"/>
-                                    </ComboBox>
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                    <TextBlock Text="Max Discount %" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding MaxDiscount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                </StackPanel>
-                            </Grid>
-
-                            <WrapPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                <CheckBox Content="Allow Discounts" 
-                                          IsChecked="{Binding IsDiscountAllowed, Mode=TwoWay}"
-                                          FontSize="12"
-                                          Margin="0,0,20,10"/>
-                                <CheckBox Content="Allow Price Changes" 
-                                          IsChecked="{Binding IsPriceChangeAllowed, Mode=TwoWay}"
-                                          FontSize="12"
-                                          Margin="0,0,20,10"/>
-                                <CheckBox Content="Use Serial Numbers" 
-                                          IsChecked="{Binding IsUsingSerialNumbers, Mode=TwoWay}"
-                                          FontSize="12"
-                                          Margin="0,0,20,10"/>
-                                <CheckBox Content="Is Service" 
-                                          IsChecked="{Binding IsService, Mode=TwoWay}"
-                                          FontSize="12"
-                                          Margin="0,0,20,10"/>
-                            </WrapPanel>
-
-                            <Grid Margin="0,10,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                    <TextBlock Text="Age Restriction (years)" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding AgeRestriction, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                    <TextBlock Text="Product Color" Style="{StaticResource FieldLabelStyle}"/>
-                                    <Border BorderBrush="#DEE2E6" 
-                                            BorderThickness="1" 
-                                            CornerRadius="6" 
-                                            Padding="10"
-                                            Background="White"
-                                            Margin="0,0,0,15">
-                                        <controls:ColorPicker SelectedColor="{Binding Color, Mode=TwoWay}"/>
-                                    </Border>
-                                </StackPanel>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Stock Control Section -->
-                    <Border Style="{StaticResource FormSectionStyle}">
-                        <StackPanel>
-                            <TextBlock Text="📦 Stock Control" Style="{StaticResource SectionHeaderStyle}"/>
-                            
-                            <!-- Stock Tracking Enable/Disable -->
-                            <CheckBox Content="Track Stock for this Product" 
-                                      IsChecked="{Binding IsStockTracked, Mode=TwoWay}"
-                                      FontSize="13"
-                                      FontWeight="Medium"
-                                      Margin="0,0,0,15"/>
-                            
-                            <!-- Stock Control Fields (Enabled when stock tracking is on) -->
-                            <Grid IsEnabled="{Binding IsStockFieldsEnabled}">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                
-                                <!-- Store Selection and Initial Stock -->
-                                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,0">
-                                    <TextBlock Text="Store" Style="{StaticResource FieldLabelStyle}"/>
-                                    <ComboBox ItemsSource="{Binding AvailableStores}"
-                                              SelectedValue="{Binding SelectedStoreId, Mode=TwoWay}"
-                                              SelectedValuePath="Id"
-                                              DisplayMemberPath="Name"
-                                              Height="35"
-                                              Margin="0,0,0,15"/>
-                                </StackPanel>
-                                
-                                <StackPanel Grid.Row="0" Grid.Column="1" Margin="10,0,0,0">
-                                    <TextBlock Text="Initial Stock" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding InitialStock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                </StackPanel>
-                                
-                                <!-- Stock Levels -->
-                                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
-                                    <TextBlock Text="Minimum Stock" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding MinimumStock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                </StackPanel>
-                                
-                                <StackPanel Grid.Row="1" Grid.Column="1" Margin="10,0,0,0">
-                                    <TextBlock Text="Maximum Stock" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding MaximumStock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                </StackPanel>
-                                
-                                <!-- Reorder Settings -->
-                                <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,10,0">
-                                    <TextBlock Text="Reorder Level" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding ReorderLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                </StackPanel>
-                                
-                                <StackPanel Grid.Row="2" Grid.Column="1" Margin="10,0,0,0">
-                                    <TextBlock Text="Reorder Quantity" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding ReorderQuantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                </StackPanel>
-                                
-                                <!-- Average Cost -->
-                                <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,10,0">
-                                    <TextBlock Text="Average Cost" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding AverageCost, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                </StackPanel>
-                            </Grid>
-                            
-                            <!-- Additional Stock Options -->
-                            <WrapPanel Orientation="Horizontal" 
-                                       Margin="0,10,0,0"
-                                       IsEnabled="{Binding IsStockFieldsEnabled}">
-                                <CheckBox Content="Allow Negative Stock" 
-                                          IsChecked="{Binding AllowNegativeStock, Mode=TwoWay}"
-                                          FontSize="12"
-                                          Margin="0,0,20,10"/>
-                                <CheckBox Content="Use Serial Numbers" 
-                                          IsChecked="{Binding IsUsingSerialNumbers, Mode=TwoWay}"
-                                          FontSize="12"
-                                          Margin="0,0,20,10"/>
-                            </WrapPanel>
-                            
-                            <!-- Stock Validation Messages -->
-                            <ItemsControl ItemsSource="{Binding StockValidationErrors}"
-                                          Margin="0,10,0,0"
-                                          Visibility="{Binding StockValidationErrors.Count, Converter={StaticResource CountToVisibilityConverter}}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Value}" 
-                                                   FontSize="11" 
-                                                   Foreground="#DC3545"
-                                                   TextWrapping="Wrap"
-                                                   Margin="0,2"/>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Barcodes Section -->
-                    <Border Style="{StaticResource FormSectionStyle}">
-                        <StackPanel>
-                            <TextBlock Text="📊 Product Barcodes" Style="{StaticResource SectionHeaderStyle}"/>
-                            
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-
-                                <TextBox Grid.Column="0" 
-                                         Text="{Binding NewBarcode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                         Style="{StaticResource FormTextBoxStyle}"
-                                         KeyDown="BarcodeTextBox_KeyDown"
-                                         Margin="0,0,10,0"/>
-                                
-                                <Button Grid.Column="1" 
-                                        Content="Add Barcode"
-                                        Command="{Binding AddBarcodeCommand}"
-                                        Style="{StaticResource FormButtonStyle}"
-                                        Background="#28A745"
-                                        Foreground="White"
-                                        Width="100"
-                                        Margin="0,0,5,15"/>
-                                
-                                <Button Grid.Column="2" 
-                                        Content="🎲 Generate"
-                                        Command="{Binding GenerateBarcodeCommand}"
-                                        Style="{StaticResource FormButtonStyle}"
-                                        Background="#17A2B8"
-                                        Foreground="White"
-                                        Width="100"
-                                        Margin="0,0,0,15"
-                                        ToolTip="Auto-generate a unique barcode"/>
-                            </Grid>
-
-                            <!-- Barcode Validation Message -->
-                            <TextBlock Text="{Binding BarcodeValidationMessage}" 
-                                       FontSize="11" 
-                                       Foreground="#DC3545"
-                                       TextWrapping="Wrap"
-                                       Visibility="{Binding HasBarcodeValidationError, Converter={StaticResource BoolToVisibilityConverter}}"
-                                       Margin="0,0,0,10"/>
-
-                            <!-- Barcode List -->
-                            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="6" MaxHeight="120">
-                                <ListBox ItemsSource="{Binding Barcodes}"
-                                         Background="Transparent"
-                                         BorderThickness="0">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid Margin="5">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                
-                                                <TextBlock Grid.Column="0" 
-                                                           Text="{Binding Value}" 
-                                                           VerticalAlignment="Center"
-                                                           FontFamily="Consolas"
-                                                           FontSize="12"/>
-                                                <Button Grid.Column="1" 
-                                                        Content="✕"
-                                                        Command="{Binding DataContext.RemoveBarcodeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        CommandParameter="{Binding}"
-                                                        Background="#DC3545"
-                                                        Foreground="White"
-                                                        Width="25" Height="25"
-                                                        FontSize="10"
-                                                        Margin="10,0,0,0"/>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </Border>
-                        </StackPanel>
-                    </Border>
                 </StackPanel>
+            </Border>
 
-                <!-- Right Panel - Product Image &amp; Comments -->
-                <StackPanel Grid.Column="1">
-                    
-                    <!-- Product Image Section -->
-                    <Border Style="{StaticResource FormSectionStyle}">
-                        <StackPanel>
-                            <TextBlock Text="🖼️ Product Picture" Style="{StaticResource SectionHeaderStyle}"/>
-                            
-                            <Border Width="200" Height="150" 
-                                    BorderBrush="#E0E0E0" 
-                                    BorderThickness="2" 
-                                    CornerRadius="8"
-                                    Background="#F8F9FA"
-                                    Margin="0,0,0,15">
-                                <Grid>
-                                    <Image Source="{Binding ImagePath}" 
-                                           Stretch="UniformToFill"
-                                           Visibility="{Binding ImagePath, Converter={StaticResource StringToVisibilityConverter}}"/>
-                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                Visibility="{Binding ImagePath, Converter={StaticResource InverseStringToVisibilityConverter}}">
-                                        <TextBlock Text="📷" FontSize="30" HorizontalAlignment="Center" Foreground="#6C757D"/>
-                                        <TextBlock Text="No Image" FontSize="12" HorizontalAlignment="Center" Foreground="#6C757D"/>
-                                    </StackPanel>
-                                </Grid>
-                            </Border>
+            <!-- Right Content Area -->
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Padding="20">
+                <StackPanel>
+                
+                    <!-- Product Information Section -->
+                    <Border Name="ProductInfoSection" Style="{StaticResource FormSectionStyle}">
+                    <StackPanel>
+                        <TextBlock Text="📝 Product Information" Style="{StaticResource SectionHeaderStyle}"/>
+                        
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
 
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <Button Content="📁 Choose Image" 
-                                        Command="{Binding ChooseImageCommand}"
-                                        Style="{StaticResource FormButtonStyle}"
-                                        Background="#6C757D"
-                                        Foreground="White"
-                                        Margin="0,0,10,0"/>
-                                <Button Content="🗑️ Remove Image" 
-                                        Command="{Binding RemoveImageCommand}"
-                                        Style="{StaticResource FormButtonStyle}"
-                                        Background="#DC3545"
-                                        Foreground="White"
-                                        Visibility="{Binding ImagePath, Converter={StaticResource StringToVisibilityConverter}}"/>
+                            <!-- Product Code and Name -->
+                            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Product Code *" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBox Text="{Binding Code, UpdateSourceTrigger=PropertyChanged}" 
+                                         Style="{StaticResource FormTextBoxStyle}"
+                                         IsReadOnly="True"
+                                         Background="#F8F9FA"/>
                             </StackPanel>
-                        </StackPanel>
-                    </Border>
 
-                    <!-- Comments Section -->
-                    <Border Style="{StaticResource FormSectionStyle}">
-                        <StackPanel>
-                            <TextBlock Text="💬 Comments" Style="{StaticResource SectionHeaderStyle}"/>
-                            
-                            <TextBox Text="{Binding NewComment, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                            <StackPanel Grid.Row="0" Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="Product Name *" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBox Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                         Style="{StaticResource FormTextBoxStyle}"
+                                         MaxLength="100"/>
+                            </StackPanel>
+
+                            <!-- Category and Supplier -->
+                            <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Category" Style="{StaticResource FieldLabelStyle}"/>
+                                <ComboBox ItemsSource="{Binding Categories}"
+                                          SelectedValue="{Binding CategoryId, Mode=TwoWay}"
+                                          SelectedValuePath="Id"
+                                          DisplayMemberPath="Name"
+                                          Height="35"
+                                          Margin="0,0,0,15"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="1" Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="Brand" Style="{StaticResource FieldLabelStyle}"/>
+                                <ComboBox Height="35" Margin="0,0,0,15">
+                                    <ComboBoxItem Content="New Brand"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <!-- Description -->
+                            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,0">
+                                <TextBlock Text="Description" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBox Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                         Style="{StaticResource FormTextBoxStyle}"
+                                         Height="80"
+                                         TextWrapping="Wrap"
+                                         AcceptsReturn="True"
+                                         VerticalScrollBarVisibility="Auto"
+                                         MaxLength="300"/>
+                            </StackPanel>
+
+                            <!-- Additional Fields -->
+                            <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Purchase Unit" Style="{StaticResource FieldLabelStyle}"/>
+                                <ComboBox Height="35" Margin="0,0,0,15">
+                                    <ComboBoxItem Content="Pieces"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="3" Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="Selling Unit" Style="{StaticResource FieldLabelStyle}"/>
+                                <ComboBox Height="35" Margin="0,0,0,15">
+                                    <ComboBoxItem Content="Pieces"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <!-- Group and Reorder Level -->
+                            <StackPanel Grid.Row="4" Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Group" Style="{StaticResource FieldLabelStyle}"/>
+                                <ComboBox Height="35" Margin="0,0,0,15">
+                                    <ComboBoxItem Content="Group 1"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="4" Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="Reorder Level" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBox Text="{Binding ReorderLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
+                                         Style="{StaticResource FormTextBoxStyle}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Checkboxes -->
+                        <WrapPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <CheckBox Content="Can Return" 
+                                      FontSize="12"
+                                      Margin="0,0,20,10"/>
+                            <CheckBox Content="Is Grouped" 
+                                      FontSize="12"
+                                      Margin="0,0,20,10"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Tax & Pricing Section -->
+                <Border Name="TaxPricingSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Text="💰 Tax &amp; Pricing" Style="{StaticResource SectionHeaderStyle}"/>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Selling Price *" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBox Text="{Binding Price, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
+                                         Style="{StaticResource FormTextBoxStyle}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="5,0,5,0">
+                                <TextBlock Text="Cost Price" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBox Text="{Binding Cost, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
+                                         Style="{StaticResource FormTextBoxStyle}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Margin="10,0,0,0">
+                                <TextBlock Text="Markup %" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBox Text="{Binding Markup, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
+                                         Style="{StaticResource FormTextBoxStyle}"
+                                         IsReadOnly="True"
+                                         Background="#F8F9FA"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <CheckBox Content="Tax Inclusive Price" 
+                                          IsChecked="{Binding IsTaxInclusivePrice, Mode=TwoWay}"
+                                          FontSize="12"
+                                          Margin="0,0,0,10"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="Excise" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBox Text="{Binding Excise, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
+                                         Style="{StaticResource FormTextBoxStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Product Barcodes Section -->
+                <Border Name="BarcodesSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Text="📊 Product Barcodes" Style="{StaticResource SectionHeaderStyle}"/>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox Grid.Column="0" 
+                                     Text="{Binding NewBarcode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                      Style="{StaticResource FormTextBoxStyle}"
-                                     Height="60"
-                                     TextWrapping="Wrap"
-                                     AcceptsReturn="True"
-                                     VerticalScrollBarVisibility="Auto"/>
-
-                            <Button Content="Add Comment" 
-                                    Command="{Binding AddCommentCommand}"
+                                     KeyDown="BarcodeTextBox_KeyDown"
+                                     Margin="0,0,10,0"/>
+                            
+                            <Button Grid.Column="1" 
+                                    Content="Add Barcode"
+                                    Command="{Binding AddBarcodeCommand}"
+                                    Style="{StaticResource FormButtonStyle}"
+                                    Background="#28A745"
+                                    Foreground="White"
+                                    Width="100"
+                                    Margin="0,0,5,15"/>
+                            
+                            <Button Grid.Column="2" 
+                                    Content="🎲 Generate"
+                                    Command="{Binding GenerateBarcodeCommand}"
                                     Style="{StaticResource FormButtonStyle}"
                                     Background="#17A2B8"
                                     Foreground="White"
-                                    HorizontalAlignment="Right"
-                                    Margin="0,0,0,15"/>
+                                    Width="100"
+                                    Margin="0,0,0,15"
+                                    ToolTip="Auto-generate a unique barcode"/>
+                        </Grid>
 
-                            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="6" MaxHeight="150">
-                                <ListBox ItemsSource="{Binding Comments}"
-                                         Background="Transparent"
-                                         BorderThickness="0">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid Margin="5">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                
-                                                <TextBlock Grid.Column="0" 
-                                                           Text="{Binding}" 
-                                                           TextWrapping="Wrap"
-                                                           VerticalAlignment="Center"
-                                                           FontSize="11"/>
-                                                <Button Grid.Column="1" 
-                                                        Content="✕"
-                                                        Command="{Binding DataContext.RemoveCommentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        CommandParameter="{Binding}"
-                                                        Background="#DC3545"
-                                                        Foreground="White"
-                                                        Width="20" Height="20"
-                                                        FontSize="8"
-                                                        Margin="5,0,0,0"/>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </Border>
+                        <!-- Barcode Validation Message -->
+                        <TextBlock Text="{Binding BarcodeValidationMessage}" 
+                                   FontSize="11" 
+                                   Foreground="#DC3545"
+                                   TextWrapping="Wrap"
+                                   Visibility="{Binding HasBarcodeValidationError, Converter={StaticResource BoolToVisibilityConverter}}"
+                                   Margin="0,0,0,10"/>
+
+                        <!-- Barcode List -->
+                        <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="6" MaxHeight="300">
+                            <ListBox ItemsSource="{Binding Barcodes}"
+                                     Background="Transparent"
+                                     BorderThickness="0">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <TextBlock Grid.Column="0" 
+                                                       Text="{Binding Value}" 
+                                                       VerticalAlignment="Center"
+                                                       FontFamily="Consolas"
+                                                       FontSize="12"/>
+                                            <Button Grid.Column="1" 
+                                                    Content="✕"
+                                                    Command="{Binding DataContext.RemoveBarcodeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Background="#DC3545"
+                                                    Foreground="White"
+                                                    Width="25" Height="25"
+                                                    FontSize="10"
+                                                    Margin="10,0,0,0"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Product Pictures Section -->
+                <Border Name="PicturesSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Text="🖼️ Product Pictures" Style="{StaticResource SectionHeaderStyle}"/>
+                        
+                        <!-- Main Product Image -->
+                        <Border Width="300" Height="200" 
+                                BorderBrush="#E0E0E0" 
+                                BorderThickness="2" 
+                                CornerRadius="8"
+                                Background="#F8F9FA"
+                                Margin="0,0,0,20"
+                                HorizontalAlignment="Center">
+                            <Grid>
+                                <Image Source="{Binding ImagePath}" 
+                                       Stretch="UniformToFill"
+                                       Visibility="{Binding ImagePath, Converter={StaticResource StringToVisibilityConverter}}"/>
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            Visibility="{Binding ImagePath, Converter={StaticResource InverseStringToVisibilityConverter}}">
+                                    <TextBlock Text="📷" FontSize="40" HorizontalAlignment="Center" Foreground="#6C757D"/>
+                                    <TextBlock Text="No Image Selected" FontSize="14" HorizontalAlignment="Center" Foreground="#6C757D" Margin="0,10,0,0"/>
+                                    <TextBlock Text="Click 'Choose Image' to add a product picture" FontSize="11" HorizontalAlignment="Center" Foreground="#6C757D" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Image Actions -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
+                            <Button Content="📁 Choose Image" 
+                                    Command="{Binding ChooseImageCommand}"
+                                    Style="{StaticResource FormButtonStyle}"
+                                    Background="#6C757D"
+                                    Foreground="White"
+                                    Width="120"
+                                    Margin="0,0,10,0"/>
+                            <Button Content="🗑️ Remove Image" 
+                                    Command="{Binding RemoveImageCommand}"
+                                    Style="{StaticResource FormButtonStyle}"
+                                    Background="#DC3545"
+                                    Foreground="White"
+                                    Width="120"
+                                    Visibility="{Binding ImagePath, Converter={StaticResource StringToVisibilityConverter}}"/>
                         </StackPanel>
-                    </Border>
+
+                        <!-- Image Information -->
+                        <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="6" Padding="15" Background="#F8F9FA"
+                                Visibility="{Binding ImagePath, Converter={StaticResource StringToVisibilityConverter}}">
+                            <StackPanel>
+                                <TextBlock Text="Image Information" FontWeight="SemiBold" FontSize="12" Foreground="#495057" Margin="0,0,0,10"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="File Path:" FontSize="11" Foreground="#6C757D" Margin="0,0,10,5"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ImagePath}" FontSize="11" Foreground="#495057" TextWrapping="Wrap" Margin="0,0,0,5"/>
+                                    
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Format:" FontSize="11" Foreground="#6C757D" Margin="0,0,10,0"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Supported: JPG, PNG, BMP, GIF" FontSize="11" Foreground="#495057"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Tips -->
+                        <Border BorderBrush="#17A2B8" BorderThickness="1" CornerRadius="6" Padding="15" Background="#E7F8FD" Margin="0,15,0,0">
+                            <StackPanel>
+                                <TextBlock Text="💡 Image Tips" FontWeight="SemiBold" FontSize="12" Foreground="#17A2B8" Margin="0,0,0,8"/>
+                                <TextBlock Text="• Use high-quality images for better presentation" FontSize="11" Foreground="#495057" Margin="0,0,0,3"/>
+                                <TextBlock Text="• Recommended size: 300x200 pixels or larger" FontSize="11" Foreground="#495057" Margin="0,0,0,3"/>
+                                <TextBlock Text="• Supported formats: JPG, PNG, BMP, GIF" FontSize="11" Foreground="#495057" Margin="0,0,0,3"/>
+                                <TextBlock Text="• Keep file size under 2MB for better performance" FontSize="11" Foreground="#495057"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Product Attributes Section -->
+                <Border Name="AttributesSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Text="📏 Product Attributes" Style="{StaticResource SectionHeaderStyle}"/>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Measurement Unit" Style="{StaticResource FieldLabelStyle}"/>
+                                <ComboBox Text="{Binding MeasurementUnit, Mode=TwoWay}" 
+                                          IsEditable="True"
+                                          Height="35" 
+                                          Margin="0,0,0,15">
+                                    <ComboBoxItem Content="pcs"/>
+                                    <ComboBoxItem Content="kg"/>
+                                    <ComboBoxItem Content="lbs"/>
+                                    <ComboBoxItem Content="liters"/>
+                                    <ComboBoxItem Content="meters"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="Max Discount %" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBox Text="{Binding MaxDiscount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                         Style="{StaticResource FormTextBoxStyle}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <WrapPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <CheckBox Content="Allow Discounts" 
+                                      IsChecked="{Binding IsDiscountAllowed, Mode=TwoWay}"
+                                      FontSize="12"
+                                      Margin="0,0,20,10"/>
+                            <CheckBox Content="Allow Price Changes" 
+                                      IsChecked="{Binding IsPriceChangeAllowed, Mode=TwoWay}"
+                                      FontSize="12"
+                                      Margin="0,0,20,10"/>
+                            <CheckBox Content="Use Serial Numbers" 
+                                      IsChecked="{Binding IsUsingSerialNumbers, Mode=TwoWay}"
+                                      FontSize="12"
+                                      Margin="0,0,20,10"/>
+                            <CheckBox Content="Is Service" 
+                                      IsChecked="{Binding IsService, Mode=TwoWay}"
+                                      FontSize="12"
+                                      Margin="0,0,20,10"/>
+                        </WrapPanel>
+
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Age Restriction (years)" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBox Text="{Binding AgeRestriction, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                         Style="{StaticResource FormTextBoxStyle}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="Product Color" Style="{StaticResource FieldLabelStyle}"/>
+                                <Border BorderBrush="#DEE2E6" 
+                                        BorderThickness="1" 
+                                        CornerRadius="6" 
+                                        Padding="10"
+                                        Background="White"
+                                        Margin="0,0,0,15">
+                                    <controls:ColorPicker SelectedColor="{Binding Color, Mode=TwoWay}"/>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Unit Prices Section -->
+                <Border Name="UnitPricesSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Text="📦 Stock Control &amp; Unit Prices" Style="{StaticResource SectionHeaderStyle}"/>
+                        
+                        <!-- Stock Tracking Enable/Disable -->
+                        <CheckBox Content="Track Stock for this Product" 
+                                  IsChecked="{Binding IsStockTracked, Mode=TwoWay}"
+                                  FontSize="13"
+                                  FontWeight="Medium"
+                                  Margin="0,0,0,15"/>
+                        
+                        <!-- Stock Control Fields (Enabled when stock tracking is on) -->
+                        <Grid IsEnabled="{Binding IsStockFieldsEnabled}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Store Selection and Initial Stock -->
+                            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Store" Style="{StaticResource FieldLabelStyle}"/>
+                                <ComboBox ItemsSource="{Binding AvailableStores}"
+                                          SelectedValue="{Binding SelectedStoreId, Mode=TwoWay}"
+                                          SelectedValuePath="Id"
+                                          DisplayMemberPath="Name"
+                                          Height="35"
+                                          Margin="0,0,0,15"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Row="0" Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="Initial Stock" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBox Text="{Binding InitialStock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
+                                         Style="{StaticResource FormTextBoxStyle}"/>
+                            </StackPanel>
+                            
+                            <!-- Stock Levels -->
+                            <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Minimum Stock" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBox Text="{Binding MinimumStock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
+                                         Style="{StaticResource FormTextBoxStyle}"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Row="1" Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="Maximum Stock" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBox Text="{Binding MaximumStock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
+                                         Style="{StaticResource FormTextBoxStyle}"/>
+                            </StackPanel>
+                            
+                            <!-- Reorder Settings -->
+                            <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Reorder Level" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBox Text="{Binding ReorderLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
+                                         Style="{StaticResource FormTextBoxStyle}"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Row="2" Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="Reorder Quantity" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBox Text="{Binding ReorderQuantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
+                                         Style="{StaticResource FormTextBoxStyle}"/>
+                            </StackPanel>
+                            
+                            <!-- Average Cost -->
+                            <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Average Cost" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBox Text="{Binding AverageCost, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
+                                         Style="{StaticResource FormTextBoxStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Additional Stock Options -->
+                        <WrapPanel Orientation="Horizontal" 
+                                   Margin="0,10,0,0"
+                                   IsEnabled="{Binding IsStockFieldsEnabled}">
+                            <CheckBox Content="Allow Negative Stock" 
+                                      IsChecked="{Binding AllowNegativeStock, Mode=TwoWay}"
+                                      FontSize="12"
+                                      Margin="0,0,20,10"/>
+                            <CheckBox Content="Use Serial Numbers" 
+                                      IsChecked="{Binding IsUsingSerialNumbers, Mode=TwoWay}"
+                                      FontSize="12"
+                                      Margin="0,0,20,10"/>
+                        </WrapPanel>
+                        
+                        <!-- Stock Validation Messages -->
+                        <ItemsControl ItemsSource="{Binding StockValidationErrors}"
+                                      Margin="0,10,0,0"
+                                      Visibility="{Binding StockValidationErrors.Count, Converter={StaticResource CountToVisibilityConverter}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Value}" 
+                                               FontSize="11" 
+                                               Foreground="#DC3545"
+                                               TextWrapping="Wrap"
+                                               Margin="0,2"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
                 </StackPanel>
-            </Grid>
-        </ScrollViewer>
+            </ScrollViewer>
+        </Grid>
 
         <!-- Footer Actions -->
         <Border Grid.Row="2" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0">
@@ -609,11 +750,6 @@
 
                 <!-- Action Buttons -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Content="Clear Form" 
-                            Command="{Binding ResetFormCommand}"
-                            Style="{StaticResource FormButtonStyle}"
-                            Background="#17A2B8"
-                            Foreground="White"/>
                     <Button Content="Discard Changes" 
                             Command="{Binding CancelCommand}"
                             Style="{StaticResource FormButtonStyle}"

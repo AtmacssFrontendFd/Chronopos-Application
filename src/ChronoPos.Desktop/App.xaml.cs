@@ -273,9 +273,8 @@ public partial class App : System.Windows.Application
             using var scope = _host.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
             
-            // For development: Always recreate database to ensure schema is correct
-            LogMessage("Ensuring fresh database with correct schema...");
-            await dbContext.Database.EnsureDeletedAsync();
+            // Initialize database if it doesn't exist, but preserve existing data
+            LogMessage("Ensuring database exists...");
             await dbContext.Database.EnsureCreatedAsync();
             
             LogMessage("Database initialized successfully");

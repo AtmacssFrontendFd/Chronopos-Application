@@ -168,6 +168,10 @@ public partial class AddProductViewModel : ObservableObject
     [ObservableProperty]
     private bool hasBarcodeValidationError = false;
 
+    // Navigation Properties for Sidebar
+    [ObservableProperty]
+    private string currentSection = "ProductInfo";
+
     #endregion
 
     #region Barcode Management Classes

@@ -748,7 +748,8 @@ public partial class MainWindowViewModel : ObservableObject
             var productManagementView = new ProductManagementView();
             var productManagementViewModel = new ProductManagementViewModel(
                 _serviceProvider.GetRequiredService<IProductService>(),
-                () => ShowAddProduct()
+                () => ShowAddProduct(),
+                () => ShowManagement()
             );
             
             productManagementView.DataContext = productManagementViewModel;
