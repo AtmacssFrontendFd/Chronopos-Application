@@ -45,13 +45,60 @@ public class ProductRepository : Repository<Product>, IProductRepository
     
     public async Task<IEnumerable<Product>> SearchProductsAsync(string searchTerm)
     {
-        return await _dbSet
-            .Include(p => p.Category)
-            .Include(p => p.ProductBarcodes)
-            .Where(p => p.Name.Contains(searchTerm) || 
-                       (p.SKU != null && p.SKU.Contains(searchTerm)) ||
-                       p.ProductBarcodes.Any(pb => pb.Value.Contains(searchTerm)))
-            .ToListAsync();
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"[ProductRepository] SearchProductsAsync called with term: '{searchTerm}'");
+            System.Diagnostics.Debug.WriteLine($"[ProductRepository] DbSet null check: {_dbSet == null}");
+            System.Diagnostics.Debug.WriteLine($"[ProductRepository] Context null check: {_context == null}");
+            
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                System.Diagnostics.Debug.WriteLine("[ProductRepository] Search term is null/whitespace, returning empty");
+                return new List<Product>();
+            }
+
+            // First let's check if we have any products at all
+            var totalCount = await _dbSet.CountAsync();
+            System.Diagnostics.Debug.WriteLine($"[ProductRepository] Total products in database: {totalCount}");
+            
+            // Let's also check first 5 products
+            var firstFew = await _dbSet.Take(5).Select(p => new { p.Id, p.Name }).ToListAsync();
+            System.Diagnostics.Debug.WriteLine($"[ProductRepository] First 5 products:");
+            foreach (var p in firstFew)
+            {
+                System.Diagnostics.Debug.WriteLine($"  - ID: {p.Id}, Name: '{p.Name}'");
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[ProductRepository] Executing search query for term: '{searchTerm}'");
+            
+            var query = _dbSet
+                .Include(p => p.Category)
+                .Include(p => p.ProductBarcodes)
+                .Where(p => EF.Functions.Like(p.Name.ToLower(), $"%{searchTerm.ToLower()}%") || 
+                           (p.SKU != null && EF.Functions.Like(p.SKU.ToLower(), $"%{searchTerm.ToLower()}%")) || 
+                           p.ProductBarcodes.Any(pb => EF.Functions.Like(pb.Value.ToLower(), $"%{searchTerm.ToLower()}%")));
+            
+            // Log the SQL query
+            System.Diagnostics.Debug.WriteLine($"[ProductRepository] Generated SQL query: {query.ToQueryString()}");
+            
+            var results = await query.ToListAsync();
+            
+            System.Diagnostics.Debug.WriteLine($"[ProductRepository] Query returned {results.Count} results");
+            
+            foreach (var product in results)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ProductRepository] Result: {product.Name} (ID: {product.Id})");
+            }
+            
+            return results;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ProductRepository] ERROR in SearchProductsAsync: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[ProductRepository] Inner exception: {ex.InnerException?.Message}");
+            System.Diagnostics.Debug.WriteLine($"[ProductRepository] Stack trace: {ex.StackTrace}");
+            throw;
+        }
     }
 
     public async Task UpdateStockAsync(int productId, int newQuantity)

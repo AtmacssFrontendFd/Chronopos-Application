@@ -9,6 +9,44 @@
              d:DesignHeight="800" d:DesignWidth="1200"
              d:DataContext="{d:DesignInstance Type=vm:StockManagementViewModel}">
 
+    <UserControl.Resources>
+        <!-- Keypad Button Style for Touch Screen -->
+        <Style x:Key="KeypadButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Height" Value="45"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
     <Grid Background="{DynamicResource BackgroundBrush}">
         
         <Grid.RowDefinitions>
@@ -168,8 +206,7 @@
 
                         <!-- Data Grid -->
                         <DataGrid Grid.Row="2" 
-                                  ItemsSource="{Binding StockAdjustments}" 
-                                  SelectedItem="{Binding SelectedAdjustment}"
+                                  ItemsSource="{Binding StockAdjustmentItems}" 
                                   AutoGenerateColumns="False" 
                                   CanUserAddRows="False" 
                                   CanUserDeleteRows="False"
@@ -183,34 +220,16 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Adjustment No" Binding="{Binding AdjustmentNo}" Width="120"/>
                                 <DataGridTextColumn Header="Date" Binding="{Binding AdjustmentDate, StringFormat='MM/dd/yyyy'}" Width="100"/>
-                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="80"/>
-                                <DataGridTextColumn Header="Location" Binding="{Binding LocationName}" Width="150"/>
-                                <DataGridTextColumn Header="Total Items" Binding="{Binding TotalItems}" Width="100"/>
-                                <DataGridTextColumn Header="Created By" Binding="{Binding CreatedByName}" Width="120"/>
-                                <DataGridTextColumn Header="Remarks" Binding="{Binding Remarks}" Width="*"/>
-                                
-                                <DataGridTemplateColumn Header="Actions" Width="180">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                <Button Content="Adjust" 
-                                                        Command="{Binding DataContext.OpenAdjustProductPanelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        Background="{DynamicResource AccentBrush}" Foreground="White"
-                                                        Margin="2" Padding="8,4" FontSize="12"/>
-                                                <Button Content="Edit" 
-                                                        Command="{Binding DataContext.EditAdjustmentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        CommandParameter="{Binding}"
-                                                        Background="{DynamicResource SecondaryBrush}" Foreground="White"
-                                                        Margin="2" Padding="8,4" FontSize="12"/>
-                                                <Button Content="Delete" 
-                                                        Command="{Binding DataContext.DeleteAdjustmentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        CommandParameter="{Binding}"
-                                                        Background="{DynamicResource DangerBrush}" Foreground="White"
-                                                        Margin="2" Padding="8,4" FontSize="12"/>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Product Name" Binding="{Binding ProductName}" Width="150"/>
+                                <DataGridTextColumn Header="Quantity" Binding="{Binding QuantityAfter, StringFormat='{}{0:N2}'}" Width="80"/>
+                                <DataGridTextColumn Header="UOM" Binding="{Binding UomName}" Width="60"/>
+                                <DataGridTextColumn Header="Quantity Before" Binding="{Binding QuantityBefore, StringFormat='{}{0:N2}'}" Width="100"/>
+                                <DataGridTextColumn Header="Quantity After" Binding="{Binding QuantityAfter, StringFormat='{}{0:N2}'}" Width="100"/>
+                                <DataGridTextColumn Header="Difference Qty" Binding="{Binding DifferenceQty, StringFormat='{}{0:N2}'}" Width="100"/>
+                                <DataGridTextColumn Header="Cost Price" Binding="{Binding CostPrice, StringFormat='{}{0:C2}'}" Width="90"/>
+                                <DataGridTextColumn Header="Cost Inclusive" Binding="{Binding CostInclusive, StringFormat='{}{0:C2}'}" Width="100"/>
+                                <DataGridTextColumn Header="Value After" Binding="{Binding ValueAfter, StringFormat='{}{0:C2}'}" Width="100"/>
+                                <DataGridTextColumn Header="Inclusive Value" Binding="{Binding InclusiveValue, StringFormat='{}{0:C2}'}" Width="110"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </Grid>
@@ -395,16 +414,16 @@
             </Border>
 
            
-        </Grid>        <!-- Right Sidebar Panel for Adjust Product - FULL SCREEN OVERLAY -->
+        </Grid>        <!-- Right Sidebar Panel for Adjust Product - ENHANCED LONG PANEL -->
         <Border Grid.Row="0" Grid.RowSpan="2"
                 Background="White"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1"
                 CornerRadius="5"
-                Width="350"
+                Width="400"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Stretch"
-                Margin="0,20,0,20"
+                Margin="0,10,0,10"
                 Panel.ZIndex="10">
             
             <Border.Effect>
@@ -422,173 +441,282 @@
                 </Style>
             </Border.Style>
 
-            <Grid Margin="20">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <Grid Margin="20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <!-- Header -->
+                        <RowDefinition Height="Auto"/> <!-- Product Image -->
+                        <RowDefinition Height="Auto"/> <!-- Product Search -->
+                        <RowDefinition Height="Auto"/> <!-- Current Stock -->
+                        <RowDefinition Height="Auto"/> <!-- New Quantity -->
+                        <RowDefinition Height="Auto"/> <!-- Expiry Date -->
+                        <RowDefinition Height="Auto"/> <!-- Reason -->
+                        <RowDefinition Height="Auto"/> <!-- Numerical Keypad -->
+                        <RowDefinition Height="Auto"/> <!-- Save Button -->
+                    </Grid.RowDefinitions>
 
-                <!-- Header -->
-                <Grid Grid.Row="0" Margin="0,0,0,20">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    
-                    <TextBlock Grid.Column="0" 
-                               Text="Adjust Product" 
-                               FontSize="18" 
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource ForegroundBrush}"/>
-                    
-                    <Button Grid.Column="1" 
-                            Content="✕" 
-                            Command="{Binding CloseAdjustProductPanelCommand}"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Foreground="{DynamicResource ForegroundBrush}"
-                            FontSize="16"
-                            Padding="8"
-                            Cursor="Hand"/>
-                </Grid>
-
-                <!-- Product Icon -->
-                <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,15">
-                    <Border Background="{DynamicResource AccentBrush}" 
-                            Width="80" Height="80" 
-                            CornerRadius="8"
-                            HorizontalAlignment="Center">
-                        <TextBlock Text="🍕" 
-                                   FontSize="40" 
-                                   HorizontalAlignment="Center" 
-                                   VerticalAlignment="Center"/>
-                    </Border>
-                    <TextBlock Text="Change Icon" 
-                               Foreground="{DynamicResource AccentBrush}" 
-                               HorizontalAlignment="Center" 
-                               Margin="0,8,0,0"
-                               TextDecorations="Underline"
-                               Cursor="Hand"/>
-                </StackPanel>
-
-                <!-- Product Name -->
-                <StackPanel Grid.Row="2" Margin="0,0,0,15">
-                    <TextBlock Text="Product Name" 
-                               FontWeight="SemiBold" 
-                               Margin="0,0,0,5"
-                               Foreground="{DynamicResource ForegroundBrush}"/>
-                    <Grid>
-                        <TextBox Text="{Binding AdjustProduct.ProductName, UpdateSourceTrigger=PropertyChanged}" 
-                                 Padding="10,8,35,8"
-                                 Background="{DynamicResource InputBackgroundBrush}"
-                                 BorderBrush="{DynamicResource BorderBrush}"/>
-                        <Button Content="🔍" 
-                                HorizontalAlignment="Right" 
-                                VerticalAlignment="Center"
+                    <!-- Header -->
+                    <Grid Grid.Row="0" Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <TextBlock Grid.Column="0" 
+                                   Text="Stock Adjustment" 
+                                   FontSize="20" 
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                        
+                        <Button Grid.Column="1" 
+                                Content="✕" 
+                                Command="{Binding CloseAdjustProductPanelCommand}"
                                 Background="Transparent"
                                 BorderThickness="0"
-                                Margin="0,0,8,0"
-                                FontSize="14"
-                                Command="{Binding SearchProductCommand}"/>
-                    </Grid>
-                </StackPanel>
-
-                <!-- Current Stock -->
-                <StackPanel Grid.Row="3" Margin="0,0,0,15">
-                    <TextBlock Text="Current Stock" 
-                               FontWeight="SemiBold" 
-                               Margin="0,0,0,5"
-                               Foreground="{DynamicResource ForegroundBrush}"/>
-                    <TextBox Text="{Binding AdjustProduct.CurrentStock}" 
-                             IsReadOnly="True"
-                             Padding="10,8"
-                             Background="{DynamicResource ReadOnlyBackgroundBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}"/>
-                </StackPanel>
-
-                <!-- Adjustment Type -->
-                <StackPanel Grid.Row="4" Margin="0,0,0,15">
-                    <TextBlock Text="Adjustment Type" 
-                               FontWeight="SemiBold" 
-                               Margin="0,0,0,5"
-                               Foreground="{DynamicResource ForegroundBrush}"/>
-                    <ComboBox SelectedItem="{Binding AdjustProduct.AdjustmentType}" 
-                              Padding="10,8"
-                              Background="{DynamicResource InputBackgroundBrush}"
-                              BorderBrush="{DynamicResource BorderBrush}">
-                        <ComboBoxItem Content="Increase"/>
-                        <ComboBoxItem Content="Decrease"/>
-                    </ComboBox>
-                </StackPanel>
-
-                <!-- Quantity -->
-                <StackPanel Grid.Row="5" Margin="0,0,0,15">
-                    <TextBlock Text="Quantity" 
-                               FontWeight="SemiBold" 
-                               Margin="0,0,0,5"
-                               Foreground="{DynamicResource ForegroundBrush}"/>
-                    <TextBox Text="{Binding AdjustProduct.Quantity}" 
-                             Padding="10,8"
-                             Background="{DynamicResource InputBackgroundBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}"/>
-                </StackPanel>
-
-                <!-- Reason -->
-                <StackPanel Grid.Row="6" Margin="0,0,0,15">
-                    <TextBlock Text="Reason" 
-                               FontWeight="SemiBold" 
-                               Margin="0,0,0,5"
-                               Foreground="{DynamicResource ForegroundBrush}"/>
-                    <ComboBox SelectedItem="{Binding AdjustProduct.Reason}" 
-                              IsEditable="True"
-                              Padding="10,8"
-                              Background="{DynamicResource InputBackgroundBrush}"
-                              BorderBrush="{DynamicResource BorderBrush}">
-                        <ComboBoxItem Content="Stock count correction"/>
-                        <ComboBoxItem Content="Damaged items"/>
-                        <ComboBoxItem Content="Expired products"/>
-                        <ComboBoxItem Content="Theft/Loss"/>
-                        <ComboBoxItem Content="New stock addition"/>
-                        <ComboBoxItem Content="Other"/>
-                    </ComboBox>
-                </StackPanel>
-
-                <!-- Actions -->
-                <StackPanel Grid.Row="9" 
-                            Orientation="Vertical" 
-                            Margin="0,20,0,0">
-                    
-                    <Border Background="{DynamicResource PrimaryBrush}"
-                            CornerRadius="5"
-                            Margin="0,0,0,10">
-                        <Button Content="Save" 
-                                Command="{Binding SaveAdjustProductCommand}"
-                                Background="Transparent"
-                                Foreground="White"
-                                Padding="0,12"
-                                FontSize="14"
-                                FontWeight="SemiBold"
-                                BorderThickness="0"
+                                Foreground="{DynamicResource ForegroundBrush}"
+                                FontSize="18"
+                                Padding="8"
                                 Cursor="Hand"/>
-                    </Border>
-                    
-                    <Button Content="Cancel" 
-                            Command="{Binding CloseAdjustProductPanelCommand}"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Foreground="{DynamicResource AccentBrush}" 
-                            HorizontalAlignment="Center"
-                            Cursor="Hand"/>
-                </StackPanel>
-            </Grid>
+                    </Grid>
+
+                    <!-- Product Image -->
+                    <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,20">
+                        <Border Background="{DynamicResource SecondaryBackgroundBrush}" 
+                                Width="120" Height="120" 
+                                CornerRadius="10"
+                                HorizontalAlignment="Center"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="2">
+                            <Grid>
+                                <Image Source="{Binding AdjustProduct.ProductImagePath}" 
+                                       Stretch="UniformToFill">
+                                    <Image.Style>
+                                        <Style TargetType="Image">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding AdjustProduct.HasProductImage}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Image.Style>
+                                </Image>
+                                <TextBlock Text="📦" 
+                                           FontSize="48" 
+                                           HorizontalAlignment="Center" 
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource MutedForegroundBrush}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding AdjustProduct.HasProductImage}" Value="False">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </Border>
+                        <TextBlock Text="{Binding AdjustProduct.ProductName, FallbackValue='Select Product'}" 
+                                   FontWeight="SemiBold"
+                                   FontSize="14"
+                                   HorizontalAlignment="Center" 
+                                   Margin="0,10,0,0"
+                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                    </StackPanel>
+
+                    <!-- Product Search with Dropdown -->
+                    <StackPanel Grid.Row="2" Margin="0,0,0,20">
+                        <TextBlock Text="Search Product" 
+                                   FontWeight="SemiBold" 
+                                   Margin="0,0,0,8"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                        <Grid>
+                            <ComboBox x:Name="ProductSearchComboBox"
+                                      IsEditable="True"
+                                      Text="{Binding AdjustProduct.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                      ItemsSource="{Binding SearchResults}"
+                                      SelectedItem="{Binding AdjustProduct.SelectedProduct}"
+                                      Padding="12,10"
+                                      FontSize="13"
+                                      Background="{DynamicResource InputBackgroundBrush}"
+                                      BorderBrush="{DynamicResource BorderBrush}"
+                                      BorderThickness="1">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="0,5">
+                                            <Border Background="{DynamicResource AccentBrush}" 
+                                                    Width="30" Height="30" 
+                                                    CornerRadius="4"
+                                                    Margin="0,0,10,0">
+                                                <TextBlock Text="�" 
+                                                           FontSize="12" 
+                                                           HorizontalAlignment="Center" 
+                                                           VerticalAlignment="Center"
+                                                           Foreground="White"/>
+                                            </Border>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13"/>
+                                                <TextBlock Text="{Binding DisplayName}" FontSize="11" Foreground="{DynamicResource MutedForegroundBrush}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Current Stock -->
+                    <StackPanel Grid.Row="3" Margin="0,0,0,20">
+                        <TextBlock Text="Current Stock" 
+                                   FontWeight="SemiBold" 
+                                   Margin="0,0,0,8"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                        <Border Background="{DynamicResource ReadOnlyBackgroundBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="12,10">
+                            <TextBlock Text="{Binding AdjustProduct.CurrentStock, StringFormat='{}{0} units'}" 
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource ForegroundBrush}"/>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- New Quantity -->
+                    <StackPanel Grid.Row="4" Margin="0,0,0,20">
+                        <TextBlock Text="New Quantity" 
+                                   FontWeight="SemiBold" 
+                                   Margin="0,0,0,8"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                        <TextBox x:Name="QuantityTextBox"
+                                 Text="{Binding AdjustProduct.NewQuantity, UpdateSourceTrigger=PropertyChanged}" 
+                                 Padding="12,10"
+                                 FontSize="16"
+                                 FontWeight="SemiBold"
+                                 TextAlignment="Center"
+                                 Background="{DynamicResource InputBackgroundBrush}"
+                                 BorderBrush="{DynamicResource PrimaryBrush}"
+                                 BorderThickness="2"/>
+                        <TextBlock Text="{Binding AdjustProduct.DifferenceText}" 
+                                   FontSize="12"
+                                   Margin="0,5,0,0"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{Binding AdjustProduct.DifferenceColor}"/>
+                    </StackPanel>
+
+                    <!-- Expiry Date -->
+                    <StackPanel Grid.Row="5" Margin="0,0,0,20">
+                        <TextBlock Text="Expiry Date (Optional)" 
+                                   FontWeight="SemiBold" 
+                                   Margin="0,0,0,8"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                        <DatePicker SelectedDate="{Binding AdjustProduct.ExpiryDate}"
+                                    Padding="12,10"
+                                    FontSize="13"
+                                    Background="{DynamicResource InputBackgroundBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"/>
+                    </StackPanel>
+
+                    <!-- Reason -->
+                    <StackPanel Grid.Row="6" Margin="0,0,0,20">
+                        <TextBlock Text="Adjustment Reason" 
+                                   FontWeight="SemiBold" 
+                                   Margin="0,0,0,8"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                        <TextBox Text="{Binding AdjustProduct.ReasonText, UpdateSourceTrigger=PropertyChanged}"
+                                 Padding="12,10"
+                                 FontSize="13"
+                                 Background="{DynamicResource InputBackgroundBrush}"
+                                 BorderBrush="{DynamicResource BorderBrush}"
+                                 VerticalContentAlignment="Center"
+                                 ToolTip="Enter a custom reason for this stock adjustment"/>
+                    </StackPanel>
+
+                    <!-- Numerical Keypad for Touch Screen -->
+                    <StackPanel Grid.Row="7" Margin="0,0,0,20">
+                        <TextBlock Text="Touch Keypad" 
+                                   FontWeight="SemiBold" 
+                                   Margin="0,0,0,10"
+                                   FontSize="14"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                        
+                        <Grid HorizontalAlignment="Center">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="60"/>
+                                <ColumnDefinition Width="60"/>
+                                <ColumnDefinition Width="60"/>
+                                <ColumnDefinition Width="60"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Row 1 -->
+                            <Button Grid.Row="0" Grid.Column="0" Content="1" Command="{Binding KeypadCommand}" CommandParameter="1" Style="{StaticResource KeypadButtonStyle}"/>
+                            <Button Grid.Row="0" Grid.Column="1" Content="2" Command="{Binding KeypadCommand}" CommandParameter="2" Style="{StaticResource KeypadButtonStyle}"/>
+                            <Button Grid.Row="0" Grid.Column="2" Content="3" Command="{Binding KeypadCommand}" CommandParameter="3" Style="{StaticResource KeypadButtonStyle}"/>
+                            <Button Grid.Row="0" Grid.Column="3" Content="⌫" Command="{Binding KeypadCommand}" CommandParameter="backspace" Style="{StaticResource KeypadButtonStyle}"/>
+
+                            <!-- Row 2 -->
+                            <Button Grid.Row="1" Grid.Column="0" Content="4" Command="{Binding KeypadCommand}" CommandParameter="4" Style="{StaticResource KeypadButtonStyle}"/>
+                            <Button Grid.Row="1" Grid.Column="1" Content="5" Command="{Binding KeypadCommand}" CommandParameter="5" Style="{StaticResource KeypadButtonStyle}"/>
+                            <Button Grid.Row="1" Grid.Column="2" Content="6" Command="{Binding KeypadCommand}" CommandParameter="6" Style="{StaticResource KeypadButtonStyle}"/>
+                            <Button Grid.Row="1" Grid.Column="3" Content="C" Command="{Binding KeypadCommand}" CommandParameter="clear" Style="{StaticResource KeypadButtonStyle}"/>
+
+                            <!-- Row 3 -->
+                            <Button Grid.Row="2" Grid.Column="0" Content="7" Command="{Binding KeypadCommand}" CommandParameter="7" Style="{StaticResource KeypadButtonStyle}"/>
+                            <Button Grid.Row="2" Grid.Column="1" Content="8" Command="{Binding KeypadCommand}" CommandParameter="8" Style="{StaticResource KeypadButtonStyle}"/>
+                            <Button Grid.Row="2" Grid.Column="2" Content="9" Command="{Binding KeypadCommand}" CommandParameter="9" Style="{StaticResource KeypadButtonStyle}"/>
+                            <Button Grid.Row="2" Grid.Column="3" Content="↵" Command="{Binding KeypadCommand}" CommandParameter="enter" Style="{StaticResource KeypadButtonStyle}"/>
+
+                            <!-- Row 4 -->
+                            <Button Grid.Row="3" Grid.Column="0" Content="-" Command="{Binding KeypadCommand}" CommandParameter="-" Style="{StaticResource KeypadButtonStyle}"/>
+                            <Button Grid.Row="3" Grid.Column="1" Content="0" Command="{Binding KeypadCommand}" CommandParameter="0" Style="{StaticResource KeypadButtonStyle}"/>
+                            <Button Grid.Row="3" Grid.Column="2" Content="." Command="{Binding KeypadCommand}" CommandParameter="." Style="{StaticResource KeypadButtonStyle}"/>
+                            <Button Grid.Row="3" Grid.Column="3" Content="+" Command="{Binding KeypadCommand}" CommandParameter="+" Style="{StaticResource KeypadButtonStyle}"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Save Button -->
+                    <StackPanel Grid.Row="8" Margin="0,10,0,0">
+                        <Border Background="{DynamicResource SuccessBrush}"
+                                CornerRadius="8"
+                                Margin="0,0,0,15">
+                            <Button Content="💾 Save Stock Adjustment" 
+                                    Command="{Binding SaveAdjustProductCommand}"
+                                    Background="Transparent"
+                                    Foreground="White"
+                                    Padding="0,15"
+                                    FontSize="16"
+                                    FontWeight="Bold"
+                                    BorderThickness="0"
+                                    Cursor="Hand"/>
+                        </Border>
+                        
+                        <Button Content="Cancel" 
+                                Command="{Binding CloseAdjustProductPanelCommand}"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="{DynamicResource MutedForegroundBrush}" 
+                                HorizontalAlignment="Center"
+                                FontSize="14"
+                                Cursor="Hand"/>
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
         </Border>
 
         <!-- Right Sidebar Panel for Transfer Product - FULL SCREEN OVERLAY -->

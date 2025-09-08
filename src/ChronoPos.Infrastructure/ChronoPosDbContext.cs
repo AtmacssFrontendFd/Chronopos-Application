@@ -24,7 +24,6 @@ public class ChronoPosDbContext : DbContext
     public DbSet<Domain.Entities.ProductBarcode> ProductBarcodes { get; set; }
     public DbSet<Domain.Entities.ProductComment> ProductComments { get; set; }
     public DbSet<Domain.Entities.ProductTax> ProductTaxes { get; set; }
-    public DbSet<Domain.Entities.MeasurementUnit> MeasurementUnits { get; set; }
     public DbSet<Domain.Entities.Tax> Taxes { get; set; }
     
     // Stock management entities
@@ -69,7 +68,6 @@ public class ChronoPosDbContext : DbContext
             entity.Property(e => e.MaxDiscount).HasPrecision(5, 2);
             entity.Property(e => e.SKU).HasMaxLength(50);
             entity.Property(e => e.Color).HasMaxLength(50);
-            entity.Property(e => e.MeasurementUnit).HasMaxLength(10);
             entity.Property(e => e.ImagePath).HasMaxLength(500);
             entity.Property(e => e.CreatedAt).IsRequired();
             entity.Property(e => e.UpdatedAt).IsRequired();
@@ -87,6 +85,12 @@ public class ChronoPosDbContext : DbContext
             entity.HasOne(p => p.Category)
                   .WithMany(c => c.Products)
                   .HasForeignKey(p => p.CategoryId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Foreign key relationship with UnitOfMeasurement
+            entity.HasOne(p => p.UnitOfMeasurement)
+                  .WithMany()
+                  .HasForeignKey(p => p.UnitOfMeasurementId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -130,18 +134,6 @@ public class ChronoPosDbContext : DbContext
                   .WithMany(p => p.ProductComments)
                   .HasForeignKey(pc => pc.ProductId)
                   .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        // Configure MeasurementUnit entity
-        modelBuilder.Entity<Domain.Entities.MeasurementUnit>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
-            entity.Property(e => e.Symbol).HasMaxLength(10);
-            entity.Property(e => e.CreatedAt).IsRequired();
-
-            // Unique constraint on name
-            entity.HasIndex(e => e.Name).IsUnique();
         });
 
         // Configure Tax entity
@@ -607,7 +599,6 @@ public class ChronoPosDbContext : DbContext
             entity.Property(e => e.MobileNumber).HasMaxLength(20);
             entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
             entity.Property(e => e.CreatedAt).IsRequired();
-
             entity.Property(e => e.LocationLatitude).HasPrecision(10, 8);
             entity.Property(e => e.LocationLongitude).HasPrecision(11, 8);
         });
@@ -618,14 +609,18 @@ public class ChronoPosDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
             entity.Property(e => e.Abbreviation).IsRequired().HasMaxLength(10);
-            entity.Property(e => e.ConversionFactor).HasPrecision(10, 4);
+            entity.Property(e => e.ConversionFactor).HasPrecision(18, 6);
             entity.Property(e => e.CreatedAt).IsRequired();
 
+            // Unique constraint on name and abbreviation
+            entity.HasIndex(e => e.Name).IsUnique();
+            entity.HasIndex(e => e.Abbreviation).IsUnique();
+
             // Self-referencing relationship for base UOM
-            entity.HasOne(d => d.BaseUom)
-                .WithMany(p => p.DerivedUnits)
-                .HasForeignKey(d => d.BaseUomId)
-                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(u => u.BaseUom)
+                  .WithMany(u => u.DerivedUnits)
+                  .HasForeignKey(u => u.BaseUomId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Seed initial data
@@ -635,6 +630,42 @@ public class ChronoPosDbContext : DbContext
     private void SeedData(ModelBuilder modelBuilder)
     {
         var baseDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        // Seed Units of Measurement FIRST (required by Products)
+        modelBuilder.Entity<Domain.Entities.UnitOfMeasurement>().HasData(
+            new Domain.Entities.UnitOfMeasurement 
+            { 
+                Id = 1, 
+                Name = "Pieces", 
+                Abbreviation = "pcs", 
+                IsActive = true, 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.UnitOfMeasurement 
+            { 
+                Id = 2, 
+                Name = "Kilograms", 
+                Abbreviation = "kg", 
+                IsActive = true, 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.UnitOfMeasurement 
+            { 
+                Id = 3, 
+                Name = "Dozen", 
+                Abbreviation = "dz", 
+                IsActive = true, 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.UnitOfMeasurement 
+            { 
+                Id = 4, 
+                Name = "Litres", 
+                Abbreviation = "L", 
+                IsActive = true, 
+                CreatedAt = baseDate 
+            }
+        );
 
         // Seed Categories
         modelBuilder.Entity<Domain.Entities.Category>().HasData(
@@ -663,7 +694,7 @@ public class ChronoPosDbContext : DbContext
                 Cost = 15.00m,
                 CategoryId = 1, 
                 StockQuantity = 50, 
-                MeasurementUnit = "pcs",
+                UnitOfMeasurementId = 1, // Pieces
                 IsActive = true,
                 CreatedAt = baseDate, 
                 UpdatedAt = baseDate 
@@ -679,7 +710,7 @@ public class ChronoPosDbContext : DbContext
                 Cost = 60.00m,
                 CategoryId = 1, 
                 StockQuantity = 30, 
-                MeasurementUnit = "pcs",
+                UnitOfMeasurementId = 1, // Pieces
                 IsActive = true,
                 CreatedAt = baseDate, 
                 UpdatedAt = baseDate 
@@ -695,7 +726,7 @@ public class ChronoPosDbContext : DbContext
                 Cost = 12.00m,
                 CategoryId = 2, 
                 StockQuantity = 100, 
-                MeasurementUnit = "pcs",
+                UnitOfMeasurementId = 1, // Pieces
                 IsActive = true,
                 CreatedAt = baseDate, 
                 UpdatedAt = baseDate 
@@ -711,7 +742,7 @@ public class ChronoPosDbContext : DbContext
                 Cost = 8.00m,
                 CategoryId = 3, 
                 StockQuantity = 75, 
-                MeasurementUnit = "kg",
+                UnitOfMeasurementId = 2, // Kilograms
                 IsActive = true,
                 CreatedAt = baseDate, 
                 UpdatedAt = baseDate 
@@ -727,20 +758,11 @@ public class ChronoPosDbContext : DbContext
                 Cost = 25.00m,
                 CategoryId = 4, 
                 StockQuantity = 25, 
-                MeasurementUnit = "pcs",
+                UnitOfMeasurementId = 1, // Pieces
                 IsActive = true,
                 CreatedAt = baseDate, 
                 UpdatedAt = baseDate 
             }
-        );
-
-        // Seed MeasurementUnits
-        modelBuilder.Entity<Domain.Entities.MeasurementUnit>().HasData(
-            new Domain.Entities.MeasurementUnit { Id = 1, Name = "Pieces", Symbol = "pcs", IsDefault = true, IsActive = true, CreatedAt = baseDate },
-            new Domain.Entities.MeasurementUnit { Id = 2, Name = "Kilograms", Symbol = "kg", IsDefault = false, IsActive = true, CreatedAt = baseDate },
-            new Domain.Entities.MeasurementUnit { Id = 3, Name = "Pounds", Symbol = "lbs", IsDefault = false, IsActive = true, CreatedAt = baseDate },
-            new Domain.Entities.MeasurementUnit { Id = 4, Name = "Liters", Symbol = "L", IsDefault = false, IsActive = true, CreatedAt = baseDate },
-            new Domain.Entities.MeasurementUnit { Id = 5, Name = "Meters", Symbol = "m", IsDefault = false, IsActive = true, CreatedAt = baseDate }
         );
 
         // Seed Taxes
@@ -860,6 +882,86 @@ public class ChronoPosDbContext : DbContext
             // UI Buttons
             new Domain.Entities.LanguageKeyword { Id = 48, Key = "btn.back", Description = "Back button" },
             new Domain.Entities.LanguageKeyword { Id = 49, Key = "btn.refresh", Description = "Refresh button" }
+        );
+
+        // Seed Users (required by many entities with CreatedBy/UpdatedBy)
+        modelBuilder.Entity<Domain.Entities.User>().HasData(
+            new Domain.Entities.User 
+            { 
+                Id = 1, 
+                FullName = "System Administrator", 
+                Email = "admin@chronopos.com", 
+                Password = "admin123", // In production, this should be hashed
+                Role = "Admin", 
+                PhoneNo = "+1234567890",
+                UaeId = "SYS001",
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.User 
+            { 
+                Id = 2, 
+                FullName = "Store Manager", 
+                Email = "manager@chronopos.com", 
+                Password = "manager123", // In production, this should be hashed
+                Role = "Manager", 
+                PhoneNo = "+1234567891",
+                UaeId = "MGR001",
+                CreatedAt = baseDate 
+            }
+        );
+
+        // Seed ShopLocations (required by StockAdjustments)
+        modelBuilder.Entity<Domain.Entities.ShopLocation>().HasData(
+            new Domain.Entities.ShopLocation 
+            { 
+                Id = 1, 
+                ShopId = 1,
+                LocationType = "Main",
+                LocationName = "Main Store Location", 
+                AddressLine1 = "123 Main Street",
+                AddressLine2 = "Suite 100",
+                Building = "Commercial Center",
+                Area = "Downtown",
+                City = "Dubai",
+                PoBox = "12345",
+                LandlineNumber = "+971-4-1234567",
+                MobileNumber = "+971-50-1234567",
+                Status = "Active",
+                CreatedAt = baseDate,
+                LocationLatitude = 25.2048m,
+                LocationLongitude = 55.2708m
+            }
+        );
+
+        // Seed StockAdjustmentReasons (required by StockAdjustments)
+        modelBuilder.Entity<Domain.Entities.StockAdjustmentReason>().HasData(
+            new Domain.Entities.StockAdjustmentReason 
+            { 
+                StockAdjustmentReasonsId = 1, 
+                Name = "Physical Count Adjustment", 
+                Description = "Adjustment based on physical stock count",
+                Status = "Active",
+                CreatedBy = 1,
+                CreatedAt = baseDate
+            },
+            new Domain.Entities.StockAdjustmentReason 
+            { 
+                StockAdjustmentReasonsId = 2, 
+                Name = "Damaged Goods", 
+                Description = "Stock reduction due to damaged inventory",
+                Status = "Active",
+                CreatedBy = 1,
+                CreatedAt = baseDate
+            },
+            new Domain.Entities.StockAdjustmentReason 
+            { 
+                StockAdjustmentReasonsId = 3, 
+                Name = "System Error Correction", 
+                Description = "Correction of system entry errors",
+                Status = "Active",
+                CreatedBy = 1,
+                CreatedAt = baseDate
+            }
         );
 
         // Seed Label Translations - English

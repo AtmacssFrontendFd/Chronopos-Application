@@ -88,4 +88,15 @@ public interface IProductService
     /// </summary>
     /// <param name="translationDto">Category translation data</param>
     Task<CategoryTranslationDto> CreateCategoryTranslationAsync(CategoryTranslationDto translationDto);
+    
+    /// <summary>
+    /// Gets all units of measurement asynchronously
+    /// </summary>
+    Task<IEnumerable<UnitOfMeasurementDto>> GetAllUnitsOfMeasurementAsync();
+    
+    /// <summary>
+    /// Gets a unit of measurement by ID asynchronously
+    /// </summary>
+    /// <param name="id">UOM ID</param>
+    Task<UnitOfMeasurementDto?> GetUnitOfMeasurementByIdAsync(int id);
 }

@@ -49,7 +49,10 @@ public partial class AddProductViewModel : ObservableObject
     private int? categoryId;
 
     [ObservableProperty]
-    private string measurementUnit = "pcs";
+    private int selectedUnitOfMeasurementId = 1; // Default to "Pieces"
+
+    [ObservableProperty]
+    private UnitOfMeasurementDto? selectedUnitOfMeasurement;
 
     [ObservableProperty]
     private bool isTaxInclusivePrice = true;
@@ -136,7 +139,7 @@ public partial class AddProductViewModel : ObservableObject
     private ObservableCollection<CategoryDto> categories = new();
 
     [ObservableProperty]
-    private ObservableCollection<string> measurementUnits = new();
+    private ObservableCollection<UnitOfMeasurementDto> unitsOfMeasurement = new();
 
     [ObservableProperty]
     private ObservableCollection<string> availableTaxes = new();
@@ -340,7 +343,7 @@ public partial class AddProductViewModel : ObservableObject
         IsEnabled = true;
         IsDiscountAllowed = true;
         MaxDiscount = 100;
-        MeasurementUnit = "pcs";
+        SelectedUnitOfMeasurementId = 1; // Default to "Pieces"
         Color = "#FFC107";
         
         _ = InitializeAsync();
@@ -359,6 +362,7 @@ public partial class AddProductViewModel : ObservableObject
 
             await LoadCategoriesAsync();
             await LoadStoresAsync();
+            await LoadUnitsOfMeasurementAsync();
 
             StatusMessage = "Ready to create new product";
         }
@@ -400,6 +404,24 @@ public partial class AddProductViewModel : ObservableObject
         SelectedStoreId = AvailableStores.FirstOrDefault(s => s.IsDefault)?.Id ?? 1;
         
         await Task.CompletedTask; // Placeholder for async operation
+    }
+
+    private async Task LoadUnitsOfMeasurementAsync()
+    {
+        var uomList = await _productService.GetAllUnitsOfMeasurementAsync();
+        UnitsOfMeasurement.Clear();
+        
+        foreach (var uom in uomList)
+        {
+            UnitsOfMeasurement.Add(uom);
+        }
+        
+        // Set default UOM to "Pieces" if available
+        SelectedUnitOfMeasurement = UnitsOfMeasurement.FirstOrDefault(u => u.Id == 1) ?? UnitsOfMeasurement.FirstOrDefault();
+        if (SelectedUnitOfMeasurement != null)
+        {
+            SelectedUnitOfMeasurementId = SelectedUnitOfMeasurement.Id;
+        }
     }
 
     private string GenerateNextCode()
@@ -671,7 +693,8 @@ public partial class AddProductViewModel : ObservableObject
         Cost = 0;
         Markup = 0;
         CategoryId = null;
-        MeasurementUnit = "pcs";
+        SelectedUnitOfMeasurementId = 1; // Reset to "Pieces"
+        SelectedUnitOfMeasurement = UnitsOfMeasurement.FirstOrDefault(u => u.Id == 1) ?? UnitsOfMeasurement.FirstOrDefault();
         IsTaxInclusivePrice = true;
         Excise = 0;
         IsDiscountAllowed = true;
@@ -876,6 +899,10 @@ public partial class AddProductViewModel : ObservableObject
             ReorderQuantity = ReorderQuantity,
             AverageCost = AverageCost,
             LastCost = AverageCost, // Set last cost same as average cost initially
+            // UOM Properties
+            UnitOfMeasurementId = SelectedUnitOfMeasurementId > 0 ? SelectedUnitOfMeasurementId : 1, // Default to "Pieces"
+            UnitOfMeasurementName = SelectedUnitOfMeasurement?.Name ?? "Pieces",
+            UnitOfMeasurementAbbreviation = SelectedUnitOfMeasurement?.Abbreviation ?? "pcs",
             SelectedStoreId = SelectedStoreId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow

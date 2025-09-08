@@ -55,6 +55,11 @@ public interface IStockAdjustmentService
     Task<List<StockAdjustmentReasonDto>> GetAdjustmentReasonsAsync();
     
     /// <summary>
+    /// Create a new adjustment reason if it doesn't exist, or return existing reason ID
+    /// </summary>
+    Task<int> CreateReasonIfNotExistsAsync(string reasonName);
+    
+    /// <summary>
     /// Get all store locations
     /// </summary>
     Task<List<StockAdjustmentSupportDto.LocationDto>> GetStoreLocationsAsync();

@@ -41,6 +41,11 @@ public class ProductDto
     
     public string? Color { get; set; } = "#FFC107"; // Default golden color
     
+    // Unit of Measurement
+    public int UnitOfMeasurementId { get; set; } = 1;
+    public string UnitOfMeasurementName { get; set; } = "pcs";
+    public string UnitOfMeasurementAbbreviation { get; set; } = "pcs";
+    
     // Stock Control Properties
     public bool IsStockTracked { get; set; } = true;
     public bool AllowNegativeStock { get; set; } = false;
@@ -62,4 +67,10 @@ public class ProductDto
     public string DisplayName => $"{Name} - ${Price:F2}";
     public string StockDisplay => $"{StockQuantity} items";
     public bool HasLowStock => StockQuantity < 10;
+    
+    // Override ToString to return the Name for ComboBox display
+    public override string ToString()
+    {
+        return Name;
+    }
 }

@@ -1,7 +1,7 @@
 namespace ChronoPos.Application.DTOs;
 
 /// <summary>
-/// DTO for stock adjustment item display
+/// DTO for stock adjustment item display with financial calculations and adjustment details
 /// </summary>
 public class StockAdjustmentItemDto
 {
@@ -20,4 +20,17 @@ public class StockAdjustmentItemDto
     public string? ReasonLine { get; set; }
     public string? RemarksLine { get; set; }
     public string ShopLocation { get; set; } = string.Empty;
+    
+    // Financial Fields for Table Display
+    public decimal CostPrice { get; set; } = 0; // Product.Cost
+    public decimal TaxRate { get; set; } = 0; // Product.TaxRate (as decimal, e.g., 0.1 for 10%)
+    
+    // Adjustment-level data for flattened display
+    public string AdjustmentNo { get; set; } = string.Empty;
+    public DateTime AdjustmentDate { get; set; }
+    
+    // Calculated Properties
+    public decimal CostInclusive => CostPrice * (1 + TaxRate); // Cost with tax
+    public decimal ValueAfter => QuantityAfter * CostPrice; // Quantity * Cost Price
+    public decimal InclusiveValue => QuantityAfter * CostPrice * (1 + TaxRate); // Quantity * Cost Price with tax
 }

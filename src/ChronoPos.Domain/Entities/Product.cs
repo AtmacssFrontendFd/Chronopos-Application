@@ -74,8 +74,8 @@ public class Product
     public string? SKU { get; set; }
     
     // Measurement & Packaging
-    [StringLength(10)]
-    public string MeasurementUnit { get; set; } = "pcs";
+    public int UnitOfMeasurementId { get; set; } = 1; // Default to first UOM (pcs)
+    public virtual UnitOfMeasurement? UnitOfMeasurement { get; set; }
     
     // Navigation properties for related entities
     public virtual ICollection<ProductBarcode> ProductBarcodes { get; set; } = new List<ProductBarcode>();

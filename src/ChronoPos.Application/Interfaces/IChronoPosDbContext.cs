@@ -24,7 +24,7 @@ public interface IChronoPosDbContext
     DbSet<ProductComment> ProductComments { get; set; }
     DbSet<ProductTax> ProductTaxes { get; set; }
     DbSet<Tax> Taxes { get; set; }
-    DbSet<MeasurementUnit> MeasurementUnits { get; set; }
+    DbSet<UnitOfMeasurement> UnitsOfMeasurement { get; set; }
     
     // Language support entities
     DbSet<LanguageKeyword> LanguageKeywords { get; set; }

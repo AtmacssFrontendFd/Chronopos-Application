@@ -45,9 +45,14 @@ public partial class App : System.Windows.Application
                     var databasePath = Path.Combine(chronoPosPath, "chronopos.db");
                     LogMessage($"Database path: {databasePath}");
 
-                    // Configure Entity Framework with SQLite
+                    // Configure Entity Framework with SQLite and improved settings
                     services.AddDbContext<ChronoPosDbContext>(options =>
-                        options.UseSqlite($"Data Source={databasePath}"));
+                    {
+                        options.UseSqlite($"Data Source={databasePath}");
+                        // Enable sensitive data logging in debug mode for better error messages
+                        options.EnableSensitiveDataLogging(true);
+                        options.EnableDetailedErrors(true);
+                    }, ServiceLifetime.Scoped);
                     LogMessage("DbContext configured");
 
                     // Register repositories and unit of work
@@ -93,26 +98,26 @@ public partial class App : System.Windows.Application
                     services.AddSingleton<IZoomService, ZoomService>();
                     LogMessage("ZoomService registered");
 
-                    // Register ViewModels
-                    services.AddTransient<MainWindowViewModel>();
+                    // Register ViewModels as Scoped to match service lifetimes
+                    services.AddScoped<MainWindowViewModel>();
                     LogMessage("MainWindowViewModel registered");
-                    services.AddTransient<ProductsViewModel>();
+                    services.AddScoped<ProductsViewModel>();
                     LogMessage("ProductsViewModel registered");
-                    services.AddTransient<ProductManagementViewModel>();
+                    services.AddScoped<ProductManagementViewModel>();
                     LogMessage("ProductManagementViewModel registered");
-                    services.AddTransient<AddProductViewModel>();
+                    services.AddScoped<StockManagementViewModel>();
+                    LogMessage("StockManagementViewModel registered");
+                    services.AddScoped<AddProductViewModel>();
                     LogMessage("AddProductViewModel registered");
-                    services.AddTransient<SalesViewModel>();
+                    services.AddScoped<SalesViewModel>();
                     LogMessage("SalesViewModel registered");
-                    services.AddTransient<CustomersViewModel>();
+                    services.AddScoped<CustomersViewModel>();
                     LogMessage("CustomersViewModel registered");
-                    services.AddTransient<SettingsViewModel>();
+                    services.AddScoped<SettingsViewModel>();
                     LogMessage("SettingsViewModel registered");
-                    services.AddTransient<StockAdjustmentViewModel>();
-                    LogMessage("StockAdjustmentViewModel registered");
-
-                    // Register Views
-                    services.AddTransient<MainWindow>();
+        
+                    // Register Views as Scoped to match ViewModels
+                    services.AddScoped<MainWindow>();
                     LogMessage("MainWindow registered");
                     
                     LogMessage("All services configured successfully");

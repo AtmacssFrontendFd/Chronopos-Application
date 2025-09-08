@@ -31,6 +31,11 @@ public interface IUnitOfWork : IDisposable
     IRepository<ChronoPos.Domain.Entities.SaleItem> SaleItems { get; }
     
     /// <summary>
+    /// Unit of Measurement repository
+    /// </summary>
+    IRepository<ChronoPos.Domain.Entities.UnitOfMeasurement> UnitsOfMeasurement { get; }
+    
+    /// <summary>
     /// Saves all changes asynchronously
     /// </summary>
     Task<int> SaveChangesAsync();

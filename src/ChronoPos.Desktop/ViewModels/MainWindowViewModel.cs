@@ -744,14 +744,14 @@ public partial class MainWindowViewModel : ObservableObject
         
         try
         {
-            // Create the ProductManagementView and get its ViewModel from the service provider
-            var productManagementView = new ProductManagementView();
-            var productManagementViewModel = new ProductManagementViewModel(
-                _serviceProvider.GetRequiredService<IProductService>(),
-                () => ShowAddProduct(),
-                () => ShowManagement()
-            );
+            // Get the ProductManagementViewModel from DI container to ensure proper scoping
+            var productManagementViewModel = _serviceProvider.GetRequiredService<ProductManagementViewModel>();
             
+            // Set up navigation callbacks (if the ViewModel supports them)
+            // We'll need to modify ProductManagementViewModel to support post-creation setup
+            
+            // Create the view and set the ViewModel from DI
+            var productManagementView = new ProductManagementView();
             productManagementView.DataContext = productManagementViewModel;
             CurrentView = productManagementView;
             
@@ -845,67 +845,21 @@ public partial class MainWindowViewModel : ObservableObject
             var fontService = _serviceProvider.GetService<IFontService>();
             var databaseLocalizationService = _serviceProvider.GetService<IDatabaseLocalizationService>();
 
-            // Create the view
-            var stockManagementView = new StockManagementView();
+            // Get the StockManagementViewModel from DI container to ensure proper scoping
+            var stockManagementViewModel = _serviceProvider.GetRequiredService<StockManagementViewModel>();
             
-            // Set up the back command and theme integration
-            if (stockManagementView.DataContext is Views.StockManagementSimpleViewModel viewModel)
+            // Create the view and set the ViewModel from DI
+            var stockManagementView = new StockManagementView();
+            stockManagementView.DataContext = stockManagementViewModel;
+
+            // Set up the back command to return to dashboard properly
+            stockManagementViewModel.GoBackCommand = new RelayCommand(() =>
             {
-                // Set up the back command to return to management properly
-                viewModel.GoBackCommand = new RelayCommand(() =>
-                {
-                    ShowManagementCommand.Execute(null);
-                });
+                ShowManagementCommand.Execute(null);
+            });
 
-                // Set up navigation from stock management to specific modules
-                viewModel.NavigateToModuleAction = (moduleType) =>
-                {
-                    switch (moduleType)
-                    {
-                        case "StockAdjustment":
-                            ShowStockAdjustment();
-                            break;
-                        default:
-                            StatusMessage = $"Navigation to {moduleType} not implemented yet";
-                            break;
-                    }
-                };
-
-                // Pass the actual service instances for dynamic updates
-                viewModel.SetThemeServices(themeService, colorSchemeService, localizationService, 
-                                         zoomService, layoutDirectionService, fontService, databaseLocalizationService);
-
-                // Integrate with theme services if available
-                if (themeService != null)
-                {
-                    viewModel.CurrentTheme = themeService.CurrentTheme.ToString();
-                }
-                if (colorSchemeService != null)
-                {
-                    viewModel.CurrentColorScheme = colorSchemeService.CurrentPrimaryColor?.Name ?? "Blue";
-                }
-                if (localizationService != null)
-                {
-                    viewModel.CurrentLanguage = localizationService.CurrentLanguage.ToString();
-                }
-                if (zoomService != null)
-                {
-                    viewModel.CurrentZoom = (int)zoomService.CurrentZoomLevel;
-                }
-                if (layoutDirectionService != null)
-                {
-                    viewModel.CurrentFlowDirection = layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
-                        ? System.Windows.FlowDirection.RightToLeft : System.Windows.FlowDirection.LeftToRight;
-                }
-                if (fontService != null)
-                {
-                    viewModel.CurrentFontFamily = "Segoe UI"; // Use default font family
-                    viewModel.CurrentFontSize = GetFontSizeValue(fontService.CurrentFontSize);
-                }
-                
-                // Initialize modules after all theme properties are set
-                viewModel.InitializeModules();
-            }
+            // Set the DataContext to the proper ViewModel
+            stockManagementView.DataContext = stockManagementViewModel;
 
             CurrentView = stockManagementView;
             StatusMessage = "Stock management loaded successfully";
@@ -913,48 +867,6 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error loading stock management: {ex.Message}";
-            var errorContent = new System.Windows.Controls.TextBlock
-            {
-                Text = $"Error: {ex.Message}",
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = System.Windows.VerticalAlignment.Center,
-                FontSize = 16
-            };
-            CurrentView = errorContent;
-        }
-    }
-    
-    /// <summary>
-    /// Show stock adjustment view
-    /// </summary>
-    private void ShowStockAdjustment()
-    {
-        CurrentPageTitle = "Stock Adjustment";
-        StatusMessage = "Loading stock adjustment...";
-        
-        try
-        {
-            // Create the stock adjustment view
-            var stockAdjustmentView = new StockAdjustmentView();
-            
-            // Set the data context using the service provider
-            stockAdjustmentView.SetDataContext(_serviceProvider);
-            
-            // Set up the back command to return to stock management
-            if (stockAdjustmentView.DataContext is StockAdjustmentViewModel viewModel)
-            {
-                viewModel.GoBackCommand = new RelayCommand(() =>
-                {
-                    ShowStockManagement();
-                });
-            }
-            
-            CurrentView = stockAdjustmentView;
-            StatusMessage = "Stock adjustment loaded successfully";
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Error loading stock adjustment: {ex.Message}";
             var errorContent = new System.Windows.Controls.TextBlock
             {
                 Text = $"Error: {ex.Message}",

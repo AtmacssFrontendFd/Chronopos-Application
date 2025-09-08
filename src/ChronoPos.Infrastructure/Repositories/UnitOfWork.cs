@@ -17,6 +17,7 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<Customer>? _customerRepository;
     private ISaleRepository? _saleRepository;
     private IRepository<SaleItem>? _saleItemRepository;
+    private IRepository<UnitOfMeasurement>? _unitOfMeasurementRepository;
     
     public UnitOfWork(ChronoPosDbContext context)
     {
@@ -37,6 +38,9 @@ public class UnitOfWork : IUnitOfWork
     
     public IRepository<SaleItem> SaleItems => 
         _saleItemRepository ??= new Repository<SaleItem>(_context);
+    
+    public IRepository<UnitOfMeasurement> UnitsOfMeasurement => 
+        _unitOfMeasurementRepository ??= new Repository<UnitOfMeasurement>(_context);
     
     public async Task<int> SaveChangesAsync()
     {

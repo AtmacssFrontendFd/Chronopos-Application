@@ -20,8 +20,8 @@ public partial class StockManagementView : UserControl
     {
         InitializeComponent();
         
-        // Set a ViewModel that handles theme integration and commands
-        DataContext = new StockManagementSimpleViewModel();
+        // DataContext will be set by MainWindowViewModel
+        // DataContext = new StockManagementSimpleViewModel();
     }
 }
 
@@ -430,7 +430,7 @@ public class StockManagementSimpleViewModel : System.ComponentModel.INotifyPrope
         AdjustProduct = new AdjustProductModel
         {
             ProductName = "",
-            CurrentStock = "0",
+            CurrentStock = 0m,
             AdjustmentType = "Increase",
             Quantity = "0",
             Reason = "Stock count correction"
