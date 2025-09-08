@@ -744,13 +744,15 @@ public partial class MainWindowViewModel : ObservableObject
         
         try
         {
-            // Get the ProductManagementViewModel from DI container to ensure proper scoping
-            var productManagementViewModel = _serviceProvider.GetRequiredService<ProductManagementViewModel>();
+            // Create the ProductManagementViewModel with proper navigation delegates
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var productManagementViewModel = new ProductManagementViewModel(
+                productService,
+                navigateToAddProduct: ShowAddProduct,  // Pass the ShowAddProduct method as delegate
+                navigateBack: () => _ = ShowManagement()  // Async wrapper for back navigation
+            );
             
-            // Set up navigation callbacks (if the ViewModel supports them)
-            // We'll need to modify ProductManagementViewModel to support post-creation setup
-            
-            // Create the view and set the ViewModel from DI
+            // Create the view and set the ViewModel
             var productManagementView = new ProductManagementView();
             productManagementView.DataContext = productManagementViewModel;
             CurrentView = productManagementView;

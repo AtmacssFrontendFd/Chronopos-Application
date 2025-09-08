@@ -52,25 +52,23 @@ public partial class App : System.Windows.Application
                         // Enable sensitive data logging in debug mode for better error messages
                         options.EnableSensitiveDataLogging(true);
                         options.EnableDetailedErrors(true);
-                    }, ServiceLifetime.Scoped);
-                    LogMessage("DbContext configured");
+                    }, ServiceLifetime.Transient);
+                    LogMessage("DbContext configured as Transient for desktop application lifecycle");
 
-                    // Register repositories and unit of work
-                    services.AddScoped<IUnitOfWork, UnitOfWork>();
-                    LogMessage("UnitOfWork registered");
+                    // Register repositories and unit of work as Transient to match DbContext
+                    services.AddTransient<IUnitOfWork, UnitOfWork>();
+                    LogMessage("UnitOfWork registered as Transient");
 
-                    // Register application services
-                    services.AddScoped<IProductService, ProductService>();
-                    LogMessage("ProductService registered");
-
-                    services.AddScoped<IStockAdjustmentService, StockAdjustmentService>();
-                    LogMessage("StockAdjustmentService registered");
-
+                    // Register application services as Transient to ensure fresh DbContext instances
+                    services.AddTransient<IProductService, ProductService>();
+                    LogMessage("ProductService registered as Transient");
+                    
+                    services.AddTransient<IStockAdjustmentService, StockAdjustmentService>();
+                    LogMessage("StockAdjustmentService registered as Transient");
+                    
                     // Register stock service
-                    services.AddScoped<IStockService, Infrastructure.Services.StockService>();
-                    LogMessage("StockService registered");
-
-                    // Register theme service
+                    services.AddTransient<IStockService, Infrastructure.Services.StockService>();
+                    LogMessage("StockService registered as Transient");                    // Register theme service
                     services.AddSingleton<IThemeService, ThemeService>();
                     LogMessage("ThemeService registered");
 
@@ -83,8 +81,8 @@ public partial class App : System.Windows.Application
                     LogMessage("LocalizationService registered");
 
                     // Register database localization service
-                    services.AddScoped<IDatabaseLocalizationService, DatabaseLocalizationService>();
-                    LogMessage("DatabaseLocalizationService registered");
+                    services.AddTransient<IDatabaseLocalizationService, DatabaseLocalizationService>();
+                    LogMessage("DatabaseLocalizationService registered as Transient");
 
                     // Register color scheme service
                     services.AddSingleton<IColorSchemeService, ColorSchemeService>();
@@ -98,23 +96,23 @@ public partial class App : System.Windows.Application
                     services.AddSingleton<IZoomService, ZoomService>();
                     LogMessage("ZoomService registered");
 
-                    // Register ViewModels as Scoped to match service lifetimes
-                    services.AddScoped<MainWindowViewModel>();
-                    LogMessage("MainWindowViewModel registered");
-                    services.AddScoped<ProductsViewModel>();
-                    LogMessage("ProductsViewModel registered");
-                    services.AddScoped<ProductManagementViewModel>();
-                    LogMessage("ProductManagementViewModel registered");
-                    services.AddScoped<StockManagementViewModel>();
-                    LogMessage("StockManagementViewModel registered");
-                    services.AddScoped<AddProductViewModel>();
-                    LogMessage("AddProductViewModel registered");
-                    services.AddScoped<SalesViewModel>();
-                    LogMessage("SalesViewModel registered");
-                    services.AddScoped<CustomersViewModel>();
-                    LogMessage("CustomersViewModel registered");
-                    services.AddScoped<SettingsViewModel>();
-                    LogMessage("SettingsViewModel registered");
+                    // Register ViewModels as Transient to ensure fresh database service instances
+                    services.AddTransient<MainWindowViewModel>();
+                    LogMessage("MainWindowViewModel registered as Transient");
+                    services.AddTransient<ProductsViewModel>();
+                    LogMessage("ProductsViewModel registered as Transient");
+                    services.AddTransient<ProductManagementViewModel>();
+                    LogMessage("ProductManagementViewModel registered as Transient");
+                    services.AddTransient<StockManagementViewModel>();
+                    LogMessage("StockManagementViewModel registered as Transient");
+                    services.AddTransient<AddProductViewModel>();
+                    LogMessage("AddProductViewModel registered as Transient");
+                    services.AddTransient<SalesViewModel>();
+                    LogMessage("SalesViewModel registered as Transient");
+                    services.AddTransient<CustomersViewModel>();
+                    LogMessage("CustomersViewModel registered as Transient");
+                    services.AddTransient<SettingsViewModel>();
+                    LogMessage("SettingsViewModel registered as Transient");
         
                     // Register Views as Scoped to match ViewModels
                     services.AddScoped<MainWindow>();

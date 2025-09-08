@@ -114,10 +114,13 @@ public class ProductService : IProductService
             Log($"Input ProductDto: Name='{productDto.Name}', SKU='{productDto.SKU}', CategoryId={productDto.CategoryId}, UnitOfMeasurementId={productDto.UnitOfMeasurementId}");
             Log($"Additional details: Price={productDto.Price}, StockQuantity={productDto.StockQuantity}, IsActive={productDto.IsActive}");
             
-            Log("Calling MapToEntity...");
-            var product = MapToEntity(productDto);
+            Log("Generating unique PLU...");
+            var uniquePLU = await GenerateUniquePLUAsync();
             
-            Log($"Mapped Product: Id={product.Id}, Code='{product.Code}', Name='{product.Name}', CategoryId={product.CategoryId}, UnitOfMeasurementId={product.UnitOfMeasurementId}");
+            Log("Calling MapToEntity...");
+            var product = MapToEntityAsync(productDto, uniquePLU);
+            
+            Log($"Mapped Product: Id={product.Id}, Code='{product.Code}', Name='{product.Name}', PLU={product.PLU}, CategoryId={product.CategoryId}, UnitOfMeasurementId={product.UnitOfMeasurementId}");
             Log($"Product dates: CreatedAt={product.CreatedAt}, UpdatedAt={product.UpdatedAt}");
             
             Log("Calling _unitOfWork.Products.AddAsync...");
@@ -353,9 +356,37 @@ public class ProductService : IProductService
         };
     }
     
-    private static Product MapToEntity(ProductDto dto)
+    private async Task<int> GenerateUniquePLUAsync()
     {
-        Log($"MapToEntity called with: Name='{dto.Name}', CategoryId={dto.CategoryId}, UnitOfMeasurementId={dto.UnitOfMeasurementId}");
+        Log("Generating unique PLU...");
+        
+        // Start from 1001 (as seen in seed data)
+        var lastPLU = 1001;
+        
+        try
+        {
+            // Get the highest existing PLU
+            var products = await _unitOfWork.Products.GetAllAsync();
+            if (products.Any())
+            {
+                var maxPLU = products.Max(p => p.PLU);
+                lastPLU = Math.Max(maxPLU, 1000) + 1;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"Error getting max PLU, using default: {ex.Message}");
+            // If there's an error, generate a random PLU to avoid conflicts
+            lastPLU = new Random().Next(2000, 9999);
+        }
+        
+        Log($"Generated PLU: {lastPLU}");
+        return lastPLU;
+    }
+
+    private static Product MapToEntityAsync(ProductDto dto, int plu)
+    {
+        Log($"MapToEntityAsync called with: Name='{dto.Name}', PLU={plu}, CategoryId={dto.CategoryId}, UnitOfMeasurementId={dto.UnitOfMeasurementId}");
         
         var finalUomId = dto.UnitOfMeasurementId > 0 ? dto.UnitOfMeasurementId : 1;
         Log($"UOM mapping: Input={dto.UnitOfMeasurementId}, Final={finalUomId}");
@@ -364,6 +395,7 @@ public class ProductService : IProductService
         {
             Id = dto.Id,
             Code = dto.SKU ?? string.Empty,
+            PLU = plu, // Set the unique PLU
             Name = dto.Name,
             Description = dto.Description,
             SKU = dto.SKU,
@@ -392,7 +424,7 @@ public class ProductService : IProductService
             UpdatedAt = DateTime.UtcNow
         };
         
-        Log($"Created Product entity: CategoryId={product.CategoryId}, UnitOfMeasurementId={product.UnitOfMeasurementId}");
+        Log($"Created Product entity: PLU={product.PLU}, CategoryId={product.CategoryId}, UnitOfMeasurementId={product.UnitOfMeasurementId}");
         return product;
     }
     
