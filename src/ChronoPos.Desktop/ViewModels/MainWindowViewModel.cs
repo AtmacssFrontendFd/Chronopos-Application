@@ -267,16 +267,17 @@ public partial class MainWindowViewModel : ObservableObject
             }
         };
 
-        // Add keywords to database
+        // Add keywords to database - get fresh service instance
+        var dbService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
         foreach (var keyword in keywords)
         {
             // Add the keyword first
-            await _databaseLocalizationService.AddLanguageKeywordAsync(keyword.Key, $"Translation key for {keyword.Key}");
+            await dbService.AddLanguageKeywordAsync(keyword.Key, $"Translation key for {keyword.Key}");
             
             // Add translations for each language
             foreach (var translation in keyword.Value)
             {
-                await _databaseLocalizationService.SaveTranslationAsync(keyword.Key, translation.Value, translation.Key);
+                await dbService.SaveTranslationAsync(keyword.Key, translation.Value, translation.Key);
             }
         }
     }
@@ -308,13 +309,13 @@ public partial class MainWindowViewModel : ObservableObject
             ManagementButtonText = await GetTranslationWithFallback("nav.management", "Management");
             Console.WriteLine($"✅ [MainWindowViewModel] ManagementButtonText = '{ManagementButtonText}'");
             
-            ReservationButtonText = await GetTranslationWithFallback("nav.customers", "Reservation");
+            ReservationButtonText = await GetTranslationWithFallback("nav_reservation", "Reservation");
             Console.WriteLine($"✅ [MainWindowViewModel] ReservationButtonText = '{ReservationButtonText}'");
             
-            OrderTableButtonText = await GetTranslationWithFallback("nav.customers", "Order Table");
+            OrderTableButtonText = await GetTranslationWithFallback("nav_order_table", "Order Table");
             Console.WriteLine($"✅ [MainWindowViewModel] OrderTableButtonText = '{OrderTableButtonText}'");
             
-            ReportsButtonText = await GetTranslationWithFallback("nav.sales", "Reports");
+            ReportsButtonText = await GetTranslationWithFallback("nav_reports", "Reports");
             Console.WriteLine($"✅ [MainWindowViewModel] ReportsButtonText = '{ReportsButtonText}'");
             
             SettingsButtonText = await GetTranslationWithFallback("nav.settings", "Settings");

@@ -80,9 +80,9 @@ public partial class App : System.Windows.Application
                     services.AddSingleton<ILocalizationService, LocalizationService>();
                     LogMessage("LocalizationService registered");
 
-                    // Register database localization service
-                    services.AddTransient<IDatabaseLocalizationService, DatabaseLocalizationService>();
-                    LogMessage("DatabaseLocalizationService registered as Transient");
+                    // Register database localization service as Singleton for event persistence
+                    services.AddSingleton<IDatabaseLocalizationService, DatabaseLocalizationService>();
+                    LogMessage("DatabaseLocalizationService registered as Singleton");
 
                     // Register color scheme service
                     services.AddSingleton<IColorSchemeService, ColorSchemeService>();
@@ -96,9 +96,9 @@ public partial class App : System.Windows.Application
                     services.AddSingleton<IZoomService, ZoomService>();
                     LogMessage("ZoomService registered");
 
-                    // Register ViewModels as Transient to ensure fresh database service instances
-                    services.AddTransient<MainWindowViewModel>();
-                    LogMessage("MainWindowViewModel registered as Transient");
+                    // Register MainWindowViewModel as Singleton for stable event subscriptions
+                    services.AddSingleton<MainWindowViewModel>();
+                    LogMessage("MainWindowViewModel registered as Singleton");
                     services.AddTransient<ProductsViewModel>();
                     LogMessage("ProductsViewModel registered as Transient");
                     services.AddTransient<ProductManagementViewModel>();
@@ -114,9 +114,9 @@ public partial class App : System.Windows.Application
                     services.AddTransient<SettingsViewModel>();
                     LogMessage("SettingsViewModel registered as Transient");
         
-                    // Register Views as Scoped to match ViewModels
-                    services.AddScoped<MainWindow>();
-                    LogMessage("MainWindow registered");
+                    // Register Views - MainWindow as Singleton to match ViewModel
+                    services.AddSingleton<MainWindow>();
+                    LogMessage("MainWindow registered as Singleton");
                     
                     LogMessage("All services configured successfully");
                 })

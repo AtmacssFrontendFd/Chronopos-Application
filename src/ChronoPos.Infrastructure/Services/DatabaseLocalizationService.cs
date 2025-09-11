@@ -1,5 +1,6 @@
 using ChronoPos.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System.Globalization;
 
 namespace ChronoPos.Infrastructure.Services
@@ -20,7 +21,7 @@ namespace ChronoPos.Infrastructure.Services
 
     public class DatabaseLocalizationService : IDatabaseLocalizationService
     {
-        private readonly ChronoPosDbContext _context;
+        private readonly IServiceScopeFactory _scopeFactory;
         private Language? _currentLanguage;
         private Dictionary<string, string> _cachedTranslations = new();
         private DateTime _lastCacheUpdate = DateTime.MinValue;
@@ -28,11 +29,33 @@ namespace ChronoPos.Infrastructure.Services
 
         public event EventHandler<string>? LanguageChanged;
 
-        public DatabaseLocalizationService(ChronoPosDbContext context)
+        public DatabaseLocalizationService(IServiceScopeFactory scopeFactory)
         {
-            _context = context;
+            _scopeFactory = scopeFactory;
             // Set default language to English
             _currentLanguage = new Language { Id = 1, LanguageName = "English", LanguageCode = "en", IsRtl = false };
+        }
+
+        private async Task InitializeCurrentLanguageAsync()
+        {
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
+                
+                var defaultLanguage = await context.Languages
+                    .FirstOrDefaultAsync(l => l.LanguageCode == "en" && l.Status == "Active");
+                
+                if (defaultLanguage != null)
+                {
+                    _currentLanguage = defaultLanguage;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing current language: {ex.Message}");
+                // Keep the default language set in constructor
+            }
         }
 
         public async Task<string> GetTranslationAsync(string key, string? languageCode = null)
@@ -55,7 +78,10 @@ namespace ChronoPos.Infrastructure.Services
                 Console.WriteLine($"🔍 [DatabaseLocalizationService] Not in cache, querying database...");
 
                 // Get from database
-                var translation = await _context.LabelTranslations
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
+                
+                var translation = await context.LabelTranslations
                     .Include(lt => lt.Language)
                     .FirstOrDefaultAsync(lt => 
                         lt.Language.LanguageCode == languageCode && 
@@ -75,7 +101,7 @@ namespace ChronoPos.Infrastructure.Services
                 if (languageCode != "en")
                 {
                     Console.WriteLine($"🔄 [DatabaseLocalizationService] Trying fallback to English for key '{key}'");
-                    var englishTranslation = await _context.LabelTranslations
+                    var englishTranslation = await context.LabelTranslations
                         .Include(lt => lt.Language)
                         .FirstOrDefaultAsync(lt => 
                             lt.Language.LanguageCode == "en" && 
@@ -106,7 +132,10 @@ namespace ChronoPos.Infrastructure.Services
         {
             try
             {
-                var translations = await _context.LabelTranslations
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
+                
+                var translations = await context.LabelTranslations
                     .Include(lt => lt.Language)
                     .Where(lt => 
                         lt.Language.LanguageCode == languageCode &&
@@ -134,7 +163,10 @@ namespace ChronoPos.Infrastructure.Services
         {
             try
             {
-                return await _context.Languages
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
+                
+                return await context.Languages
                     .Where(l => l.Status == "Active")
                     .OrderBy(l => l.LanguageName)
                     .ToListAsync();
@@ -152,7 +184,10 @@ namespace ChronoPos.Infrastructure.Services
             {
                 Console.WriteLine($"🔄 [DatabaseLocalizationService] SetCurrentLanguageAsync called with: '{languageCode}'");
                 
-                var language = await _context.Languages
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
+                
+                var language = await context.Languages
                     .FirstOrDefaultAsync(l => l.LanguageCode == languageCode && l.Status == "Active");
 
                 if (language != null)
@@ -195,8 +230,11 @@ namespace ChronoPos.Infrastructure.Services
         {
             if (_currentLanguage == null)
             {
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
+                
                 // Load default language from database
-                _currentLanguage = await _context.Languages
+                _currentLanguage = await context.Languages
                     .FirstOrDefaultAsync(l => l.LanguageCode == "en" && l.Status == "Active");
             }
             return _currentLanguage;
@@ -218,14 +256,17 @@ namespace ChronoPos.Infrastructure.Services
         {
             try
             {
-                var language = await _context.Languages
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
+                
+                var language = await context.Languages
                     .FirstOrDefaultAsync(l => l.LanguageCode == languageCode && l.Status == "Active");
 
                 if (language == null)
                     return false;
 
                 // Check if keyword exists, if not create it
-                var keyword = await _context.LanguageKeywords
+                var keyword = await context.LanguageKeywords
                     .FirstOrDefaultAsync(lk => lk.Key == key);
 
                 if (keyword == null)
@@ -235,12 +276,12 @@ namespace ChronoPos.Infrastructure.Services
                         Key = key,
                         Description = description ?? $"Translation key for {key}"
                     };
-                    _context.LanguageKeywords.Add(keyword);
-                    await _context.SaveChangesAsync();
+                    context.LanguageKeywords.Add(keyword);
+                    await context.SaveChangesAsync();
                 }
 
                 // Check if translation exists
-                var existingTranslation = await _context.LabelTranslations
+                var existingTranslation = await context.LabelTranslations
                     .FirstOrDefaultAsync(lt => 
                         lt.LanguageId == language.Id && 
                         lt.TranslationKey == key);
@@ -264,10 +305,10 @@ namespace ChronoPos.Infrastructure.Services
                         CreatedBy = "System",
                         CreatedAt = DateTime.UtcNow
                     };
-                    _context.LabelTranslations.Add(newTranslation);
+                    context.LabelTranslations.Add(newTranslation);
                 }
 
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
                 
                 // Clear cache for this key
                 var cacheKey = $"{languageCode}:{key}";
@@ -286,7 +327,10 @@ namespace ChronoPos.Infrastructure.Services
         {
             try
             {
-                var existingKeyword = await _context.LanguageKeywords
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
+                
+                var existingKeyword = await context.LanguageKeywords
                     .FirstOrDefaultAsync(lk => lk.Key == key);
 
                 if (existingKeyword != null)
@@ -298,8 +342,8 @@ namespace ChronoPos.Infrastructure.Services
                     Description = description ?? $"Translation key for {key}"
                 };
 
-                _context.LanguageKeywords.Add(keyword);
-                await _context.SaveChangesAsync();
+                context.LanguageKeywords.Add(keyword);
+                await context.SaveChangesAsync();
 
                 return true;
             }
