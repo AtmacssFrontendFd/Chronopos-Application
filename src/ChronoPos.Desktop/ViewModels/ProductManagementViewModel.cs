@@ -4,17 +4,32 @@ using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
 using System.Collections.ObjectModel;
 using System.Windows;
+using ChronoPos.Desktop.Services;
+using InfrastructureServices = ChronoPos.Infrastructure.Services;
 
 namespace ChronoPos.Desktop.ViewModels;
 
 /// <summary>
-/// ViewModel for comprehensive product management with category support
+/// ViewModel for comprehensive product management with category support and full settings integration
 /// </summary>
 public partial class ProductManagementViewModel : ObservableObject
 {
+    #region Fields
+    
     private readonly IProductService _productService;
     private readonly Action? _navigateToAddProduct;
     private readonly Action? _navigateBack;
+    
+    // Settings services
+    private readonly IThemeService _themeService;
+    private readonly IZoomService _zoomService;
+    private readonly ILocalizationService _localizationService;
+    private readonly IColorSchemeService _colorSchemeService;
+    private readonly ILayoutDirectionService _layoutDirectionService;
+    private readonly IFontService _fontService;
+    private readonly InfrastructureServices.IDatabaseLocalizationService _databaseLocalizationService;
+    
+    #endregion
 
     #region Observable Properties
 
@@ -35,6 +50,9 @@ public partial class ProductManagementViewModel : ObservableObject
 
     [ObservableProperty]
     private string searchText = string.Empty;
+
+    [ObservableProperty]
+    private string selectedSearchType = "Product Name";
 
     [ObservableProperty]
     private bool isLoading = false;
@@ -60,15 +78,74 @@ public partial class ProductManagementViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<CategoryDto> parentCategories = new();
 
+    // Settings properties
+    [ObservableProperty]
+    private string _currentTheme = "Light";
+
+    [ObservableProperty]
+    private int _currentZoom = 100;
+
+    [ObservableProperty]
+    private string _currentLanguage = "English";
+
+    [ObservableProperty]
+    private double _currentFontSize = 14;
+
+    [ObservableProperty]
+    private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
+
+    [ObservableProperty]
+    private string _backButtonText = "Back";
+
+    [ObservableProperty]
+    private string _refreshButtonText = "Refresh Data";
+
+    [ObservableProperty]
+    private string _categoriesHeaderText = "Categories";
+
+    [ObservableProperty]
+    private string _addNewCategoryButtonText = "Add New Category";
+
+    [ObservableProperty]
+    private string _addNewProductButtonText = "Add New Product";
+
     #endregion
 
     #region Constructor
 
-    public ProductManagementViewModel(IProductService productService, Action? navigateToAddProduct = null, Action? navigateBack = null)
+    public ProductManagementViewModel(
+        IProductService productService,
+        IThemeService themeService,
+        IZoomService zoomService,
+        ILocalizationService localizationService,
+        IColorSchemeService colorSchemeService,
+        ILayoutDirectionService layoutDirectionService,
+        IFontService fontService,
+        InfrastructureServices.IDatabaseLocalizationService databaseLocalizationService,
+        Action? navigateToAddProduct = null, 
+        Action? navigateBack = null)
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
+        _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
+        _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
+        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        _colorSchemeService = colorSchemeService ?? throw new ArgumentNullException(nameof(colorSchemeService));
+        _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
+        _fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
+        _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
         _navigateToAddProduct = navigateToAddProduct;
         _navigateBack = navigateBack;
+        
+        // Subscribe to settings changes
+        _themeService.ThemeChanged += OnThemeChanged;
+        _zoomService.ZoomChanged += OnZoomChanged;
+        _localizationService.LanguageChanged += OnLanguageChanged;
+        _layoutDirectionService.DirectionChanged += OnLayoutDirectionChanged;
+        _fontService.FontChanged += OnFontChanged;
+        
+        // Initialize current settings
+        UpdateCurrentSettings();
+        
         _ = InitializeAsync();
     }
 
@@ -153,15 +230,23 @@ public partial class ProductManagementViewModel : ObservableObject
             filtered = filtered.Where(p => p.CategoryId == SelectedCategory.Id);
         }
 
-        // Filter by search text
+        // Filter by search text based on selected search type
         if (!string.IsNullOrWhiteSpace(SearchText))
         {
             var searchLower = SearchText.ToLower();
-            filtered = filtered.Where(p => 
-                p.Name.ToLower().Contains(searchLower) ||
-                (p.SKU?.ToLower().Contains(searchLower) ?? false) ||
-                (p.Barcode?.ToLower().Contains(searchLower) ?? false) ||
-                p.CategoryName.ToLower().Contains(searchLower));
+            
+            if (SelectedSearchType == "Product Name")
+            {
+                filtered = filtered.Where(p => 
+                    p.Name.ToLower().Contains(searchLower) ||
+                    (p.SKU?.ToLower().Contains(searchLower) ?? false) ||
+                    (p.Barcode?.ToLower().Contains(searchLower) ?? false));
+            }
+            else if (SelectedSearchType == "Category")
+            {
+                filtered = filtered.Where(p => 
+                    p.CategoryName.ToLower().Contains(searchLower));
+            }
         }
 
         FilteredProducts.Clear();
@@ -171,6 +256,9 @@ public partial class ProductManagementViewModel : ObservableObject
         }
 
         StatusMessage = $"Showing {FilteredProducts.Count} of {Products.Count} products";
+        
+        // Update category counts after filtering
+        UpdateCategoryProductCounts();
     }
 
     [RelayCommand]
@@ -429,6 +517,41 @@ public partial class ProductManagementViewModel : ObservableObject
         _navigateBack?.Invoke();
     }
 
+    [RelayCommand]
+    private async Task RefreshData()
+    {
+        IsLoading = true;
+        StatusMessage = "Refreshing data...";
+        
+        try
+        {
+            await LoadCategoriesAsync();
+            await LoadProductsAsync();
+            FilterProducts();
+            StatusMessage = "Data refreshed successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error refreshing data: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    #endregion
+
+    #region Helper Methods
+    
+    private void UpdateCategoryProductCounts()
+    {
+        foreach (var category in Categories)
+        {
+            category.ProductCount = Products.Count(p => p.CategoryId == category.Id);
+        }
+    }
+
     #endregion
 
     #region Partial Methods for Property Changes
@@ -441,6 +564,110 @@ public partial class ProductManagementViewModel : ObservableObject
     partial void OnSearchTextChanged(string value)
     {
         FilterProducts();
+    }
+
+    partial void OnSelectedSearchTypeChanged(string value)
+    {
+        FilterProducts();
+    }
+
+    #endregion
+
+    #region Settings Event Handlers
+
+    private void OnThemeChanged(Theme newTheme)
+    {
+        CurrentTheme = newTheme.ToString();
+    }
+
+    private void OnZoomChanged(ZoomLevel newZoom)
+    {
+        CurrentZoom = (int)newZoom;
+    }
+
+    private async void OnLanguageChanged(SupportedLanguage newLanguage)
+    {
+        CurrentLanguage = newLanguage.ToString();
+        await LoadTranslationsAsync();
+    }
+
+    private void OnLayoutDirectionChanged(LayoutDirection newDirection)
+    {
+        CurrentFlowDirection = newDirection == LayoutDirection.RightToLeft 
+            ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+    }
+
+    private void OnFontChanged(FontSize newFontSize)
+    {
+        // Convert enum to approximate double value for display
+        CurrentFontSize = newFontSize switch
+        {
+            FontSize.VerySmall => 10.0,
+            FontSize.Small => 12.0,
+            FontSize.Medium => 14.0,
+            FontSize.Large => 16.0,
+            _ => 14.0
+        };
+    }
+
+    private void UpdateCurrentSettings()
+    {
+        CurrentTheme = _themeService.CurrentTheme.ToString();
+        CurrentZoom = (int)_zoomService.CurrentZoomLevel;
+        CurrentLanguage = _localizationService.CurrentLanguage.ToString();
+        CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
+            ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+        CurrentFontSize = _fontService.CurrentFontSize switch
+        {
+            FontSize.VerySmall => 10.0,
+            FontSize.Small => 12.0,
+            FontSize.Medium => 14.0,
+            FontSize.Large => 16.0,
+            _ => 14.0
+        };
+    }
+
+    private async Task LoadTranslationsAsync()
+    {
+        try
+        {
+            BackButtonText = await _databaseLocalizationService.GetTranslationAsync("back_button") ?? "Back";
+            RefreshButtonText = await _databaseLocalizationService.GetTranslationAsync("refresh_button") ?? "Refresh Data";
+            CategoriesHeaderText = await _databaseLocalizationService.GetTranslationAsync("categories_header") ?? "Categories";
+            AddNewCategoryButtonText = await _databaseLocalizationService.GetTranslationAsync("add_new_category_button") ?? "Add New Category";
+            AddNewProductButtonText = await _databaseLocalizationService.GetTranslationAsync("add_new_product_button") ?? "Add New Product";
+            StatusMessage = await _databaseLocalizationService.GetTranslationAsync("status_ready") ?? "Ready";
+        }
+        catch (Exception)
+        {
+            // Fallback to default values if translation fails
+            BackButtonText = "Back";
+            RefreshButtonText = "Refresh Data";
+            StatusMessage = "Ready";
+        }
+    }
+
+    #endregion
+
+    #region Cleanup
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            // Unsubscribe from events
+            _themeService.ThemeChanged -= OnThemeChanged;
+            _zoomService.ZoomChanged -= OnZoomChanged;
+            _localizationService.LanguageChanged -= OnLanguageChanged;
+            _layoutDirectionService.DirectionChanged -= OnLayoutDirectionChanged;
+            _fontService.FontChanged -= OnFontChanged;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     #endregion

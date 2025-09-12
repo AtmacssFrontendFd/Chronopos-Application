@@ -3,8 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ChronoPos.Desktop.Views.Controls"
              mc:Ignorable="d" 
-             Background="{DynamicResource MainBackground}">
+             Background="{DynamicResource MainBackground}"
+             FlowDirection="{Binding CurrentFlowDirection}"
+             FontSize="{Binding CurrentFontSize}"
+             FontFamily="{DynamicResource DefaultFont}">
 
     <UserControl.Resources>
         <Style x:Key="CategoryButtonStyle" TargetType="Button">
@@ -92,119 +96,85 @@
         <!-- Main Content -->
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="60"/>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
         <!-- Title Header -->
-        <Border Grid.Row="0" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
-            <Grid Margin="20">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Background="Transparent" 
-                            BorderThickness="0" 
-                            Padding="0" 
-                            Cursor="Hand"
-                            ToolTip="Go back to Management"
-                            Command="{Binding NavigateBackCommand}">
-                        <TextBlock Text="🔙" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    </Button>
-                    <TextBlock Text="Product Management" FontSize="18" FontWeight="Bold" Foreground="#495057" VerticalAlignment="Center"/>
-                </StackPanel>
+            <!-- Back Button aligned dynamically -->
+            <controls:RefreshButton Grid.Column="0"
+                                    HorizontalAlignment="{DynamicResource AppHorizontalAlignment}"
+                                    VerticalAlignment="Top"
+                                    ButtonText="{Binding BackButtonText}"
+                                    ButtonIcon="←"
+                                    Command="{Binding NavigateBackCommand}"
+                                    ButtonBackground="{DynamicResource SecondaryBrush}"
+                                    ButtonForeground="White"
+                                    MinButtonWidth="100"
+                                    ButtonHeight="36"
+                                    ButtonWidth="100" />
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="👤" FontSize="14" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <TextBlock Text="Administrator" FontSize="12" Foreground="#6C757D" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <!-- Header with Search and Actions -->
-        <Border Grid.Row="1" Background="White" Padding="20" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <!-- Search Section -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBox Name="SearchBox" 
-                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                             Width="300" 
-                             Height="35"
-                             Padding="10"
-                             FontSize="14"
-                             Background="#F8F9FA"
-                             BorderBrush="#DEE2E6"
-                             BorderThickness="1"
-                             VerticalContentAlignment="Center">
-                        <TextBox.Style>
-                            <Style TargetType="TextBox">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="TextBox">
-                                            <Border Background="{TemplateBinding Background}"
-                                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                                    CornerRadius="6">
-                                                <ScrollViewer x:Name="PART_ContentHost" 
-                                                            Margin="{TemplateBinding Padding}"
-                                                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
-                                            </Border>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </TextBox.Style>
-                    </TextBox>
-                    
-                    <TextBlock Text="🔍" 
-                               VerticalAlignment="Center" 
-                               Margin="10,0,0,0" 
-                               FontSize="16" 
-                               Foreground="#6C757D"/>
-                </StackPanel>
-
-                <!-- Action Buttons -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="Add New Product" 
-                            Style="{StaticResource ActionButtonStyle}"
-                            Command="{Binding AddNewProductCommand}"
-                            Tag="6"/>
-                    <Button Content="Add New Category" 
-                            Style="{StaticResource ActionButtonStyle}"
-                            Command="{Binding AddNewCategoryCommand}"
-                            Background="#28A745"
-                            Tag="6"/>
-                </StackPanel>
-            </Grid>
-        </Border>
+            <!-- Refresh Button aligned dynamically -->
+            <controls:RefreshButton Grid.Column="2"
+                                    HorizontalAlignment="{DynamicResource AppReverseHorizontalAlignment}"
+                                    VerticalAlignment="Top"
+                                    ButtonText="{Binding RefreshButtonText}"
+                                    ButtonIcon="🔄"
+                                    Command="{Binding RefreshDataCommand}"
+                                    ButtonBackground="{DynamicResource PrimaryBrush}"
+                                    ButtonForeground="White"
+                                    MinButtonWidth="120"
+                                    ButtonHeight="36"
+                                    ButtonWidth="120" />
+        </Grid>
 
         <!-- Categories Section -->
-        <Border Grid.Row="2" Background="#F8F9FA" Padding="20,15">
+        <Border Grid.Row="2" Background="#F8F9FA" Padding="10,5">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" 
-                           Text="Categories" 
-                           FontSize="16" 
-                           FontWeight="Bold" 
-                           Foreground="#495057" 
-                           Margin="0,0,0,15"/>
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding CategoriesHeaderText}" 
+                               FontSize="16" 
+                               FontWeight="Bold" 
+                               Foreground="{DynamicResource TextColor}" 
+                               VerticalAlignment="Center"/>
+                    
+                    <controls:RefreshButton Grid.Column="1"
+                                            ButtonText="{Binding AddNewCategoryButtonText}"
+                                            ButtonIcon="➕"
+                                            Command="{Binding AddNewCategoryCommand}"
+                                            ButtonBackground="{DynamicResource SuccessBrush}"
+                                            ButtonForeground="White"
+                                            MinButtonWidth="140"
+                                            ButtonHeight="36"
+                                            ButtonWidth="140"
+                                            Margin="10,0,0,0"/>
+                </Grid>
 
                 <ScrollViewer Grid.Row="1" 
                               HorizontalScrollBarVisibility="Auto" 
-                              VerticalScrollBarVisibility="Disabled">
+                              VerticalScrollBarVisibility="Disabled"
+                              Margin="0,15,0,0">
                     <ItemsControl ItemsSource="{Binding Categories}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -233,11 +203,11 @@
                                                        FontSize="11" 
                                                        FontWeight="SemiBold" 
                                                        TextAlignment="Center"
-                                                       Foreground="#495057"/>
+                                                       Foreground="Black"/>
                                             <TextBlock Text="{Binding ProductCount, StringFormat='{}{0} items'}" 
                                                        FontSize="9" 
                                                        TextAlignment="Center"
-                                                       Foreground="#6C757D"/>
+                                                       Foreground="Black"/>
                                         </StackPanel>
                                     </Button.Content>
                                     <Button.InputBindings>
@@ -253,38 +223,180 @@
             </Grid>
         </Border>
 
-        <!-- Products Section -->
-        <Grid Grid.Row="3" Margin="20">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-
-            <!-- Products Header -->
-            <Grid Grid.Row="0" Margin="0,0,0,15">
+        <!-- Search and Actions Row -->
+        <Border Grid.Row="3" Background="White" Padding="10,5" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+            <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0" 
-                           Text="Products" 
-                           FontSize="18" 
-                           FontWeight="Bold" 
-                           Foreground="#495057" 
-                           VerticalAlignment="Center"/>
+                <!-- Left Side - Search Field -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Integrated Search Field with Dropdown -->
+                    <Border Background="White"
+                            BorderBrush="#DEE2E6"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Width="300" 
+                            Height="35">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Dropdown Button -->
+                            <Button Grid.Column="0"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="8,0"
+                                    Cursor="Hand"
+                                    VerticalAlignment="Stretch"
+                                    Click="SearchTypeDropdown_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding SelectedSearchType}" 
+                                               FontSize="12" 
+                                               Foreground="#6C757D"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="▼" 
+                                               FontSize="10" 
+                                               Foreground="#6C757D"
+                                               Margin="5,0,0,0"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            
+                            <!-- Separator Line -->
+                            <Border Grid.Column="0" 
+                                    Width="1" 
+                                    Background="#DEE2E6" 
+                                    HorizontalAlignment="Right"
+                                    Margin="0,5"/>
+                            
+                            <!-- Search TextBox -->
+                            <TextBox Grid.Column="1"
+                                     Name="SearchBox" 
+                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Padding="10,0"
+                                     FontSize="14"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     VerticalContentAlignment="Center"
+                                     Foreground="Black"
+                                     IsReadOnly="False"
+                                     IsEnabled="True">
+                                <TextBox.Style>
+                                    <Style TargetType="TextBox">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="TextBox">
+                                                    <ScrollViewer x:Name="PART_ContentHost" 
+                                                                Margin="{TemplateBinding Padding}"
+                                                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </TextBox.Style>
+                            </TextBox>
+                            
+                            <!-- Search Icon -->
+                            <TextBlock Grid.Column="2"
+                                       Text="🔍" 
+                                       VerticalAlignment="Center" 
+                                       Margin="0,0,10,0" 
+                                       FontSize="16" 
+                                       Foreground="#6C757D"/>
+                            
+                            <!-- Dropdown Popup -->
+                            <Popup Name="SearchTypePopup"
+                                   Grid.Column="0"
+                                   Grid.ColumnSpan="3"
+                                   Placement="Bottom"
+                                   PlacementTarget="{Binding ElementName=SearchBox}"
+                                   StaysOpen="False"
+                                   Width="120">
+                                <Border Background="White"
+                                        BorderBrush="#DEE2E6"
+                                        BorderThickness="1"
+                                        CornerRadius="6">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#E0E0E0" Direction="270" BlurRadius="8" ShadowDepth="2" Opacity="0.3"/>
+                                    </Border.Effect>
+                                    <StackPanel>
+                                        <Button Content="Product Name"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Padding="10,8"
+                                                HorizontalContentAlignment="Left"
+                                                FontSize="12"
+                                                Foreground="Black"
+                                                Cursor="Hand"
+                                                Click="SearchTypeOption_Click">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#F8F9FA"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                        <Button Content="Category"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Padding="10,8"
+                                                HorizontalContentAlignment="Left"
+                                                FontSize="12"
+                                                Foreground="Black"
+                                                Cursor="Hand"
+                                                Click="SearchTypeOption_Click">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#F8F9FA"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </Border>
+                </StackPanel>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <!-- Right Side - Action Buttons and Product Count -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Product Count -->
                     <TextBlock Text="{Binding FilteredProducts.Count, StringFormat='Showing {0} products'}" 
                                FontSize="12" 
-                               Foreground="#6C757D" 
+                               Foreground="Black" 
                                VerticalAlignment="Center" 
-                               Margin="0,0,15,0"/>
+                               Margin="0,0,20,0"/>
+                    
+                    <!-- Action Buttons -->
+                    <controls:RefreshButton ButtonText="{Binding AddNewProductButtonText}"
+                                            ButtonIcon="➕"
+                                            Command="{Binding AddNewProductCommand}"
+                                            ButtonBackground="{DynamicResource WarningBrush}"
+                                            ButtonForeground="White"
+                                            MinButtonWidth="140"
+                                            ButtonHeight="36"
+                                            ButtonWidth="140"/>
                 </StackPanel>
             </Grid>
+        </Border>
 
+        <!-- Products Section -->
+        <Grid Grid.Row="4">
             <!-- Products DataGrid -->
-            <Border Grid.Row="1" Style="{StaticResource ProductCardStyle}">
+            <Border Style="{StaticResource ProductCardStyle}">
                 <DataGrid ItemsSource="{Binding FilteredProducts}"
                           SelectedItem="{Binding SelectedProduct}"
                           AutoGenerateColumns="False"
@@ -300,7 +412,7 @@
                     <DataGrid.ColumnHeaderStyle>
                         <Style TargetType="DataGridColumnHeader">
                             <Setter Property="Background" Value="#F8F9FA"/>
-                            <Setter Property="Foreground" Value="#495057"/>
+                            <Setter Property="Foreground" Value="Black"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
                             <Setter Property="BorderThickness" Value="0,0,0,1"/>
                             <Setter Property="BorderBrush" Value="#DEE2E6"/>
@@ -333,7 +445,7 @@
                             <Style.Triggers>
                                 <Trigger Property="IsSelected" Value="True">
                                     <Setter Property="Background" Value="Transparent"/>
-                                    <Setter Property="Foreground" Value="#495057"/>
+                                    <Setter Property="Foreground" Value="Black"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -395,7 +507,7 @@
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="FontWeight" Value="SemiBold"/>
-                                    <Setter Property="Foreground" Value="#495057"/>
+                                    <Setter Property="Foreground" Value="Black"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
@@ -406,7 +518,7 @@
                                           Width="120">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="#6C757D"/>
+                                    <Setter Property="Foreground" Value="Black"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
@@ -438,7 +550,7 @@
                                           Width="120">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="#6C757D"/>
+                                    <Setter Property="Foreground" Value="Black"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
@@ -450,7 +562,7 @@
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="FontWeight" Value="SemiBold"/>
-                                    <Setter Property="Foreground" Value="#495057"/>
+                                    <Setter Property="Foreground" Value="Black"/>
                                     <Setter Property="HorizontalAlignment" Value="Right"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
@@ -535,7 +647,7 @@
         </Grid>
 
         <!-- Loading Overlay -->
-        <Border Grid.RowSpan="3" 
+        <Border Grid.RowSpan="5" 
                 Background="#80000000" 
                 Visibility="Collapsed">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">

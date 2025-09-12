@@ -747,8 +747,23 @@ public partial class MainWindowViewModel : ObservableObject
         {
             // Create the ProductManagementViewModel with proper navigation delegates
             var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
             var productManagementViewModel = new ProductManagementViewModel(
                 productService,
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
                 navigateToAddProduct: ShowAddProduct,  // Pass the ShowAddProduct method as delegate
                 navigateBack: () => _ = ShowManagement()  // Async wrapper for back navigation
             );
