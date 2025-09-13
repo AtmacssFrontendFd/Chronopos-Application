@@ -84,6 +84,10 @@ public partial class App : System.Windows.Application
                     services.AddSingleton<IDatabaseLocalizationService, DatabaseLocalizationService>();
                     LogMessage("DatabaseLocalizationService registered as Singleton");
 
+                    // Register language seeding service
+                    services.AddTransient<ILanguageSeedingService, LanguageSeedingService>();
+                    LogMessage("LanguageSeedingService registered as Transient");
+
                     // Register color scheme service
                     services.AddSingleton<IColorSchemeService, ColorSchemeService>();
                     LogMessage("ColorSchemeService registered");
@@ -250,6 +254,11 @@ public partial class App : System.Windows.Application
             await InitializeDatabaseAsync();
             LogMessage("Database initialized successfully");
 
+            // Initialize and seed all language translations
+            LogMessage("Seeding language translations...");
+            await SeedLanguageTranslationsAsync();
+            LogMessage("Language translations seeded successfully");
+
             LogMessage("Getting MainWindow...");
             var mainWindow = _host.Services.GetRequiredService<MainWindow>();
             LogMessage("MainWindow retrieved, showing...");
@@ -288,6 +297,29 @@ public partial class App : System.Windows.Application
             // Log error but don't crash the application
             MessageBox.Show($"Database initialization failed: {ex.Message}\nThe application will continue without database functionality.", 
                           "Database Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private async Task SeedLanguageTranslationsAsync()
+    {
+        try
+        {
+            LogMessage("Starting comprehensive language translation seeding...");
+            
+            using var scope = _host.Services.CreateScope();
+            var languageSeedingService = scope.ServiceProvider.GetRequiredService<ILanguageSeedingService>();
+            
+            // Seed all translations for all screens
+            await languageSeedingService.SeedAllTranslationsAsync();
+            
+            LogMessage("Language translation seeding completed successfully");
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"Language seeding failed: {ex.Message}");
+            LogMessage($"Language seeding stack trace: {ex.StackTrace}");
+            // Don't crash the application, just log the error
+            Console.WriteLine($"Warning: Language seeding failed: {ex.Message}");
         }
     }
 

@@ -12,7 +12,7 @@ namespace ChronoPos.Desktop.ViewModels;
 /// <summary>
 /// ViewModel for comprehensive product management with category support and full settings integration
 /// </summary>
-public partial class ProductManagementViewModel : ObservableObject
+public partial class ProductManagementViewModel : ObservableObject, IDisposable
 {
     #region Fields
     
@@ -94,20 +94,130 @@ public partial class ProductManagementViewModel : ObservableObject
     [ObservableProperty]
     private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
 
+    // Translated UI Properties
     [ObservableProperty]
-    private string _backButtonText = "Back";
+    private string _pageTitle = "Product Management";
 
     [ObservableProperty]
-    private string _refreshButtonText = "Refresh Data";
+    private string _backButtonText = "← Back";
+
+    [ObservableProperty]
+    private string _refreshButtonText = "🔄 Refresh";
 
     [ObservableProperty]
     private string _categoriesHeaderText = "Categories";
 
     [ObservableProperty]
-    private string _addNewCategoryButtonText = "Add New Category";
+    private string _addNewCategoryButtonText = "➕ Add Category";
 
     [ObservableProperty]
-    private string _addNewProductButtonText = "Add New Product";
+    private string _addNewProductButtonText = "➕ Add Product";
+
+    [ObservableProperty]
+    private string _searchPlaceholder = "Search products...";
+
+    [ObservableProperty]
+    private string _searchTypeProductName = "Product Name";
+
+    [ObservableProperty]
+    private string _searchTypeCategory = "Category";
+
+    [ObservableProperty]
+    private string _showingProductsFormat = "Showing {0} products";
+
+    [ObservableProperty]
+    private string _allCategoriesText = "All";
+
+    [ObservableProperty]
+    private string _itemsCountText = "items";
+
+    // Table Column Headers
+    [ObservableProperty]
+    private string _columnProductName = "Product Name";
+
+    [ObservableProperty]
+    private string _columnItemId = "Item ID";
+
+    [ObservableProperty]
+    private string _columnStock = "Stock";
+
+    [ObservableProperty]
+    private string _columnCategory = "Category";
+
+    [ObservableProperty]
+    private string _columnPrice = "Price";
+
+    [ObservableProperty]
+    private string _columnActions = "Actions";
+
+    // Action Tooltips
+    [ObservableProperty]
+    private string _editProductTooltip = "Edit Product";
+
+    [ObservableProperty]
+    private string _deleteProductTooltip = "Delete Product";
+
+    [ObservableProperty]
+    private string _duplicateProductTooltip = "Duplicate Product";
+
+    // Category Form Labels
+    [ObservableProperty]
+    private string _addCategoryTitle = "Add New Category";
+
+    [ObservableProperty]
+    private string _editCategoryTitle = "Edit Category";
+
+    [ObservableProperty]
+    private string _categoryNameLabel = "Category Name *";
+
+    [ObservableProperty]
+    private string _categoryNameArabicLabel = "Category Name (Arabic)";
+
+    [ObservableProperty]
+    private string _parentCategoryLabel = "Parent Category";
+
+    [ObservableProperty]
+    private string _displayOrderLabel = "Display Order";
+
+    [ObservableProperty]
+    private string _descriptionLabel = "Description";
+
+    [ObservableProperty]
+    private string _activeCategoryLabel = "Active Category";
+
+    [ObservableProperty]
+    private string _saveCategoryButton = "Save Category";
+
+    [ObservableProperty]
+    private string _cancelButton = "Cancel";
+
+    [ObservableProperty]
+    private string _closePanelTooltip = "Close panel";
+
+    [ObservableProperty]
+    private string _displayOrderHelp = "Lower numbers appear first in the list";
+
+    [ObservableProperty]
+    private string _noParentCategoryText = "No Parent Category";
+
+    // Info Panel
+    [ObservableProperty]
+    private string _categoryInfoTitle = "ℹ️ Category Information";
+
+    [ObservableProperty]
+    private string _categoryInfoNameRequired = "• Category name is required and will be used in product listings";
+
+    [ObservableProperty]
+    private string _categoryInfoArabicOptional = "• Arabic name is optional for multilingual support";
+
+    [ObservableProperty]
+    private string _categoryInfoParentHierarchy = "• Parent category creates a hierarchical structure";
+
+    [ObservableProperty]
+    private string _categoryInfoDisplayOrder = "• Display order controls the sorting in category lists";
+
+    // Dynamic Category Form Title
+    public string CurrentCategoryFormTitle => IsEditMode ? EditCategoryTitle : AddCategoryTitle;
 
     #endregion
 
@@ -142,9 +252,13 @@ public partial class ProductManagementViewModel : ObservableObject
         _localizationService.LanguageChanged += OnLanguageChanged;
         _layoutDirectionService.DirectionChanged += OnLayoutDirectionChanged;
         _fontService.FontChanged += OnFontChanged;
+        _databaseLocalizationService.LanguageChanged += OnDatabaseLanguageChanged;
         
         // Initialize current settings
         UpdateCurrentSettings();
+
+        // Initialize with default values first
+    InitializeDefaultValues();
         
         _ = InitializeAsync();
     }
@@ -158,12 +272,21 @@ public partial class ProductManagementViewModel : ObservableObject
         try
         {
             IsLoading = true;
-            StatusMessage = "Loading data...";
+            StatusMessage = await GetTranslationAsync("status_loading", "Loading...");
+
+            // Ensure translation keywords exist
+            await ProductManagementTranslations.EnsureTranslationKeywordsAsync(_databaseLocalizationService);
+            
+            // Load translations first
+            await LoadTranslationsAsync();
 
             await LoadCategoriesAsync();
             await LoadProductsAsync();
 
-            StatusMessage = $"Loaded {Categories.Count} categories and {Products.Count} products";
+            DebugBindings();
+
+            var statusFormat = await GetTranslationAsync("status_loaded_categories_products", "Loaded {0} categories and {1} products");
+            StatusMessage = string.Format(statusFormat, Categories.Count - 1, Products.Count); // -1 for "All" category
         }
         catch (Exception ex)
         {
@@ -186,11 +309,13 @@ public partial class ProductManagementViewModel : ObservableObject
         Categories.Clear();
         ParentCategories.Clear();
         
-        // Add "All Categories" option
-        Categories.Add(new CategoryDto { Id = 0, Name = "All", Description = "All Categories" });
+        // Add "All Categories" option with translation
+        var allCategoriesText = await GetTranslationAsync("all_categories", "All");
+        Categories.Add(new CategoryDto { Id = 0, Name = allCategoriesText, Description = "All Categories" });
         
-        // Add "No Parent" option for parent categories
-        ParentCategories.Add(new CategoryDto { Id = 0, Name = "No Parent Category", Description = "Top Level Category" });
+        // Add "No Parent" option for parent categories with translation
+        var noParentText = await GetTranslationAsync("no_parent_category", "No Parent Category");
+        ParentCategories.Add(new CategoryDto { Id = 0, Name = noParentText, Description = "Top Level Category" });
         
         foreach (var category in categoryList)
         {
@@ -220,7 +345,7 @@ public partial class ProductManagementViewModel : ObservableObject
     #region Commands
 
     [RelayCommand]
-    private void FilterProducts()
+    private async void FilterProducts()
     {
         var filtered = Products.AsEnumerable();
 
@@ -235,14 +360,14 @@ public partial class ProductManagementViewModel : ObservableObject
         {
             var searchLower = SearchText.ToLower();
             
-            if (SelectedSearchType == "Product Name")
+            if (SelectedSearchType == SearchTypeProductName)
             {
                 filtered = filtered.Where(p => 
                     p.Name.ToLower().Contains(searchLower) ||
                     (p.SKU?.ToLower().Contains(searchLower) ?? false) ||
                     (p.Barcode?.ToLower().Contains(searchLower) ?? false));
             }
-            else if (SelectedSearchType == "Category")
+            else if (SelectedSearchType == SearchTypeCategory)
             {
                 filtered = filtered.Where(p => 
                     p.CategoryName.ToLower().Contains(searchLower));
@@ -255,7 +380,9 @@ public partial class ProductManagementViewModel : ObservableObject
             FilteredProducts.Add(product);
         }
 
-        StatusMessage = $"Showing {FilteredProducts.Count} of {Products.Count} products";
+        // Update status message with translation
+        var showingFormat = await GetTranslationAsync("showing_products_count", "Showing {0} products");
+        StatusMessage = string.Format(showingFormat, FilteredProducts.Count);
         
         // Update category counts after filtering
         UpdateCategoryProductCounts();
@@ -407,23 +534,23 @@ public partial class ProductManagementViewModel : ObservableObject
         try
         {
             IsLoading = true;
-            StatusMessage = "Saving category...";
+            StatusMessage = await GetTranslationAsync("status_saving", "Saving...");
 
-            if (!ValidateCategoryForm())
+            if (!await ValidateCategoryFormAsync())
             {
-                StatusMessage = "Please fix category validation errors";
+                StatusMessage = await GetTranslationAsync("status_ready", "Please fix category validation errors");
                 return;
             }
 
             if (IsEditMode)
             {
                 await _productService.UpdateCategoryAsync(CurrentCategory);
-                StatusMessage = "Category updated successfully";
+                StatusMessage = await GetTranslationAsync("status_category_updated", "Category updated successfully");
             }
             else
             {
                 await _productService.CreateCategoryAsync(CurrentCategory);
-                StatusMessage = "Category created successfully";
+                StatusMessage = await GetTranslationAsync("status_category_created", "Category created successfully");
             }
 
             IsCategoryFormVisible = false;
@@ -440,35 +567,57 @@ public partial class ProductManagementViewModel : ObservableObject
         }
     }
 
-    private bool ValidateCategoryForm()
+private void DebugBindings()
+{
+    FileLogger.Log($"ColumnProductName: {ColumnProductName}");
+    FileLogger.Log($"ColumnItemId: {ColumnItemId}");
+    FileLogger.Log($"ColumnStock: {ColumnStock}");
+    FileLogger.Log($"ColumnCategory: {ColumnCategory}");
+    FileLogger.Log($"ColumnPrice: {ColumnPrice}");
+    FileLogger.Log($"ColumnActions: {ColumnActions}");
+    
+    FileLogger.Log($"SearchTypeProductName: {SearchTypeProductName}");
+    FileLogger.Log($"SearchTypeCategory: {SearchTypeCategory}");
+}
+    private async Task<bool> ValidateCategoryFormAsync()
     {
         if (string.IsNullOrWhiteSpace(CurrentCategory.Name))
         {
-            MessageBox.Show("Category name is required", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            var message = await GetTranslationAsync("validation_category_name_required", "Category name is required");
+            var title = await GetTranslationAsync("validation_error_title", "Validation Error");
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
         
         if (CurrentCategory.Name.Length > 100)
         {
-            MessageBox.Show("Category name cannot exceed 100 characters", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            var message = await GetTranslationAsync("validation_category_name_length", "Category name cannot exceed 100 characters");
+            var title = await GetTranslationAsync("validation_error_title", "Validation Error");
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
 
         if (!string.IsNullOrWhiteSpace(CurrentCategory.Description) && CurrentCategory.Description.Length > 500)
         {
-            MessageBox.Show("Category description cannot exceed 500 characters", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            var message = await GetTranslationAsync("validation_description_length", "Category description cannot exceed 500 characters");
+            var title = await GetTranslationAsync("validation_error_title", "Validation Error");
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
 
         if (!string.IsNullOrWhiteSpace(CurrentCategory.NameArabic) && CurrentCategory.NameArabic.Length > 100)
         {
-            MessageBox.Show("Category name (Arabic) cannot exceed 100 characters", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            var message = await GetTranslationAsync("validation_arabic_name_length", "Category name (Arabic) cannot exceed 100 characters");
+            var title = await GetTranslationAsync("validation_error_title", "Validation Error");
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
 
         if (CurrentCategory.DisplayOrder < 0)
         {
-            MessageBox.Show("Display order cannot be negative", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            var message = await GetTranslationAsync("validation_display_order_negative", "Display order cannot be negative");
+            var title = await GetTranslationAsync("validation_error_title", "Validation Error");
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
 
@@ -521,14 +670,14 @@ public partial class ProductManagementViewModel : ObservableObject
     private async Task RefreshData()
     {
         IsLoading = true;
-        StatusMessage = "Refreshing data...";
+        StatusMessage = await GetTranslationAsync("status_refreshing", "Refreshing data...");
         
         try
         {
             await LoadCategoriesAsync();
             await LoadProductsAsync();
             FilterProducts();
-            StatusMessage = "Data refreshed successfully";
+            StatusMessage = await GetTranslationAsync("status_data_refreshed", "Data refreshed successfully");
         }
         catch (Exception ex)
         {
@@ -539,6 +688,24 @@ public partial class ProductManagementViewModel : ObservableObject
             IsLoading = false;
         }
     }
+
+    [RelayCommand]
+    private void ScrollCategoriesLeft()
+    {
+        CategoryScrollRequested?.Invoke("Left");
+    }
+
+    [RelayCommand]
+    private void ScrollCategoriesRight()
+    {
+        CategoryScrollRequested?.Invoke("Right");
+    }
+
+    #endregion
+
+    #region Events
+
+    public event Action<string>? CategoryScrollRequested;
 
     #endregion
 
@@ -555,6 +722,11 @@ public partial class ProductManagementViewModel : ObservableObject
     #endregion
 
     #region Partial Methods for Property Changes
+
+    partial void OnIsEditModeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CurrentCategoryFormTitle));
+    }
 
     partial void OnSelectedCategoryChanged(CategoryDto? value)
     {
@@ -627,24 +799,131 @@ public partial class ProductManagementViewModel : ObservableObject
         };
     }
 
+    private void InitializeDefaultValues()
+{
+    // Set default values for all UI properties
+    ColumnProductName = "Product Name";
+    ColumnItemId = "Item ID";
+    ColumnStock = "Stock";
+    ColumnCategory = "Category";
+    ColumnPrice = "Price";
+    ColumnActions = "Actions";
+    
+    SearchTypeProductName = "Product Name";
+    SearchTypeCategory = "Category";
+    
+    // Force UI update
+    OnPropertyChanged(nameof(ColumnProductName));
+    OnPropertyChanged(nameof(ColumnItemId));
+    OnPropertyChanged(nameof(ColumnStock));
+    OnPropertyChanged(nameof(ColumnCategory));
+    OnPropertyChanged(nameof(ColumnPrice));
+    OnPropertyChanged(nameof(ColumnActions));
+}
+
     private async Task LoadTranslationsAsync()
     {
         try
         {
-            BackButtonText = await _databaseLocalizationService.GetTranslationAsync("back_button") ?? "Back";
-            RefreshButtonText = await _databaseLocalizationService.GetTranslationAsync("refresh_button") ?? "Refresh Data";
-            CategoriesHeaderText = await _databaseLocalizationService.GetTranslationAsync("categories_header") ?? "Categories";
-            AddNewCategoryButtonText = await _databaseLocalizationService.GetTranslationAsync("add_new_category_button") ?? "Add New Category";
-            AddNewProductButtonText = await _databaseLocalizationService.GetTranslationAsync("add_new_product_button") ?? "Add New Product";
-            StatusMessage = await _databaseLocalizationService.GetTranslationAsync("status_ready") ?? "Ready";
+            // Page and Navigation
+            PageTitle = await GetTranslationAsync("product_management_title", "Product Management");
+            BackButtonText = await GetTranslationAsync("back_button", "← Back");
+            RefreshButtonText = await GetTranslationAsync("refresh_button", "🔄 Refresh");
+            
+            // Categories Section
+            CategoriesHeaderText = await GetTranslationAsync("categories_header", "Categories");
+            AddNewCategoryButtonText = await GetTranslationAsync("add_new_category_button", "➕ Add Category");
+            AddNewProductButtonText = await GetTranslationAsync("add_new_product_button", "➕ Add Product");
+            AllCategoriesText = await GetTranslationAsync("all_categories", "All");
+            ItemsCountText = await GetTranslationAsync("items_count", "items");
+            
+            // Search Section
+            SearchPlaceholder = await GetTranslationAsync("search_placeholder", "Search products...");
+            SearchTypeProductName = await GetTranslationAsync("search_type_product_name", "Product Name");
+            SearchTypeCategory = await GetTranslationAsync("search_type_category", "Category");
+            ShowingProductsFormat = await GetTranslationAsync("showing_products_count", "Showing {0} products");
+            
+            // Table Headers
+            ColumnProductName = await GetTranslationAsync("column_product_name", "Product Name");
+            ColumnItemId = await GetTranslationAsync("column_item_id", "Item ID");
+            ColumnStock = await GetTranslationAsync("column_stock", "Stock");
+            ColumnCategory = await GetTranslationAsync("column_category", "Category");
+            ColumnPrice = await GetTranslationAsync("column_price", "Price");
+            ColumnActions = await GetTranslationAsync("column_actions", "Actions");
+            
+            // Action Tooltips
+            EditProductTooltip = await GetTranslationAsync("action_edit", "Edit Product");
+            DeleteProductTooltip = await GetTranslationAsync("action_delete", "Delete Product");
+            DuplicateProductTooltip = await GetTranslationAsync("action_duplicate", "Duplicate Product");
+            
+            // Category Form
+            AddCategoryTitle = await GetTranslationAsync("add_new_category_title", "Add New Category");
+            EditCategoryTitle = await GetTranslationAsync("edit_category_title", "Edit Category");
+            CategoryNameLabel = await GetTranslationAsync("category_name_label", "Category Name *");
+            CategoryNameArabicLabel = await GetTranslationAsync("category_name_arabic_label", "Category Name (Arabic)");
+            ParentCategoryLabel = await GetTranslationAsync("parent_category_label", "Parent Category");
+            DisplayOrderLabel = await GetTranslationAsync("display_order_label", "Display Order");
+            DescriptionLabel = await GetTranslationAsync("description_label", "Description");
+            ActiveCategoryLabel = await GetTranslationAsync("active_category_label", "Active Category");
+            SaveCategoryButton = await GetTranslationAsync("save_category_button", "Save Category");
+            CancelButton = await GetTranslationAsync("cancel_button", "Cancel");
+            ClosePanelTooltip = await GetTranslationAsync("close_panel_tooltip", "Close panel");
+            DisplayOrderHelp = await GetTranslationAsync("display_order_help", "Lower numbers appear first in the list");
+            NoParentCategoryText = await GetTranslationAsync("no_parent_category", "No Parent Category");
+            
+            // Info Panel
+            CategoryInfoTitle = await GetTranslationAsync("category_info_title", "ℹ️ Category Information");
+            CategoryInfoNameRequired = await GetTranslationAsync("category_info_name_required", "• Category name is required and will be used in product listings");
+            CategoryInfoArabicOptional = await GetTranslationAsync("category_info_arabic_optional", "• Arabic name is optional for multilingual support");
+            CategoryInfoParentHierarchy = await GetTranslationAsync("category_info_parent_hierarchy", "• Parent category creates a hierarchical structure");
+            CategoryInfoDisplayOrder = await GetTranslationAsync("category_info_display_order", "• Display order controls the sorting in category lists");
+            
+
+            // Force update of all bound properties
+        OnPropertyChanged(nameof(ColumnProductName));
+        OnPropertyChanged(nameof(ColumnItemId));
+        OnPropertyChanged(nameof(ColumnStock));
+        OnPropertyChanged(nameof(ColumnCategory));
+        OnPropertyChanged(nameof(ColumnPrice));
+        OnPropertyChanged(nameof(ColumnActions));
+        
+        // Also force update of search-related properties
+        OnPropertyChanged(nameof(SearchTypeProductName));
+        OnPropertyChanged(nameof(SearchTypeCategory));
+            // Status Message
+            if (StatusMessage == "Ready" || string.IsNullOrEmpty(StatusMessage))
+            {
+                StatusMessage = await GetTranslationAsync("status_ready", "Ready");
+            }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Fallback to default values if translation fails
-            BackButtonText = "Back";
-            RefreshButtonText = "Refresh Data";
-            StatusMessage = "Ready";
+            Console.WriteLine($"Error loading translations: {ex.Message}");
+            // Fallback values are already set as defaults
         }
+    }
+
+    private async Task<string> GetTranslationAsync(string key, string fallback)
+    {
+        try
+        {
+            return await _databaseLocalizationService.GetTranslationAsync(key) ?? fallback;
+        }
+        catch
+        {
+            return fallback;
+        }
+    }
+
+    private async void OnDatabaseLanguageChanged(object? sender, string languageCode)
+    {
+        await LoadTranslationsAsync();
+        
+        // Reload categories to update translated labels
+        await LoadCategoriesAsync();
+        
+        // Update product count display
+        FilterProducts();
     }
 
     #endregion
@@ -661,6 +940,7 @@ public partial class ProductManagementViewModel : ObservableObject
             _localizationService.LanguageChanged -= OnLanguageChanged;
             _layoutDirectionService.DirectionChanged -= OnLayoutDirectionChanged;
             _fontService.FontChanged -= OnFontChanged;
+            _databaseLocalizationService.LanguageChanged -= OnDatabaseLanguageChanged;
         }
     }
 

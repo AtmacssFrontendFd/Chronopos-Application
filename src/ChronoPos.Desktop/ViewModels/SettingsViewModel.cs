@@ -189,6 +189,10 @@ public partial class SettingsViewModel : ObservableObject
             SelectedLanguageFromDb = language;
             StatusMessage = $"Language changed to {language.LanguageName}";
             
+            // Also update the LocalizationService to coordinate both services
+            var supportedLanguage = language.LanguageCode == "ur" ? SupportedLanguage.Urdu : SupportedLanguage.English;
+            _localizationService.ChangeLanguage(supportedLanguage);
+            
             // Update layout direction based on language
             if (language.IsRtl)
             {
@@ -205,12 +209,20 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private void SetEnglishLanguage()
     {
+        // Update LocalizationService first
+        _localizationService.ChangeLanguage(SupportedLanguage.English);
+        
+        // Then update database language
         _ = SetDatabaseLanguageAsync(AvailableLanguagesFromDb.FirstOrDefault(l => l.LanguageCode == "en"));
     }
 
     [RelayCommand]
     private void SetUrduLanguage()
     {
+        // Update LocalizationService first
+        _localizationService.ChangeLanguage(SupportedLanguage.Urdu);
+        
+        // Then update database language
         _ = SetDatabaseLanguageAsync(AvailableLanguagesFromDb.FirstOrDefault(l => l.LanguageCode == "ur"));
     }
 

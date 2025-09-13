@@ -8,16 +8,32 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.Win32;
 using System.Text.RegularExpressions;
 using System.IO;
+using ChronoPos.Desktop.Services;
+using InfrastructureServices = ChronoPos.Infrastructure.Services;
+using System.Globalization;
 
 namespace ChronoPos.Desktop.ViewModels;
 
 /// <summary>
-/// ViewModel for adding new products with comprehensive form validation
+/// ViewModel for adding new products with comprehensive form validation and full settings integration
 /// </summary>
-public partial class AddProductViewModel : ObservableObject
+public partial class AddProductViewModel : ObservableObject, IDisposable
 {
+    #region Fields
+    
     private readonly IProductService _productService;
     private readonly Action? _navigateBack;
+    
+    // Settings services
+    private readonly IThemeService _themeService;
+    private readonly IZoomService _zoomService;
+    private readonly ILocalizationService _localizationService;
+    private readonly IColorSchemeService _colorSchemeService;
+    private readonly ILayoutDirectionService _layoutDirectionService;
+    private readonly IFontService _fontService;
+    private readonly InfrastructureServices.IDatabaseLocalizationService _databaseLocalizationService;
+    
+    #endregion
 
     #region Observable Properties
 
@@ -188,6 +204,204 @@ public partial class AddProductViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<CategoryDto> parentCategories = new();
 
+    #region Settings Properties
+    [ObservableProperty]
+    private int _currentZoom = 100;
+
+    [ObservableProperty]
+    private string _currentLanguage = "English";
+
+    [ObservableProperty]
+    private double _currentFontSize = 14;
+
+    [ObservableProperty]
+    private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
+    #endregion
+
+    #region Translation Properties
+
+    // Page titles and navigation
+    [ObservableProperty] private string addProductTitle = "Add Product";
+    [ObservableProperty] private string productInfoTitle = "Product Information";
+    [ObservableProperty] private string pricingTitle = "Pricing";
+    [ObservableProperty] private string stockControlTitle = "Stock Control";
+    [ObservableProperty] private string advancedSettingsTitle = "Advanced Settings";
+    [ObservableProperty] private string categoriesTitle = "Categories";
+    [ObservableProperty] private string picturesTitle = "Pictures";
+    [ObservableProperty] private string attributesTitle = "Attributes";
+    [ObservableProperty] private string unitPricesTitle = "Unit Prices";
+
+    // Form labels and inputs
+    [ObservableProperty] private string codeLabel = "Code";
+    [ObservableProperty] private string pluLabel = "PLU";
+    [ObservableProperty] private string nameLabel = "Name";
+    [ObservableProperty] private string descriptionLabel = "Description";
+    [ObservableProperty] private string priceLabel = "Price";
+    [ObservableProperty] private string costLabel = "Cost";
+    [ObservableProperty] private string lastPurchasePriceLabel = "Last Purchase Price";
+    [ObservableProperty] private string markupLabel = "Markup";
+    [ObservableProperty] private string categoryLabel = "Category";
+    [ObservableProperty] private string brandLabel = "Brand";
+    [ObservableProperty] private string purchaseUnitLabel = "Purchase Unit";
+    [ObservableProperty] private string sellingUnitLabel = "Selling Unit";
+    [ObservableProperty] private string unitOfMeasurementLabel = "Unit of Measurement";
+    [ObservableProperty] private string isTaxInclusivePriceLabel = "Tax Inclusive Price";
+    [ObservableProperty] private string exciseLabel = "Excise";
+    [ObservableProperty] private string isDiscountAllowedLabel = "Discount Allowed";
+    [ObservableProperty] private string maxDiscountLabel = "Max Discount";
+    [ObservableProperty] private string isPriceChangeAllowedLabel = "Price Change Allowed";
+    [ObservableProperty] private string isUsingSerialNumbersLabel = "Using Serial Numbers";
+    [ObservableProperty] private string isManufactureRequiredLabel = "Manufacture Required";
+    [ObservableProperty] private string isServiceLabel = "Service";
+    [ObservableProperty] private string isUsingDefaultQuantityLabel = "Using Default Quantity";
+    
+    // Additional form labels that were missing
+    [ObservableProperty] private string groupLabel = "Group";
+    [ObservableProperty] private string reorderLevelFormLabel = "Reorder Level";
+    [ObservableProperty] private string canReturnLabel = "Can Return";
+    [ObservableProperty] private string isGroupedLabel = "Is Grouped";
+    [ObservableProperty] private string sellingPriceLabel = "Selling Price";
+    [ObservableProperty] private string costPriceLabel = "Cost Price";
+    [ObservableProperty] private string markupPercentLabel = "Markup %";
+    [ObservableProperty] private string taxInclusivePriceLabel = "Tax Inclusive Price";
+    [ObservableProperty] private string chooseImageLabel = "Choose Image";
+    [ObservableProperty] private string removeImageLabel = "Remove Image";
+    [ObservableProperty] private string noImageSelectedLabel = "No Image Selected";
+    [ObservableProperty] private string clickChooseImageLabel = "Click 'Choose Image' to add a product picture";
+    [ObservableProperty] private string trackStockLabel = "Track Stock for this Product";
+    [ObservableProperty] private string storeLabel = "Store";
+    [ObservableProperty] private string trackStockForProductLabel = "Track Stock for this Product";
+    [ObservableProperty] private string allowDiscountsLabel = "Allow Discounts";
+    [ObservableProperty] private string allowPriceChangesLabel = "Allow Price Changes";
+    [ObservableProperty] private string useSerialNumbersLabel = "Use Serial Numbers";
+    [ObservableProperty] private string isServiceLabel2 = "Is Service";
+    [ObservableProperty] private string ageRestrictionYearsLabel = "Age Restriction (years)";
+    [ObservableProperty] private string productColorLabel = "Product Color";
+    [ObservableProperty] private string stockControlUnitPricesLabel = "Stock Control & Unit Prices";
+    [ObservableProperty] private string allowNegativeStockLabel2 = "Allow Negative Stock";
+    [ObservableProperty] private string useSerialNumbersLabel2 = "Use Serial Numbers";
+
+    // Stock control labels
+    [ObservableProperty] private string isStockTrackedLabel = "Stock Tracked";
+    [ObservableProperty] private string allowNegativeStockLabel = "Allow Negative Stock";
+    [ObservableProperty] private string initialStockLabel = "Initial Stock";
+    [ObservableProperty] private string minimumStockLabel = "Minimum Stock";
+    [ObservableProperty] private string maximumStockLabel = "Maximum Stock";
+    [ObservableProperty] private string reorderLevelLabel = "Reorder Level";
+    [ObservableProperty] private string reorderQuantityLabel = "Reorder Quantity";
+    [ObservableProperty] private string averageCostLabel = "Average Cost";
+    [ObservableProperty] private string selectedStoreLabel = "Store";
+
+    // Advanced settings labels
+    [ObservableProperty] private string ageRestrictionLabel = "Age Restriction";
+    [ObservableProperty] private string colorLabel = "Color";
+    [ObservableProperty] private string imagePathLabel = "Image Path";
+    [ObservableProperty] private string isEnabledLabel = "Enabled";
+
+    // Barcode section
+    [ObservableProperty] private string barcodesTitle = "Barcodes";
+    [ObservableProperty] private string newBarcodeLabel = "New Barcode";
+    [ObservableProperty] private string addBarcodeButton = "Add Barcode";
+    [ObservableProperty] private string generateBarcodeButton = "Generate Barcode";
+    [ObservableProperty] private string removeBarcodeButton = "Remove";
+
+    // Comments section
+    [ObservableProperty] private string commentsTitle = "Comments";
+    [ObservableProperty] private string newCommentLabel = "New Comment";
+    [ObservableProperty] private string addCommentButton = "Add Comment";
+    [ObservableProperty] private string removeCommentButton = "Remove";
+
+    // Action buttons
+    [ObservableProperty] private string saveButton = "Save";
+    [ObservableProperty] private string saveAndAddAnotherButton = "Save & Add Another";
+    [ObservableProperty] private string cancelButton = "Cancel";
+    [ObservableProperty] private string resetButton = "Reset";
+    [ObservableProperty] private string browseImageButton = "Browse";
+    
+    // Button text properties for UI binding
+    [ObservableProperty] private string backButtonText = "Back";
+    [ObservableProperty] private string cancelButtonText = "Cancel";
+    [ObservableProperty] private string saveChangesButtonText = "Save Changes";
+    [ObservableProperty] private string saveCategoryButtonText = "Save Category";
+    [ObservableProperty] private string currentUserDisplayText = "Administrator";
+
+    // Category panel
+    [ObservableProperty] private string addCategoryTitle = "Add Category";
+    [ObservableProperty] private string addNewCategoryTitle = "Add New Category";
+    [ObservableProperty] private string editCategoryTitle = "Edit Category";
+    [ObservableProperty] private string categoryNameLabel = "Category Name";
+    [ObservableProperty] private string categoryNameArabicLabel = "Category Name (Arabic)";
+    [ObservableProperty] private string parentCategoryLabel = "Parent Category";
+    [ObservableProperty] private string categoryDescriptionLabel = "Description";
+    [ObservableProperty] private string displayOrderLabel = "Display Order";
+    [ObservableProperty] private string displayOrderHelp = "Lower numbers appear first in the list";
+    [ObservableProperty] private string activeCategoryLabel = "Active Category";
+    [ObservableProperty] private string saveCategoryButton = "Save Category";
+    [ObservableProperty] private string cancelCategoryButton = "Cancel";
+    [ObservableProperty] private string deleteCategoryButton = "Delete";
+    [ObservableProperty] private string closePanelTooltip = "Close Panel";
+    
+    // Category Info Panel
+    [ObservableProperty] private string categoryInfoTitle = "Category Information";
+    [ObservableProperty] private string categoryInfoNameRequired = "• Category name is required and cannot be empty";
+    [ObservableProperty] private string categoryInfoArabicOptional = "• Arabic name is optional but recommended for bilingual support";
+    [ObservableProperty] private string categoryInfoParentHierarchy = "• Select a parent to create subcategories and organize products hierarchically";
+    [ObservableProperty] private string categoryInfoDisplayOrder = "• Display order controls the sequence in lists and menus";
+
+    // Validation and status messages
+    [ObservableProperty] private string validationErrorsTitle = "Validation Errors";
+    [ObservableProperty] private string loadingMessage = "Loading...";
+    [ObservableProperty] private string savingMessage = "Saving...";
+    [ObservableProperty] private string readyMessage = "Ready to create new product";
+    [ObservableProperty] private string successMessage = "Product saved successfully";
+    [ObservableProperty] private string errorMessage = "Error";
+
+    // Placeholders
+    [ObservableProperty] private string codePlaceholder = "Enter product code";
+    [ObservableProperty] private string pluPlaceholder = "Enter PLU number";
+    [ObservableProperty] private string namePlaceholder = "Enter product name";
+    [ObservableProperty] private string descriptionPlaceholder = "Enter product description";
+    [ObservableProperty] private string pricePlaceholder = "0.00";
+    [ObservableProperty] private string costPlaceholder = "0.00";
+    [ObservableProperty] private string markupPlaceholder = "0.00";
+    [ObservableProperty] private string excisePlaceholder = "0.00";
+    [ObservableProperty] private string maxDiscountPlaceholder = "100";
+    [ObservableProperty] private string stockPlaceholder = "0";
+    [ObservableProperty] private string ageRestrictionPlaceholder = "18";
+    [ObservableProperty] private string barcodePlaceholder = "Enter barcode";
+    [ObservableProperty] private string commentPlaceholder = "Enter comment";
+
+    // Tooltips
+    [ObservableProperty] private string codeTooltip = "Unique product identifier";
+    [ObservableProperty] private string pluTooltip = "Price Look-Up number";
+    [ObservableProperty] private string nameTooltip = "Product display name";
+    [ObservableProperty] private string priceTooltip = "Selling price";
+    [ObservableProperty] private string costTooltip = "Cost price";
+    [ObservableProperty] private string stockTooltip = "Current stock quantity";
+    [ObservableProperty] private string discountTooltip = "Maximum discount percentage";
+    [ObservableProperty] private string barcodeTooltip = "Product barcode for scanning";
+
+    // Dropdown options
+    [ObservableProperty] private string selectCategoryOption = "Select Category";
+    [ObservableProperty] private string selectUnitOption = "Select Unit";
+    [ObservableProperty] private string selectStoreOption = "Select Store";
+    [ObservableProperty] private string noCategoryOption = "No Category";
+    [ObservableProperty] private string noParentCategoryOption = "No Parent Category";
+
+    // File dialog
+    [ObservableProperty] private string selectImageTitle = "Select Product Image";
+    [ObservableProperty] private string imageFileFilter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp;*.gif";
+
+    // Confirmation dialogs
+    [ObservableProperty] private string confirmDeleteTitle = "Confirm Delete";
+    [ObservableProperty] private string confirmDeleteMessage = "Are you sure you want to delete this item?";
+    [ObservableProperty] private string confirmResetTitle = "Confirm Reset";
+    [ObservableProperty] private string confirmResetMessage = "Are you sure you want to reset all fields?";
+    [ObservableProperty] private string yesButton = "Yes";
+    [ObservableProperty] private string noButton = "No";
+
+    #endregion
+
     #endregion
 
     #region Barcode Management Classes
@@ -331,9 +545,25 @@ public partial class AddProductViewModel : ObservableObject
 
     #region Constructor
 
-    public AddProductViewModel(IProductService productService, Action? navigateBack = null)
+    public AddProductViewModel(
+        IProductService productService,
+        IThemeService themeService,
+        IZoomService zoomService,
+        ILocalizationService localizationService,
+        IColorSchemeService colorSchemeService,
+        ILayoutDirectionService layoutDirectionService,
+        IFontService fontService,
+        InfrastructureServices.IDatabaseLocalizationService databaseLocalizationService,
+        Action? navigateBack = null)
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
+        _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
+        _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
+        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        _colorSchemeService = colorSchemeService ?? throw new ArgumentNullException(nameof(colorSchemeService));
+        _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
+        _fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
+        _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
         _navigateBack = navigateBack;
         
         // Initialize with default values
@@ -357,23 +587,55 @@ public partial class AddProductViewModel : ObservableObject
     {
         try
         {
+            FileLogger.LogSeparator("AddProductViewModel Initialization");
+            FileLogger.Log("🚀 Starting AddProductViewModel initialization");
+            
             IsLoading = true;
             StatusMessage = "Loading data...";
+            FileLogger.Log($"📊 Initial status: {StatusMessage}");
 
+            // Load translations (translations are now seeded at application startup)
+            FileLogger.Log("🌐 Loading translations");
+            await LoadTranslationsAsync();
+            FileLogger.Log("✅ Translations loaded");
+            
+            // Subscribe to settings changes
+            FileLogger.Log("📡 Subscribing to settings changes");
+            SubscribeToSettingsChanges();
+            FileLogger.Log("✅ Settings subscriptions done");
+            
+            // Initialize current settings values
+            FileLogger.Log("⚙️ Updating current settings");
+            UpdateCurrentSettings();
+            FileLogger.Log("✅ Current settings updated");
+
+            FileLogger.Log("📦 Loading categories");
             await LoadCategoriesAsync();
+            FileLogger.Log($"✅ Loaded {Categories.Count} categories");
+            
+            FileLogger.Log("🏪 Loading stores");
             await LoadStoresAsync();
+            FileLogger.Log($"✅ Loaded stores");
+            
+            FileLogger.Log("📏 Loading units of measurement");
             await LoadUnitsOfMeasurementAsync();
+            FileLogger.Log($"✅ Loaded units of measurement");
 
             StatusMessage = "Ready to create new product";
+            FileLogger.Log($"🎯 Final status: {StatusMessage}");
+            FileLogger.Log("🎉 AddProductViewModel initialization completed successfully");
         }
         catch (Exception ex)
         {
+            FileLogger.Log($"❌ ERROR in AddProductViewModel initialization: {ex.Message}");
+            FileLogger.Log($"❌ Stack trace: {ex.StackTrace}");
             StatusMessage = $"Error loading data: {ex.Message}";
             MessageBox.Show($"Failed to load data: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
             IsLoading = false;
+            FileLogger.LogSeparator("AddProductViewModel Initialization Complete");
         }
     }
 
@@ -429,6 +691,368 @@ public partial class AddProductViewModel : ObservableObject
         // Generate a simple auto-incrementing code
         // In a real application, this would query the database for the next available code
         return $"PROD{DateTime.Now:yyyyMMddHHmmss}";
+    }
+
+    #endregion
+
+    #region Translation and Settings Management
+
+    private async Task LoadTranslationsAsync()
+    {
+        try
+        {
+            FileLogger.LogSeparator("LoadTranslationsAsync");
+            FileLogger.Log("🌐 Starting translation loading");
+            
+            // Get current language from database service
+            var currentLangCode = _databaseLocalizationService.GetCurrentLanguageCode();
+            FileLogger.Log($"🗣️ Current language code: {currentLangCode}");
+            
+            // Apply translations to properties using the database localization service
+            FileLogger.Log("📝 Applying translations to properties");
+            await ApplyTranslationsAsync();
+            FileLogger.Log("✅ Translations applied successfully");
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"❌ ERROR in LoadTranslationsAsync: {ex.Message}");
+            FileLogger.Log($"❌ Inner exception: {ex.InnerException?.Message}");
+            FileLogger.Log($"❌ Stack trace: {ex.StackTrace}");
+            // Log error and use default English values
+            System.Diagnostics.Debug.WriteLine($"Error loading translations: {ex.Message}");
+        }
+        finally
+        {
+            FileLogger.LogSeparator("LoadTranslationsAsync Complete");
+        }
+    }
+
+    private async Task ApplyTranslationsAsync()
+    {
+        // Page titles and navigation
+        AddProductTitle = await GetTranslationAsync("add_product_title", "Add New Product");
+        ProductInfoTitle = await GetTranslationAsync("basic_info_section", "Basic Information");
+        PricingTitle = await GetTranslationAsync("pricing_section", "Pricing & Cost");
+        StockControlTitle = await GetTranslationAsync("stock_section", "Stock Management");
+        AdvancedSettingsTitle = await GetTranslationAsync("advanced_section", "Advanced Settings");
+        CategoriesTitle = await GetTranslationAsync("Categories", "Categories");
+        PicturesTitle = await GetTranslationAsync("Pictures", "Pictures");
+        AttributesTitle = await GetTranslationAsync("Attributes", "Attributes");
+        UnitPricesTitle = await GetTranslationAsync("UnitPrices", "Unit Prices");
+        BarcodesTitle = await GetTranslationAsync("barcodes_section", "Barcodes & SKU");
+
+        // Form labels - using the correct translation keys
+        CodeLabel = await GetTranslationAsync("product_code_label", "Product Code");
+        PluLabel = await GetTranslationAsync("plu_label", "PLU");
+        NameLabel = await GetTranslationAsync("product_name_label", "Product Name");
+        DescriptionLabel = await GetTranslationAsync("description_label", "Description");
+        PriceLabel = await GetTranslationAsync("price_label", "Price");
+        CostLabel = await GetTranslationAsync("cost_label", "Cost");
+        LastPurchasePriceLabel = await GetTranslationAsync("last_purchase_price_label", "Last Purchase Price");
+        MarkupLabel = await GetTranslationAsync("markup_label", "Markup");
+        CategoryLabel = await GetTranslationAsync("category_label", "Category");
+        BrandLabel = await GetTranslationAsync("brand_label", "Brand");
+        PurchaseUnitLabel = await GetTranslationAsync("purchase_unit_label", "Purchase Unit");
+        SellingUnitLabel = await GetTranslationAsync("selling_unit_label", "Selling Unit");
+        UnitOfMeasurementLabel = await GetTranslationAsync("unit_of_measurement_label", "Unit of Measurement");
+        IsTaxInclusivePriceLabel = await GetTranslationAsync("tax_inclusive_price_label", "Tax Inclusive Price");
+        ExciseLabel = await GetTranslationAsync("excise_label", "Excise");
+        IsDiscountAllowedLabel = await GetTranslationAsync("discount_allowed_label", "Discount Allowed");
+        MaxDiscountLabel = await GetTranslationAsync("max_discount_label", "Maximum Discount %");
+        IsPriceChangeAllowedLabel = await GetTranslationAsync("price_change_allowed_label", "Price Change Allowed");
+        IsUsingSerialNumbersLabel = await GetTranslationAsync("serial_numbers_label", "Use Serial Numbers");
+        IsManufactureRequiredLabel = await GetTranslationAsync("ManufactureRequired", "Manufacture Required");
+        IsServiceLabel = await GetTranslationAsync("service_item_label", "Service Item");
+        IsUsingDefaultQuantityLabel = await GetTranslationAsync("UsingDefaultQuantity", "Using Default Quantity");
+
+        // Additional form labels
+        GroupLabel = await GetTranslationAsync("group_label", "Group");
+        ReorderLevelFormLabel = await GetTranslationAsync("reorder_level_label", "Reorder Level");
+        CanReturnLabel = await GetTranslationAsync("can_return_label", "Can Return");
+        IsGroupedLabel = await GetTranslationAsync("is_grouped_label", "Is Grouped");
+        SellingPriceLabel = await GetTranslationAsync("selling_price_label", "Selling Price");
+        CostPriceLabel = await GetTranslationAsync("cost_price_label", "Cost Price");
+        MarkupPercentLabel = await GetTranslationAsync("markup_percent_label", "Markup %");
+        TaxInclusivePriceLabel = await GetTranslationAsync("tax_inclusive_price_label", "Tax Inclusive Price");
+        ChooseImageLabel = await GetTranslationAsync("choose_image_label", "Choose Image");
+        RemoveImageLabel = await GetTranslationAsync("remove_image_label", "Remove Image");
+        NoImageSelectedLabel = await GetTranslationAsync("no_image_selected_label", "No Image Selected");
+        ClickChooseImageLabel = await GetTranslationAsync("click_choose_image_label", "Click 'Choose Image' to add a product picture");
+        TrackStockLabel = await GetTranslationAsync("track_stock_label", "Track Stock");
+        StoreLabel = await GetTranslationAsync("store_label", "Store");
+        TrackStockForProductLabel = await GetTranslationAsync("track_stock_for_product_label", "Track Stock for this Product");
+        AllowDiscountsLabel = await GetTranslationAsync("allow_discounts_label", "Allow Discounts");
+        AllowPriceChangesLabel = await GetTranslationAsync("allow_price_changes_label", "Allow Price Changes");
+        UseSerialNumbersLabel = await GetTranslationAsync("use_serial_numbers_label", "Use Serial Numbers");
+        IsServiceLabel2 = await GetTranslationAsync("is_service_label", "Is Service");
+        AgeRestrictionYearsLabel = await GetTranslationAsync("age_restriction_years_label", "Age Restriction (years)");
+        ProductColorLabel = await GetTranslationAsync("product_color_label", "Product Color");
+        StockControlUnitPricesLabel = await GetTranslationAsync("stock_control_unit_prices_label", "Stock Control & Unit Prices");
+        AllowNegativeStockLabel2 = await GetTranslationAsync("allow_negative_stock_label", "Allow Negative Stock");
+        UseSerialNumbersLabel2 = await GetTranslationAsync("use_serial_numbers_label", "Use Serial Numbers");
+
+        // Stock control labels
+        IsStockTrackedLabel = await GetTranslationAsync("stock_tracked_label", "Stock Tracked");
+        AllowNegativeStockLabel = await GetTranslationAsync("allow_negative_stock_label", "Allow Negative Stock");
+        InitialStockLabel = await GetTranslationAsync("initial_stock_label", "Initial Stock");
+        MinimumStockLabel = await GetTranslationAsync("minimum_stock_label", "Minimum Stock");
+        MaximumStockLabel = await GetTranslationAsync("maximum_stock_label", "Maximum Stock");
+        ReorderLevelLabel = await GetTranslationAsync("reorder_level_label", "Reorder Level");
+        ReorderQuantityLabel = await GetTranslationAsync("reorder_quantity_label", "Reorder Quantity");
+        AverageCostLabel = await GetTranslationAsync("average_cost_label", "Average Cost");
+        SelectedStoreLabel = await GetTranslationAsync("store_label", "Store");
+
+        // Advanced settings
+        AgeRestrictionLabel = await GetTranslationAsync("age_restriction_label", "Age Restriction");
+        ColorLabel = await GetTranslationAsync("color_label", "Color");
+        ImagePathLabel = await GetTranslationAsync("image_path_label", "Image Path");
+        IsEnabledLabel = await GetTranslationAsync("enabled_label", "Product Enabled");
+
+        // Barcode section
+        NewBarcodeLabel = await GetTranslationAsync("barcode_label", "Barcode");
+        AddBarcodeButton = await GetTranslationAsync("add_barcode_button", "Add Barcode");
+        GenerateBarcodeButton = await GetTranslationAsync("generate_barcode_button", "Generate Barcode");
+        RemoveBarcodeButton = await GetTranslationAsync("remove_barcode_button", "Remove");
+
+        // Comments section
+        CommentsTitle = await GetTranslationAsync("Comments", "Comments");
+        NewCommentLabel = await GetTranslationAsync("NewComment", "New Comment");
+        AddCommentButton = await GetTranslationAsync("AddComment", "Add Comment");
+        RemoveCommentButton = await GetTranslationAsync("RemoveComment", "Remove");
+
+        // Action buttons
+        SaveButton = await GetTranslationAsync("save_button", "Save Product");
+        SaveAndAddAnotherButton = await GetTranslationAsync("SaveAndAddAnother", "Save & Add Another");
+        CancelButton = await GetTranslationAsync("cancel_button", "Cancel");
+        ResetButton = await GetTranslationAsync("reset_button", "Reset Form");
+        BrowseImageButton = await GetTranslationAsync("Browse", "Browse");
+        
+        // Button text properties for UI binding
+        BackButtonText = await GetTranslationAsync("back_button", "← Back");
+        CancelButtonText = await GetTranslationAsync("cancel_button", "Cancel");
+        SaveChangesButtonText = await GetTranslationAsync("save_button", "Save Product");
+        SaveCategoryButtonText = await GetTranslationAsync("save_category_button", "Save Category");
+        CurrentUserDisplayText = await GetTranslationAsync("Administrator", "Administrator");
+
+        // Category panel
+        AddCategoryTitle = await GetTranslationAsync("add_category_title", "Add New Category");
+        AddNewCategoryTitle = await GetTranslationAsync("add_category_title", "Add New Category");
+        EditCategoryTitle = await GetTranslationAsync("EditCategory", "Edit Category");
+        CategoryNameLabel = await GetTranslationAsync("category_name_label", "Category Name");
+        CategoryNameArabicLabel = await GetTranslationAsync("category_name_arabic_label", "Category Name (Arabic)");
+        ParentCategoryLabel = await GetTranslationAsync("ParentCategory", "Parent Category");
+        CategoryDescriptionLabel = await GetTranslationAsync("CategoryDescription", "Description");
+        DisplayOrderLabel = await GetTranslationAsync("DisplayOrder", "Display Order");
+        DisplayOrderHelp = await GetTranslationAsync("DisplayOrderHelp", "Lower numbers appear first in the list");
+        ActiveCategoryLabel = await GetTranslationAsync("ActiveCategory", "Active Category");
+        SaveCategoryButton = await GetTranslationAsync("SaveCategory", "Save Category");
+        CancelCategoryButton = await GetTranslationAsync("CancelCategory", "Cancel");
+        DeleteCategoryButton = await GetTranslationAsync("DeleteCategory", "Delete");
+        ClosePanelTooltip = await GetTranslationAsync("ClosePanelTooltip", "Close Panel");
+        
+        // Category Info Panel
+        CategoryInfoTitle = await GetTranslationAsync("CategoryInfoTitle", "Category Information");
+        CategoryInfoNameRequired = await GetTranslationAsync("CategoryInfoNameRequired", "• Category name is required and cannot be empty");
+        CategoryInfoArabicOptional = await GetTranslationAsync("CategoryInfoArabicOptional", "• Arabic name is optional but recommended for bilingual support");
+        CategoryInfoParentHierarchy = await GetTranslationAsync("CategoryInfoParentHierarchy", "• Select a parent to create subcategories and organize products hierarchically");
+        CategoryInfoDisplayOrder = await GetTranslationAsync("CategoryInfoDisplayOrder", "• Display order controls the sequence in lists and menus");
+
+        // Status messages
+        ValidationErrorsTitle = await GetTranslationAsync("ValidationErrors", "Validation Errors");
+        LoadingMessage = await GetTranslationAsync("Loading", "Loading...");
+        SavingMessage = await GetTranslationAsync("Saving", "Saving...");
+        ReadyMessage = await GetTranslationAsync("ReadyToCreateProduct", "Ready to create new product");
+        SuccessMessage = await GetTranslationAsync("ProductSavedSuccessfully", "Product saved successfully");
+        ErrorMessage = await GetTranslationAsync("Error", "Error");
+
+        // Placeholders
+        CodePlaceholder = await GetTranslationAsync("EnterProductCode", "Enter product code");
+        PluPlaceholder = await GetTranslationAsync("EnterPLUNumber", "Enter PLU number");
+        NamePlaceholder = await GetTranslationAsync("EnterProductName", "Enter product name");
+        DescriptionPlaceholder = await GetTranslationAsync("EnterProductDescription", "Enter product description");
+        PricePlaceholder = await GetTranslationAsync("PricePlaceholder", "0.00");
+        CostPlaceholder = await GetTranslationAsync("CostPlaceholder", "0.00");
+        MarkupPlaceholder = await GetTranslationAsync("MarkupPlaceholder", "0.00");
+        ExcisePlaceholder = await GetTranslationAsync("ExcisePlaceholder", "0.00");
+        MaxDiscountPlaceholder = await GetTranslationAsync("MaxDiscountPlaceholder", "100");
+        StockPlaceholder = await GetTranslationAsync("StockPlaceholder", "0");
+        AgeRestrictionPlaceholder = await GetTranslationAsync("AgeRestrictionPlaceholder", "18");
+        BarcodePlaceholder = await GetTranslationAsync("EnterBarcode", "Enter barcode");
+        CommentPlaceholder = await GetTranslationAsync("EnterComment", "Enter comment");
+
+        // Tooltips
+        CodeTooltip = await GetTranslationAsync("CodeTooltip", "Unique product identifier");
+        PluTooltip = await GetTranslationAsync("PLUTooltip", "Price Look-Up number");
+        NameTooltip = await GetTranslationAsync("NameTooltip", "Product display name");
+        PriceTooltip = await GetTranslationAsync("PriceTooltip", "Selling price");
+        CostTooltip = await GetTranslationAsync("CostTooltip", "Cost price");
+        StockTooltip = await GetTranslationAsync("StockTooltip", "Current stock quantity");
+        DiscountTooltip = await GetTranslationAsync("DiscountTooltip", "Maximum discount percentage");
+        BarcodeTooltip = await GetTranslationAsync("BarcodeTooltip", "Product barcode for scanning");
+
+        // Dropdown options
+        SelectCategoryOption = await GetTranslationAsync("SelectCategory", "Select Category");
+        SelectUnitOption = await GetTranslationAsync("SelectUnit", "Select Unit");
+        SelectStoreOption = await GetTranslationAsync("SelectStore", "Select Store");
+        NoCategoryOption = await GetTranslationAsync("NoCategory", "No Category");
+        NoParentCategoryOption = await GetTranslationAsync("NoParentCategory", "No Parent Category");
+
+        // File dialog
+        SelectImageTitle = await GetTranslationAsync("SelectProductImage", "Select Product Image");
+        ImageFileFilter = await GetTranslationAsync("ImageFileFilter", "Image Files|*.jpg;*.jpeg;*.png;*.bmp;*.gif");
+
+        // Confirmation dialogs
+        ConfirmDeleteTitle = await GetTranslationAsync("ConfirmDelete", "Confirm Delete");
+        ConfirmDeleteMessage = await GetTranslationAsync("ConfirmDeleteMessage", "Are you sure you want to delete this item?");
+        ConfirmResetTitle = await GetTranslationAsync("ConfirmReset", "Confirm Reset");
+        ConfirmResetMessage = await GetTranslationAsync("ConfirmResetMessage", "Are you sure you want to reset all fields?");
+        YesButton = await GetTranslationAsync("Yes", "Yes");
+        NoButton = await GetTranslationAsync("No", "No");
+    }
+
+    private async Task<string> GetTranslationAsync(string key, string fallback)
+    {
+        try
+        {
+            FileLogger.Log($"🔍 [GetTranslation] Looking for key: '{key}', fallback: '{fallback}'");
+            var translation = await _databaseLocalizationService.GetTranslationAsync(key);
+            if (translation != null && translation != key)
+            {
+                FileLogger.Log($"✅ [GetTranslation] Found translation for '{key}': '{translation}'");
+                return translation;
+            }
+            else
+            {
+                FileLogger.Log($"⚠️ [GetTranslation] No translation found for '{key}', using fallback: '{fallback}'");
+                return fallback;
+            }
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"❌ [GetTranslation] Error getting translation for '{key}': {ex.Message}");
+            return fallback;
+        }
+    }
+
+    private void SubscribeToSettingsChanges()
+    {
+        // Subscribe to language changes
+        _localizationService.LanguageChanged += OnLanguageChanged;
+        _databaseLocalizationService.LanguageChanged += OnDatabaseLanguageChanged;
+
+        // Subscribe to layout direction changes
+        _layoutDirectionService.DirectionChanged += OnLayoutDirectionChanged;
+
+        // Subscribe to font changes
+        _fontService.FontChanged += OnFontChanged;
+
+        // Subscribe to other settings changes
+        _themeService.ThemeChanged += OnThemeChanged;
+        _zoomService.ZoomChanged += OnZoomChanged;
+    }
+
+    private void UpdateCurrentSettings()
+    {
+        CurrentZoom = (int)_zoomService.CurrentZoomLevel;
+        CurrentLanguage = _localizationService.CurrentLanguage.ToString();
+        CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
+            ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+        CurrentFontSize = _fontService.CurrentFontSize switch
+        {
+            FontSize.VerySmall => 10.0,
+            FontSize.Small => 12.0,
+            FontSize.Medium => 14.0,
+            FontSize.Large => 16.0,
+            _ => 14.0
+        };
+    }
+
+    private async void OnLanguageChanged(SupportedLanguage newLanguage)
+    {
+        CurrentLanguage = newLanguage.ToString();
+        await LoadTranslationsAsync();
+    }
+
+    private async void OnDatabaseLanguageChanged(object? sender, string languageCode)
+    {
+        FileLogger.LogSeparator("Database Language Changed");
+        FileLogger.Log($"🔄 Database language changed to: {languageCode}");
+        
+        try
+        {
+            FileLogger.Log("🔄 Reloading translations...");
+            await LoadTranslationsAsync();
+            
+            // Force UI update by notifying all translation properties
+            FileLogger.Log("🔄 Forcing UI update for all translated properties");
+            OnPropertyChanged(nameof(AddProductTitle));
+            OnPropertyChanged(nameof(ProductInfoTitle));
+            OnPropertyChanged(nameof(PricingTitle));
+            OnPropertyChanged(nameof(BackButtonText));
+            OnPropertyChanged(nameof(CancelButtonText));
+            OnPropertyChanged(nameof(SaveChangesButtonText));
+            OnPropertyChanged(nameof(AddNewCategoryTitle));
+            OnPropertyChanged(nameof(CategoryNameLabel));
+            OnPropertyChanged(nameof(CodeLabel));
+            OnPropertyChanged(nameof(NameLabel));
+            OnPropertyChanged(nameof(CategoryLabel));
+            OnPropertyChanged(nameof(BrandLabel));
+            OnPropertyChanged(nameof(PurchaseUnitLabel));
+            OnPropertyChanged(nameof(SellingUnitLabel));
+            OnPropertyChanged(nameof(BarcodesTitle));
+            OnPropertyChanged(nameof(UnitPricesTitle));
+            FileLogger.Log($"✅ Language change completed successfully for language: {languageCode}");
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"❌ Error during language change: {ex.Message}");
+            FileLogger.Log($"❌ Stack trace: {ex.StackTrace}");
+        }
+        finally
+        {
+            FileLogger.LogSeparator("Database Language Changed Complete");
+        }
+    }
+
+    private void OnLayoutDirectionChanged(LayoutDirection newDirection)
+    {
+        CurrentFlowDirection = newDirection == LayoutDirection.RightToLeft 
+            ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+    }
+
+    private void OnFontChanged(FontSize newFontSize)
+    {
+        // Convert enum to approximate double value for display
+        CurrentFontSize = newFontSize switch
+        {
+            FontSize.VerySmall => 10.0,
+            FontSize.Small => 12.0,
+            FontSize.Medium => 14.0,
+            FontSize.Large => 16.0,
+            _ => 14.0
+        };
+    }
+
+    private void OnThemeChanged(Theme newTheme)
+    {
+        // Trigger UI update for theme changes
+        OnPropertyChanged(nameof(AddProductTitle));
+    }
+
+    private void OnZoomChanged(ZoomLevel newZoomLevel)
+    {
+        CurrentZoom = (int)newZoomLevel;
+    }
+
+    public void Dispose()
+    {
+        // Unsubscribe from events to prevent memory leaks
+        _localizationService.LanguageChanged -= OnLanguageChanged;
+        _databaseLocalizationService.LanguageChanged -= OnDatabaseLanguageChanged;
+        _layoutDirectionService.DirectionChanged -= OnLayoutDirectionChanged;
+        _fontService.FontChanged -= OnFontChanged;
+        _themeService.ThemeChanged -= OnThemeChanged;
+        _zoomService.ZoomChanged -= OnZoomChanged;
     }
 
     #endregion

@@ -1,5 +1,12 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters">
+
+    <!-- Converters -->
+    <converters:FlowDirectionToTextAlignmentConverter x:Key="FlowDirectionToTextAlignmentConverter"/>
+    <converters:FlowDirectionToHorizontalAlignmentConverter x:Key="FlowDirectionToHorizontalAlignmentConverter"/>
+    <converters:FlowDirectionToReverseHorizontalAlignmentConverter x:Key="FlowDirectionToReverseHorizontalAlignmentConverter"/>
+    <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
 
     <!-- Font Family -->
     <FontFamily x:Key="PoppinsFont">pack://application:,,,/ChronoPos.Desktop;component/Fonts/#Poppins Regular</FontFamily>

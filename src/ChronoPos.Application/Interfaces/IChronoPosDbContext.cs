@@ -1,4 +1,4 @@
-﻿using ChronoPos.Domain.Entities;
+using ChronoPos.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace ChronoPos.Application.Interfaces;

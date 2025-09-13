@@ -808,11 +808,30 @@ public partial class MainWindowViewModel : ObservableObject
         
         try
         {
-            // Create the AddProductView and get its ViewModel from the service provider
+            // Create the AddProductView and manually create ViewModel with navigation callback
             var addProductView = new AddProductView();
+            
+            // Get services from DI container
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback
             var addProductViewModel = new AddProductViewModel(
-                _serviceProvider.GetRequiredService<IProductService>(),
-                () => ShowProductManagement()
+                productService,
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                navigateBack: () => ShowProductManagement() // Navigate back to product management
             );
             
             addProductView.DataContext = addProductViewModel;

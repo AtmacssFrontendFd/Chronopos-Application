@@ -109,6 +109,8 @@ public partial class [ScreenName]ViewModel : ObservableObject
 
     private async void InitializeAsync()
     {
+        // NO MORE per-screen translation seeding!
+        // Translations are already seeded at application startup
         await LoadTranslationsAsync();
         await LoadDataAsync();
         UpdateLayoutDirection();
@@ -119,15 +121,26 @@ public partial class [ScreenName]ViewModel : ObservableObject
     {
         try
         {
-            // Load translated labels for this screen
+            // Simply load translations - they're already seeded at startup!
             Title = await _localizationService.GetTranslationAsync("[screen_name]_title") ?? "[Screen Title]";
-            StatusMessage = await _localizationService.GetTranslationAsync("status_ready") ?? "Ready";
+            StatusMessage = await _localizationService.GetTranslationAsync("[screen_name]_status_ready") ?? "Ready";
+            SearchButtonText = await _localizationService.GetTranslationAsync("[screen_name]_search_button") ?? "🔍 Search";
+            AddNewButtonText = await _localizationService.GetTranslationAsync("[screen_name]_add_new_button") ?? "➕ Add New";
+            DataOverviewText = await _localizationService.GetTranslationAsync("[screen_name]_data_overview") ?? "Data Overview";
+            NameColumnHeader = await _localizationService.GetTranslationAsync("[screen_name]_column_name") ?? "Name";
+            StatusColumnHeader = await _localizationService.GetTranslationAsync("[screen_name]_column_status") ?? "Status";
+            DateColumnHeader = await _localizationService.GetTranslationAsync("[screen_name]_column_date") ?? "Date";
+            StatusLabelText = await _localizationService.GetTranslationAsync("[screen_name]_status_label") ?? "Status:";
+            SearchPlaceholder = await _localizationService.GetTranslationAsync("[screen_name]_search_placeholder") ?? "Search...";
+            RefreshTooltip = await _localizationService.GetTranslationAsync("[screen_name]_refresh_tooltip") ?? "Refresh";
         }
         catch (Exception ex)
         {
             // Fallback to default values if translation fails
             Title = "[Screen Title]";
             StatusMessage = "Ready";
+            // Other fallbacks are already set as default property values
+            System.Diagnostics.Debug.WriteLine($"Translation loading failed: {ex.Message}");
         }
     }
 
@@ -519,13 +532,14 @@ services.AddSingleton<DatabaseLocalizationService>();
 services.AddScoped<I[ServiceName], [ServiceName]>();
 ```
 
-### Step 4: Add Required Keywords to Database
+### Step 4: Add Your Screen's Translations to Central Seeding Service
 
-Before using your new screen, add the required translation keywords to the database:
+**IMPORTANT**: With the new centralized language system, you no longer need to add keywords during screen initialization. Instead, add your translations to the `LanguageSeedingService`.
+
+1. **Open `LanguageSeedingService.cs`** and add your screen's translation method:
 
 ```csharp
-// Create a method to add screen-specific keywords
-public static async Task AddScreenKeywordsAsync(DatabaseLocalizationService localizationService)
+private async Task Seed[ScreenName]TranslationsAsync()
 {
     var keywordTranslations = new Dictionary<string, Dictionary<string, string>>
     {
@@ -538,7 +552,7 @@ public static async Task AddScreenKeywordsAsync(DatabaseLocalizationService loca
             }
         },
         {
-            "search_button",
+            "[screen_name]_search_button",
             new Dictionary<string, string>
             {
                 { "en", "🔍 Search" },
@@ -546,7 +560,7 @@ public static async Task AddScreenKeywordsAsync(DatabaseLocalizationService loca
             }
         },
         {
-            "add_new_button",
+            "[screen_name]_add_new_button",
             new Dictionary<string, string>
             {
                 { "en", "➕ Add New" },
@@ -554,7 +568,7 @@ public static async Task AddScreenKeywordsAsync(DatabaseLocalizationService loca
             }
         },
         {
-            "data_overview",
+            "[screen_name]_data_overview",
             new Dictionary<string, string>
             {
                 { "en", "Data Overview" },
@@ -562,7 +576,7 @@ public static async Task AddScreenKeywordsAsync(DatabaseLocalizationService loca
             }
         },
         {
-            "column_name",
+            "[screen_name]_column_name",
             new Dictionary<string, string>
             {
                 { "en", "Name" },
@@ -570,7 +584,7 @@ public static async Task AddScreenKeywordsAsync(DatabaseLocalizationService loca
             }
         },
         {
-            "column_status",
+            "[screen_name]_column_status",
             new Dictionary<string, string>
             {
                 { "en", "Status" },
@@ -578,7 +592,7 @@ public static async Task AddScreenKeywordsAsync(DatabaseLocalizationService loca
             }
         },
         {
-            "column_date",
+            "[screen_name]_column_date",
             new Dictionary<string, string>
             {
                 { "en", "Date" },
@@ -586,7 +600,7 @@ public static async Task AddScreenKeywordsAsync(DatabaseLocalizationService loca
             }
         },
         {
-            "status_label",
+            "[screen_name]_status_label",
             new Dictionary<string, string>
             {
                 { "en", "Status:" },
@@ -594,19 +608,209 @@ public static async Task AddScreenKeywordsAsync(DatabaseLocalizationService loca
             }
         },
         {
-            "search_placeholder",
+            "[screen_name]_search_placeholder",
             new Dictionary<string, string>
             {
                 { "en", "Search..." },
                 { "ur", "تلاش کریں..." }
             }
+        },
+        {
+            "[screen_name]_refresh_tooltip",
+            new Dictionary<string, string>
+            {
+                { "en", "Refresh" },
+                { "ur", "ریفریش" }
+            }
+        },
+        // Status messages
+        {
+            "[screen_name]_status_loading",
+            new Dictionary<string, string>
+            {
+                { "en", "Loading..." },
+                { "ur", "لوڈ کر رہا ہے..." }
+            }
+        },
+        {
+            "[screen_name]_status_loaded",
+            new Dictionary<string, string>
+            {
+                { "en", "Data loaded successfully" },
+                { "ur", "ڈیٹا کامیابی سے لوڈ ہوا" }
+            }
+        },
+        {
+            "[screen_name]_status_saving",
+            new Dictionary<string, string>
+            {
+                { "en", "Saving..." },
+                { "ur", "محفوظ کر رہا ہے..." }
+            }
+        },
+        {
+            "[screen_name]_status_saved",
+            new Dictionary<string, string>
+            {
+                { "en", "Saved successfully" },
+                { "ur", "کامیابی سے محفوظ ہوا" }
+            }
+        },
+        {
+            "[screen_name]_status_error",
+            new Dictionary<string, string>
+            {
+                { "en", "An error occurred" },
+                { "ur", "ایک خرابی ہوئی" }
+            }
         }
     };
 
-    // Add keywords using the LanguageManager utility
-    var languageManager = new LanguageManager(localizationService);
-    await languageManager.AddMultipleKeywordsAsync(keywordTranslations);
+    // Seed translations using the centralized category approach
+    await SeedTranslationCategoryAsync("[ScreenName]", keywordTranslations);
 }
+```
+
+2. **Add your method to the main seeding process** in `SeedAllTranslationsAsync()`:
+
+```csharp
+private async Task SeedAllTranslationsAsync()
+{
+    try
+    {
+        FileLogger.LogSeparator("LANGUAGE SEEDING STARTED");
+        FileLogger.Log("🌐 Starting comprehensive language seeding for all screens");
+
+        // Seed navigation translations
+        await SeedNavigationTranslationsAsync();
+
+        // Seed common UI translations
+        await SeedCommonTranslationsAsync();
+
+        // Seed screen-specific translations
+        await SeedAddProductTranslationsAsync();
+        await SeedStockManagementTranslationsAsync();
+        await SeedProductManagementTranslationsAsync();
+        await SeedSettingsTranslationsAsync();
+        
+        // ADD YOUR SCREEN HERE:
+        await Seed[ScreenName]TranslationsAsync();
+
+        FileLogger.Log("✅ All language translations seeded successfully");
+        FileLogger.LogSeparator("LANGUAGE SEEDING COMPLETED");
+    }
+    catch (Exception ex)
+    {
+        FileLogger.Log($"❌ ERROR during language seeding: {ex.Message}");
+        FileLogger.Log($"❌ Stack trace: {ex.StackTrace}");
+        throw;
+    }
+}
+```
+
+3. **Translation Key Naming Best Practices**:
+
+```csharp
+// Use consistent prefixes for organization:
+"[screen_name]_title"              // Main page title
+"[screen_name]_subtitle"           // Page subtitle
+"[screen_name]_button_action"      // Action buttons (add, edit, delete, etc.)
+"[screen_name]_label_field"        // Form field labels
+"[screen_name]_column_name"        // Data grid column headers
+"[screen_name]_status_state"       // Status messages (loading, saved, error)
+"[screen_name]_placeholder_field"  // Input placeholders
+"[screen_name]_tooltip_element"    // Tooltips and help text
+"[screen_name]_message_type"       // User messages and confirmations
+```
+
+4. **Comprehensive Translation Categories for Your Screen**:
+
+```csharp
+// Example comprehensive translation set for a new screen:
+private async Task SeedInventoryManagementTranslationsAsync()
+{
+    var translations = new Dictionary<string, Dictionary<string, string>>
+    {
+        // Page Structure
+        { "inventory_title", new() { { "en", "Inventory Management" }, { "ur", "انوینٹری کا انتظام" } } },
+        { "inventory_subtitle", new() { { "en", "Manage your product inventory" }, { "ur", "اپنی پروڈکٹ انوینٹری کا انتظام کریں" } } },
+        
+        // Action Buttons
+        { "inventory_add_product", new() { { "en", "➕ Add Product" }, { "ur", "➕ پروڈکٹ شامل کریں" } } },
+        { "inventory_edit_product", new() { { "en", "✏️ Edit" }, { "ur", "✏️ ترمیم" } } },
+        { "inventory_delete_product", new() { { "en", "🗑️ Delete" }, { "ur", "🗑️ ڈیلیٹ" } } },
+        { "inventory_view_details", new() { { "en", "👁️ View Details" }, { "ur", "👁️ تفصیلات دیکھیں" } } },
+        { "inventory_search_products", new() { { "en", "🔍 Search Products" }, { "ur", "🔍 پروڈکٹس تلاش کریں" } } },
+        { "inventory_filter_category", new() { { "en", "🏷️ Filter by Category" }, { "ur", "🏷️ کیٹگری کے ذریعے فلٹر کریں" } } },
+        { "inventory_export_data", new() { { "en", "📊 Export" }, { "ur", "📊 ایکسپورٹ" } } },
+        { "inventory_refresh_data", new() { { "en", "🔄 Refresh" }, { "ur", "🔄 ریفریش" } } },
+        
+        // Form Labels
+        { "inventory_label_name", new() { { "en", "Product Name:" }, { "ur", "پروڈکٹ کا نام:" } } },
+        { "inventory_label_sku", new() { { "en", "SKU:" }, { "ur", "SKU:" } } },
+        { "inventory_label_category", new() { { "en", "Category:" }, { "ur", "کیٹگری:" } } },
+        { "inventory_label_quantity", new() { { "en", "Quantity:" }, { "ur", "مقدار:" } } },
+        { "inventory_label_price", new() { { "en", "Price:" }, { "ur", "قیمت:" } } },
+        { "inventory_label_cost", new() { { "en", "Cost:" }, { "ur", "لاگت:" } } },
+        { "inventory_label_supplier", new() { { "en", "Supplier:" }, { "ur", "سپلائر:" } } },
+        
+        // Column Headers
+        { "inventory_column_name", new() { { "en", "Product Name" }, { "ur", "پروڈکٹ کا نام" } } },
+        { "inventory_column_sku", new() { { "en", "SKU" }, { "ur", "SKU" } } },
+        { "inventory_column_category", new() { { "en", "Category" }, { "ur", "کیٹگری" } } },
+        { "inventory_column_quantity", new() { { "en", "Qty" }, { "ur", "مقدار" } } },
+        { "inventory_column_price", new() { { "en", "Price" }, { "ur", "قیمت" } } },
+        { "inventory_column_value", new() { { "en", "Total Value" }, { "ur", "کل قیمت" } } },
+        { "inventory_column_status", new() { { "en", "Status" }, { "ur", "حالت" } } },
+        { "inventory_column_actions", new() { { "en", "Actions" }, { "ur", "عمل" } } },
+        
+        // Status Messages
+        { "inventory_status_loading", new() { { "en", "Loading inventory..." }, { "ur", "انوینٹری لوڈ کر رہا ہے..." } } },
+        { "inventory_status_loaded", new() { { "en", "Inventory loaded successfully" }, { "ur", "انوینٹری کامیابی سے لوڈ ہوئی" } } },
+        { "inventory_status_saving", new() { { "en", "Saving product..." }, { "ur", "پروڈکٹ محفوظ کر رہا ہے..." } } },
+        { "inventory_status_saved", new() { { "en", "Product saved successfully" }, { "ur", "پروڈکٹ کامیابی سے محفوظ ہوا" } } },
+        { "inventory_status_deleting", new() { { "en", "Deleting product..." }, { "ur", "پروڈکٹ ڈیلیٹ کر رہا ہے..." } } },
+        { "inventory_status_deleted", new() { { "en", "Product deleted successfully" }, { "ur", "پروڈکٹ کامیابی سے ڈیلیٹ ہوا" } } },
+        { "inventory_status_error", new() { { "en", "An error occurred" }, { "ur", "ایک خرابی ہوئی" } } },
+        { "inventory_status_search_empty", new() { { "en", "Enter search terms" }, { "ur", "تلاش کے الفاظ درج کریں" } } },
+        { "inventory_status_searching", new() { { "en", "Searching..." }, { "ur", "تلاش کر رہا ہے..." } } },
+        { "inventory_status_no_results", new() { { "en", "No products found" }, { "ur", "کوئی پروڈکٹ نہیں ملا" } } },
+        
+        // Placeholders
+        { "inventory_placeholder_search", new() { { "en", "Search products..." }, { "ur", "پروڈکٹس تلاش کریں..." } } },
+        { "inventory_placeholder_name", new() { { "en", "Enter product name" }, { "ur", "پروڈکٹ کا نام درج کریں" } } },
+        { "inventory_placeholder_sku", new() { { "en", "Enter SKU" }, { "ur", "SKU درج کریں" } } },
+        { "inventory_placeholder_quantity", new() { { "en", "Enter quantity" }, { "ur", "مقدار درج کریں" } } },
+        
+        // Tooltips
+        { "inventory_tooltip_add", new() { { "en", "Add new product to inventory" }, { "ur", "انوینٹری میں نیا پروڈکٹ شامل کریں" } } },
+        { "inventory_tooltip_edit", new() { { "en", "Edit product details" }, { "ur", "پروڈکٹ کی تفصیلات میں ترمیم کریں" } } },
+        { "inventory_tooltip_delete", new() { { "en", "Delete product from inventory" }, { "ur", "انوینٹری سے پروڈکٹ ڈیلیٹ کریں" } } },
+        { "inventory_tooltip_refresh", new() { { "en", "Refresh inventory data" }, { "ur", "انوینٹری کا ڈیٹا ریفریش کریں" } } },
+        
+        // Confirmations
+        { "inventory_confirm_delete", new() { { "en", "Are you sure you want to delete this product?" }, { "ur", "کیا آپ اس پروڈکٹ کو ڈیلیٹ کرنا چاہتے ہیں؟" } } },
+        { "inventory_confirm_save", new() { { "en", "Save product changes?" }, { "ur", "پروڈکٹ کی تبدیلیاں محفوظ کریں؟" } } }
+    };
+
+    await SeedTranslationCategoryAsync("Inventory", translations);
+}
+```
+
+**Benefits of the New Centralized Approach:**
+
+✅ **Simplified Development**: No per-screen keyword management  
+✅ **Better Performance**: All translations loaded once at startup  
+✅ **Consistency**: Same translation availability across all screens  
+✅ **Easier Maintenance**: Central location for all translation updates  
+✅ **Faster Navigation**: No database operations during screen switches  
+
+**What You NO LONGER Need to Do:**
+
+❌ ~~Call `EnsureTranslationKeywordsAsync()` in ViewModel~~  
+❌ ~~Add keyword seeding to screen initialization~~  
+❌ ~~Manage per-screen translation databases~~  
+❌ ~~Handle translation loading failures during navigation~~
 ```
 
 ### Step 5: Add Navigation to MainWindow with Settings Integration
@@ -688,79 +892,309 @@ Update `MainWindow.xaml` to add a navigation button with proper selection highli
 
 ## 🎨 Complete Settings Integration Guide
 
-### Database-Driven Language System
+### 🌐 Centralized Language System (Updated 2025)
+
+#### NEW: Application-Level Translation Seeding
+
+ChronoPos now uses a **centralized language seeding system** that loads all translations at application startup. This eliminates per-screen seeding and ensures consistent language support across all screens.
+
+**Key Benefits:**
+- ✅ **No per-screen keyword seeding required** - All translations loaded at startup
+- ✅ **Faster screen loading** - No database operations during navigation
+- ✅ **Consistent language availability** - All screens have same translation coverage
+- ✅ **Simplified development** - Focus on UI binding, not translation management
+
+#### How the New System Works
+
+1. **Application Startup (`App.xaml.cs`)**:
+   ```csharp
+   // Language seeding happens once during app startup
+   protected override async void OnStartup(StartupEventArgs e)
+   {
+       base.OnStartup(e);
+       
+       // Seed all translations for all screens at startup
+       var languageSeedingService = _serviceProvider.GetRequiredService<LanguageSeedingService>();
+       await languageSeedingService.SeedLanguageTranslationsAsync();
+       
+       // Show main window
+       var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+       mainWindow.Show();
+   }
+   ```
+
+2. **Centralized Translation Management (`LanguageSeedingService.cs`)**:
+   ```csharp
+   public class LanguageSeedingService
+   {
+       public async Task SeedLanguageTranslationsAsync()
+       {
+           // Seeds ALL translations for ALL screens in one operation
+           await SeedAllTranslationsAsync();
+       }
+       
+       private async Task SeedAllTranslationsAsync()
+       {
+           // Navigation translations
+           await SeedNavigationTranslationsAsync();
+           
+           // Common UI translations
+           await SeedCommonTranslationsAsync();
+           
+           // Screen-specific translations
+           await SeedAddProductTranslationsAsync();
+           await SeedInventoryTranslationsAsync();
+           await SeedSettingsTranslationsAsync();
+           // Add your screen here: await SeedYourScreenTranslationsAsync();
+       }
+   }
+   ```
 
 #### Implementing Multi-Language Support in Your Screen
 
-1. **Add Translation Properties to ViewModel:**
+**Step 1: Add Translation Properties to ViewModel**
 ```csharp
-[ObservableProperty]
-private string _searchButtonText = "🔍 Search";
-
-[ObservableProperty]
-private string _addNewButtonText = "➕ Add New";
-
-[ObservableProperty]
-private string _dataOverviewText = "Data Overview";
-
-[ObservableProperty]
-private string _nameColumnHeader = "Name";
-
-[ObservableProperty]
-private string _statusColumnHeader = "Status";
-
-[ObservableProperty]
-private string _dateColumnHeader = "Date";
-
-[ObservableProperty]
-private string _statusLabelText = "Status:";
-
-[ObservableProperty]
-private string _searchPlaceholder = "Search...";
-
-[ObservableProperty]
-private string _refreshTooltip = "Refresh";
-
-// Load all translations
-private async Task LoadTranslationsAsync()
+public partial class [ScreenName]ViewModel : ObservableObject
 {
-    try
+    private readonly DatabaseLocalizationService _databaseLocalizationService;
+
+    [ObservableProperty]
+    private string _title = "[Screen Title]";
+
+    [ObservableProperty]
+    private string _searchButtonText = "🔍 Search";
+
+    [ObservableProperty]
+    private string _addNewButtonText = "➕ Add New";
+
+    [ObservableProperty]
+    private string _dataOverviewText = "Data Overview";
+
+    [ObservableProperty]
+    private string _nameColumnHeader = "Name";
+
+    [ObservableProperty]
+    private string _statusColumnHeader = "Status";
+
+    [ObservableProperty]
+    private string _dateColumnHeader = "Date";
+
+    [ObservableProperty]
+    private string _statusLabelText = "Status:";
+
+    [ObservableProperty]
+    private string _searchPlaceholder = "Search...";
+
+    [ObservableProperty]
+    private string _refreshTooltip = "Refresh";
+
+    public [ScreenName]ViewModel(DatabaseLocalizationService databaseLocalizationService)
     {
-        Title = await _localizationService.GetTranslationAsync("[screen_name]_title") ?? "[Screen Title]";
-        SearchButtonText = await _localizationService.GetTranslationAsync("search_button") ?? "🔍 Search";
-        AddNewButtonText = await _localizationService.GetTranslationAsync("add_new_button") ?? "➕ Add New";
-        DataOverviewText = await _localizationService.GetTranslationAsync("data_overview") ?? "Data Overview";
-        NameColumnHeader = await _localizationService.GetTranslationAsync("column_name") ?? "Name";
-        StatusColumnHeader = await _localizationService.GetTranslationAsync("column_status") ?? "Status";
-        DateColumnHeader = await _localizationService.GetTranslationAsync("column_date") ?? "Date";
-        StatusLabelText = await _localizationService.GetTranslationAsync("status_label") ?? "Status:";
-        SearchPlaceholder = await _localizationService.GetTranslationAsync("search_placeholder") ?? "Search...";
-        RefreshTooltip = await _localizationService.GetTranslationAsync("refresh_tooltip") ?? "Refresh";
+        _databaseLocalizationService = databaseLocalizationService;
+        
+        // Subscribe to language changes for real-time updates
+        _databaseLocalizationService.LanguageChanged += OnLanguageChanged;
+        
+        // Load translations (they're already seeded at startup)
+        InitializeAsync();
     }
-    catch (Exception ex)
+
+    private async void InitializeAsync()
     {
-        // Log error and use fallback values
-        // Fallback values are already set as default values
+        await LoadTranslationsAsync();
+    }
+
+    private async Task LoadTranslationsAsync()
+    {
+        try
+        {
+            // Simply load translations - no seeding required!
+            Title = await _databaseLocalizationService.GetTranslationAsync("[screen_name]_title") ?? "[Screen Title]";
+            SearchButtonText = await _databaseLocalizationService.GetTranslationAsync("search_button") ?? "🔍 Search";
+            AddNewButtonText = await _databaseLocalizationService.GetTranslationAsync("add_new_button") ?? "➕ Add New";
+            DataOverviewText = await _databaseLocalizationService.GetTranslationAsync("data_overview") ?? "Data Overview";
+            NameColumnHeader = await _databaseLocalizationService.GetTranslationAsync("column_name") ?? "Name";
+            StatusColumnHeader = await _databaseLocalizationService.GetTranslationAsync("column_status") ?? "Status";
+            DateColumnHeader = await _databaseLocalizationService.GetTranslationAsync("column_date") ?? "Date";
+            StatusLabelText = await _databaseLocalizationService.GetTranslationAsync("status_label") ?? "Status:";
+            SearchPlaceholder = await _databaseLocalizationService.GetTranslationAsync("search_placeholder") ?? "Search...";
+            RefreshTooltip = await _databaseLocalizationService.GetTranslationAsync("refresh_tooltip") ?? "Refresh";
+        }
+        catch (Exception ex)
+        {
+            // Log error and use fallback values
+            System.Diagnostics.Debug.WriteLine($"Translation loading error: {ex.Message}");
+            // Fallback values are already set as default values
+        }
+    }
+
+    private async void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        // Reload translations when language changes
+        await LoadTranslationsAsync();
+    }
+
+    public void Dispose()
+    {
+        _databaseLocalizationService.LanguageChanged -= OnLanguageChanged;
     }
 }
 ```
 
-2. **Add Keywords to Database on First Run:**
+**Step 2: Add Your Screen's Translations to LanguageSeedingService**
 ```csharp
-// In your initialization code or during app startup
-public static async Task EnsureScreenKeywordsAsync(DatabaseLocalizationService localizationService)
+// In LanguageSeedingService.cs, add your screen's translation method:
+
+private async Task SeedYourScreenTranslationsAsync()
 {
-    var languageManager = new LanguageManager(localizationService);
-    
-    // Define your screen's keywords
-    var screenKeywords = new Dictionary<string, Dictionary<string, string>>
+    var translations = new Dictionary<string, Dictionary<string, string>>
     {
-        // Add all keywords for your screen here
-        // Follow the pattern from Step 4 above
+        // Screen-specific translations
+        { "[screen_name]_title", new() { { "en", "Your Screen Title" }, { "ur", "آپ کی اسکرین کا عنوان" } } },
+        { "[screen_name]_subtitle", new() { { "en", "Manage your data" }, { "ur", "اپنا ڈیٹا منظم کریں" } } },
+        
+        // Action buttons specific to your screen
+        { "[screen_name]_add_button", new() { { "en", "➕ Add New Item" }, { "ur", "➕ نیا آئٹم شامل کریں" } } },
+        { "[screen_name]_edit_button", new() { { "en", "✏️ Edit Item" }, { "ur", "✏️ آئٹم میں ترمیم کریں" } } },
+        { "[screen_name]_delete_button", new() { { "en", "🗑️ Delete Item" }, { "ur", "🗑️ آئٹم کو ڈیلیٹ کریں" } } },
+        
+        // Status messages specific to your screen
+        { "[screen_name]_loading", new() { { "en", "Loading data..." }, { "ur", "ڈیٹا لوڈ کر رہا ہے..." } } },
+        { "[screen_name]_saved", new() { { "en", "Data saved successfully" }, { "ur", "ڈیٹا کامیابی سے محفوظ ہوگیا" } } },
+        { "[screen_name]_error", new() { { "en", "An error occurred" }, { "ur", "ایک خرابی ہوئی" } } },
+        
+        // Form labels specific to your screen
+        { "[screen_name]_name_label", new() { { "en", "Item Name:" }, { "ur", "آئٹم کا نام:" } } },
+        { "[screen_name]_description_label", new() { { "en", "Description:" }, { "ur", "تفصیل:" } } },
+        { "[screen_name]_category_label", new() { { "en", "Category:" }, { "ur", "کیٹگری:" } } },
+        
+        // Column headers for data grids
+        { "[screen_name]_column_id", new() { { "en", "ID" }, { "ur", "شناخت" } } },
+        { "[screen_name]_column_name", new() { { "en", "Name" }, { "ur", "نام" } } },
+        { "[screen_name]_column_status", new() { { "en", "Status" }, { "ur", "حالت" } } },
+        { "[screen_name]_column_date", new() { { "en", "Date" }, { "ur", "تاریخ" } } },
+        { "[screen_name]_column_actions", new() { { "en", "Actions" }, { "ur", "عمل" } } }
     };
-    
-    await languageManager.AddMultipleKeywordsAsync(screenKeywords);
+
+    await SeedTranslationCategoryAsync("YourScreen", translations);
 }
+
+// Then add this call to SeedAllTranslationsAsync():
+private async Task SeedAllTranslationsAsync()
+{
+    // ... existing seeding calls ...
+    
+    // Add your screen translation seeding
+    await SeedYourScreenTranslationsAsync();
+}
+```
+
+**Step 3: Register Your Screen Translation Keywords**
+```csharp
+// NO MORE PER-SCREEN KEYWORD REGISTRATION NEEDED!
+// Everything is handled at application startup through LanguageSeedingService
+
+// Old approach (NO LONGER NEEDED):
+// public static async Task EnsureScreenKeywordsAsync(DatabaseLocalizationService localizationService)
+// {
+//     // This is no longer required!
+// }
+
+// New approach: Just add translations to LanguageSeedingService and you're done!
+```
+
+#### XAML Integration (No Changes Required)
+
+Your XAML remains exactly the same - the binding approach is unchanged:
+
+```xml
+<UserControl FlowDirection="{Binding CurrentFlowDirection}">
+    <StackPanel>
+        <!-- All text elements bind to ViewModel properties -->
+        <TextBlock Text="{Binding Title}" FontSize="{DynamicResource FontSizeLarge}"/>
+        <Button Content="{Binding SearchButtonText}" Command="{Binding SearchCommand}"/>
+        <Button Content="{Binding AddNewButtonText}" Command="{Binding AddNewCommand}"/>
+        
+        <!-- Data grid with translated headers -->
+        <DataGrid>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="{Binding NameColumnHeader}" Binding="{Binding Name}"/>
+                <DataGridTextColumn Header="{Binding StatusColumnHeader}" Binding="{Binding Status}"/>
+                <DataGridTextColumn Header="{Binding DateColumnHeader}" Binding="{Binding Date}"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </StackPanel>
+</UserControl>
+```
+
+#### Migration from Old System
+
+If you have existing screens using the old per-screen seeding approach:
+
+1. **Remove keyword seeding from ViewModels**:
+   ```csharp
+   // REMOVE these calls from your ViewModels:
+   // await EnsureKeywordsExistAsync();
+   // await AddProductTranslations.EnsureTranslationKeywordsAsync(_databaseLocalizationService);
+   ```
+
+2. **Move translations to LanguageSeedingService**:
+   ```csharp
+   // Move your keyword dictionaries from ViewModels to LanguageSeedingService methods
+   ```
+
+3. **Simplify LoadTranslationsAsync**:
+   ```csharp
+   private async Task LoadTranslationsAsync()
+   {
+       // Only load translations - no seeding!
+       Title = await _databaseLocalizationService.GetTranslationAsync("screen_title") ?? "Default Title";
+       // ... other translations
+   }
+   ```
+
+#### Performance Benefits
+
+**Before (Per-Screen Seeding):**
+- Each screen navigation: Database checks + potential insertions
+- Slow screen loading due to database operations
+- Duplicate keyword checking across screens
+
+**After (Centralized Seeding):**
+- Application startup: One-time database seeding
+- Fast screen navigation: Only translation retrieval
+- No duplicate operations
+
+#### Best Practices for New Screens
+
+1. **Translation Key Naming Convention**:
+   ```csharp
+   // Use consistent prefixes for your screen
+   "[screen_name]_title"          // Main screen title
+   "[screen_name]_button_name"    // Action buttons
+   "[screen_name]_label_field"    // Form labels
+   "[screen_name]_column_name"    // Data grid columns
+   "[screen_name]_message_type"   // Status messages
+   ```
+
+2. **Fallback Values**:
+   ```csharp
+   // Always provide meaningful fallbacks
+   Title = await _service.GetTranslationAsync("inventory_title") ?? "Inventory Management";
+   ```
+
+3. **Language Change Handling**:
+   ```csharp
+   // Subscribe to language changes for real-time updates
+   _databaseLocalizationService.LanguageChanged += OnLanguageChanged;
+   ```
+
+4. **Translation Testing**:
+   ```csharp
+   // Test both languages during development
+   // Verify fallbacks work when translations are missing
+   // Check RTL layout with Urdu translations
+   ```
 ```
 
 ### Theme System Integration
@@ -1804,6 +2238,7 @@ This comprehensive guide ensures that all new screens you create will be fully i
 - [ ] Identify which UI elements need RTL support
 - [ ] Consider color scheme and theme dependencies
 - [ ] Plan status messages and user feedback text
+- [ ] **NEW**: Add your translation method to `LanguageSeedingService.cs`
 
 ### ✅ ViewModel Requirements
 - [ ] Inject all settings services: `DatabaseLocalizationService`, `ThemeService`, `ColorSchemeService`, `LayoutDirectionService`, `ZoomService`
@@ -1811,8 +2246,9 @@ This comprehensive guide ensures that all new screens you create will be fully i
 - [ ] Add `ZoomLevel` property for zoom level awareness
 - [ ] Create translated properties for all user-visible text
 - [ ] Subscribe to `LanguageChanged`, `LayoutDirectionChanged`, and `ZoomChanged` events
-- [ ] Implement `LoadTranslationsAsync()` method
-- [ ] Add keywords to database using `LanguageManager`
+- [ ] Implement `LoadTranslationsAsync()` method (translation loading only - NO seeding!)
+- [ ] **REMOVED**: ~~Add keywords to database using `LanguageManager`~~ (Now handled at startup)
+- [ ] **REMOVED**: ~~Call `EnsureTranslationKeywordsAsync()`~~ (No longer needed)
 - [ ] Provide fallback values for all translations
 - [ ] Handle zoom-specific logic if needed (optional)
 
@@ -1834,55 +2270,71 @@ This comprehensive guide ensures that all new screens you create will be fully i
 - [ ] Implement proper selection highlighting with `SelectedPage`
 - [ ] Add navigation button to `MainWindow.xaml`
 
-### ✅ Translation Keywords Template
+### ✅ NEW: Centralized Translation Setup
+- [ ] Add translation method to `LanguageSeedingService.cs`
+- [ ] Call your translation method in `SeedAllTranslationsAsync()`
+- [ ] Use consistent naming convention for translation keys
+- [ ] Include comprehensive translations (buttons, labels, status messages, tooltips)
+- [ ] Test application startup to ensure translations are seeded properly
+
+### ✅ Translation Keywords Template (For LanguageSeedingService)
 ```csharp
-var screenKeywords = new Dictionary<string, Dictionary<string, string>>
+private async Task Seed[ScreenName]TranslationsAsync()
 {
-    // Page titles
-    { "[screen_name]_title", new() { { "en", "English Title" }, { "ur", "اردو عنوان" } } },
-    
-    // Button labels
-    { "search_button", new() { { "en", "🔍 Search" }, { "ur", "🔍 تلاش کریں" } } },
-    { "add_new_button", new() { { "en", "➕ Add New" }, { "ur", "➕ نیا شامل کریں" } } },
-    { "save_button", new() { { "en", "💾 Save" }, { "ur", "💾 محفوظ کریں" } } },
-    { "delete_button", new() { { "en", "🗑️ Delete" }, { "ur", "🗑️ ڈیلیٹ کریں" } } },
-    { "edit_button", new() { { "en", "✏️ Edit" }, { "ur", "✏️ ترمیم کریں" } } },
-    { "refresh_button", new() { { "en", "🔄 Refresh" }, { "ur", "🔄 ریفریش کریں" } } },
-    
-    // Column headers
-    { "column_name", new() { { "en", "Name" }, { "ur", "نام" } } },
-    { "column_status", new() { { "en", "Status" }, { "ur", "حالت" } } },
-    { "column_date", new() { { "en", "Date" }, { "ur", "تاریخ" } } },
-    { "column_amount", new() { { "en", "Amount" }, { "ur", "رقم" } } },
-    { "column_actions", new() { { "en", "Actions" }, { "ur", "عمل" } } },
-    
-    // Status messages
-    { "status_ready", new() { { "en", "Ready" }, { "ur", "تیار" } } },
-    { "status_loading", new() { { "en", "Loading..." }, { "ur", "لوڈ کر رہا ہے..." } } },
-    { "status_saving", new() { { "en", "Saving..." }, { "ur", "محفوظ کر رہا ہے..." } } },
-    { "status_saved", new() { { "en", "Saved successfully" }, { "ur", "کامیابی سے محفوظ ہوا" } } },
-    { "status_error", new() { { "en", "An error occurred" }, { "ur", "ایک خرابی ہوئی" } } },
-    { "status_deleted", new() { { "en", "Deleted successfully" }, { "ur", "کامیابی سے ڈیلیٹ ہوا" } } },
-    
-    // Form labels
-    { "label_name", new() { { "en", "Name:" }, { "ur", "نام:" } } },
-    { "label_description", new() { { "en", "Description:" }, { "ur", "تفصیل:" } } },
-    { "label_price", new() { { "en", "Price:" }, { "ur", "قیمت:" } } },
-    { "label_quantity", new() { { "en", "Quantity:" }, { "ur", "مقدار:" } } },
-    
-    // Placeholders
-    { "placeholder_search", new() { { "en", "Search..." }, { "ur", "تلاش کریں..." } } },
-    { "placeholder_enter_name", new() { { "en", "Enter name" }, { "ur", "نام درج کریں" } } },
-    { "placeholder_enter_amount", new() { { "en", "Enter amount" }, { "ur", "رقم درج کریں" } } },
-    
-    // Confirmations
-    { "confirm_delete", new() { { "en", "Are you sure you want to delete this item?" }, { "ur", "کیا آپ اس آئٹم کو ڈیلیٹ کرنا چاہتے ہیں؟" } } },
-    { "confirm_save", new() { { "en", "Save changes?" }, { "ur", "تبدیلیاں محفوظ کریں؟" } } },
-    
-    // Tooltips
-    { "tooltip_refresh", new() { { "en", "Refresh data" }, { "ur", "ڈیٹا ریفریش کریں" } } },
-    { "tooltip_settings", new() { { "en", "Open settings" }, { "ur", "سیٹنگز کھولیں" } } }
-};
+    var screenKeywords = new Dictionary<string, Dictionary<string, string>>
+    {
+        // Page structure
+        { "[screen_name]_title", new() { { "en", "English Title" }, { "ur", "اردو عنوان" } } },
+        { "[screen_name]_subtitle", new() { { "en", "Page Description" }, { "ur", "صفحہ کی تفصیل" } } },
+        
+        // Action buttons
+        { "[screen_name]_search_button", new() { { "en", "🔍 Search" }, { "ur", "🔍 تلاش کریں" } } },
+        { "[screen_name]_add_new_button", new() { { "en", "➕ Add New" }, { "ur", "➕ نیا شامل کریں" } } },
+        { "[screen_name]_save_button", new() { { "en", "💾 Save" }, { "ur", "💾 محفوظ کریں" } } },
+        { "[screen_name]_delete_button", new() { { "en", "🗑️ Delete" }, { "ur", "🗑️ ڈیلیٹ کریں" } } },
+        { "[screen_name]_edit_button", new() { { "en", "✏️ Edit" }, { "ur", "✏️ ترمیم کریں" } } },
+        { "[screen_name]_refresh_button", new() { { "en", "🔄 Refresh" }, { "ur", "🔄 ریفریش کریں" } } },
+        
+        // Column headers
+        { "[screen_name]_column_name", new() { { "en", "Name" }, { "ur", "نام" } } },
+        { "[screen_name]_column_status", new() { { "en", "Status" }, { "ur", "حالت" } } },
+        { "[screen_name]_column_date", new() { { "en", "Date" }, { "ur", "تاریخ" } } },
+        { "[screen_name]_column_amount", new() { { "en", "Amount" }, { "ur", "رقم" } } },
+        { "[screen_name]_column_actions", new() { { "en", "Actions" }, { "ur", "عمل" } } },
+        
+        // Status messages
+        { "[screen_name]_status_ready", new() { { "en", "Ready" }, { "ur", "تیار" } } },
+        { "[screen_name]_status_loading", new() { { "en", "Loading..." }, { "ur", "لوڈ کر رہا ہے..." } } },
+        { "[screen_name]_status_saving", new() { { "en", "Saving..." }, { "ur", "محفوظ کر رہا ہے..." } } },
+        { "[screen_name]_status_saved", new() { { "en", "Saved successfully" }, { "ur", "کامیابی سے محفوظ ہوا" } } },
+        { "[screen_name]_status_error", new() { { "en", "An error occurred" }, { "ur", "ایک خرابی ہوئی" } } },
+        { "[screen_name]_status_deleted", new() { { "en", "Deleted successfully" }, { "ur", "کامیابی سے ڈیلیٹ ہوا" } } },
+        
+        // Form labels
+        { "[screen_name]_label_name", new() { { "en", "Name:" }, { "ur", "نام:" } } },
+        { "[screen_name]_label_description", new() { { "en", "Description:" }, { "ur", "تفصیل:" } } },
+        { "[screen_name]_label_price", new() { { "en", "Price:" }, { "ur", "قیمت:" } } },
+        { "[screen_name]_label_quantity", new() { { "en", "Quantity:" }, { "ur", "مقدار:" } } },
+        
+        // Placeholders
+        { "[screen_name]_placeholder_search", new() { { "en", "Search..." }, { "ur", "تلاش کریں..." } } },
+        { "[screen_name]_placeholder_enter_name", new() { { "en", "Enter name" }, { "ur", "نام درج کریں" } } },
+        { "[screen_name]_placeholder_enter_amount", new() { { "en", "Enter amount" }, { "ur", "رقم درج کریں" } } },
+        
+        // Confirmations
+        { "[screen_name]_confirm_delete", new() { { "en", "Are you sure you want to delete this item?" }, { "ur", "کیا آپ اس آئٹم کو ڈیلیٹ کرنا چاہتے ہیں؟" } } },
+        { "[screen_name]_confirm_save", new() { { "en", "Save changes?" }, { "ur", "تبدیلیاں محفوظ کریں؟" } } },
+        
+        // Tooltips
+        { "[screen_name]_tooltip_refresh", new() { { "en", "Refresh data" }, { "ur", "ڈیٹا ریفریش کریں" } } },
+        { "[screen_name]_tooltip_settings", new() { { "en", "Open settings" }, { "ur", "سیٹنگز کھولیں" } } }
+    };
+
+    await SeedTranslationCategoryAsync("[ScreenName]", screenKeywords);
+}
+
+// Remember to add this method call to SeedAllTranslationsAsync():
+// await Seed[ScreenName]TranslationsAsync();
 ```
 
 ### ✅ Essential XAML Template
@@ -1939,6 +2391,104 @@ TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDire
 ```
 
 By following this comprehensive guide, every new screen you create will seamlessly integrate with ChronoPos's advanced settings system, providing users with a consistent, accessible, and customizable experience that supports multiple languages, themes, color schemes, layout directions, and font preferences.
+
+## 🔄 Migration from Old Language System (Important)
+
+### If You Have Existing Screens Using Per-Screen Seeding
+
+**Step 1: Remove Per-Screen Seeding Code**
+```csharp
+// REMOVE these from your existing ViewModels:
+
+// ❌ Remove from constructor or initialization:
+// await EnsureKeywordsExistAsync();
+// await AddProductTranslations.EnsureTranslationKeywordsAsync(_databaseLocalizationService);
+
+// ❌ Remove these methods entirely:
+// public static async Task EnsureScreenKeywordsAsync(DatabaseLocalizationService localizationService)
+// private async Task EnsureKeywordsExistAsync()
+
+// ❌ Remove these calls from LoadTranslationsAsync:
+// await _databaseLocalizationService.EnsureKeywordExistsAsync("keyword", "English", "اردو");
+```
+
+**Step 2: Move Translations to LanguageSeedingService**
+```csharp
+// Move your translation dictionaries from ViewModels to LanguageSeedingService.cs
+// Change from per-screen seeding to centralized seeding
+```
+
+**Step 3: Update LoadTranslationsAsync**
+```csharp
+// Simplify your LoadTranslationsAsync method:
+private async Task LoadTranslationsAsync()
+{
+    try
+    {
+        // Only load translations - no seeding!
+        Title = await _databaseLocalizationService.GetTranslationAsync("screen_title") ?? "Default Title";
+        SearchButtonText = await _databaseLocalizationService.GetTranslationAsync("search_button") ?? "🔍 Search";
+        // ... other translations
+    }
+    catch (Exception ex)
+    {
+        // Log error and use fallback values
+        System.Diagnostics.Debug.WriteLine($"Translation loading error: {ex.Message}");
+    }
+}
+```
+
+**Step 4: Update Translation Keys (If Needed)**
+```csharp
+// If your existing keys don't follow the new convention, update them:
+// Old: "search_button" 
+// New: "[screen_name]_search_button"
+
+// Or keep using existing keys if they're already unique
+```
+
+### Benefits After Migration
+
+**Before (Old System):**
+- Each screen load: 200-500ms for keyword checking/seeding
+- Database operations during navigation
+- Potential for duplicate keywords across screens
+- Slower screen transitions
+
+**After (New System):**
+- Application startup: One-time 2-3 second translation seeding
+- Screen load: 10-50ms for translation retrieval only
+- No duplicate operations
+- Fast screen transitions
+
+### Testing After Migration
+
+1. **Test Application Startup**: Verify all translations load once at startup
+2. **Test Screen Navigation**: Confirm fast loading without database operations
+3. **Test Language Switching**: Verify all screens update immediately
+4. **Test Missing Translations**: Confirm fallback values work correctly
+
+## 🎯 Summary of New Language System
+
+### What's New in 2025
+- ✅ **Centralized seeding** via `LanguageSeedingService`
+- ✅ **Application startup seeding** in `App.xaml.cs`
+- ✅ **No per-screen keyword management**
+- ✅ **Faster screen navigation**
+- ✅ **Simplified development workflow**
+
+### Development Workflow
+1. **Create ViewModel** with translation properties
+2. **Add translation method** to `LanguageSeedingService`
+3. **Call translation method** in `SeedAllTranslationsAsync()`
+4. **Bind XAML** to ViewModel properties
+5. **Test** language switching functionality
+
+### Key Files
+- `LanguageSeedingService.cs` - Central translation management
+- `App.xaml.cs` - Application startup seeding
+- `[Screen]ViewModel.cs` - Translation property definitions
+- `[Screen]View.xaml` - UI binding to translated properties
 
 ## Data Binding Best Practices
 

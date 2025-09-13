@@ -7,7 +7,9 @@
              xmlns:controls="clr-namespace:ChronoPos.Desktop.Controls"
              xmlns:local="clr-namespace:ChronoPos.Desktop.Views"
              mc:Ignorable="d" 
-             Background="#F8F9FA">
+             Background="{DynamicResource MainBackground}"
+             FlowDirection="{Binding CurrentFlowDirection}"
+             FontFamily="{DynamicResource PoppinsFontFallback}">
 
     <UserControl.Resources>
         <!-- Converters -->
@@ -21,31 +23,32 @@
         <Style x:Key="SidebarButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="15,12"/>
+            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
-            <Setter Property="HorizontalContentAlignment" Value="Left"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="HorizontalContentAlignment" Value="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
             <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Foreground" Value="#6C757D"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Margin" Value="{DynamicResource DefaultMarginThickness}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="ButtonBorder"
                                 Background="{TemplateBinding Background}"
-                                CornerRadius="6"
-                                Margin="8,2">
+                                CornerRadius="{DynamicResource BorderCornerRadius}"
+                                Margin="{DynamicResource DefaultMarginThickness}">
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
                                             VerticalAlignment="Center"
                                             Margin="{TemplateBinding Padding}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Background" Value="#F8F9FA"/>
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource OverlayBackground}"/>
                             </Trigger>
                             <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=(local:AddProductView.IsSelected)}" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Background" Value="#FFC107"/>
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource Primary}"/>
                                 <Setter Property="Foreground" Value="White"/>
                                 <Setter Property="FontWeight" Value="SemiBold"/>
                             </DataTrigger>
@@ -56,51 +59,89 @@
         </Style>
 
         <Style x:Key="FormSectionStyle" TargetType="Border">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Padding" Value="20"/>
+            <Setter Property="CornerRadius" Value="{DynamicResource BorderCornerRadius}"/>
+            <Setter Property="Margin" Value="{DynamicResource DefaultMarginThickness}"/>
+            <Setter Property="Padding" Value="{DynamicResource CardPaddingThickness}"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="LightGray" Direction="270" BlurRadius="5" ShadowDepth="2" Opacity="0.3"/>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeLarge}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#495057"/>
-            <Setter Property="Margin" Value="0,0,0,20"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="Margin" Value="{DynamicResource DefaultMarginThickness}"/>
+            <Setter Property="TextAlignment" Value="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
         </Style>
 
         <Style x:Key="FieldLabelStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
             <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Foreground" Value="#6C757D"/>
-            <Setter Property="Margin" Value="0,0,0,5"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="Margin" Value="{DynamicResource DefaultMarginThickness}"/>
+            <Setter Property="TextAlignment" Value="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
         </Style>
 
         <Style x:Key="FormTextBoxStyle" TargetType="TextBox">
-            <Setter Property="Height" Value="35"/>
-            <Setter Property="Padding" Value="10"/>
-            <Setter Property="BorderBrush" Value="#DEE2E6"/>
+            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Margin" Value="0,0,0,15"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Margin" Value="{DynamicResource DefaultMarginThickness}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FlowDirection" Value="{Binding CurrentFlowDirection}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                        Focusable="false"
+                                        HorizontalScrollBarVisibility="Hidden"
+                                        VerticalScrollBarVisibility="Hidden"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextDisabled}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="FormButtonStyle" TargetType="Button">
-            <Setter Property="Height" Value="40"/>
-            <Setter Property="Padding" Value="20,8"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Margin" Value="{DynamicResource DefaultMarginThickness}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                                CornerRadius="6">
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
                             <ContentPresenter HorizontalAlignment="Center" 
                                             VerticalAlignment="Center"
                                             Margin="{TemplateBinding Padding}"/>
@@ -127,82 +168,115 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
-            <Grid Margin="20">
+        <Border Grid.Row="0" 
+                Background="{DynamicResource CardBackground}" 
+                BorderBrush="{DynamicResource BorderLight}" 
+                BorderThickness="0,0,0,1">
+            <Grid Margin="{DynamicResource DefaultMarginThickness}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Grid.Column="0" 
+                            Orientation="Horizontal" 
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="{DynamicResource AppHorizontalAlignment}">
                     <Button Background="Transparent" 
                             BorderThickness="0" 
-                            Padding="0" 
+                            Padding="{DynamicResource DefaultPaddingThickness}" 
                             Command="{Binding CancelCommand}"
                             Cursor="Hand"
-                            ToolTip="Go back to Products">
-                        <TextBlock Text="🔙" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            ToolTip="{Binding BackButtonText}">
+                        <TextBlock Text="🔙" 
+                                   FontSize="{DynamicResource FontSizeMedium}" 
+                                   VerticalAlignment="Center" 
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   Margin="{DynamicResource DefaultMarginThickness}"/>
                     </Button>
-                    <TextBlock Text="Add Product" FontSize="18" FontWeight="Bold" Foreground="#495057" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding AddProductTitle}" 
+                               FontSize="{DynamicResource FontSizeLarge}" 
+                               FontWeight="Bold" 
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource TextPrimary}" 
+                               VerticalAlignment="Center"
+                               TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="👤" FontSize="14" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <TextBlock Text="Administrator" FontSize="12" Foreground="#6C757D" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" 
+                            Orientation="Horizontal" 
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}">
+                    <TextBlock Text="👤" 
+                               FontSize="{DynamicResource FontSizeSmall}" 
+                               VerticalAlignment="Center" 
+                               Foreground="{DynamicResource TextSecondary}"
+                               Margin="{DynamicResource DefaultMarginThickness}"/>
+                    <TextBlock Text="{Binding CurrentUserDisplayText}" 
+                               FontSize="{DynamicResource FontSizeSmall}" 
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource TextSecondary}" 
+                               VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
         </Border>
 
         <!-- Main Content with Sidebar -->
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="1" FlowDirection="{Binding CurrentFlowDirection}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="280"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Left Sidebar Navigation -->
-            <Border Grid.Column="0" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0">
-                <StackPanel Margin="10,20">
+            <!-- Sidebar Navigation (Left in LTR, Right in RTL) -->
+            <Border Grid.Column="0" 
+                    Background="{DynamicResource SurfaceBackground}" 
+                    BorderBrush="{DynamicResource BorderLight}" 
+                    BorderThickness="0,0,1,0"
+                    FlowDirection="LeftToRight">
+                <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
                     
                     <!-- Sidebar Header -->
-                    <TextBlock Text="💰 Product Information" 
-                               FontSize="14" 
+                    <TextBlock Text="{Binding ProductInfoTitle}" 
+                               FontSize="{DynamicResource FontSizeSmall}" 
                                FontWeight="SemiBold" 
-                               Foreground="#FFC107" 
-                               Margin="15,0,0,15"/>
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource Primary}" 
+                               Margin="{DynamicResource DefaultMarginThickness}"
+                               TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
                     
                     <!-- Navigation Buttons -->
-                    <Button Content="📝 Product Information" 
+                    <Button Content="{Binding ProductInfoTitle}" 
                             Name="ProductInfoButton"
                             Style="{StaticResource SidebarButtonStyle}"
                             Tag="ProductInfo"
                             Click="SidebarButton_Click"/>
                     
-                    <Button Content="💰 Tax &amp; Pricing" 
+                    <Button Content="{Binding PricingTitle}" 
                             Name="TaxPricingButton"
                             Style="{StaticResource SidebarButtonStyle}"
                             Tag="TaxPricing"
                             Click="SidebarButton_Click"/>
                     
-                    <Button Content="📊 Product Barcodes" 
+                    <Button Content="{Binding BarcodesTitle}" 
                             Name="BarcodesButton"
                             Style="{StaticResource SidebarButtonStyle}"
                             Tag="Barcodes"
                             Click="SidebarButton_Click"/>
                     
-                    <Button Content="�️ Product Pictures" 
+                    <Button Content="{Binding PicturesTitle}" 
                             Name="PicturesButton"
                             Style="{StaticResource SidebarButtonStyle}"
                             Tag="Pictures"
                             Click="SidebarButton_Click"/>
                     
-                    <Button Content="�📏 Product Attributes" 
+                    <Button Content="{Binding AttributesTitle}" 
                             Name="AttributesButton"
                             Style="{StaticResource SidebarButtonStyle}"
                             Tag="Attributes"
                             Click="SidebarButton_Click"/>
                     
-                    <Button Content="📦 Unit Prices" 
+                    <Button Content="{Binding UnitPricesTitle}" 
                             Name="UnitPricesButton"
                             Style="{StaticResource SidebarButtonStyle}"
                             Tag="UnitPrices"
@@ -211,14 +285,17 @@
                 </StackPanel>
             </Border>
 
-            <!-- Right Content Area -->
-            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Padding="20">
+            <!-- Content Area (Right in LTR, Left in RTL) -->
+            <ScrollViewer Grid.Column="1" 
+                          VerticalScrollBarVisibility="Auto" 
+                          Padding="{DynamicResource DefaultPaddingThickness}"
+                          FlowDirection="{Binding CurrentFlowDirection}">
                 <StackPanel>
                 
                     <!-- Product Information Section -->
                     <Border Name="ProductInfoSection" Style="{StaticResource FormSectionStyle}">
                     <StackPanel>
-                        <TextBlock Text="📝 Product Information" Style="{StaticResource SectionHeaderStyle}"/>
+                        <TextBlock Text="{Binding ProductInfoTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                         
                         <Grid>
                             <Grid.RowDefinitions>
@@ -235,18 +312,21 @@
 
                             <!-- Product Code and Name -->
                             <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="Product Code *" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding CodeLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding Code, UpdateSourceTrigger=PropertyChanged}" 
                                          Style="{StaticResource FormTextBoxStyle}"
                                          IsReadOnly="True"
-                                         Background="#F8F9FA"/>
+                                         Background="{DynamicResource DisabledBackgroundBrush}"
+                                         ToolTip="{Binding CodeTooltip}"/>
                             </StackPanel>
 
                             <StackPanel Grid.Row="0" Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="Product Name *" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding NameLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                          Style="{StaticResource FormTextBoxStyle}"
-                                         MaxLength="100"/>
+                                         MaxLength="100"
+                                         ToolTip="{Binding NameTooltip}"
+                                         x:Name="NameTextBox"/>
                             </StackPanel>
 
                             <!-- Category and Supplier -->
@@ -257,7 +337,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     
-                                    <TextBlock Grid.Column="0" Text="Category" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBlock Grid.Column="0" Text="{Binding CategoryLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                     
                                     <Button Grid.Column="1" 
                                             Content="+ Add New"
@@ -280,7 +360,7 @@
                             </StackPanel>
 
                             <StackPanel Grid.Row="1" Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="Brand" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding BrandLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <ComboBox Height="35" Margin="0,0,0,15">
                                     <ComboBoxItem Content="New Brand"/>
                                 </ComboBox>
@@ -288,7 +368,7 @@
 
                             <!-- Description -->
                             <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,0">
-                                <TextBlock Text="Description" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding DescriptionLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                          Style="{StaticResource FormTextBoxStyle}"
                                          Height="80"
@@ -300,14 +380,14 @@
 
                             <!-- Additional Fields -->
                             <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="Purchase Unit" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding PurchaseUnitLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <ComboBox Height="35" Margin="0,0,0,15">
                                     <ComboBoxItem Content="Pieces"/>
                                 </ComboBox>
                             </StackPanel>
 
                             <StackPanel Grid.Row="3" Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="Selling Unit" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding SellingUnitLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <ComboBox Height="35" Margin="0,0,0,15">
                                     <ComboBoxItem Content="Pieces"/>
                                 </ComboBox>
@@ -315,14 +395,14 @@
 
                             <!-- Group and Reorder Level -->
                             <StackPanel Grid.Row="4" Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="Group" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding GroupLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <ComboBox Height="35" Margin="0,0,0,15">
                                     <ComboBoxItem Content="Group 1"/>
                                 </ComboBox>
                             </StackPanel>
 
                             <StackPanel Grid.Row="4" Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="Reorder Level" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding ReorderLevelFormLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding ReorderLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
                                          Style="{StaticResource FormTextBoxStyle}"/>
                             </StackPanel>
@@ -330,10 +410,10 @@
 
                         <!-- Checkboxes -->
                         <WrapPanel Orientation="Horizontal" Margin="0,10,0,0">
-                            <CheckBox Content="Can Return" 
+                            <CheckBox Content="{Binding CanReturnLabel}" 
                                       FontSize="12"
                                       Margin="0,0,20,10"/>
-                            <CheckBox Content="Is Grouped" 
+                            <CheckBox Content="{Binding IsGroupedLabel}" 
                                       FontSize="12"
                                       Margin="0,0,20,10"/>
                         </WrapPanel>
@@ -343,7 +423,7 @@
                 <!-- Tax & Pricing Section -->
                 <Border Name="TaxPricingSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
                     <StackPanel>
-                        <TextBlock Text="💰 Tax &amp; Pricing" Style="{StaticResource SectionHeaderStyle}"/>
+                        <TextBlock Text="{Binding PricingTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                         
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -353,19 +433,19 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="Selling Price *" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding SellingPriceLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding Price, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
                                          Style="{StaticResource FormTextBoxStyle}"/>
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Margin="5,0,5,0">
-                                <TextBlock Text="Cost Price" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding CostPriceLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding Cost, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
                                          Style="{StaticResource FormTextBoxStyle}"/>
                             </StackPanel>
 
                             <StackPanel Grid.Column="2" Margin="10,0,0,0">
-                                <TextBlock Text="Markup %" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding MarkupPercentLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding Markup, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
                                          Style="{StaticResource FormTextBoxStyle}"
                                          IsReadOnly="True"
@@ -380,14 +460,14 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                <CheckBox Content="Tax Inclusive Price" 
+                                <CheckBox Content="{Binding TaxInclusivePriceLabel}" 
                                           IsChecked="{Binding IsTaxInclusivePrice, Mode=TwoWay}"
                                           FontSize="12"
                                           Margin="0,0,0,10"/>
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="Excise" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding ExciseLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding Excise, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
                                          Style="{StaticResource FormTextBoxStyle}"/>
                             </StackPanel>
@@ -398,7 +478,7 @@
                 <!-- Product Barcodes Section -->
                 <Border Name="BarcodesSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
                     <StackPanel>
-                        <TextBlock Text="📊 Product Barcodes" Style="{StaticResource SectionHeaderStyle}"/>
+                        <TextBlock Text="{Binding BarcodesTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                         
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -414,7 +494,7 @@
                                      Margin="0,0,10,0"/>
                             
                             <Button Grid.Column="1" 
-                                    Content="Add Barcode"
+                                    Content="{Binding AddBarcodeButton}"
                                     Command="{Binding AddBarcodeCommand}"
                                     Style="{StaticResource FormButtonStyle}"
                                     Background="#28A745"
@@ -423,7 +503,7 @@
                                     Margin="0,0,5,15"/>
                             
                             <Button Grid.Column="2" 
-                                    Content="🎲 Generate"
+                                    Content="{Binding GenerateBarcodeButton}"
                                     Command="{Binding GenerateBarcodeCommand}"
                                     Style="{StaticResource FormButtonStyle}"
                                     Background="#17A2B8"
@@ -479,7 +559,7 @@
                 <!-- Product Pictures Section -->
                 <Border Name="PicturesSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
                     <StackPanel>
-                        <TextBlock Text="🖼️ Product Pictures" Style="{StaticResource SectionHeaderStyle}"/>
+                        <TextBlock Text="{Binding PicturesTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                         
                         <!-- Main Product Image -->
                         <Border Width="300" Height="200" 
@@ -496,22 +576,22 @@
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
                                             Visibility="{Binding ImagePath, Converter={StaticResource InverseStringToVisibilityConverter}}">
                                     <TextBlock Text="📷" FontSize="40" HorizontalAlignment="Center" Foreground="#6C757D"/>
-                                    <TextBlock Text="No Image Selected" FontSize="14" HorizontalAlignment="Center" Foreground="#6C757D" Margin="0,10,0,0"/>
-                                    <TextBlock Text="Click 'Choose Image' to add a product picture" FontSize="11" HorizontalAlignment="Center" Foreground="#6C757D" Margin="0,5,0,0"/>
+                                    <TextBlock Text="{Binding NoImageSelectedLabel}" FontSize="14" HorizontalAlignment="Center" Foreground="#6C757D" Margin="0,10,0,0"/>
+                                    <TextBlock Text="{Binding ClickChooseImageLabel}" FontSize="11" HorizontalAlignment="Center" Foreground="#6C757D" Margin="0,5,0,0"/>
                                 </StackPanel>
                             </Grid>
                         </Border>
 
                         <!-- Image Actions -->
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
-                            <Button Content="📁 Choose Image" 
+                            <Button Content="{Binding ChooseImageLabel}" 
                                     Command="{Binding ChooseImageCommand}"
                                     Style="{StaticResource FormButtonStyle}"
                                     Background="#6C757D"
                                     Foreground="White"
                                     Width="120"
                                     Margin="0,0,10,0"/>
-                            <Button Content="🗑️ Remove Image" 
+                            <Button Content="{Binding RemoveImageLabel}" 
                                     Command="{Binding RemoveImageCommand}"
                                     Style="{StaticResource FormButtonStyle}"
                                     Background="#DC3545"
@@ -560,7 +640,7 @@
                 <!-- Product Attributes Section -->
                 <Border Name="AttributesSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
                     <StackPanel>
-                        <TextBlock Text="📏 Product Attributes" Style="{StaticResource SectionHeaderStyle}"/>
+                        <TextBlock Text="{Binding AttributesTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                         
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -569,7 +649,7 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="Unit of Measurement" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding UnitOfMeasurementLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <ComboBox ItemsSource="{Binding UnitsOfMeasurement}"
                                           SelectedItem="{Binding SelectedUnitOfMeasurement, Mode=TwoWay}"
                                           SelectedValue="{Binding SelectedUnitOfMeasurementId, Mode=TwoWay}"
@@ -580,26 +660,26 @@
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="Max Discount %" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding MaxDiscountLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding MaxDiscount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                          Style="{StaticResource FormTextBoxStyle}"/>
                             </StackPanel>
                         </Grid>
 
                         <WrapPanel Orientation="Horizontal" Margin="0,10,0,0">
-                            <CheckBox Content="Allow Discounts" 
+                            <CheckBox Content="{Binding AllowDiscountsLabel}" 
                                       IsChecked="{Binding IsDiscountAllowed, Mode=TwoWay}"
                                       FontSize="12"
                                       Margin="0,0,20,10"/>
-                            <CheckBox Content="Allow Price Changes" 
+                            <CheckBox Content="{Binding AllowPriceChangesLabel}" 
                                       IsChecked="{Binding IsPriceChangeAllowed, Mode=TwoWay}"
                                       FontSize="12"
                                       Margin="0,0,20,10"/>
-                            <CheckBox Content="Use Serial Numbers" 
+                            <CheckBox Content="{Binding UseSerialNumbersLabel}" 
                                       IsChecked="{Binding IsUsingSerialNumbers, Mode=TwoWay}"
                                       FontSize="12"
                                       Margin="0,0,20,10"/>
-                            <CheckBox Content="Is Service" 
+                            <CheckBox Content="{Binding IsServiceLabel2}" 
                                       IsChecked="{Binding IsService, Mode=TwoWay}"
                                       FontSize="12"
                                       Margin="0,0,20,10"/>
@@ -612,13 +692,13 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="Age Restriction (years)" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding AgeRestrictionYearsLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding AgeRestriction, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                          Style="{StaticResource FormTextBoxStyle}"/>
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="Product Color" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding ProductColorLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <Border BorderBrush="#DEE2E6" 
                                         BorderThickness="1" 
                                         CornerRadius="6" 
@@ -635,10 +715,10 @@
                 <!-- Unit Prices Section -->
                 <Border Name="UnitPricesSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
                     <StackPanel>
-                        <TextBlock Text="📦 Stock Control &amp; Unit Prices" Style="{StaticResource SectionHeaderStyle}"/>
+                        <TextBlock Text="{Binding StockControlUnitPricesLabel}" Style="{StaticResource SectionHeaderStyle}"/>
                         
                         <!-- Stock Tracking Enable/Disable -->
-                        <CheckBox Content="Track Stock for this Product" 
+                        <CheckBox Content="{Binding TrackStockForProductLabel}" 
                                   IsChecked="{Binding IsStockTracked, Mode=TwoWay}"
                                   FontSize="13"
                                   FontWeight="Medium"
@@ -659,7 +739,7 @@
                             
                             <!-- Store Selection and Initial Stock -->
                             <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="Store" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding StoreLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <ComboBox ItemsSource="{Binding AvailableStores}"
                                           SelectedValue="{Binding SelectedStoreId, Mode=TwoWay}"
                                           SelectedValuePath="Id"
@@ -669,40 +749,40 @@
                             </StackPanel>
                             
                             <StackPanel Grid.Row="0" Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="Initial Stock" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding InitialStockLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding InitialStock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
                                          Style="{StaticResource FormTextBoxStyle}"/>
                             </StackPanel>
                             
                             <!-- Stock Levels -->
                             <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="Minimum Stock" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding MinimumStockLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding MinimumStock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
                                          Style="{StaticResource FormTextBoxStyle}"/>
                             </StackPanel>
                             
                             <StackPanel Grid.Row="1" Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="Maximum Stock" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding MaximumStockLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding MaximumStock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
                                          Style="{StaticResource FormTextBoxStyle}"/>
                             </StackPanel>
                             
                             <!-- Reorder Settings -->
                             <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="Reorder Level" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding ReorderLevelLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding ReorderLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
                                          Style="{StaticResource FormTextBoxStyle}"/>
                             </StackPanel>
                             
                             <StackPanel Grid.Row="2" Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="Reorder Quantity" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding ReorderQuantityLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding ReorderQuantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
                                          Style="{StaticResource FormTextBoxStyle}"/>
                             </StackPanel>
                             
                             <!-- Average Cost -->
                             <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="Average Cost" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding AverageCostLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding AverageCost, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
                                          Style="{StaticResource FormTextBoxStyle}"/>
                             </StackPanel>
@@ -712,11 +792,11 @@
                         <WrapPanel Orientation="Horizontal" 
                                    Margin="0,10,0,0"
                                    IsEnabled="{Binding IsStockFieldsEnabled}">
-                            <CheckBox Content="Allow Negative Stock" 
+                            <CheckBox Content="{Binding AllowNegativeStockLabel2}" 
                                       IsChecked="{Binding AllowNegativeStock, Mode=TwoWay}"
                                       FontSize="12"
                                       Margin="0,0,20,10"/>
-                            <CheckBox Content="Use Serial Numbers" 
+                            <CheckBox Content="{Binding UseSerialNumbersLabel2}" 
                                       IsChecked="{Binding IsUsingSerialNumbers, Mode=TwoWay}"
                                       FontSize="12"
                                       Margin="0,0,20,10"/>
@@ -744,8 +824,11 @@
         </Grid>
 
         <!-- Footer Actions -->
-        <Border Grid.Row="2" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0">
-            <Grid Margin="20">
+        <Border Grid.Row="2" 
+                Background="{DynamicResource CardBackground}" 
+                BorderBrush="{DynamicResource BorderLight}" 
+                BorderThickness="0,1,0,0">
+            <Grid Margin="{DynamicResource DefaultMarginThickness}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -754,27 +837,29 @@
                 <!-- Validation Messages -->
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
                     <TextBlock Text="{Binding StatusMessage}" 
-                               FontSize="12" 
-                               Foreground="#6C757D"
+                               FontSize="{DynamicResource FontSizeSmall}" 
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource TextSecondary}"
                                Visibility="{Binding HasValidationErrors, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
                     <TextBlock Text="{Binding ValidationMessage}" 
-                               FontSize="12" 
-                               Foreground="#DC3545"
+                               FontSize="{DynamicResource FontSizeSmall}" 
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource Error}"
                                TextWrapping="Wrap"
                                Visibility="{Binding HasValidationErrors, Converter={StaticResource BoolToVisibilityConverter}}"/>
                 </StackPanel>
 
                 <!-- Action Buttons -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Content="Discard Changes" 
+                    <Button Content="{Binding CancelButtonText}" 
                             Command="{Binding CancelCommand}"
                             Style="{StaticResource FormButtonStyle}"
-                            Background="#6C757D"
+                            Background="{DynamicResource TextSecondary}"
                             Foreground="White"/>
-                    <Button Content="Save Changes" 
+                    <Button Content="{Binding SaveChangesButtonText}" 
                             Command="{Binding SaveProductCommand}"
                             Style="{StaticResource FormButtonStyle}"
-                            Background="#FFC107"
+                            Background="{DynamicResource Primary}"
                             Foreground="White"/>
                 </StackPanel>
             </Grid>
@@ -782,28 +867,37 @@
 
         <!-- Loading Overlay -->
         <Border Grid.RowSpan="3" 
-                Background="#80000000" 
+                Background="{DynamicResource OverlayBackground}" 
+                Opacity="0.8"
                 Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                <ProgressBar IsIndeterminate="True" Width="200" Height="4" Margin="0,0,0,10"/>
+                <ProgressBar IsIndeterminate="True" 
+                             Width="200" 
+                             Height="4" 
+                             Margin="{DynamicResource DefaultMarginThickness}"
+                             Background="{DynamicResource CardBackground}"
+                             Foreground="{DynamicResource Primary}"/>
                 <TextBlock Text="{Binding StatusMessage}" 
-                           Foreground="White" 
-                           FontSize="14" 
-                           HorizontalAlignment="Center"/>
+                           Foreground="{DynamicResource TextPrimary}" 
+                           FontSize="{DynamicResource FontSizeMedium}"
+                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                           HorizontalAlignment="Center"
+                           Margin="{DynamicResource DefaultMarginThickness}"/>
             </StackPanel>
         </Border>
 
         <!-- Category Side Panel - FULL SCREEN OVERLAY -->
         <Border Grid.RowSpan="3"
-                Background="White"
-                BorderBrush="#E0E0E0"
+                Background="{DynamicResource CardBackground}"
+                BorderBrush="{DynamicResource BorderLight}"
                 BorderThickness="1"
-                CornerRadius="8"
+                CornerRadius="{DynamicResource BorderCornerRadius}"
                 Width="400"
-                HorizontalAlignment="Right"
+                HorizontalAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToReverseHorizontalAlignmentConverter}}"
                 VerticalAlignment="Stretch"
-                Margin="0,20,20,20"
-                Panel.ZIndex="20">
+                Margin="{DynamicResource DefaultMarginThickness}"
+                Panel.ZIndex="1000"
+                FlowDirection="{Binding CurrentFlowDirection}">
             
             <Border.Effect>
                 <DropShadowEffect Color="Black" Direction="320" ShadowDepth="8" Opacity="0.3" BlurRadius="15"/>
@@ -820,7 +914,7 @@
                 </Style>
             </Border.Style>
 
-            <Grid Margin="25">
+            <Grid Margin="{DynamicResource CardPaddingThickness}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -828,18 +922,24 @@
                 </Grid.RowDefinitions>
 
                 <!-- Header -->
-                <Grid Grid.Row="0" Margin="0,0,0,25">
+                <Grid Grid.Row="0" Margin="{DynamicResource DefaultMarginThickness}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     
-                    <StackPanel Grid.Column="0" Orientation="Horizontal">
-                        <TextBlock Text="📁" FontSize="20" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                        <TextBlock Text="Add New Category" 
-                                   FontSize="18" 
+                    <StackPanel Grid.Column="0" 
+                                Orientation="Horizontal"
+                                HorizontalAlignment="{DynamicResource AppHorizontalAlignment}">
+                        <TextBlock Text="📁" 
+                                   FontSize="{DynamicResource FontSizeLarge}" 
+                                   VerticalAlignment="Center" 
+                                   Margin="{DynamicResource DefaultMarginThickness}"/>
+                        <TextBlock Text="{Binding AddNewCategoryTitle}" 
+                                   FontSize="{DynamicResource FontSizeLarge}" 
                                    FontWeight="SemiBold"
-                                   Foreground="#495057"
+                                   FontFamily="{DynamicResource PoppinsFontFallback}"
+                                   Foreground="{DynamicResource TextPrimary}"
                                    VerticalAlignment="Center"/>
                     </StackPanel>
                     
@@ -848,11 +948,12 @@
                             Command="{Binding CloseCategoryPanelCommand}"
                             Background="Transparent"
                             BorderThickness="0"
-                            Foreground="#6C757D"
-                            FontSize="16"
-                            Padding="8"
+                            Foreground="{DynamicResource TextSecondary}"
+                            FontSize="{DynamicResource FontSizeMedium}"
+                            FontFamily="{DynamicResource PoppinsFontFallback}"
+                            Padding="{DynamicResource DefaultPaddingThickness}"
                             Cursor="Hand"
-                            ToolTip="Close panel"/>
+                            ToolTip="{Binding ClosePanelTooltip}"/>
                 </Grid>
 
                 <!-- Form Content -->
@@ -860,16 +961,18 @@
                     <StackPanel>
                         
                         <!-- Category Name -->
-                        <StackPanel Margin="0,0,0,20">
-                            <TextBlock Text="Category Name *" Style="{StaticResource FieldLabelStyle}"/>
+                        <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
+                            <TextBlock Text="{Binding CategoryNameLabel}" 
+                                       Style="{StaticResource FieldLabelStyle}"/>
                             <TextBox Text="{Binding CurrentCategory.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                      Style="{StaticResource FormTextBoxStyle}"
                                      MaxLength="100"/>
                         </StackPanel>
 
                         <!-- Category Name (Arabic) -->
-                        <StackPanel Margin="0,0,0,20">
-                            <TextBlock Text="Category Name (Arabic)" Style="{StaticResource FieldLabelStyle}"/>
+                        <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
+                            <TextBlock Text="{Binding CategoryNameArabicLabel}" 
+                                       Style="{StaticResource FieldLabelStyle}"/>
                             <TextBox Text="{Binding CurrentCategory.NameArabic, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                      Style="{StaticResource FormTextBoxStyle}"
                                      MaxLength="100"
@@ -877,29 +980,40 @@
                         </StackPanel>
 
                         <!-- Parent Category -->
-                        <StackPanel Margin="0,0,0,20">
-                            <TextBlock Text="Parent Category" Style="{StaticResource FieldLabelStyle}"/>
+                        <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
+                            <TextBlock Text="{Binding ParentCategoryLabel}" 
+                                       Style="{StaticResource FieldLabelStyle}"/>
                             <ComboBox ItemsSource="{Binding ParentCategories}"
                                       SelectedValue="{Binding CurrentCategory.ParentCategoryId, Mode=TwoWay}"
                                       SelectedValuePath="Id"
                                       DisplayMemberPath="Name"
-                                      Height="35"/>
+                                      MinHeight="{DynamicResource ButtonHeight}"
+                                      FontSize="{DynamicResource FontSizeSmall}"
+                                      FontFamily="{DynamicResource PoppinsFontFallback}"
+                                      Background="{DynamicResource CardBackground}"
+                                      Foreground="{DynamicResource TextPrimary}"
+                                      BorderBrush="{DynamicResource BorderLight}"
+                                      FlowDirection="{Binding CurrentFlowDirection}"/>
                         </StackPanel>
 
                         <!-- Display Order -->
-                        <StackPanel Margin="0,0,0,20">
-                            <TextBlock Text="Display Order" Style="{StaticResource FieldLabelStyle}"/>
+                        <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
+                            <TextBlock Text="{Binding DisplayOrderLabel}" 
+                                       Style="{StaticResource FieldLabelStyle}"/>
                             <TextBox Text="{Binding CurrentCategory.DisplayOrder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                      Style="{StaticResource FormTextBoxStyle}"/>
-                            <TextBlock Text="Lower numbers appear first in the list" 
-                                       FontSize="11" 
-                                       Foreground="#6C757D" 
-                                       Margin="0,5,0,0"/>
+                            <TextBlock Text="{Binding DisplayOrderHelp}" 
+                                       FontSize="{DynamicResource FontSizeVerySmall}" 
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Foreground="{DynamicResource TextSecondary}" 
+                                       Margin="{DynamicResource DefaultMarginThickness}"
+                                       TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
                         </StackPanel>
 
                         <!-- Description -->
-                        <StackPanel Margin="0,0,0,20">
-                            <TextBlock Text="Description" Style="{StaticResource FieldLabelStyle}"/>
+                        <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
+                            <TextBlock Text="{Binding DescriptionLabel}" 
+                                       Style="{StaticResource FieldLabelStyle}"/>
                             <TextBox Text="{Binding CurrentCategory.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                      Style="{StaticResource FormTextBoxStyle}"
                                      Height="80"
@@ -910,39 +1024,52 @@
                         </StackPanel>
 
                         <!-- Active Status -->
-                        <CheckBox Content="Active Category" 
+                        <CheckBox Content="{Binding ActiveCategoryLabel}" 
                                   IsChecked="{Binding CurrentCategory.IsActive, Mode=TwoWay}"
-                                  FontSize="13"
-                                  Margin="0,10,0,20"/>
+                                  FontSize="{DynamicResource FontSizeSmall}"
+                                  FontFamily="{DynamicResource PoppinsFontFallback}"
+                                  Foreground="{DynamicResource TextPrimary}"
+                                  Margin="{DynamicResource DefaultMarginThickness}"
+                                  FlowDirection="{Binding CurrentFlowDirection}"/>
 
                         <!-- Information Panel -->
-                        <Border BorderBrush="#17A2B8" 
+                        <Border BorderBrush="{DynamicResource Info}" 
                                 BorderThickness="1" 
-                                CornerRadius="6" 
-                                Padding="15" 
-                                Background="#E7F8FD" 
-                                Margin="0,10,0,0">
+                                CornerRadius="{DynamicResource BorderCornerRadius}" 
+                                Padding="{DynamicResource DefaultPaddingThickness}" 
+                                Background="{DynamicResource OverlayBackground}" 
+                                Margin="{DynamicResource DefaultMarginThickness}">
                             <StackPanel>
-                                <TextBlock Text="ℹ️ Category Information" 
+                                <TextBlock Text="{Binding CategoryInfoTitle}" 
                                            FontWeight="SemiBold" 
-                                           FontSize="12" 
-                                           Foreground="#17A2B8" 
-                                           Margin="0,0,0,8"/>
-                                <TextBlock Text="• Category name is required and will be used in product listings" 
-                                           FontSize="11" 
-                                           Foreground="#495057" 
-                                           Margin="0,0,0,3"/>
-                                <TextBlock Text="• Arabic name is optional for multilingual support" 
-                                           FontSize="11" 
-                                           Foreground="#495057" 
-                                           Margin="0,0,0,3"/>
-                                <TextBlock Text="• Parent category creates a hierarchical structure" 
-                                           FontSize="11" 
-                                           Foreground="#495057" 
-                                           Margin="0,0,0,3"/>
-                                <TextBlock Text="• Display order controls the sorting in category lists" 
-                                           FontSize="11" 
-                                           Foreground="#495057"/>
+                                           FontSize="{DynamicResource FontSizeSmall}" 
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource Info}" 
+                                           Margin="{DynamicResource DefaultMarginThickness}"
+                                           TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
+                                <TextBlock Text="{Binding CategoryInfoNameRequired}" 
+                                           FontSize="{DynamicResource FontSizeVerySmall}" 
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextPrimary}" 
+                                           Margin="{DynamicResource DefaultMarginThickness}"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding CategoryInfoArabicOptional}" 
+                                           FontSize="{DynamicResource FontSizeVerySmall}" 
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextPrimary}" 
+                                           Margin="{DynamicResource DefaultMarginThickness}"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding CategoryInfoParentHierarchy}" 
+                                           FontSize="{DynamicResource FontSizeVerySmall}" 
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextPrimary}" 
+                                           Margin="{DynamicResource DefaultMarginThickness}"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding CategoryInfoDisplayOrder}" 
+                                           FontSize="{DynamicResource FontSizeVerySmall}" 
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>
 
@@ -952,27 +1079,27 @@
                 <!-- Footer Actions -->
                 <StackPanel Grid.Row="2" 
                             Orientation="Vertical" 
-                            Margin="0,20,0,0">
+                            Margin="{DynamicResource DefaultMarginThickness}">
                     
                     <!-- Validation Messages -->
                     <TextBlock Text="{Binding ValidationMessage}" 
-                               FontSize="12" 
-                               Foreground="#DC3545"
+                               FontSize="{DynamicResource FontSizeSmall}" 
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource Error}"
                                TextWrapping="Wrap"
                                Visibility="{Binding HasValidationErrors, Converter={StaticResource BoolToVisibilityConverter}}"
-                               Margin="0,0,0,15"/>
+                               Margin="{DynamicResource DefaultMarginThickness}"/>
                     
-                    <Button Content="Save Category" 
+                    <Button Content="{Binding SaveCategoryButtonText}" 
                             Command="{Binding SaveCategoryCommand}"
                             Style="{StaticResource FormButtonStyle}"
-                            Background="#FFC107"
-                            Foreground="White"
-                            Margin="0,0,0,10"/>
+                            Background="{DynamicResource Primary}"
+                            Foreground="White"/>
                     
-                    <Button Content="Cancel" 
+                    <Button Content="{Binding CancelButtonText}" 
                             Command="{Binding CloseCategoryPanelCommand}"
                             Style="{StaticResource FormButtonStyle}"
-                            Background="#6C757D"
+                            Background="{DynamicResource TextSecondary}"
                             Foreground="White"/>
                 </StackPanel>
             </Grid>
