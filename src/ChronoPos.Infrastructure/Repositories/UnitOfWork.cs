@@ -18,14 +18,19 @@ public class UnitOfWork : IUnitOfWork
     private ISaleRepository? _saleRepository;
     private IRepository<SaleItem>? _saleItemRepository;
     private IRepository<UnitOfMeasurement>? _unitOfMeasurementRepository;
+    private IProductImageRepository? _productImageRepository;
     
     public UnitOfWork(ChronoPosDbContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
     
+
     public IProductRepository Products => 
         _productRepository ??= new ProductRepository(_context);
+
+    public IProductImageRepository ProductImages =>
+        _productImageRepository ??= new ProductImageRepository(_context);
     
     public IRepository<Category> Categories => 
         _categoryRepository ??= new Repository<Category>(_context);

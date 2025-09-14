@@ -22,6 +22,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     #region Fields
     
     private readonly IProductService _productService;
+    private readonly IBrandService _brandService;
+    private readonly IProductImageService _productImageService;
     private readonly Action? _navigateBack;
     
     // Settings services
@@ -125,6 +127,27 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private int selectedStoreId = 1; // Default to store 1
 
+    // Purchase and Selling Units
+    [ObservableProperty]
+    private int? purchaseUnitId;
+
+    [ObservableProperty]
+    private int? sellingUnitId;
+
+    // Product Grouping
+    [ObservableProperty]
+    private int? productGroupId;
+
+    [ObservableProperty]
+    private string? group;
+
+    // Business Rules (Additional)
+    [ObservableProperty]
+    private bool canReturn = true;
+
+    [ObservableProperty]
+    private bool isGrouped = false;
+
     // Computed Properties for Stock Control
     public bool IsStockFieldsEnabled => IsStockTracked;
     public bool IsSerialNumbersEnabled => IsStockTracked && IsUsingSerialNumbers;
@@ -162,6 +185,23 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private ObservableCollection<StoreDto> availableStores = new();
+
+    // Brand properties
+    [ObservableProperty]
+    private ObservableCollection<BrandItemViewModel> availableBrands = new();
+
+    [ObservableProperty]
+    private BrandItemViewModel? selectedBrand;
+
+    // Product Images properties
+    [ObservableProperty]
+    private ObservableCollection<ProductImageItemViewModel> productImages = new();
+
+    [ObservableProperty]
+    private string newImageUrl = string.Empty;
+
+    [ObservableProperty]
+    private string newImageAltText = string.Empty;
 
     [ObservableProperty]
     private string newBarcode = string.Empty;
@@ -203,6 +243,13 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private ObservableCollection<CategoryDto> parentCategories = new();
+
+    // Edit Mode Properties
+    [ObservableProperty]
+    private bool isEditMode = false;
+
+    [ObservableProperty]
+    private int productId = 0;
 
     #region Settings Properties
     [ObservableProperty]
@@ -409,6 +456,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     public class BarcodeItemViewModel : ObservableObject
     {
         private string _value = string.Empty;
+        private string _barcodeType = "ean";
         private bool _isNew = true;
         private bool _isDeleted = false;
 
@@ -416,6 +464,12 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         {
             get => _value;
             set => SetProperty(ref _value, value);
+        }
+
+        public string BarcodeType
+        {
+            get => _barcodeType;
+            set => SetProperty(ref _barcodeType, value);
         }
 
         public bool IsNew
@@ -431,6 +485,107 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         }
 
         public object? Id { get; set; }
+    }
+
+    public class BrandItemViewModel : ObservableObject
+    {
+        private int _id;
+        private string _name = string.Empty;
+        private string _nameArabic = string.Empty;
+        private string _description = string.Empty;
+        private string _logoUrl = string.Empty;
+
+        public int Id
+        {
+            get => _id;
+            set => SetProperty(ref _id, value);
+        }
+
+        public string Name
+        {
+            get => _name;
+            set => SetProperty(ref _name, value);
+        }
+
+        public string NameArabic
+        {
+            get => _nameArabic;
+            set => SetProperty(ref _nameArabic, value);
+        }
+
+        public string Description
+        {
+            get => _description;
+            set => SetProperty(ref _description, value);
+        }
+
+        public string LogoUrl
+        {
+            get => _logoUrl;
+            set => SetProperty(ref _logoUrl, value);
+        }
+
+        public override string ToString() => Name;
+    }
+
+    public class ProductImageItemViewModel : ObservableObject
+    {
+        private int _id;
+        private string _imageUrl = string.Empty;
+        private string _altText = string.Empty;
+        private int _sortOrder;
+        private bool _isPrimary;
+        private bool _isNew = true;
+        private bool _isDeleted = false;
+
+        public int Id
+        {
+            get => _id;
+            set => SetProperty(ref _id, value);
+        }
+
+        public string ImageUrl
+        {
+            get => _imageUrl;
+            set => SetProperty(ref _imageUrl, value);
+        }
+
+        public string AltText
+        {
+            get => _altText;
+            set => SetProperty(ref _altText, value);
+        }
+
+        public int SortOrder
+        {
+            get => _sortOrder;
+            set => SetProperty(ref _sortOrder, value);
+        }
+
+        public bool IsPrimary
+        {
+            get => _isPrimary;
+            set 
+            { 
+                SetProperty(ref _isPrimary, value);
+                // Notify parent to handle primary image logic
+                OnPrimaryChanged?.Invoke(this, value);
+            }
+        }
+
+        public bool IsNew
+        {
+            get => _isNew;
+            set => SetProperty(ref _isNew, value);
+        }
+
+        public bool IsDeleted
+        {
+            get => _isDeleted;
+            set => SetProperty(ref _isDeleted, value);
+        }
+
+        public event EventHandler<bool>? OnPrimaryChanged;
     }
 
     #endregion
@@ -547,6 +702,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
 
     public AddProductViewModel(
         IProductService productService,
+        IBrandService brandService,
+        IProductImageService productImageService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -557,6 +714,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         Action? navigateBack = null)
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
+        _brandService = brandService ?? throw new ArgumentNullException(nameof(brandService));
+        _productImageService = productImageService ?? throw new ArgumentNullException(nameof(productImageService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -617,6 +776,10 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             await LoadStoresAsync();
             FileLogger.Log($"✅ Loaded stores");
             
+            FileLogger.Log("🏷️ Loading brands");
+            await LoadBrandsAsync();
+            FileLogger.Log($"✅ Loaded {AvailableBrands.Count} brands");
+            
             FileLogger.Log("📏 Loading units of measurement");
             await LoadUnitsOfMeasurementAsync();
             FileLogger.Log($"✅ Loaded units of measurement");
@@ -668,6 +831,58 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         await Task.CompletedTask; // Placeholder for async operation
     }
 
+    private async Task LoadBrandsAsync()
+    {
+        try
+        {
+            // Load brands from database using BrandService
+            AvailableBrands.Clear();
+            
+            // Add "No Brand" option
+            AvailableBrands.Add(new BrandItemViewModel
+            {
+                Id = 0,
+                Name = "No Brand",
+                NameArabic = "بدون ماركة",
+                Description = "No brand selected"
+            });
+            
+            // Load brands from BrandService
+            var brands = await _brandService.GetAllAsync();
+            foreach (var brand in brands)
+            {
+                AvailableBrands.Add(new BrandItemViewModel
+                {
+                    Id = brand.Id,
+                    Name = brand.Name,
+                    NameArabic = brand.NameArabic ?? string.Empty,
+                    Description = brand.Description ?? string.Empty
+                });
+            }
+            
+            FileLogger.Log($"✅ Loaded {AvailableBrands.Count} brands (including 'No Brand' option)");
+            
+            // Set default to "No Brand"
+            SelectedBrand = AvailableBrands.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"❌ Error loading brands: {ex.Message}");
+            StatusMessage = $"Error loading brands: {ex.Message}";
+            
+            // Fallback to default brands on error
+            AvailableBrands.Clear();
+            AvailableBrands.Add(new BrandItemViewModel
+            {
+                Id = 0,
+                Name = "No Brand",
+                NameArabic = "بدون ماركة",
+                Description = "No brand selected"
+            });
+            SelectedBrand = AvailableBrands.FirstOrDefault();
+        }
+    }
+
     private async Task LoadUnitsOfMeasurementAsync()
     {
         var uomList = await _productService.GetAllUnitsOfMeasurementAsync();
@@ -691,6 +906,155 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         // Generate a simple auto-incrementing code
         // In a real application, this would query the database for the next available code
         return $"PROD{DateTime.Now:yyyyMMddHHmmss}";
+    }
+
+    public async Task LoadProductForEdit(ProductDto product)
+    {
+        try
+        {
+            FileLogger.LogSeparator("LoadProductForEdit");
+            FileLogger.Log($"🔄 Loading product for edit: {product.Name} (ID: {product.Id})");
+            
+            IsEditMode = true;
+            ProductId = product.Id;
+            
+            // Fill form with product data
+            Code = product.SKU ?? string.Empty;
+            Name = product.Name;
+            Description = product.Description ?? string.Empty;
+            Price = product.Price;
+            Cost = product.CostPrice;
+            Markup = product.Markup ?? 0;
+            CategoryId = product.CategoryId;
+            IsEnabled = product.IsActive;
+            ImagePath = product.ImagePath ?? string.Empty;
+            Color = product.Color ?? "#FFC107";
+            
+            // Stock control properties
+            IsStockTracked = product.IsStockTracked;
+            AllowNegativeStock = product.AllowNegativeStock;
+            IsUsingSerialNumbers = product.IsUsingSerialNumbers;
+            InitialStock = product.InitialStock;
+            MinimumStock = product.MinimumStock;
+            MaximumStock = product.MaximumStock;
+            ReorderLevel = product.ReorderLevel;
+            ReorderQuantity = product.ReorderQuantity;
+            AverageCost = product.AverageCost;
+            
+            // Unit of measurement
+            if (product.UnitOfMeasurementId > 0)
+            {
+                SelectedUnitOfMeasurementId = product.UnitOfMeasurementId;
+                SelectedUnitOfMeasurement = UnitsOfMeasurement.FirstOrDefault(u => u.Id == product.UnitOfMeasurementId);
+            }
+            
+            // Purchase and Selling Units
+            PurchaseUnitId = product.PurchaseUnitId;
+            SellingUnitId = product.SellingUnitId;
+            
+            // Product Grouping
+            ProductGroupId = product.ProductGroupId;
+            Group = product.Group;
+            
+            // Business Rules (Additional)
+            CanReturn = product.CanReturn;
+            IsGrouped = product.IsGrouped;
+            
+            // Load barcodes if any
+            Barcodes.Clear();
+            FileLogger.Log($"🔄 Loading barcodes for product ID: {product.Id}");
+            
+            if (product.ProductBarcodes?.Any() == true)
+            {
+                // Load from ProductBarcodes table (multiple barcodes)
+                foreach (var productBarcode in product.ProductBarcodes)
+                {
+                    Barcodes.Add(new BarcodeItemViewModel 
+                    { 
+                        Value = productBarcode.Barcode,
+                        BarcodeType = productBarcode.BarcodeType ?? "ean",
+                        IsNew = false 
+                    });
+                }
+                FileLogger.Log($"✅ Loaded {Barcodes.Count} barcodes from ProductBarcodes table");
+            }
+            else if (!string.IsNullOrEmpty(product.Barcode))
+            {
+                // Fallback: Load from legacy single barcode field
+                Barcodes.Add(new BarcodeItemViewModel 
+                { 
+                    Value = product.Barcode,
+                    BarcodeType = "ean", // Default type for legacy barcodes
+                    IsNew = false 
+                });
+                FileLogger.Log($"✅ Loaded 1 legacy barcode from Product.Barcode field");
+            }
+            else
+            {
+                FileLogger.Log($"ℹ️ No barcodes found for product ID: {product.Id}");
+            }
+            
+            // Load brand if any
+            if (product.BrandId.HasValue && product.BrandId > 0)
+            {
+                SelectedBrand = AvailableBrands.FirstOrDefault(b => b.Id == product.BrandId.Value);
+            }
+            
+            // Load product images if any
+            ProductImages.Clear();
+            try
+            {
+                var productImages = await _productImageService.GetByProductIdAsync(product.Id);
+                foreach (var imageDto in productImages)
+                {
+                    var imageItemViewModel = new ProductImageItemViewModel
+                    {
+                        Id = imageDto.Id,
+                        ImageUrl = imageDto.ImageUrl,
+                        AltText = imageDto.AltText ?? string.Empty,
+                        SortOrder = imageDto.SortOrder,
+                        IsPrimary = imageDto.IsPrimary,
+                        IsNew = false
+                    };
+                    
+                    // Handle primary image logic
+                    imageItemViewModel.OnPrimaryChanged += HandlePrimaryImageChanged;
+                    ProductImages.Add(imageItemViewModel);
+                }
+                
+                FileLogger.Log($"✅ Loaded {ProductImages.Count} product images");
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Log($"⚠️ Error loading product images: {ex.Message}");
+                // Don't fail the entire operation if images can't be loaded
+            }
+            
+            // Update title and button text for edit mode
+            await UpdateTitleForEditMode();
+            
+            StatusMessage = $"Editing product: {product.Name}";
+            FileLogger.Log("✅ Product loaded for edit successfully");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading product for edit: {ex.Message}";
+            FileLogger.Log($"❌ Error loading product for edit: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateTitleForEditMode()
+    {
+        if (IsEditMode)
+        {
+            AddProductTitle = await GetTranslationAsync("edit_product_title", "Edit Product");
+            SaveChangesButtonText = await GetTranslationAsync("save_changes_button", "Save Changes");
+        }
+        else
+        {
+            AddProductTitle = await GetTranslationAsync("add_product_title", "Add New Product");
+            SaveChangesButtonText = await GetTranslationAsync("save_button", "Save Product");
+        }
     }
 
     #endregion
@@ -1080,6 +1444,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         var barcodeItem = new BarcodeItemViewModel 
         { 
             Value = trimmedBarcode,
+            BarcodeType = "ean", // Default barcode type
             IsNew = true 
         };
         
@@ -1185,6 +1550,140 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         return Regex.IsMatch(barcode, @"^[a-zA-Z0-9\-\s]+$");
     }
 
+    #region Image Management Commands
+
+    [RelayCommand]
+    private void AddProductImage()
+    {
+        FileLogger.Log($"🖼️ AddProductImage called - NewImageUrl: '{NewImageUrl}', NewImageAltText: '{NewImageAltText}'");
+        
+        if (string.IsNullOrWhiteSpace(NewImageUrl))
+        {
+            StatusMessage = "Image URL cannot be empty";
+            FileLogger.Log("⚠️ AddProductImage aborted: Image URL is empty");
+            return;
+        }
+
+        var trimmedUrl = NewImageUrl.Trim();
+        var altText = string.IsNullOrWhiteSpace(NewImageAltText) ? "Product Image" : NewImageAltText.Trim();
+
+        // Get next sort order
+        var nextSortOrder = ProductImages.Any() ? ProductImages.Max(i => i.SortOrder) + 1 : 1;
+        
+        FileLogger.Log($"📊 Current ProductImages count: {ProductImages.Count}, Next sort order: {nextSortOrder}");
+
+        var imageItem = new ProductImageItemViewModel
+        {
+            ImageUrl = trimmedUrl,
+            AltText = altText,
+            SortOrder = nextSortOrder,
+            IsPrimary = !ProductImages.Any(), // First image is primary by default
+            IsNew = true
+        };
+
+        // Handle primary image logic
+        imageItem.OnPrimaryChanged += HandlePrimaryImageChanged;
+
+        ProductImages.Add(imageItem);
+        FileLogger.Log($"✅ Added image to ProductImages collection - Total count now: {ProductImages.Count}");
+        FileLogger.Log($"   🏷️ Image details: URL='{trimmedUrl}', AltText='{altText}', SortOrder={nextSortOrder}, IsPrimary={imageItem.IsPrimary}");
+        
+        NewImageUrl = string.Empty;
+        NewImageAltText = string.Empty;
+
+        StatusMessage = $"Product image added successfully";
+    }
+
+    [RelayCommand]
+    private void RemoveProductImage(ProductImageItemViewModel? image)
+    {
+        if (image != null)
+        {
+            ProductImages.Remove(image);
+            
+            // If removed image was primary, make first image primary
+            if (image.IsPrimary && ProductImages.Any())
+            {
+                ProductImages.First().IsPrimary = true;
+            }
+
+            StatusMessage = "Product image removed";
+        }
+    }
+
+    [RelayCommand]
+    private void SetPrimaryImage(ProductImageItemViewModel? image)
+    {
+        if (image != null && ProductImages.Contains(image))
+        {
+            // Clear all primary flags
+            foreach (var img in ProductImages)
+            {
+                img.IsPrimary = false;
+            }
+            
+            // Set selected as primary
+            image.IsPrimary = true;
+            StatusMessage = "Primary image updated";
+        }
+    }
+
+    private void HandlePrimaryImageChanged(object? sender, bool isPrimary)
+    {
+        if (isPrimary && sender is ProductImageItemViewModel selectedImage)
+        {
+            // Clear all other primary flags
+            foreach (var img in ProductImages.Where(i => i != selectedImage))
+            {
+                img.IsPrimary = false;
+            }
+        }
+    }
+
+    [RelayCommand]
+    private void MoveImageUp(ProductImageItemViewModel? image)
+    {
+        if (image != null && ProductImages.Contains(image))
+        {
+            var currentIndex = ProductImages.IndexOf(image);
+            if (currentIndex > 0)
+            {
+                // Swap sort orders
+                var previousImage = ProductImages[currentIndex - 1];
+                var tempSortOrder = image.SortOrder;
+                image.SortOrder = previousImage.SortOrder;
+                previousImage.SortOrder = tempSortOrder;
+                
+                // Move in collection
+                ProductImages.Move(currentIndex, currentIndex - 1);
+                StatusMessage = "Image moved up";
+            }
+        }
+    }
+
+    [RelayCommand]
+    private void MoveImageDown(ProductImageItemViewModel? image)
+    {
+        if (image != null && ProductImages.Contains(image))
+        {
+            var currentIndex = ProductImages.IndexOf(image);
+            if (currentIndex < ProductImages.Count - 1)
+            {
+                // Swap sort orders
+                var nextImage = ProductImages[currentIndex + 1];
+                var tempSortOrder = image.SortOrder;
+                image.SortOrder = nextImage.SortOrder;
+                nextImage.SortOrder = tempSortOrder;
+                
+                // Move in collection
+                ProductImages.Move(currentIndex, currentIndex + 1);
+                StatusMessage = "Image moved down";
+            }
+        }
+    }
+
+    #endregion
+
     [RelayCommand]
     private void AddComment()
     {
@@ -1211,6 +1710,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     {
         try
         {
+            FileLogger.Log($"🖼️ ChooseImage called - Current ProductImages count: {ProductImages.Count}");
+            
             var openFileDialog = new OpenFileDialog
             {
                 Title = "Select Product Image",
@@ -1222,11 +1723,13 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             if (openFileDialog.ShowDialog() == true)
             {
                 var selectedFile = openFileDialog.FileName;
+                FileLogger.Log($"📁 Selected file: {selectedFile}");
                 
                 // Validate file size (max 5MB)
                 var fileInfo = new FileInfo(selectedFile);
                 if (fileInfo.Length > 5 * 1024 * 1024)
                 {
+                    FileLogger.Log($"⚠️ File too large: {fileInfo.Length} bytes");
                     MessageBox.Show("Image file size cannot exceed 5MB. Please choose a smaller image.", 
                         "File Too Large", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
@@ -1240,13 +1743,39 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
                 var destinationPath = Path.Combine(appDataPath, fileName);
 
                 File.Copy(selectedFile, destinationPath, true);
+                FileLogger.Log($"📋 File copied to: {destinationPath}");
+                
+                // Add to ProductImages collection instead of setting ImagePath
+                var nextSortOrder = ProductImages.Any() ? ProductImages.Max(i => i.SortOrder) + 1 : 1;
+                var imageItem = new ProductImageItemViewModel
+                {
+                    ImageUrl = destinationPath,
+                    AltText = $"Product Image {ProductImages.Count + 1}",
+                    SortOrder = nextSortOrder,
+                    IsPrimary = !ProductImages.Any(), // First image is primary by default
+                    IsNew = true
+                };
+
+                // Handle primary image logic
+                imageItem.OnPrimaryChanged += HandlePrimaryImageChanged;
+                ProductImages.Add(imageItem);
+                
+                FileLogger.Log($"✅ Added image via file selection - Total count now: {ProductImages.Count}");
+                FileLogger.Log($"   🏷️ Image details: URL='{destinationPath}', AltText='{imageItem.AltText}', SortOrder={nextSortOrder}, IsPrimary={imageItem.IsPrimary}");
+                
+                // Also set ImagePath for backward compatibility
                 ImagePath = destinationPath;
                 
-                StatusMessage = "Product image updated successfully";
+                StatusMessage = "Product image added successfully";
+            }
+            else
+            {
+                FileLogger.Log("❌ File selection cancelled");
             }
         }
         catch (Exception ex)
         {
+            FileLogger.Log($"❌ Error in ChooseImage: {ex.Message}");
             MessageBox.Show($"Error selecting image: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -1272,21 +1801,41 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            StatusMessage = "Saving product...";
+            StatusMessage = IsEditMode ? "Updating product..." : "Saving product...";
 
             var productDto = CreateProductDto();
-            var savedProduct = await _productService.CreateProductAsync(productDto);
+            
+            ProductDto savedProduct;
+            if (IsEditMode)
+            {
+                // Update existing product
+                productDto.Id = ProductId;
+                savedProduct = await _productService.UpdateProductAsync(productDto);
+                StatusMessage = "Product updated successfully!";
+                MessageBox.Show("Product updated successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                // Create new product
+                savedProduct = await _productService.CreateProductAsync(productDto);
+                StatusMessage = "Product saved successfully!";
+                MessageBox.Show("Product created successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
 
-            StatusMessage = "Product saved successfully!";
-            MessageBox.Show("Product created successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            // Save product images if any
+            await SaveProductImages(savedProduct.Id);
+
+            // Save product barcodes if any
+            await SaveProductBarcodes(savedProduct.Id);
 
             // Navigate back to product management
             _navigateBack?.Invoke();
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Error saving product: {ex.Message}";
-            MessageBox.Show($"Failed to save product: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            var operation = IsEditMode ? "updating" : "saving";
+            StatusMessage = $"Error {operation} product: {ex.Message}";
+            MessageBox.Show($"Failed to {operation} product: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
@@ -1492,6 +2041,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
 
     private ProductDto CreateProductDto()
     {
+        FileLogger.Log($"📦 CreateProductDto: Creating DTO for product '{Name}' with {Barcodes?.Count ?? 0} barcodes");
+        
         // Calculate markup if both cost and price are provided
         var calculatedMarkup = Markup;
         if (Cost > 0 && Price > Cost)
@@ -1504,6 +2055,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             Name = Name,
             Description = Description ?? string.Empty,
             SKU = Code,
+            Barcode = Barcodes?.FirstOrDefault()?.Value, // Temporary for compatibility - will be handled by separate barcodes table
             Price = Price,
             CategoryId = CategoryId ?? 1, // Default category if none selected
             StockQuantity = 0, // New products start with 0 stock
@@ -1512,6 +2064,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             Markup = calculatedMarkup,
             ImagePath = ImagePath,
             Color = Color,
+            BrandId = SelectedBrand?.Id, // Map selected brand
+            BrandName = SelectedBrand?.Name ?? string.Empty, // For display purposes
             // Stock Control Properties
             IsStockTracked = IsStockTracked,
             AllowNegativeStock = AllowNegativeStock,
@@ -1527,10 +2081,38 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             UnitOfMeasurementId = SelectedUnitOfMeasurementId > 0 ? SelectedUnitOfMeasurementId : 1, // Default to "Pieces"
             UnitOfMeasurementName = SelectedUnitOfMeasurement?.Name ?? "Pieces",
             UnitOfMeasurementAbbreviation = SelectedUnitOfMeasurement?.Abbreviation ?? "pcs",
+            
+            // Purchase and Selling Units
+            PurchaseUnitId = PurchaseUnitId,
+            SellingUnitId = SellingUnitId,
+            
+            // Product Grouping
+            ProductGroupId = ProductGroupId,
+            Group = Group,
+            
+            // Business Rules (Additional)
+            CanReturn = CanReturn,
+            IsGrouped = IsGrouped,
+            
             SelectedStoreId = SelectedStoreId,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow,
+            
+            // Map UI Barcodes collection to ProductBarcodes collection
+            ProductBarcodes = Barcodes?.Select(b => new ProductBarcodeDto
+            {
+                Barcode = b.Value,
+                BarcodeType = b.BarcodeType,
+                IsNew = true,
+                CreatedAt = DateTime.UtcNow
+            }).ToList() ?? new List<ProductBarcodeDto>()
         };
+
+        FileLogger.Log($"📦 CreateProductDto: Created DTO with {productDto.ProductBarcodes.Count} barcodes:");
+        foreach (var barcode in productDto.ProductBarcodes)
+        {
+            FileLogger.Log($"   🏷️ Barcode: {barcode.Barcode} (Type: {barcode.BarcodeType})");
+        }
 
         return productDto;
     }
@@ -1634,6 +2216,105 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     partial void OnNameChanged(string value)
     {
         ValidateForm();
+    }
+
+    /// <summary>
+    /// Saves all product images to the database
+    /// </summary>
+    /// <param name="productId">The ID of the saved product</param>
+    private async Task SaveProductImages(int productId)
+    {
+        try
+        {
+            FileLogger.Log($"🔄 Starting SaveProductImages for product ID: {productId}");
+            FileLogger.Log($"📊 ProductImages collection contains {ProductImages.Count} images:");
+            for (int i = 0; i < ProductImages.Count; i++)
+            {
+                var img = ProductImages[i];
+                FileLogger.Log($"   Image {i + 1}: URL='{img.ImageUrl}', Primary={img.IsPrimary}, SortOrder={img.SortOrder}, IsNew={img.IsNew}");
+            }
+            
+            // In edit mode, we need to delete existing images first and recreate them
+            // This is a simple approach - for better performance, we could implement
+            // a more sophisticated sync logic
+            if (IsEditMode)
+            {
+                FileLogger.Log($"🗑️ Edit mode: Deleting existing images for product ID: {productId}");
+                await _productImageService.DeleteByProductIdAsync(productId);
+                FileLogger.Log($"✅ Deleted existing images for product ID: {productId}");
+            }
+            
+            int savedCount = 0;
+            foreach (var imageItem in ProductImages)
+            {
+                if (!string.IsNullOrEmpty(imageItem.ImageUrl))
+                {
+                    FileLogger.Log($"💾 Processing image {savedCount + 1}: {imageItem.ImageUrl}");
+                    
+                    var createImageDto = new CreateProductImageDto
+                    {
+                        ProductId = productId,
+                        ImageUrl = imageItem.ImageUrl,
+                        AltText = imageItem.AltText ?? string.Empty,
+                        SortOrder = imageItem.SortOrder,
+                        IsPrimary = imageItem.IsPrimary
+                    };
+
+                    var savedImage = await _productImageService.CreateAsync(createImageDto);
+                    savedCount++;
+                    FileLogger.Log($"✅ Saved product image {savedCount}: {imageItem.ImageUrl} (DB ID: {savedImage.Id})");
+                }
+                else
+                {
+                    FileLogger.Log($"⚠️ Skipping image with empty URL: Primary={imageItem.IsPrimary}, SortOrder={imageItem.SortOrder}");
+                }
+            }
+            
+            FileLogger.Log($"✅ SaveProductImages completed: {savedCount} out of {ProductImages.Count} images saved successfully");
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"❌ Error in SaveProductImages: {ex.Message}");
+            FileLogger.Log($"❌ Stack trace: {ex.StackTrace}");
+            throw; // Re-throw to be handled by the calling method
+        }
+    }
+
+    /// <summary>
+    /// Saves all product barcodes to the database
+    /// </summary>
+    /// <param name="productId">The ID of the saved product</param>
+    private Task SaveProductBarcodes(int productId)
+    {
+        try
+        {
+            FileLogger.Log($"🔄 Saving {Barcodes.Count} product barcodes for product ID: {productId}");
+            
+            // For now, we'll handle barcodes through the ProductService.UpdateProductAsync
+            // which clears and recreates the ProductBarcodes collection
+            // This is a simple approach - for better performance, we could implement
+            // a more sophisticated sync logic similar to images
+            
+            if (IsEditMode)
+            {
+                // For edit mode, the barcodes will be handled when we update the main product
+                // The UpdateProductAsync method in ProductService already handles barcode updates
+                FileLogger.Log($"ℹ️ Barcodes will be updated via ProductService.UpdateProductAsync in edit mode");
+            }
+            else
+            {
+                // For create mode, barcodes are already handled in MapToEntityAsync
+                FileLogger.Log($"ℹ️ Barcodes already handled via ProductService.CreateProductAsync in create mode");
+            }
+            
+            FileLogger.Log($"✅ Product barcodes handling completed for product ID: {productId}");
+            return Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"❌ Error handling product barcodes: {ex.Message}");
+            throw; // Re-throw to be handled by the calling method
+        }
     }
 
     #endregion

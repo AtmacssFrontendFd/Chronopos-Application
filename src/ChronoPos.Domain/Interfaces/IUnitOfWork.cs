@@ -9,6 +9,11 @@ public interface IUnitOfWork : IDisposable
     /// Product repository
     /// </summary>
     IProductRepository Products { get; }
+
+    /// <summary>
+    /// Product image repository
+    /// </summary>
+    IProductImageRepository ProductImages { get; }
     
     /// <summary>
     /// Category repository

@@ -25,6 +25,8 @@ public class ChronoPosDbContext : DbContext
     public DbSet<Domain.Entities.ProductComment> ProductComments { get; set; }
     public DbSet<Domain.Entities.ProductTax> ProductTaxes { get; set; }
     public DbSet<Domain.Entities.Tax> Taxes { get; set; }
+    public DbSet<Domain.Entities.Brand> Brands { get; set; }
+    public DbSet<Domain.Entities.ProductImage> ProductImages { get; set; }
     
     // Stock management entities
     public DbSet<Domain.Entities.StockTransaction> StockTransactions { get; set; }
@@ -108,11 +110,12 @@ public class ChronoPosDbContext : DbContext
         modelBuilder.Entity<Domain.Entities.ProductBarcode>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Value).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Barcode).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.BarcodeType).IsRequired().HasMaxLength(20).HasDefaultValue("ean");
             entity.Property(e => e.CreatedAt).IsRequired();
 
             // Unique constraint on barcode value
-            entity.HasIndex(e => e.Value).IsUnique();
+            entity.HasIndex(e => e.Barcode).IsUnique();
 
             // Foreign key relationship with Product
             entity.HasOne(pb => pb.Product)
@@ -168,6 +171,45 @@ public class ChronoPosDbContext : DbContext
 
             // Unique constraint on Product-Tax combination
             entity.HasIndex(e => new { e.ProductId, e.TaxId }).IsUnique();
+        });
+
+        // Configure Brand entity
+        modelBuilder.Entity<Domain.Entities.Brand>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.NameArabic).HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.LogoUrl).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Unique constraint on name
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        // Configure ProductImage entity
+        modelBuilder.Entity<Domain.Entities.ProductImage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedOnAdd(); // Fix: Tell EF Core that Id is auto-generated
+            entity.Property(e => e.ImageUrl).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.AltText).HasMaxLength(255);
+            entity.Property(e => e.SortOrder).IsRequired().HasDefaultValue(0);
+            entity.Property(e => e.IsPrimary).IsRequired().HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationship with Product
+            entity.HasOne(pi => pi.Product)
+                  .WithMany(p => p.ProductImages)
+                  .HasForeignKey(pi => pi.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Index on ProductId and SortOrder for performance
+            entity.HasIndex(e => new { e.ProductId, e.SortOrder });
+
+            // Index on ProductId and IsPrimary for primary image queries
+            entity.HasIndex(e => new { e.ProductId, e.IsPrimary });
         });
 
         // Configure Customer entity
@@ -695,6 +737,7 @@ public class ChronoPosDbContext : DbContext
                 CategoryId = 1, 
                 StockQuantity = 50, 
                 UnitOfMeasurementId = 1, // Pieces
+                BrandId = 4, // Generic
                 IsActive = true,
                 CreatedAt = baseDate, 
                 UpdatedAt = baseDate 
@@ -711,6 +754,7 @@ public class ChronoPosDbContext : DbContext
                 CategoryId = 1, 
                 StockQuantity = 30, 
                 UnitOfMeasurementId = 1, // Pieces
+                BrandId = 3, // Sony
                 IsActive = true,
                 CreatedAt = baseDate, 
                 UpdatedAt = baseDate 
@@ -727,6 +771,7 @@ public class ChronoPosDbContext : DbContext
                 CategoryId = 2, 
                 StockQuantity = 100, 
                 UnitOfMeasurementId = 1, // Pieces
+                BrandId = 4, // Generic
                 IsActive = true,
                 CreatedAt = baseDate, 
                 UpdatedAt = baseDate 
@@ -743,6 +788,7 @@ public class ChronoPosDbContext : DbContext
                 CategoryId = 3, 
                 StockQuantity = 75, 
                 UnitOfMeasurementId = 2, // Kilograms
+                BrandId = 4, // Generic
                 IsActive = true,
                 CreatedAt = baseDate, 
                 UpdatedAt = baseDate 
@@ -759,6 +805,7 @@ public class ChronoPosDbContext : DbContext
                 CategoryId = 4, 
                 StockQuantity = 25, 
                 UnitOfMeasurementId = 1, // Pieces
+                BrandId = 4, // Generic
                 IsActive = true,
                 CreatedAt = baseDate, 
                 UpdatedAt = baseDate 
@@ -774,12 +821,12 @@ public class ChronoPosDbContext : DbContext
 
         // Seed ProductBarcodes
         modelBuilder.Entity<Domain.Entities.ProductBarcode>().HasData(
-            new Domain.Entities.ProductBarcode { Id = 1, ProductId = 1, Value = "1234567890123", CreatedAt = baseDate },
-            new Domain.Entities.ProductBarcode { Id = 2, ProductId = 1, Value = "MOUSE001BC", CreatedAt = baseDate },
-            new Domain.Entities.ProductBarcode { Id = 3, ProductId = 2, Value = "2345678901234", CreatedAt = baseDate },
-            new Domain.Entities.ProductBarcode { Id = 4, ProductId = 3, Value = "3456789012345", CreatedAt = baseDate },
-            new Domain.Entities.ProductBarcode { Id = 5, ProductId = 4, Value = "4567890123456", CreatedAt = baseDate },
-            new Domain.Entities.ProductBarcode { Id = 6, ProductId = 5, Value = "5678901234567", CreatedAt = baseDate }
+            new Domain.Entities.ProductBarcode { Id = 1, ProductId = 1, Barcode = "1234567890123", BarcodeType = "ean", CreatedAt = baseDate },
+            new Domain.Entities.ProductBarcode { Id = 2, ProductId = 1, Barcode = "MOUSE001BC", BarcodeType = "custom", CreatedAt = baseDate },
+            new Domain.Entities.ProductBarcode { Id = 3, ProductId = 2, Barcode = "2345678901234", BarcodeType = "ean", CreatedAt = baseDate },
+            new Domain.Entities.ProductBarcode { Id = 4, ProductId = 3, Barcode = "3456789012345", BarcodeType = "ean", CreatedAt = baseDate },
+            new Domain.Entities.ProductBarcode { Id = 5, ProductId = 4, Barcode = "4567890123456", BarcodeType = "ean", CreatedAt = baseDate },
+            new Domain.Entities.ProductBarcode { Id = 6, ProductId = 5, Barcode = "5678901234567", BarcodeType = "ean", CreatedAt = baseDate }
         );
 
         // Seed ProductComments
@@ -1088,5 +1135,103 @@ public class ChronoPosDbContext : DbContext
             new Domain.Entities.LabelTranslation { Id = 89, LanguageId = 2, TranslationKey = "font.medium", Value = "درمیانہ", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
             new Domain.Entities.LabelTranslation { Id = 90, LanguageId = 2, TranslationKey = "font.large", Value = "بڑا", Status = "Active", CreatedBy = "System", CreatedAt = baseDate }
         );
+
+        // Seed Brands
+        modelBuilder.Entity<Domain.Entities.Brand>().HasData(
+            new Domain.Entities.Brand 
+            { 
+                Id = 1, 
+                Name = "Samsung", 
+                NameArabic = "سامسونج", 
+                Description = "Samsung Electronics - Global technology leader",
+                LogoUrl = "/images/brands/samsung-logo.png",
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Brand 
+            { 
+                Id = 2, 
+                Name = "Apple", 
+                NameArabic = "آبل", 
+                Description = "Apple Inc. - Innovation and design",
+                LogoUrl = "/images/brands/apple-logo.png",
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Brand 
+            { 
+                Id = 3, 
+                Name = "Sony", 
+                NameArabic = "سوني", 
+                Description = "Sony Corporation - Electronics and entertainment",
+                LogoUrl = "/images/brands/sony-logo.png",
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Brand 
+            { 
+                Id = 4, 
+                Name = "Generic", 
+                NameArabic = "عام", 
+                Description = "Generic brand for unbranded products",
+                LogoUrl = "/images/brands/generic-logo.png",
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            }
+        );
+
+        // TODO: ProductImage seed data removed to fix auto-increment issue
+        // Explicit IDs in HasData() conflict with ValueGeneratedOnAdd()
+        // Consider using a data seeding service instead
+        /*
+        // Seed ProductImages - IDs will be auto-generated
+        modelBuilder.Entity<Domain.Entities.ProductImage>().HasData(
+            new Domain.Entities.ProductImage 
+            { 
+                ProductId = 1, 
+                ImageUrl = "/images/products/mouse-wireless-main.jpg",
+                AltText = "Wireless Mouse - Main View",
+                SortOrder = 1,
+                IsPrimary = true,
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.ProductImage 
+            { 
+                ProductId = 1, 
+                ImageUrl = "/images/products/mouse-wireless-side.jpg",
+                AltText = "Wireless Mouse - Side View",
+                SortOrder = 2,
+                IsPrimary = false,
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.ProductImage 
+            { 
+                ProductId = 2, 
+                ImageUrl = "/images/products/headphones-bluetooth-main.jpg",
+                AltText = "Bluetooth Headphones - Main View",
+                SortOrder = 1,
+                IsPrimary = true,
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.ProductImage 
+            { 
+                ProductId = 3, 
+                ImageUrl = "/images/products/tshirt-cotton-main.jpg",
+                AltText = "Cotton T-Shirt - Main View",
+                SortOrder = 1,
+                IsPrimary = true,
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.ProductImage 
+            { 
+                ProductId = 4, 
+                ImageUrl = "/images/products/coffee-beans-main.jpg",
+                AltText = "Coffee Beans - Package View",
+                SortOrder = 1,
+                IsPrimary = true,
+                CreatedAt = baseDate 
+            }
+        );
+        */
     }
 }

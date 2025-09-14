@@ -11,7 +11,7 @@ namespace ChronoPos.Desktop.Views.Controls;
 public partial class RefreshButton : UserControl
 {
     public static readonly DependencyProperty ButtonTextProperty =
-        DependencyProperty.Register("ButtonText", typeof(string), typeof(RefreshButton), new PropertyMetadata("🔄 Refresh"));
+        DependencyProperty.Register("ButtonText", typeof(string), typeof(RefreshButton), new PropertyMetadata("Refresh"));
 
     public static readonly DependencyProperty ButtonIconProperty =
         DependencyProperty.Register("ButtonIcon", typeof(string), typeof(RefreshButton), new PropertyMetadata("🔄"));

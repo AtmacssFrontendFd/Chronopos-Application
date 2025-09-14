@@ -129,8 +129,9 @@
                                     HorizontalAlignment="{DynamicResource AppHorizontalAlignment}"
                                     VerticalAlignment="Top"
                                     ButtonText="{Binding BackButtonText}"
+                                    ButtonIcon="⬅️"
                                     Command="{Binding NavigateBackCommand}"
-                                    ButtonBackground="{DynamicResource Secondary}"
+                                    ButtonBackground="{DynamicResource Primary}"
                                     ButtonForeground="White"
                                     MinButtonWidth="100"
                                     ButtonHeight="{DynamicResource ButtonHeight}"
@@ -143,6 +144,7 @@
                                     HorizontalAlignment="{DynamicResource AppReverseHorizontalAlignment}"
                                     VerticalAlignment="Top"
                                     ButtonText="{Binding RefreshButtonText}"
+                                    ButtonIcon="🔄"
                                     Command="{Binding RefreshDataCommand}"
                                     ButtonBackground="{DynamicResource Primary}"
                                     ButtonForeground="White"
@@ -221,8 +223,9 @@
                     
                     <controls:RefreshButton Grid.Column="3"
                                             ButtonText="{Binding AddNewCategoryButtonText}"
+                                            ButtonIcon="➕"
                                             Command="{Binding AddNewCategoryCommand}"
-                                            ButtonBackground="{DynamicResource Success}"
+                                            ButtonBackground="{DynamicResource Primary}"
                                             ButtonForeground="White"
                                             MinButtonWidth="140"
                                             ButtonHeight="{DynamicResource ButtonHeight}"
@@ -470,6 +473,7 @@
                     
                     <!-- Action Buttons -->
                     <controls:RefreshButton ButtonText="{Binding AddNewProductButtonText}"
+                                            ButtonIcon="➕"
                                             Command="{Binding AddNewProductCommand}"
                                             ButtonBackground="{DynamicResource Primary}"
                                             ButtonForeground="White"

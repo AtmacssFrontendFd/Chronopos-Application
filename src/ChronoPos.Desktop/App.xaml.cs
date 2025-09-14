@@ -46,22 +46,43 @@ public partial class App : System.Windows.Application
                     LogMessage($"Database path: {databasePath}");
 
                     // Configure Entity Framework with SQLite and improved settings
+
                     services.AddDbContext<ChronoPosDbContext>(options =>
                     {
                         options.UseSqlite($"Data Source={databasePath}");
                         // Enable sensitive data logging in debug mode for better error messages
                         options.EnableSensitiveDataLogging(true);
                         options.EnableDetailedErrors(true);
-                    }, ServiceLifetime.Transient);
-                    LogMessage("DbContext configured as Transient for desktop application lifecycle");
+                    }, ServiceLifetime.Scoped);
+                    LogMessage("DbContext configured as Scoped for desktop application lifecycle");
 
                     // Register repositories and unit of work as Transient to match DbContext
                     services.AddTransient<IUnitOfWork, UnitOfWork>();
                     LogMessage("UnitOfWork registered as Transient");
 
+                    // Register Product-related repositories
+                    services.AddTransient<IProductRepository, ProductRepository>();
+                    LogMessage("ProductRepository registered as Transient");
+                    
+                    services.AddTransient<IBrandRepository, BrandRepository>();
+                    LogMessage("BrandRepository registered as Transient");
+                    
+                    services.AddTransient<IProductImageRepository, ProductImageRepository>();
+                    LogMessage("ProductImageRepository registered as Transient");
+
                     // Register application services as Transient to ensure fresh DbContext instances
                     services.AddTransient<IProductService, ProductService>();
                     LogMessage("ProductService registered as Transient");
+                    
+                    services.AddTransient<IBrandService, BrandService>();
+                    LogMessage("BrandService registered as Transient");
+                    
+                    services.AddTransient<IProductImageService, ProductImageService>();
+                    LogMessage("ProductImageService registered as Transient");
+                    
+                    // Register logging service
+                    services.AddSingleton<ILoggingService, ApplicationLoggingService>();
+                    LogMessage("ApplicationLoggingService registered as Singleton");
                     
                     services.AddTransient<IStockAdjustmentService, StockAdjustmentService>();
                     LogMessage("StockAdjustmentService registered as Transient");

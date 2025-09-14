@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Windows.Input;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.DTOs;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.Views;
 using Microsoft.Extensions.DependencyInjection;
@@ -765,6 +766,7 @@ public partial class MainWindowViewModel : ObservableObject
                 fontService,
                 databaseLocalizationService,
                 navigateToAddProduct: ShowAddProduct,  // Pass the ShowAddProduct method as delegate
+                navigateToEditProduct: async (product) => await ShowEditProduct(product),  // Pass the ShowEditProduct method as delegate
                 navigateBack: () => _ = ShowManagement()  // Async wrapper for back navigation
             );
             
@@ -820,10 +822,14 @@ public partial class MainWindowViewModel : ObservableObject
             var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
             var fontService = _serviceProvider.GetRequiredService<IFontService>();
             var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            var brandService = _serviceProvider.GetRequiredService<IBrandService>();
+            var productImageService = _serviceProvider.GetRequiredService<IProductImageService>();
             
             // Create ViewModel with navigation callback
             var addProductViewModel = new AddProductViewModel(
                 productService,
+                brandService,
+                productImageService,
                 themeService,
                 zoomService,
                 localizationService,
@@ -855,6 +861,77 @@ public partial class MainWindowViewModel : ObservableObject
             errorContent.Children.Add(new System.Windows.Controls.TextBlock 
             { 
                 Text = $"Error loading add product form: {ex.Message}",
+                FontSize = 12,
+                Foreground = System.Windows.Media.Brushes.Red,
+                Margin = new System.Windows.Thickness(0, 20, 0, 0)
+            });
+            
+            CurrentView = errorContent;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ShowEditProduct(ProductDto product)
+    {
+        CurrentPageTitle = "Edit Product";
+        StatusMessage = "Loading edit product form...";
+        
+        try
+        {
+            // Create the AddProductView and manually create ViewModel with navigation callback
+            var addProductView = new AddProductView();
+            
+            // Get services from DI container
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            var brandService = _serviceProvider.GetRequiredService<IBrandService>();
+            var productImageService = _serviceProvider.GetRequiredService<IProductImageService>();
+            
+            // Create ViewModel with navigation callback
+            var addProductViewModel = new AddProductViewModel(
+                productService,
+                brandService,
+                productImageService,
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                navigateBack: () => ShowProductManagement() // Navigate back to product management
+            );
+            
+            // Load the product data for editing
+            await addProductViewModel.LoadProductForEdit(product);
+            
+            addProductView.DataContext = addProductViewModel;
+            CurrentView = addProductView;
+            
+            StatusMessage = "Edit product form loaded successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading edit product form: {ex.Message}";
+            
+            // Fallback to simple error display
+            var errorContent = new System.Windows.Controls.StackPanel();
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = "Edit Product", 
+                FontSize = 16, 
+                FontWeight = System.Windows.FontWeights.Bold,
+                Margin = new System.Windows.Thickness(0, 0, 0, 20) 
+            });
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = $"Error loading edit product form: {ex.Message}",
                 FontSize = 12,
                 Foreground = System.Windows.Media.Brushes.Red,
                 Margin = new System.Windows.Thickness(0, 20, 0, 0)

@@ -415,8 +415,8 @@ public class LanguageSeedingService : ILanguageSeedingService
                 "back_button",
                 new Dictionary<string, string>
                 {
-                    { "en", "← Back" },
-                    { "ur", "← واپس" }
+                    { "en", "Back" },
+                    { "ur", "واپس" }
                 }
             },
             {
@@ -746,6 +746,30 @@ public class LanguageSeedingService : ILanguageSeedingService
                 {
                     { "en", "Products List" },
                     { "ur", "پروڈکٹس کی فہرست" }
+                }
+            },
+            {
+                "refresh_button",
+                new Dictionary<string, string>
+                {
+                    { "en", "Refresh" },
+                    { "ur", "تازہ کریں" }
+                }
+            },
+            {
+                "add_new_category_button",
+                new Dictionary<string, string>
+                {
+                    { "en", "Add Category" },
+                    { "ur", "کیٹگری شامل کریں" }
+                }
+            },
+            {
+                "add_new_product_button",
+                new Dictionary<string, string>
+                {
+                    { "en", "Add Product" },
+                    { "ur", "پروڈکٹ شامل کریں" }
                 }
             }
         };

@@ -44,6 +44,10 @@ public class Product
     public int CategoryId { get; set; }
     public Category? Category { get; set; }
     
+    // Brand
+    public int? BrandId { get; set; }
+    public Brand? Brand { get; set; }
+    
     // Inventory & Stock Control (Enhanced)
     public bool IsStockTracked { get; set; } = true;
     
@@ -77,8 +81,24 @@ public class Product
     public int UnitOfMeasurementId { get; set; } = 1; // Default to first UOM (pcs)
     public virtual UnitOfMeasurement? UnitOfMeasurement { get; set; }
     
+    // Purchase and Selling Units (can be different from base UOM)
+    public int? PurchaseUnitId { get; set; }
+    public virtual UnitOfMeasurement? PurchaseUnit { get; set; }
+    
+    public int? SellingUnitId { get; set; }
+    public virtual UnitOfMeasurement? SellingUnit { get; set; }
+    
+    // Product Grouping
+    public int? ProductGroupId { get; set; }
+    public string? Group { get; set; } // For backwards compatibility
+    
+    // Business Rules (Additional)
+    public bool CanReturn { get; set; } = true;
+    public bool IsGrouped { get; set; } = false;
+    
     // Navigation properties for related entities
     public virtual ICollection<ProductBarcode> ProductBarcodes { get; set; } = new List<ProductBarcode>();
+    public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
     public virtual ICollection<ProductComment> ProductComments { get; set; } = new List<ProductComment>();
     public virtual ICollection<ProductTax> ProductTaxes { get; set; } = new List<ProductTax>();
     public virtual ICollection<StockTransaction> StockTransactions { get; set; } = new List<StockTransaction>();

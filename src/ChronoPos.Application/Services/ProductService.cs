@@ -12,6 +12,8 @@ namespace ChronoPos.Application.Services;
 public class ProductService : IProductService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IBrandRepository _brandRepository;
+    private readonly IProductImageRepository _productImageRepository;
     private static readonly string LogDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
     private static readonly string LogFilePath = Path.Combine(LogDirectory, $"product_service_{DateTime.Now:yyyyMMdd}.log");
     private static readonly object LockObject = new object();
@@ -42,9 +44,11 @@ public class ProductService : IProductService
         }
     }
     
-    public ProductService(IUnitOfWork unitOfWork)
+    public ProductService(IUnitOfWork unitOfWork, IBrandRepository brandRepository, IProductImageRepository productImageRepository)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+        _brandRepository = brandRepository ?? throw new ArgumentNullException(nameof(brandRepository));
+        _productImageRepository = productImageRepository ?? throw new ArgumentNullException(nameof(productImageRepository));
     }
     
     public async Task<IEnumerable<ProductDto>> GetAllProductsAsync()
@@ -174,6 +178,46 @@ public class ProductService : IProductService
         existingProduct.ImagePath = productDto.ImagePath;
         existingProduct.Color = productDto.Color;
         existingProduct.UnitOfMeasurementId = productDto.UnitOfMeasurementId > 0 ? productDto.UnitOfMeasurementId : 1; // Default to "Pieces"
+        
+        // Handle barcode updates
+        System.Diagnostics.Debug.WriteLine($"UpdateProductAsync: Clearing existing {existingProduct.ProductBarcodes.Count} barcodes for product {existingProduct.Id}");
+        existingProduct.ProductBarcodes.Clear();
+        
+        // Add barcodes from ProductBarcodes collection
+        if (productDto.ProductBarcodes != null && productDto.ProductBarcodes.Any())
+        {
+            System.Diagnostics.Debug.WriteLine($"UpdateProductAsync: Adding {productDto.ProductBarcodes.Count} new barcodes from ProductBarcodes collection");
+            foreach (var barcodeDto in productDto.ProductBarcodes)
+            {
+                if (!string.IsNullOrWhiteSpace(barcodeDto.Barcode))
+                {
+                    existingProduct.ProductBarcodes.Add(new ProductBarcode
+                    {
+                        Barcode = barcodeDto.Barcode.Trim(),
+                        BarcodeType = barcodeDto.BarcodeType,
+                        ProductId = existingProduct.Id,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    System.Diagnostics.Debug.WriteLine($"UpdateProductAsync: Added barcode: {barcodeDto.Barcode} (Type: {barcodeDto.BarcodeType})");
+                }
+            }
+        }
+        // Fallback to single barcode field if ProductBarcodes collection is empty
+        else if (!string.IsNullOrWhiteSpace(productDto.Barcode))
+        {
+            System.Diagnostics.Debug.WriteLine($"UpdateProductAsync: Using fallback single barcode: {productDto.Barcode}");
+            existingProduct.ProductBarcodes.Add(new ProductBarcode
+            {
+                Barcode = productDto.Barcode.Trim(),
+                ProductId = existingProduct.Id,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("UpdateProductAsync: No barcodes to add");
+        }
+        
         existingProduct.UpdatedAt = DateTime.UtcNow;
         
         await _unitOfWork.Products.UpdateAsync(existingProduct);
@@ -326,10 +370,22 @@ public class ProductService : IProductService
             Name = product.Name,
             Description = product.Description ?? string.Empty,
             SKU = product.SKU,
+            Barcode = product.ProductBarcodes?.FirstOrDefault()?.Barcode, // Map first barcode
+            ProductBarcodes = product.ProductBarcodes?.Select(pb => new ProductBarcodeDto
+            {
+                Id = pb.Id,
+                ProductId = pb.ProductId,
+                Barcode = pb.Barcode,
+                BarcodeType = pb.BarcodeType,
+                CreatedAt = pb.CreatedAt,
+                IsNew = false
+            }).ToList() ?? new List<ProductBarcodeDto>(),
             Price = product.Price,
             StockQuantity = product.StockQuantity,
             CategoryId = product.CategoryId,
             CategoryName = product.Category?.Name ?? string.Empty,
+            BrandId = product.BrandId, // Map brand ID
+            BrandName = product.Brand?.Name ?? string.Empty, // Map brand name
             IsActive = product.IsActive,
             CostPrice = product.Cost,
             Markup = product.Markup,
@@ -350,6 +406,20 @@ public class ProductService : IProductService
             UnitOfMeasurementId = product.UnitOfMeasurementId,
             UnitOfMeasurementName = product.UnitOfMeasurement?.Name ?? string.Empty,
             UnitOfMeasurementAbbreviation = product.UnitOfMeasurement?.Abbreviation ?? string.Empty,
+            
+            // Purchase and Selling Units
+            PurchaseUnitId = product.PurchaseUnitId,
+            PurchaseUnitName = product.PurchaseUnit?.Name ?? string.Empty,
+            SellingUnitId = product.SellingUnitId,
+            SellingUnitName = product.SellingUnit?.Name ?? string.Empty,
+            
+            // Product Grouping
+            ProductGroupId = product.ProductGroupId,
+            Group = product.Group,
+            
+            // Business Rules (Additional)
+            CanReturn = product.CanReturn,
+            IsGrouped = product.IsGrouped,
             SelectedStoreId = 1, // Default store - could be enhanced to get from context
             CreatedAt = product.CreatedAt,
             UpdatedAt = product.UpdatedAt
@@ -386,7 +456,7 @@ public class ProductService : IProductService
 
     private static Product MapToEntityAsync(ProductDto dto, int plu)
     {
-        Log($"MapToEntityAsync called with: Name='{dto.Name}', PLU={plu}, CategoryId={dto.CategoryId}, UnitOfMeasurementId={dto.UnitOfMeasurementId}");
+        Log($"MapToEntityAsync called with: Name='{dto.Name}', PLU={plu}, CategoryId={dto.CategoryId}, UnitOfMeasurementId={dto.UnitOfMeasurementId}, BrandId={dto.BrandId}");
         
         var finalUomId = dto.UnitOfMeasurementId > 0 ? dto.UnitOfMeasurementId : 1;
         Log($"UOM mapping: Input={dto.UnitOfMeasurementId}, Final={finalUomId}");
@@ -402,6 +472,7 @@ public class ProductService : IProductService
             Price = dto.Price,
             StockQuantity = dto.StockQuantity,
             CategoryId = dto.CategoryId,
+            BrandId = dto.BrandId > 0 ? dto.BrandId : null, // Set to null if BrandId is 0 or negative
             IsActive = dto.IsActive,
             Cost = dto.CostPrice,
             Markup = dto.Markup,
@@ -420,9 +491,58 @@ public class ProductService : IProductService
             LastCost = dto.LastCost,
             // UOM Property
             UnitOfMeasurementId = finalUomId,
+            
+            // Purchase and Selling Units
+            PurchaseUnitId = dto.PurchaseUnitId,
+            SellingUnitId = dto.SellingUnitId,
+            
+            // Product Grouping
+            ProductGroupId = dto.ProductGroupId,
+            Group = dto.Group,
+            
+            // Business Rules (Additional)
+            CanReturn = dto.CanReturn,
+            IsGrouped = dto.IsGrouped,
+            
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
+        
+        // Handle barcode mapping
+        System.Diagnostics.Debug.WriteLine("MapToEntityAsync: Processing barcodes...");
+        
+        // Add barcodes from ProductBarcodes collection first
+        if (dto.ProductBarcodes != null && dto.ProductBarcodes.Any())
+        {
+            System.Diagnostics.Debug.WriteLine($"MapToEntityAsync: Adding {dto.ProductBarcodes.Count} barcodes from ProductBarcodes collection");
+            foreach (var barcodeDto in dto.ProductBarcodes)
+            {
+                if (!string.IsNullOrWhiteSpace(barcodeDto.Barcode))
+                {
+                    product.ProductBarcodes.Add(new ProductBarcode
+                    {
+                        Barcode = barcodeDto.Barcode.Trim(),
+                        BarcodeType = barcodeDto.BarcodeType,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    System.Diagnostics.Debug.WriteLine($"MapToEntityAsync: Added barcode: {barcodeDto.Barcode} (Type: {barcodeDto.BarcodeType})");
+                }
+            }
+        }
+        // Fallback to single barcode field if ProductBarcodes collection is empty
+        else if (!string.IsNullOrWhiteSpace(dto.Barcode))
+        {
+            System.Diagnostics.Debug.WriteLine($"MapToEntityAsync: Using fallback single barcode: {dto.Barcode}");
+            product.ProductBarcodes.Add(new ProductBarcode
+            {
+                Barcode = dto.Barcode.Trim(),
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("MapToEntityAsync: No barcodes to add");
+        }
         
         Log($"Created Product entity: PLU={product.PLU}, CategoryId={product.CategoryId}, UnitOfMeasurementId={product.UnitOfMeasurementId}");
         return product;

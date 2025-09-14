@@ -18,6 +18,7 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
         <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
+        <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
         
         <!-- Section Button Style -->
         <Style x:Key="SidebarButtonStyle" TargetType="Button">
@@ -31,14 +32,14 @@
             <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Margin" Value="{DynamicResource DefaultMarginThickness}"/>
+            <Setter Property="Margin" Value="0,2,0,2"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="ButtonBorder"
                                 Background="{TemplateBinding Background}"
                                 CornerRadius="{DynamicResource BorderCornerRadius}"
-                                Margin="{DynamicResource DefaultMarginThickness}">
+                                Margin="5,0,5,0">
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
                                             VerticalAlignment="Center"
                                             Margin="{TemplateBinding Padding}"/>
@@ -188,7 +189,7 @@
                             Command="{Binding CancelCommand}"
                             Cursor="Hand"
                             ToolTip="{Binding BackButtonText}">
-                        <TextBlock Text="🔙" 
+                        <TextBlock Text="Back" 
                                    FontSize="{DynamicResource FontSizeMedium}" 
                                    VerticalAlignment="Center" 
                                    Foreground="{DynamicResource TextSecondary}"
@@ -288,7 +289,7 @@
             <!-- Content Area (Right in LTR, Left in RTL) -->
             <ScrollViewer Grid.Column="1" 
                           VerticalScrollBarVisibility="Auto" 
-                          Padding="{DynamicResource DefaultPaddingThickness}"
+                          Padding="0,0,0,0"
                           FlowDirection="{Binding CurrentFlowDirection}">
                 <StackPanel>
                 
@@ -361,8 +362,11 @@
 
                             <StackPanel Grid.Row="1" Grid.Column="1" Margin="10,0,0,0">
                                 <TextBlock Text="{Binding BrandLabel}" Style="{StaticResource FieldLabelStyle}"/>
-                                <ComboBox Height="35" Margin="0,0,0,15">
-                                    <ComboBoxItem Content="New Brand"/>
+                                <ComboBox Height="35" 
+                                         Margin="0,0,0,15"
+                                         ItemsSource="{Binding AvailableBrands}"
+                                         SelectedItem="{Binding SelectedBrand, Mode=TwoWay}"
+                                         DisplayMemberPath="Name">
                                 </ComboBox>
                             </StackPanel>
 
@@ -480,78 +484,175 @@
                     <StackPanel>
                         <TextBlock Text="{Binding BarcodesTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                         
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
+                        <!-- Add New Barcode Section -->
+                        <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="6" Padding="15" Background="#FFFFFF" Margin="0,0,0,20">
+                            <StackPanel>
+                                <TextBlock Text="Add New Barcode" FontWeight="SemiBold" FontSize="14" Foreground="#495057" Margin="0,0,0,15"/>
+                                
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="150"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
 
-                            <TextBox Grid.Column="0" 
-                                     Text="{Binding NewBarcode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                     Style="{StaticResource FormTextBoxStyle}"
-                                     KeyDown="BarcodeTextBox_KeyDown"
-                                     Margin="0,0,10,0"/>
-                            
-                            <Button Grid.Column="1" 
-                                    Content="{Binding AddBarcodeButton}"
-                                    Command="{Binding AddBarcodeCommand}"
-                                    Style="{StaticResource FormButtonStyle}"
-                                    Background="#28A745"
-                                    Foreground="White"
-                                    Width="100"
-                                    Margin="0,0,5,15"/>
-                            
-                            <Button Grid.Column="2" 
-                                    Content="{Binding GenerateBarcodeButton}"
-                                    Command="{Binding GenerateBarcodeCommand}"
-                                    Style="{StaticResource FormButtonStyle}"
-                                    Background="#17A2B8"
-                                    Foreground="White"
-                                    Width="100"
-                                    Margin="0,0,0,15"
-                                    ToolTip="Auto-generate a unique barcode"/>
-                        </Grid>
+                                    <!-- Barcode Value Input -->
+                                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,0">
+                                        <TextBlock Text="Barcode Value:" FontSize="12" Foreground="#495057" Margin="0,0,0,5"/>
+                                        <TextBox Text="{Binding NewBarcode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                 Style="{StaticResource FormTextBoxStyle}"
+                                                 KeyDown="BarcodeTextBox_KeyDown"
+                                                 Height="35"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Add Button -->
+                                    <Button Grid.Row="0" Grid.Column="1" 
+                                            Content="Add"
+                                            Command="{Binding AddBarcodeCommand}"
+                                            Style="{StaticResource FormButtonStyle}"
+                                            Background="#28A745"
+                                            Foreground="White"
+                                            Width="80"
+                                            Height="35"
+                                            Margin="0,27,5,0"/>
+                                    
+                                    <!-- Generate Button -->
+                                    <Button Grid.Row="0" Grid.Column="2" 
+                                            Content="Generate"
+                                            Command="{Binding GenerateBarcodeCommand}"
+                                            Style="{StaticResource FormButtonStyle}"
+                                            Background="#17A2B8"
+                                            Foreground="White"
+                                            Width="80"
+                                            Height="35"
+                                            Margin="0,27,0,0"
+                                            ToolTip="Auto-generate a unique barcode"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
 
                         <!-- Barcode Validation Message -->
-                        <TextBlock Text="{Binding BarcodeValidationMessage}" 
-                                   FontSize="11" 
-                                   Foreground="#DC3545"
-                                   TextWrapping="Wrap"
-                                   Visibility="{Binding HasBarcodeValidationError, Converter={StaticResource BoolToVisibilityConverter}}"
-                                   Margin="0,0,0,10"/>
+                        <Border BorderBrush="#DC3545" 
+                                BorderThickness="1" 
+                                CornerRadius="6" 
+                                Padding="10" 
+                                Background="#F8D7DA" 
+                                Margin="0,0,0,15"
+                                Visibility="{Binding HasBarcodeValidationError, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <TextBlock Text="{Binding BarcodeValidationMessage}" 
+                                       FontSize="12" 
+                                       Foreground="#721C24"
+                                       TextWrapping="Wrap"/>
+                        </Border>
 
-                        <!-- Barcode List -->
-                        <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="6" MaxHeight="300">
-                            <ListBox ItemsSource="{Binding Barcodes}"
-                                     Background="Transparent"
-                                     BorderThickness="0">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid Margin="5">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            
-                                            <TextBlock Grid.Column="0" 
-                                                       Text="{Binding Value}" 
-                                                       VerticalAlignment="Center"
-                                                       FontFamily="Consolas"
-                                                       FontSize="12"/>
-                                            <Button Grid.Column="1" 
-                                                    Content="✕"
-                                                    Command="{Binding DataContext.RemoveBarcodeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}"
-                                                    Background="#DC3545"
-                                                    Foreground="White"
-                                                    Width="25" Height="25"
-                                                    FontSize="10"
-                                                    Margin="10,0,0,0"/>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
+                        <!-- Existing Barcodes List -->
+                        <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="6" Padding="15" Background="#F8F9FA">
+                            <StackPanel>
+                                <TextBlock Text="Product Barcodes" FontWeight="SemiBold" FontSize="14" Foreground="#495057" Margin="0,0,0,15"/>
+                                
+                                <!-- Barcodes List -->
+                                <ItemsControl ItemsSource="{Binding Barcodes}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="#E0E0E0" 
+                                                    BorderThickness="1" 
+                                                    CornerRadius="6" 
+                                                    Padding="15" 
+                                                    Margin="0,0,0,10" 
+                                                    Background="#FFFFFF">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="120"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    
+                                                    <!-- Barcode Details -->
+                                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Value}" 
+                                                                   FontFamily="Consolas"
+                                                                   FontSize="14"
+                                                                   FontWeight="SemiBold"
+                                                                   Margin="0,0,0,5"/>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="Type:" FontSize="11" Foreground="#6C757D" Margin="0,0,5,0"/>
+                                                            <TextBlock Text="{Binding BarcodeType}" FontSize="11" Foreground="#495057" Margin="0,0,15,0"/>
+                                                            <Border Background="#6C757D" 
+                                                                    CornerRadius="8" 
+                                                                    Padding="6,2"
+                                                                    Visibility="{Binding IsNew, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                <TextBlock Text="NEW" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                                            </Border>
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                    
+                                                    <!-- Barcode Type Display -->
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding BarcodeType, StringFormat='{}Type: {0}'}" 
+                                                                   FontSize="11" 
+                                                                   Foreground="#6C757D"
+                                                                   HorizontalAlignment="Center"/>
+                                                        <Border Background="#007BFF" 
+                                                                CornerRadius="10" 
+                                                                Padding="8,3"
+                                                                Margin="0,3,0,0">
+                                                            <TextBlock Text="{Binding BarcodeType}" 
+                                                                       FontSize="9" 
+                                                                       FontWeight="Bold" 
+                                                                       Foreground="White"
+                                                                       HorizontalAlignment="Center"/>
+                                                        </Border>
+                                                    </StackPanel>
+                                                    
+                                                    <!-- Remove Button -->
+                                                    <Button Grid.Column="2" 
+                                                            Content="✕"
+                                                            Command="{Binding DataContext.RemoveBarcodeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Style="{StaticResource FormButtonStyle}"
+                                                            Background="#DC3545"
+                                                            Foreground="White"
+                                                            Width="35"
+                                                            Height="35"
+                                                            FontSize="14"
+                                                            VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                
+                                <!-- No Barcodes Message -->
+                                <Border BorderBrush="#E0E0E0" 
+                                        BorderThickness="2" 
+                                        CornerRadius="8"
+                                        Padding="30"
+                                        Background="#FAFAFA"
+                                        Visibility="{Binding Barcodes.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=0}">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="📋" FontSize="40" HorizontalAlignment="Center" Foreground="#6C757D"/>
+                                        <TextBlock Text="No barcodes added yet" FontSize="14" HorizontalAlignment="Center" Foreground="#6C757D" Margin="0,10,0,0"/>
+                                        <TextBlock Text="Add barcode values above or click Generate" FontSize="11" HorizontalAlignment="Center" Foreground="#6C757D" Margin="0,5,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Barcode Tips -->
+                        <Border BorderBrush="#17A2B8" BorderThickness="1" CornerRadius="6" Padding="15" Background="#E7F8FD" Margin="0,15,0,0">
+                            <StackPanel>
+                                <TextBlock Text="📋 Barcode Tips" FontWeight="SemiBold" FontSize="12" Foreground="#17A2B8" Margin="0,0,0,8"/>
+                                <TextBlock Text="• EAN-13: Standard European barcodes (13 digits)" FontSize="11" Foreground="#495057" Margin="0,0,0,3"/>
+                                <TextBlock Text="• UPC-A: Standard US/Canada barcodes (12 digits)" FontSize="11" Foreground="#495057" Margin="0,0,0,3"/>
+                                <TextBlock Text="• Code 128: Alphanumeric barcodes for internal use" FontSize="11" Foreground="#495057" Margin="0,0,0,3"/>
+                                <TextBlock Text="• QR Code: 2D barcodes for mobile scanning" FontSize="11" Foreground="#495057" Margin="0,0,0,3"/>
+                                <TextBlock Text="• Use Generate button to create unique barcodes automatically" FontSize="11" Foreground="#495057"/>
+                            </StackPanel>
                         </Border>
                     </StackPanel>
                 </Border>
@@ -561,77 +662,103 @@
                     <StackPanel>
                         <TextBlock Text="{Binding PicturesTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                         
-                        <!-- Main Product Image -->
-                        <Border Width="300" Height="200" 
-                                BorderBrush="#E0E0E0" 
-                                BorderThickness="2" 
-                                CornerRadius="8"
-                                Background="#F8F9FA"
-                                Margin="0,0,0,20"
-                                HorizontalAlignment="Center">
-                            <Grid>
-                                <Image Source="{Binding ImagePath}" 
-                                       Stretch="UniformToFill"
-                                       Visibility="{Binding ImagePath, Converter={StaticResource StringToVisibilityConverter}}"/>
-                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
-                                            Visibility="{Binding ImagePath, Converter={StaticResource InverseStringToVisibilityConverter}}">
-                                    <TextBlock Text="📷" FontSize="40" HorizontalAlignment="Center" Foreground="#6C757D"/>
-                                    <TextBlock Text="{Binding NoImageSelectedLabel}" FontSize="14" HorizontalAlignment="Center" Foreground="#6C757D" Margin="0,10,0,0"/>
-                                    <TextBlock Text="{Binding ClickChooseImageLabel}" FontSize="11" HorizontalAlignment="Center" Foreground="#6C757D" Margin="0,5,0,0"/>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-
-                        <!-- Image Actions -->
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
-                            <Button Content="{Binding ChooseImageLabel}" 
-                                    Command="{Binding ChooseImageCommand}"
-                                    Style="{StaticResource FormButtonStyle}"
-                                    Background="#6C757D"
-                                    Foreground="White"
-                                    Width="120"
-                                    Margin="0,0,10,0"/>
-                            <Button Content="{Binding RemoveImageLabel}" 
-                                    Command="{Binding RemoveImageCommand}"
-                                    Style="{StaticResource FormButtonStyle}"
-                                    Background="#DC3545"
-                                    Foreground="White"
-                                    Width="120"
-                                    Visibility="{Binding ImagePath, Converter={StaticResource StringToVisibilityConverter}}"/>
-                        </StackPanel>
-
-                        <!-- Image Information -->
-                        <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="6" Padding="15" Background="#F8F9FA"
-                                Visibility="{Binding ImagePath, Converter={StaticResource StringToVisibilityConverter}}">
+                        <!-- Unified Image Gallery -->
+                        <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="6" Padding="20" Background="#F8F9FA">
                             <StackPanel>
-                                <TextBlock Text="Image Information" FontWeight="SemiBold" FontSize="12" Foreground="#495057" Margin="0,0,0,10"/>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="File Path:" FontSize="11" Foreground="#6C757D" Margin="0,0,10,5"/>
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ImagePath}" FontSize="11" Foreground="#495057" TextWrapping="Wrap" Margin="0,0,0,5"/>
-                                    
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Format:" FontSize="11" Foreground="#6C757D" Margin="0,0,10,0"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Supported: JPG, PNG, BMP, GIF" FontSize="11" Foreground="#495057"/>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Tips -->
-                        <Border BorderBrush="#17A2B8" BorderThickness="1" CornerRadius="6" Padding="15" Background="#E7F8FD" Margin="0,15,0,0">
-                            <StackPanel>
-                                <TextBlock Text="💡 Image Tips" FontWeight="SemiBold" FontSize="12" Foreground="#17A2B8" Margin="0,0,0,8"/>
-                                <TextBlock Text="• Use high-quality images for better presentation" FontSize="11" Foreground="#495057" Margin="0,0,0,3"/>
-                                <TextBlock Text="• Recommended size: 300x200 pixels or larger" FontSize="11" Foreground="#495057" Margin="0,0,0,3"/>
-                                <TextBlock Text="• Supported formats: JPG, PNG, BMP, GIF" FontSize="11" Foreground="#495057" Margin="0,0,0,3"/>
-                                <TextBlock Text="• Keep file size under 2MB for better performance" FontSize="11" Foreground="#495057"/>
+                                <!-- Horizontal Image Gallery -->
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                                    <StackPanel Orientation="Horizontal">
+                                        
+                                        <!-- Product Images -->
+                                        <ItemsControl ItemsSource="{Binding ProductImages}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Margin="0,0,15,0">
+                                                        <!-- Image Thumbnail -->
+                                                        <Border Width="120" Height="120" 
+                                                                BorderBrush="#DDD" 
+                                                                BorderThickness="1" 
+                                                                CornerRadius="8"
+                                                                Background="White">
+                                                            <Image Source="{Binding ImageUrl}" 
+                                                                   Stretch="UniformToFill"/>
+                                                        </Border>
+                                                        
+                                                        <!-- Primary Checkbox (Radio behavior) -->
+                                                        <CheckBox IsChecked="{Binding IsPrimary, Mode=TwoWay}" 
+                                                                  Command="{Binding DataContext.SetPrimaryImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                  CommandParameter="{Binding}"
+                                                                  Content="Primary"
+                                                                  HorizontalAlignment="Center"
+                                                                  FontSize="11"
+                                                                  Margin="0,8,0,0"/>
+                                                        
+                                                        <!-- Remove Button -->
+                                                        <Border Background="#DC3545"
+                                                                CornerRadius="12"
+                                                                Width="25"
+                                                                Height="25"
+                                                                HorizontalAlignment="Center"
+                                                                Margin="0,5,0,0">
+                                                            <Button Content="✕"
+                                                                    Command="{Binding DataContext.RemoveProductImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                    CommandParameter="{Binding}"
+                                                                    Background="Transparent"
+                                                                    Foreground="White"
+                                                                    BorderThickness="0"
+                                                                    FontSize="12"
+                                                                    Cursor="Hand"
+                                                                    Width="25"
+                                                                    Height="25"/>
+                                                        </Border>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        
+                                        <!-- Add Button (Always at the end) -->
+                                        <StackPanel>
+                                            <Border Width="120" 
+                                                    Height="120" 
+                                                    Background="#28A745" 
+                                                    BorderBrush="#28A745"
+                                                    BorderThickness="1"
+                                                    CornerRadius="8"
+                                                    Cursor="Hand">
+                                                <Button Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Command="{Binding ChooseImageCommand}"
+                                                        Cursor="Hand">
+                                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <TextBlock Text="+" FontSize="36" Foreground="White" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Add Image" FontSize="11" Foreground="White" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </Border>
+                                        </StackPanel>
+                                        
+                                    </StackPanel>
+                                </ScrollViewer>
+                                
+                                <!-- No Images Message (Only when no images exist) -->
+                                <Border BorderBrush="#E0E0E0" 
+                                        BorderThickness="2" 
+                                        CornerRadius="8"
+                                        Padding="30"
+                                        Background="#FAFAFA"
+                                        Margin="0,15,0,0"
+                                        Visibility="{Binding ProductImages.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=0}">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="📷" FontSize="40" HorizontalAlignment="Center" Foreground="#6C757D"/>
+                                        <TextBlock Text="No images added yet" FontSize="14" HorizontalAlignment="Center" Foreground="#6C757D" Margin="0,10,0,0"/>
+                                        <TextBlock Text="Click the + button above to add your first image" FontSize="11" HorizontalAlignment="Center" Foreground="#6C757D" Margin="0,5,0,0"/>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                         </Border>
                     </StackPanel>

@@ -17,6 +17,7 @@ public class ProductRepository : Repository<Product>, IProductRepository
     {
         return await _dbSet
             .Include(p => p.Category)
+            .Include(p => p.ProductBarcodes)
             .ToListAsync();
     }
 
@@ -24,6 +25,7 @@ public class ProductRepository : Repository<Product>, IProductRepository
     {
         return await _dbSet
             .Include(p => p.Category)
+            .Include(p => p.ProductBarcodes)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
@@ -31,6 +33,7 @@ public class ProductRepository : Repository<Product>, IProductRepository
     {
         return await _dbSet
             .Include(p => p.Category)
+            .Include(p => p.ProductBarcodes)
             .Where(p => p.CategoryId == categoryId)
             .ToListAsync();
     }
@@ -39,6 +42,7 @@ public class ProductRepository : Repository<Product>, IProductRepository
     {
         return await _dbSet
             .Include(p => p.Category)
+            .Include(p => p.ProductBarcodes)
             .Where(p => p.StockQuantity <= threshold && p.IsActive)
             .ToListAsync();
     }
@@ -76,7 +80,7 @@ public class ProductRepository : Repository<Product>, IProductRepository
                 .Include(p => p.ProductBarcodes)
                 .Where(p => EF.Functions.Like(p.Name.ToLower(), $"%{searchTerm.ToLower()}%") || 
                            (p.SKU != null && EF.Functions.Like(p.SKU.ToLower(), $"%{searchTerm.ToLower()}%")) || 
-                           p.ProductBarcodes.Any(pb => EF.Functions.Like(pb.Value.ToLower(), $"%{searchTerm.ToLower()}%")));
+                           p.ProductBarcodes.Any(pb => EF.Functions.Like(pb.Barcode.ToLower(), $"%{searchTerm.ToLower()}%")));
             
             // Log the SQL query
             System.Diagnostics.Debug.WriteLine($"[ProductRepository] Generated SQL query: {query.ToQueryString()}");

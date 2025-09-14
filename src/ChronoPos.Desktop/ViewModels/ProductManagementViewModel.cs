@@ -18,6 +18,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
     
     private readonly IProductService _productService;
     private readonly Action? _navigateToAddProduct;
+    private readonly Action<ProductDto>? _navigateToEditProduct;
     private readonly Action? _navigateBack;
     
     // Settings services
@@ -99,19 +100,19 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
     private string _pageTitle = "Product Management";
 
     [ObservableProperty]
-    private string _backButtonText = "← Back";
+    private string _backButtonText = "Back";
 
     [ObservableProperty]
-    private string _refreshButtonText = "🔄 Refresh";
+    private string _refreshButtonText = "Refresh";
 
     [ObservableProperty]
     private string _categoriesHeaderText = "Categories";
 
     [ObservableProperty]
-    private string _addNewCategoryButtonText = "➕ Add Category";
+    private string _addNewCategoryButtonText = "Add Category";
 
     [ObservableProperty]
-    private string _addNewProductButtonText = "➕ Add Product";
+    private string _addNewProductButtonText = "Add Product";
 
     [ObservableProperty]
     private string _searchPlaceholder = "Search products...";
@@ -233,6 +234,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
         IFontService fontService,
         InfrastructureServices.IDatabaseLocalizationService databaseLocalizationService,
         Action? navigateToAddProduct = null, 
+        Action<ProductDto>? navigateToEditProduct = null,
         Action? navigateBack = null)
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
@@ -244,6 +246,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
         _fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
         _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
         _navigateToAddProduct = navigateToAddProduct;
+        _navigateToEditProduct = navigateToEditProduct;
         _navigateBack = navigateBack;
         
         // Subscribe to settings changes
@@ -414,24 +417,33 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
     {
         if (product == null) return;
 
-        CurrentProduct = new ProductDto
+        if (_navigateToEditProduct != null)
         {
-            Id = product.Id,
-            Name = product.Name,
-            Description = product.Description,
-            Price = product.Price,
-            CategoryId = product.CategoryId,
-            StockQuantity = product.StockQuantity,
-            SKU = product.SKU,
-            Barcode = product.Barcode,
-            IsActive = product.IsActive,
-            CostPrice = product.CostPrice,
-            Markup = product.Markup,
-            ImagePath = product.ImagePath,
-            Color = product.Color
-        };
-        IsEditMode = true;
-        IsProductFormVisible = true;
+            // Navigate to AddProductView in edit mode
+            _navigateToEditProduct(product);
+        }
+        else
+        {
+            // Fallback to existing form behavior
+            CurrentProduct = new ProductDto
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Description = product.Description,
+                Price = product.Price,
+                CategoryId = product.CategoryId,
+                StockQuantity = product.StockQuantity,
+                SKU = product.SKU,
+                Barcode = product.Barcode,
+                IsActive = product.IsActive,
+                CostPrice = product.CostPrice,
+                Markup = product.Markup,
+                ImagePath = product.ImagePath,
+                Color = product.Color
+            };
+            IsEditMode = true;
+            IsProductFormVisible = true;
+        }
     }
 
     [RelayCommand]
@@ -827,13 +839,13 @@ private void DebugBindings()
         {
             // Page and Navigation
             PageTitle = await GetTranslationAsync("product_management_title", "Product Management");
-            BackButtonText = await GetTranslationAsync("back_button", "← Back");
-            RefreshButtonText = await GetTranslationAsync("refresh_button", "🔄 Refresh");
+            BackButtonText = await GetTranslationAsync("back_button", "Back");
+            RefreshButtonText = await GetTranslationAsync("refresh_button", "Refresh");
             
             // Categories Section
             CategoriesHeaderText = await GetTranslationAsync("categories_header", "Categories");
-            AddNewCategoryButtonText = await GetTranslationAsync("add_new_category_button", "➕ Add Category");
-            AddNewProductButtonText = await GetTranslationAsync("add_new_product_button", "➕ Add Product");
+            AddNewCategoryButtonText = await GetTranslationAsync("add_new_category_button", "Add Category");
+            AddNewProductButtonText = await GetTranslationAsync("add_new_product_button", "Add Product");
             AllCategoriesText = await GetTranslationAsync("all_categories", "All");
             ItemsCountText = await GetTranslationAsync("items_count", "items");
             

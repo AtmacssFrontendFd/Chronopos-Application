@@ -23,6 +23,10 @@ public class ProductDto
     
     public string CategoryName { get; set; } = string.Empty;
     
+    public int? BrandId { get; set; }
+    
+    public string BrandName { get; set; } = string.Empty;
+    
     public int StockQuantity { get; set; } = 0;
     
     [StringLength(50)]
@@ -31,9 +35,10 @@ public class ProductDto
     [StringLength(100)]
     public string? Barcode { get; set; }
     
-    public bool IsActive { get; set; } = true;
-    
-    public decimal CostPrice { get; set; } = 0;
+    // Multiple barcodes support
+    public List<ProductBarcodeDto> ProductBarcodes { get; set; } = new();
+
+    public bool IsActive { get; set; } = true;    public decimal CostPrice { get; set; } = 0;
     
     public decimal? Markup { get; set; }
     
@@ -45,6 +50,21 @@ public class ProductDto
     public int UnitOfMeasurementId { get; set; } = 1;
     public string UnitOfMeasurementName { get; set; } = "pcs";
     public string UnitOfMeasurementAbbreviation { get; set; } = "pcs";
+    
+    // Purchase and Selling Units (can be different from base UOM)
+    public int? PurchaseUnitId { get; set; }
+    public string PurchaseUnitName { get; set; } = string.Empty;
+    
+    public int? SellingUnitId { get; set; }
+    public string SellingUnitName { get; set; } = string.Empty;
+    
+    // Product Grouping
+    public int? ProductGroupId { get; set; }
+    public string? Group { get; set; } // For backwards compatibility
+    
+    // Business Rules (Additional)
+    public bool CanReturn { get; set; } = true;
+    public bool IsGrouped { get; set; } = false;
     
     // Stock Control Properties
     public bool IsStockTracked { get; set; } = true;
