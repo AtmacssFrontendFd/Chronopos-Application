@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ChronoPos.Domain.Entities;
+using ChronoPos.Application.Interfaces;
 using ChronoPos.Domain.Enums;
 
 namespace ChronoPos.Infrastructure;
@@ -7,7 +8,7 @@ namespace ChronoPos.Infrastructure;
 /// <summary>
 /// Database context for ChronoPos application using SQLite
 /// </summary>
-public class ChronoPosDbContext : DbContext
+public class ChronoPosDbContext : DbContext, IChronoPosDbContext
 {
     public ChronoPosDbContext(DbContextOptions<ChronoPosDbContext> options) : base(options)
     {
@@ -24,7 +25,7 @@ public class ChronoPosDbContext : DbContext
     public DbSet<Domain.Entities.ProductBarcode> ProductBarcodes { get; set; }
     public DbSet<Domain.Entities.ProductComment> ProductComments { get; set; }
     public DbSet<Domain.Entities.ProductTax> ProductTaxes { get; set; }
-    public DbSet<Domain.Entities.Tax> Taxes { get; set; }
+    public DbSet<Domain.Entities.TaxType> TaxTypes { get; set; }
     public DbSet<Domain.Entities.Brand> Brands { get; set; }
     public DbSet<Domain.Entities.ProductImage> ProductImages { get; set; }
     
@@ -66,8 +67,8 @@ public class ChronoPosDbContext : DbContext
             entity.Property(e => e.LastPurchasePrice).HasPrecision(18, 2);
             entity.Property(e => e.Markup).HasPrecision(18, 2);
             entity.Property(e => e.TaxRate).HasPrecision(5, 2);
-            entity.Property(e => e.Excise).HasPrecision(18, 2);
             entity.Property(e => e.MaxDiscount).HasPrecision(5, 2);
+            entity.Property(e => e.TaxInclusivePriceValue).HasPrecision(18, 2);
             entity.Property(e => e.SKU).HasMaxLength(50);
             entity.Property(e => e.Color).HasMaxLength(50);
             entity.Property(e => e.ImagePath).HasMaxLength(500);
@@ -94,6 +95,18 @@ public class ChronoPosDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(p => p.UnitOfMeasurementId)
                   .OnDelete(DeleteBehavior.Restrict);
+
+        // Foreign key relationship with PurchaseUnit (optional)
+        entity.HasOne(p => p.PurchaseUnit)
+            .WithMany()
+            .HasForeignKey(p => p.PurchaseUnitId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Foreign key relationship with SellingUnit (optional)
+        entity.HasOne(p => p.SellingUnit)
+            .WithMany()
+            .HasForeignKey(p => p.SellingUnitId)
+            .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Configure Category entity
@@ -139,12 +152,18 @@ public class ChronoPosDbContext : DbContext
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Configure Tax entity
-        modelBuilder.Entity<Domain.Entities.Tax>(entity =>
+        // Configure TaxType entity
+        modelBuilder.Entity<Domain.Entities.TaxType>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.Rate).HasPrecision(5, 2);
+            entity.Property(e => e.Description).HasMaxLength(4000);
+            entity.Property(e => e.Value).HasPrecision(15, 4);
+            entity.Property(e => e.IncludedInPrice).HasDefaultValue(false);
+            entity.Property(e => e.AppliesToBuying).HasDefaultValue(false);
+            entity.Property(e => e.AppliesToSelling).HasDefaultValue(true);
+            entity.Property(e => e.CalculationOrder).HasDefaultValue(1);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.CreatedAt).IsRequired();
 
             // Unique constraint on name
@@ -163,14 +182,14 @@ public class ChronoPosDbContext : DbContext
                   .HasForeignKey(pt => pt.ProductId)
                   .OnDelete(DeleteBehavior.Cascade);
 
-            // Foreign key relationship with Tax
-            entity.HasOne(pt => pt.Tax)
-                  .WithMany()
-                  .HasForeignKey(pt => pt.TaxId)
-                  .OnDelete(DeleteBehavior.Restrict);
+        // Foreign key relationship with TaxType
+        entity.HasOne(pt => pt.TaxType)
+            .WithMany()
+            .HasForeignKey(pt => pt.TaxTypeId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-            // Unique constraint on Product-Tax combination
-            entity.HasIndex(e => new { e.ProductId, e.TaxId }).IsUnique();
+            // Unique constraint on Product-TaxType combination
+            entity.HasIndex(e => new { e.ProductId, e.TaxTypeId }).IsUnique();
         });
 
         // Configure Brand entity
@@ -723,126 +742,11 @@ public class ChronoPosDbContext : DbContext
             new Domain.Entities.Store { Id = 2, Name = "Branch Store", Address = "456 Branch Avenue", PhoneNumber = "+1234567891", Email = "branch@chronopos.com", ManagerName = "Jane Smith", IsActive = true, IsDefault = false, CreatedAt = baseDate, UpdatedAt = baseDate }
         );
 
-        // Seed Products
-        modelBuilder.Entity<Domain.Entities.Product>().HasData(
-            new Domain.Entities.Product 
-            { 
-                Id = 1, 
-                Code = "MOUSE001", 
-                PLU = 1001,
-                Name = "Wireless Mouse", 
-                Description = "Ergonomic wireless mouse", 
-                Price = 25.99m, 
-                Cost = 15.00m,
-                CategoryId = 1, 
-                StockQuantity = 50, 
-                UnitOfMeasurementId = 1, // Pieces
-                BrandId = 4, // Generic
-                IsActive = true,
-                CreatedAt = baseDate, 
-                UpdatedAt = baseDate 
-            },
-            new Domain.Entities.Product 
-            { 
-                Id = 2, 
-                Code = "HEAD001", 
-                PLU = 1002,
-                Name = "Bluetooth Headphones", 
-                Description = "Noise-cancelling headphones", 
-                Price = 89.99m, 
-                Cost = 60.00m,
-                CategoryId = 1, 
-                StockQuantity = 30, 
-                UnitOfMeasurementId = 1, // Pieces
-                BrandId = 3, // Sony
-                IsActive = true,
-                CreatedAt = baseDate, 
-                UpdatedAt = baseDate 
-            },
-            new Domain.Entities.Product 
-            { 
-                Id = 3, 
-                Code = "SHIRT001", 
-                PLU = 1003,
-                Name = "Cotton T-Shirt", 
-                Description = "100% cotton comfortable t-shirt", 
-                Price = 19.99m, 
-                Cost = 12.00m,
-                CategoryId = 2, 
-                StockQuantity = 100, 
-                UnitOfMeasurementId = 1, // Pieces
-                BrandId = 4, // Generic
-                IsActive = true,
-                CreatedAt = baseDate, 
-                UpdatedAt = baseDate 
-            },
-            new Domain.Entities.Product 
-            { 
-                Id = 4, 
-                Code = "COFFEE001", 
-                PLU = 1004,
-                Name = "Coffee Beans", 
-                Description = "Premium arabica coffee beans", 
-                Price = 12.99m, 
-                Cost = 8.00m,
-                CategoryId = 3, 
-                StockQuantity = 75, 
-                UnitOfMeasurementId = 2, // Kilograms
-                BrandId = 4, // Generic
-                IsActive = true,
-                CreatedAt = baseDate, 
-                UpdatedAt = baseDate 
-            },
-            new Domain.Entities.Product 
-            { 
-                Id = 5, 
-                Code = "BOOK001", 
-                PLU = 1005,
-                Name = "Programming Guide", 
-                Description = "Complete C# programming guide", 
-                Price = 39.99m, 
-                Cost = 25.00m,
-                CategoryId = 4, 
-                StockQuantity = 25, 
-                UnitOfMeasurementId = 1, // Pieces
-                BrandId = 4, // Generic
-                IsActive = true,
-                CreatedAt = baseDate, 
-                UpdatedAt = baseDate 
-            }
-        );
-
-        // Seed Taxes
-        modelBuilder.Entity<Domain.Entities.Tax>().HasData(
-            new Domain.Entities.Tax { Id = 1, Name = "VAT", Rate = 10.00m, IsPercentage = true, IsDefault = true, IsActive = true, CreatedAt = baseDate },
-            new Domain.Entities.Tax { Id = 2, Name = "Sales Tax", Rate = 5.00m, IsPercentage = true, IsDefault = false, IsActive = true, CreatedAt = baseDate },
-            new Domain.Entities.Tax { Id = 3, Name = "Luxury Tax", Rate = 15.00m, IsPercentage = true, IsDefault = false, IsActive = true, CreatedAt = baseDate }
-        );
-
-        // Seed ProductBarcodes
-        modelBuilder.Entity<Domain.Entities.ProductBarcode>().HasData(
-            new Domain.Entities.ProductBarcode { Id = 1, ProductId = 1, Barcode = "1234567890123", BarcodeType = "ean", CreatedAt = baseDate },
-            new Domain.Entities.ProductBarcode { Id = 2, ProductId = 1, Barcode = "MOUSE001BC", BarcodeType = "custom", CreatedAt = baseDate },
-            new Domain.Entities.ProductBarcode { Id = 3, ProductId = 2, Barcode = "2345678901234", BarcodeType = "ean", CreatedAt = baseDate },
-            new Domain.Entities.ProductBarcode { Id = 4, ProductId = 3, Barcode = "3456789012345", BarcodeType = "ean", CreatedAt = baseDate },
-            new Domain.Entities.ProductBarcode { Id = 5, ProductId = 4, Barcode = "4567890123456", BarcodeType = "ean", CreatedAt = baseDate },
-            new Domain.Entities.ProductBarcode { Id = 6, ProductId = 5, Barcode = "5678901234567", BarcodeType = "ean", CreatedAt = baseDate }
-        );
-
-        // Seed ProductComments
-        modelBuilder.Entity<Domain.Entities.ProductComment>().HasData(
-            new Domain.Entities.ProductComment { Id = 1, ProductId = 1, Comment = "Popular item - stock frequently", CreatedBy = "Admin", CreatedAt = baseDate },
-            new Domain.Entities.ProductComment { Id = 2, ProductId = 2, Comment = "Check battery life before selling", CreatedBy = "Admin", CreatedAt = baseDate }
-        );
-
-        // Seed ProductTaxes
-        modelBuilder.Entity<Domain.Entities.ProductTax>().HasData(
-            new Domain.Entities.ProductTax { Id = 1, ProductId = 1, TaxId = 1, CreatedAt = baseDate }, // Mouse with VAT
-            new Domain.Entities.ProductTax { Id = 2, ProductId = 2, TaxId = 1, CreatedAt = baseDate }, // Headphones with VAT
-            new Domain.Entities.ProductTax { Id = 3, ProductId = 2, TaxId = 3, CreatedAt = baseDate }, // Headphones with Luxury Tax
-            new Domain.Entities.ProductTax { Id = 4, ProductId = 3, TaxId = 2, CreatedAt = baseDate }, // T-Shirt with Sales Tax
-            new Domain.Entities.ProductTax { Id = 5, ProductId = 4, TaxId = 1, CreatedAt = baseDate }, // Coffee with VAT
-            new Domain.Entities.ProductTax { Id = 6, ProductId = 5, TaxId = 2, CreatedAt = baseDate }  // Book with Sales Tax
+        // Seed TaxTypes
+        modelBuilder.Entity<Domain.Entities.TaxType>().HasData(
+            new Domain.Entities.TaxType { Id = 1, Name = "VAT", Description = "Value Added Tax", Value = 10.0000m, IsPercentage = true, IncludedInPrice = false, AppliesToBuying = false, AppliesToSelling = true, CalculationOrder = 1, IsActive = true, CreatedAt = baseDate },
+            new Domain.Entities.TaxType { Id = 2, Name = "Sales Tax", Description = "General Sales Tax", Value = 5.0000m, IsPercentage = true, IncludedInPrice = false, AppliesToBuying = false, AppliesToSelling = true, CalculationOrder = 1, IsActive = true, CreatedAt = baseDate },
+            new Domain.Entities.TaxType { Id = 3, Name = "Luxury Tax", Description = "Luxury Goods Tax", Value = 15.0000m, IsPercentage = true, IncludedInPrice = false, AppliesToBuying = false, AppliesToSelling = true, CalculationOrder = 2, IsActive = true, CreatedAt = baseDate }
         );
 
         // Seed Customers

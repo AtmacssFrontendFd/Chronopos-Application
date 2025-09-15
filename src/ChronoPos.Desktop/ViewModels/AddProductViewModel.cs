@@ -24,6 +24,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     private readonly IProductService _productService;
     private readonly IBrandService _brandService;
     private readonly IProductImageService _productImageService;
+    private readonly ITaxTypeService _taxTypeService;
     private readonly Action? _navigateBack;
     
     // Settings services
@@ -76,7 +77,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     private bool isTaxInclusivePrice = true;
 
     [ObservableProperty]
-    private decimal excise = 0;
+    private decimal taxInclusivePriceValue = 0;
 
     [ObservableProperty]
     private bool isDiscountAllowed = true;
@@ -181,7 +182,18 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     private ObservableCollection<UnitOfMeasurementDto> unitsOfMeasurement = new();
 
     [ObservableProperty]
-    private ObservableCollection<string> availableTaxes = new();
+    private ObservableCollection<TaxTypeDto> availableTaxTypes = new();
+
+    [ObservableProperty]
+    private ObservableCollection<int> selectedTaxTypeIds = new();
+    public List<int> SelectedTaxTypeIdsList => SelectedTaxTypeIds.ToList();
+
+    // Dropdown-based tax selection helper state
+    [ObservableProperty]
+    private TaxTypeDto? selectedTaxType;
+
+    [ObservableProperty]
+    private ObservableCollection<TaxTypeDto> selectedTaxTypes = new();
 
     [ObservableProperty]
     private ObservableCollection<StoreDto> availableStores = new();
@@ -293,7 +305,6 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string sellingUnitLabel = "Selling Unit";
     [ObservableProperty] private string unitOfMeasurementLabel = "Unit of Measurement";
     [ObservableProperty] private string isTaxInclusivePriceLabel = "Tax Inclusive Price";
-    [ObservableProperty] private string exciseLabel = "Excise";
     [ObservableProperty] private string isDiscountAllowedLabel = "Discount Allowed";
     [ObservableProperty] private string maxDiscountLabel = "Max Discount";
     [ObservableProperty] private string isPriceChangeAllowedLabel = "Price Change Allowed";
@@ -411,7 +422,6 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string pricePlaceholder = "0.00";
     [ObservableProperty] private string costPlaceholder = "0.00";
     [ObservableProperty] private string markupPlaceholder = "0.00";
-    [ObservableProperty] private string excisePlaceholder = "0.00";
     [ObservableProperty] private string maxDiscountPlaceholder = "100";
     [ObservableProperty] private string stockPlaceholder = "0";
     [ObservableProperty] private string ageRestrictionPlaceholder = "18";
@@ -703,7 +713,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     public AddProductViewModel(
         IProductService productService,
         IBrandService brandService,
-        IProductImageService productImageService,
+    IProductImageService productImageService,
+    ITaxTypeService taxTypeService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -715,7 +726,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
         _brandService = brandService ?? throw new ArgumentNullException(nameof(brandService));
-        _productImageService = productImageService ?? throw new ArgumentNullException(nameof(productImageService));
+    _productImageService = productImageService ?? throw new ArgumentNullException(nameof(productImageService));
+    _taxTypeService = taxTypeService ?? throw new ArgumentNullException(nameof(taxTypeService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -783,6 +795,10 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             FileLogger.Log("📏 Loading units of measurement");
             await LoadUnitsOfMeasurementAsync();
             FileLogger.Log($"✅ Loaded units of measurement");
+
+            FileLogger.Log("🏦 Loading tax types");
+            await LoadTaxTypesAsync();
+            FileLogger.Log("✅ Loaded tax types");
 
             StatusMessage = "Ready to create new product";
             FileLogger.Log($"🎯 Final status: {StatusMessage}");
@@ -901,6 +917,34 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         }
     }
 
+    private async Task LoadTaxTypesAsync()
+    {
+        try
+        {
+            var types = await _taxTypeService.GetAllAsync();
+            AvailableTaxTypes.Clear();
+            foreach (var t in types)
+            {
+                AvailableTaxTypes.Add(t);
+            }
+            // Initialize selected list from ids if any
+            if (SelectedTaxTypeIds?.Any() == true)
+            {
+                SelectedTaxTypes.Clear();
+                foreach (var id in SelectedTaxTypeIds)
+                {
+                    var match = AvailableTaxTypes.FirstOrDefault(x => x.Id == id);
+                    if (match != null && !SelectedTaxTypes.Any(x => x.Id == match.Id))
+                        SelectedTaxTypes.Add(match);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"❌ Error loading tax types: {ex.Message}");
+        }
+    }
+
     private string GenerateNextCode()
     {
         // Generate a simple auto-incrementing code
@@ -929,6 +973,15 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             IsEnabled = product.IsActive;
             ImagePath = product.ImagePath ?? string.Empty;
             Color = product.Color ?? "#FFC107";
+            
+            // Tax & Pricing attributes (Missing fields!)
+            IsTaxInclusivePrice = product.IsTaxInclusivePrice;
+            TaxInclusivePriceValue = product.TaxInclusivePriceValue;
+            IsDiscountAllowed = product.IsDiscountAllowed;
+            MaxDiscount = product.MaxDiscount;
+            IsPriceChangeAllowed = product.IsPriceChangeAllowed;
+            IsService = product.IsService;
+            AgeRestriction = product.AgeRestriction;
             
             // Stock control properties
             IsStockTracked = product.IsStockTracked;
@@ -1030,6 +1083,20 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
                 // Don't fail the entire operation if images can't be loaded
             }
             
+            // Load selected tax types
+            SelectedTaxTypeIds = new ObservableCollection<int>(product.SelectedTaxTypeIds ?? new List<int>());
+            // Build SelectedTaxTypes for chip list
+            SelectedTaxTypes.Clear();
+            foreach (var id in SelectedTaxTypeIds)
+            {
+                var match = AvailableTaxTypes.FirstOrDefault(x => x.Id == id);
+                if (match != null && !SelectedTaxTypes.Any(x => x.Id == match.Id))
+                    SelectedTaxTypes.Add(match);
+            }
+            
+            // Note: No need to recalculate tax-inclusive price here since we already loaded 
+            // the saved value from product.TaxInclusivePriceValue above
+
             // Update title and button text for edit mode
             await UpdateTitleForEditMode();
             
@@ -1120,7 +1187,6 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         SellingUnitLabel = await GetTranslationAsync("selling_unit_label", "Selling Unit");
         UnitOfMeasurementLabel = await GetTranslationAsync("unit_of_measurement_label", "Unit of Measurement");
         IsTaxInclusivePriceLabel = await GetTranslationAsync("tax_inclusive_price_label", "Tax Inclusive Price");
-        ExciseLabel = await GetTranslationAsync("excise_label", "Excise");
         IsDiscountAllowedLabel = await GetTranslationAsync("discount_allowed_label", "Discount Allowed");
         MaxDiscountLabel = await GetTranslationAsync("max_discount_label", "Maximum Discount %");
         IsPriceChangeAllowedLabel = await GetTranslationAsync("price_change_allowed_label", "Price Change Allowed");
@@ -1237,7 +1303,6 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         PricePlaceholder = await GetTranslationAsync("PricePlaceholder", "0.00");
         CostPlaceholder = await GetTranslationAsync("CostPlaceholder", "0.00");
         MarkupPlaceholder = await GetTranslationAsync("MarkupPlaceholder", "0.00");
-        ExcisePlaceholder = await GetTranslationAsync("ExcisePlaceholder", "0.00");
         MaxDiscountPlaceholder = await GetTranslationAsync("MaxDiscountPlaceholder", "100");
         StockPlaceholder = await GetTranslationAsync("StockPlaceholder", "0");
         AgeRestrictionPlaceholder = await GetTranslationAsync("AgeRestrictionPlaceholder", "18");
@@ -1422,6 +1487,37 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     #endregion
 
     #region Commands
+
+    [RelayCommand]
+    private void AddSelectedTaxType()
+    {
+        if (SelectedTaxType == null) return;
+        var t = SelectedTaxType;
+        // Avoid duplicates
+        if (!SelectedTaxTypeIds.Contains(t.Id))
+            SelectedTaxTypeIds.Add(t.Id);
+        if (!SelectedTaxTypes.Any(x => x.Id == t.Id))
+            SelectedTaxTypes.Add(t);
+        // Clear dropdown selection for quick add of next
+        SelectedTaxType = null;
+        StatusMessage = $"Added tax type: {t.Name}";
+        CalculateTaxInclusivePrice();
+    }
+
+    [RelayCommand]
+    private void RemoveTaxType(TaxTypeDto? tax)
+    {
+        if (tax == null) return;
+        // Remove from both collections
+        var removed = SelectedTaxTypes.FirstOrDefault(x => x.Id == tax.Id);
+        if (removed != null)
+            SelectedTaxTypes.Remove(removed);
+        var idIndex = SelectedTaxTypeIds.IndexOf(tax.Id);
+        if (idIndex >= 0)
+            SelectedTaxTypeIds.RemoveAt(idIndex);
+        StatusMessage = $"Removed tax type: {tax.Name}";
+        CalculateTaxInclusivePrice();
+    }
 
     [RelayCommand]
     private void AddBarcode()
@@ -1869,7 +1965,6 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         SelectedUnitOfMeasurementId = 1; // Reset to "Pieces"
         SelectedUnitOfMeasurement = UnitsOfMeasurement.FirstOrDefault(u => u.Id == 1) ?? UnitsOfMeasurement.FirstOrDefault();
         IsTaxInclusivePrice = true;
-        Excise = 0;
         IsDiscountAllowed = true;
         MaxDiscount = 100;
         IsPriceChangeAllowed = true;
@@ -2066,6 +2161,14 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             Color = Color,
             BrandId = SelectedBrand?.Id, // Map selected brand
             BrandName = SelectedBrand?.Name ?? string.Empty, // For display purposes
+            // Tax & Attributes persisted on Product
+            IsTaxInclusivePrice = IsTaxInclusivePrice,
+            TaxInclusivePriceValue = TaxInclusivePriceValue,
+            IsDiscountAllowed = IsDiscountAllowed,
+            MaxDiscount = MaxDiscount,
+            IsPriceChangeAllowed = IsPriceChangeAllowed,
+            IsService = IsService,
+            AgeRestriction = AgeRestriction,
             // Stock Control Properties
             IsStockTracked = IsStockTracked,
             AllowNegativeStock = AllowNegativeStock,
@@ -2105,7 +2208,10 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
                 BarcodeType = b.BarcodeType,
                 IsNew = true,
                 CreatedAt = DateTime.UtcNow
-            }).ToList() ?? new List<ProductBarcodeDto>()
+            }).ToList() ?? new List<ProductBarcodeDto>(),
+
+            // Selected tax types
+            SelectedTaxTypeIds = SelectedTaxTypeIdsList
         };
 
         FileLogger.Log($"📦 CreateProductDto: Created DTO with {productDto.ProductBarcodes.Count} barcodes:");
@@ -2196,6 +2302,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         {
             Markup = ((value - Cost) / Cost) * 100;
         }
+        CalculateTaxInclusivePrice();
         ValidateForm();
     }
 
@@ -2216,6 +2323,53 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     partial void OnNameChanged(string value)
     {
         ValidateForm();
+    }
+
+    /// <summary>
+    /// Calculates the tax-inclusive price based on selected tax types
+    /// </summary>
+    private void CalculateTaxInclusivePrice()
+    {
+        try
+        {
+            decimal basePrice = Price;
+            if (basePrice <= 0)
+            {
+                TaxInclusivePriceValue = 0;
+                return;
+            }
+
+            if (SelectedTaxTypes == null || !SelectedTaxTypes.Any())
+            {
+                TaxInclusivePriceValue = basePrice;
+                return;
+            }
+
+            decimal runningTotal = basePrice;
+            var applicableTaxes = SelectedTaxTypes
+                .Where(t => t.IsActive && t.AppliesToSelling)
+                .OrderBy(t => t.CalculationOrder)
+                .ToList();
+
+            foreach (var tax in applicableTaxes)
+            {
+                if (tax.IsPercentage)
+                {
+                    runningTotal += Math.Round(basePrice * (tax.Value / 100m), 2);
+                }
+                else
+                {
+                    runningTotal += tax.Value;
+                }
+            }
+
+            TaxInclusivePriceValue = Math.Round(runningTotal, 2);
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"Error calculating tax-inclusive price: {ex.Message}");
+            TaxInclusivePriceValue = Price; // Fallback to base price
+        }
     }
 
     /// <summary>

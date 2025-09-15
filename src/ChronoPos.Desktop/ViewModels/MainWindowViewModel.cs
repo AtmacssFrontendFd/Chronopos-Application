@@ -81,8 +81,8 @@ public partial class MainWindowViewModel : ObservableObject
         timer.Tick += (s, e) => CurrentDateTime = DateTime.Now.ToString("dddd, MMMM dd, yyyy - HH:mm:ss");
         timer.Start();
 
-        // Show dashboard by default
-        ShowDashboard();
+    // Show dashboard by default
+    _ = ShowDashboard();
     }
 
     private async Task InitializeTranslationsAsync()
@@ -694,7 +694,7 @@ public partial class MainWindowViewModel : ObservableObject
                         ShowProductManagement();
                         break;
                     case "Stock":
-                        ShowStockManagement();
+                        _ = ShowStockManagement();
                         break;
                     default:
                         StatusMessage = $"Navigation to {moduleType} not implemented yet";
@@ -824,12 +824,14 @@ public partial class MainWindowViewModel : ObservableObject
             var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
             var brandService = _serviceProvider.GetRequiredService<IBrandService>();
             var productImageService = _serviceProvider.GetRequiredService<IProductImageService>();
+            var taxTypeService = _serviceProvider.GetRequiredService<ITaxTypeService>();
             
             // Create ViewModel with navigation callback
             var addProductViewModel = new AddProductViewModel(
                 productService,
                 brandService,
                 productImageService,
+                taxTypeService,
                 themeService,
                 zoomService,
                 localizationService,
@@ -892,12 +894,14 @@ public partial class MainWindowViewModel : ObservableObject
             var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
             var brandService = _serviceProvider.GetRequiredService<IBrandService>();
             var productImageService = _serviceProvider.GetRequiredService<IProductImageService>();
+            var taxTypeService = _serviceProvider.GetRequiredService<ITaxTypeService>();
             
             // Create ViewModel with navigation callback
             var addProductViewModel = new AddProductViewModel(
                 productService,
                 brandService,
                 productImageService,
+                taxTypeService,
                 themeService,
                 zoomService,
                 localizationService,
@@ -977,6 +981,7 @@ public partial class MainWindowViewModel : ObservableObject
 
             CurrentView = stockManagementView;
             StatusMessage = "Stock management loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
         }
         catch (Exception ex)
         {
@@ -1125,7 +1130,7 @@ public partial class MainWindowViewModel : ObservableObject
                 System.Windows.MessageBoxImage.Information);
             
             // Reset to dashboard
-            ShowDashboard();
+            _ = ShowDashboard();
             CurrentUser = "Guest";
             StatusMessage = "Please login to continue";
         }

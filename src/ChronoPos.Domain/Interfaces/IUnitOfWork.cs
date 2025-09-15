@@ -39,6 +39,11 @@ public interface IUnitOfWork : IDisposable
     /// Unit of Measurement repository
     /// </summary>
     IRepository<ChronoPos.Domain.Entities.UnitOfMeasurement> UnitsOfMeasurement { get; }
+
+    /// <summary>
+    /// Tax Types repository
+    /// </summary>
+    IRepository<ChronoPos.Domain.Entities.TaxType> TaxTypes { get; }
     
     /// <summary>
     /// Saves all changes asynchronously

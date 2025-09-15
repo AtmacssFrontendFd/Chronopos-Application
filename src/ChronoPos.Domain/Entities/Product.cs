@@ -38,8 +38,6 @@ public class Product
     
     public decimal TaxRate { get; set; } = 0;
     
-    public decimal Excise { get; set; } = 0;
-    
     // Category
     public int CategoryId { get; set; }
     public Category? Category { get; set; }
@@ -123,6 +121,9 @@ public class Product
     
     public bool IsUsingDefaultQuantity { get; set; } = true;
     
+    // Cached computed value: Selling Price + all selected taxes (for display/quick reads)
+    public decimal TaxInclusivePriceValue { get; set; } = 0;
+
     // Additional Properties
     public bool IsActive { get; set; } = true;
     

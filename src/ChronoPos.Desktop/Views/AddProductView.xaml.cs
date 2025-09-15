@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using ChronoPos.Application.DTOs;
 
 namespace ChronoPos.Desktop.Views
 {
@@ -109,5 +110,7 @@ namespace ChronoPos.Desktop.Views
                 }
             }
         }
+
+    // Removed old TaxTypesListBox handlers after UI change to dropdown + chips
     }
 }

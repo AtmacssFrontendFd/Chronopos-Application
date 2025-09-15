@@ -23,7 +23,7 @@ public interface IChronoPosDbContext
     DbSet<ProductBarcode> ProductBarcodes { get; set; }
     DbSet<ProductComment> ProductComments { get; set; }
     DbSet<ProductTax> ProductTaxes { get; set; }
-    DbSet<Tax> Taxes { get; set; }
+    DbSet<TaxType> TaxTypes { get; set; }
     DbSet<UnitOfMeasurement> UnitsOfMeasurement { get; set; }
     
     // Language support entities

@@ -19,6 +19,7 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<SaleItem>? _saleItemRepository;
     private IRepository<UnitOfMeasurement>? _unitOfMeasurementRepository;
     private IProductImageRepository? _productImageRepository;
+    private IRepository<TaxType>? _taxTypeRepository;
     
     public UnitOfWork(ChronoPosDbContext context)
     {
@@ -46,6 +47,9 @@ public class UnitOfWork : IUnitOfWork
     
     public IRepository<UnitOfMeasurement> UnitsOfMeasurement => 
         _unitOfMeasurementRepository ??= new Repository<UnitOfMeasurement>(_context);
+
+    public IRepository<TaxType> TaxTypes =>
+        _taxTypeRepository ??= new Repository<TaxType>(_context);
     
     public async Task<int> SaveChangesAsync()
     {

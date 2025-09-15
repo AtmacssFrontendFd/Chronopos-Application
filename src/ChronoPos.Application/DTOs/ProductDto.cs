@@ -45,6 +45,20 @@ public class ProductDto
     public string? ImagePath { get; set; }
     
     public string? Color { get; set; } = "#FFC107"; // Default golden color
+
+    // Tax & Attributes (requested to persist in Product table)
+    public bool IsTaxInclusivePrice { get; set; } = true;
+    public bool IsDiscountAllowed { get; set; } = true;
+    public decimal MaxDiscount { get; set; } = 100;
+    public bool IsPriceChangeAllowed { get; set; } = true;
+    public bool IsService { get; set; } = false;
+    public int? AgeRestriction { get; set; }
+
+    // Selected tax types for ProductTaxes mapping
+    public List<int> SelectedTaxTypeIds { get; set; } = new();
+
+    // Display-only: cached tax-inclusive price value (Price + taxes)
+    public decimal TaxInclusivePriceValue { get; set; } = 0;
     
     // Unit of Measurement
     public int UnitOfMeasurementId { get; set; } = 1;

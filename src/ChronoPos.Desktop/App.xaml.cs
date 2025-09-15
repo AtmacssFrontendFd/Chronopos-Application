@@ -73,12 +73,19 @@ public partial class App : System.Windows.Application
                     // Register application services as Transient to ensure fresh DbContext instances
                     services.AddTransient<IProductService, ProductService>();
                     LogMessage("ProductService registered as Transient");
+                    // Register DbContext interface for Application layer services
+                    services.AddScoped<IChronoPosDbContext, ChronoPosDbContext>();
+                    LogMessage("IChronoPosDbContext registered as Scoped");
                     
                     services.AddTransient<IBrandService, BrandService>();
                     LogMessage("BrandService registered as Transient");
                     
                     services.AddTransient<IProductImageService, ProductImageService>();
                     LogMessage("ProductImageService registered as Transient");
+
+                    // Register TaxType service
+                    services.AddTransient<ITaxTypeService, TaxTypeService>();
+                    LogMessage("TaxTypeService registered as Transient");
                     
                     // Register logging service
                     services.AddSingleton<ILoggingService, ApplicationLoggingService>();

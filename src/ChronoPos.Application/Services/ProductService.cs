@@ -127,6 +127,16 @@ public class ProductService : IProductService
             Log($"Mapped Product: Id={product.Id}, Code='{product.Code}', Name='{product.Name}', PLU={product.PLU}, CategoryId={product.CategoryId}, UnitOfMeasurementId={product.UnitOfMeasurementId}");
             Log($"Product dates: CreatedAt={product.CreatedAt}, UpdatedAt={product.UpdatedAt}");
             
+            // Compute and set cached tax-inclusive price before saving
+            try
+            {
+                product.TaxInclusivePriceValue = await ComputeTaxInclusivePriceAsync(productDto);
+            }
+            catch (Exception ex)
+            {
+                Log($"Tax-inclusive price compute on create failed: {ex.Message}");
+            }
+
             Log("Calling _unitOfWork.Products.AddAsync...");
             var createdProduct = await _unitOfWork.Products.AddAsync(product);
             Log($"Product added to context. CreatedProduct ID: {createdProduct.Id}");
@@ -134,7 +144,39 @@ public class ProductService : IProductService
             Log("Calling _unitOfWork.SaveChangesAsync...");
             await _unitOfWork.SaveChangesAsync();
             Log("SaveChanges completed successfully");
+
+            // Handle ProductTaxes mapping after product has an Id
+            if (productDto.SelectedTaxTypeIds != null && productDto.SelectedTaxTypeIds.Any())
+            {
+                Log($"Adding {productDto.SelectedTaxTypeIds.Distinct().Count()} ProductTaxes mappings for product ID {createdProduct.Id}");
+                createdProduct.ProductTaxes.Clear();
+                foreach (var taxTypeId in productDto.SelectedTaxTypeIds.Distinct())
+                {
+                    createdProduct.ProductTaxes.Add(new ProductTax
+                    {
+                        ProductId = createdProduct.Id,
+                        TaxTypeId = taxTypeId,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+
+                await _unitOfWork.Products.UpdateAsync(createdProduct);
+                await _unitOfWork.SaveChangesAsync();
+                Log("ProductTaxes mappings saved successfully");
+            }
             
+            // Ensure computed tax-inclusive value persisted if ProductTaxes were just added
+            try
+            {
+                createdProduct.TaxInclusivePriceValue = await ComputeTaxInclusivePriceAsync(productDto);
+                await _unitOfWork.Products.UpdateAsync(createdProduct);
+                await _unitOfWork.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Log($"Recompute tax-inclusive price after tax mapping failed: {ex.Message}");
+            }
+
             Log("Mapping result to DTO...");
             var result = MapToDto(createdProduct);
             Log($"Result DTO: Id={result.Id}, Name='{result.Name}', UnitOfMeasurementId={result.UnitOfMeasurementId}");
@@ -159,6 +201,47 @@ public class ProductService : IProductService
             throw;
         }
     }
+
+    // Aggregates selling taxes and returns price including tax based on dto.Price
+    private async Task<decimal> ComputeTaxInclusivePriceAsync(ProductDto dto)
+    {
+        try
+        {
+            var basePrice = dto.Price;
+            if (basePrice < 0) basePrice = 0;
+
+            if (dto.SelectedTaxTypeIds == null || dto.SelectedTaxTypeIds.Count == 0)
+            {
+                return dto.IsTaxInclusivePrice ? basePrice : basePrice; // no taxes
+            }
+
+            var taxTypes = await _unitOfWork.TaxTypes.GetAllAsync();
+            var selected = taxTypes
+                .Where(t => dto.SelectedTaxTypeIds.Contains(t.Id) && t.IsActive && t.AppliesToSelling)
+                .OrderBy(t => t.CalculationOrder)
+                .ToList();
+
+            decimal running = basePrice;
+            foreach (var tax in selected)
+            {
+                if (tax.IsPercentage)
+                {
+                    running += Math.Round(basePrice * (tax.Value / 100m), 2);
+                }
+                else
+                {
+                    running += tax.Value;
+                }
+            }
+
+            return Math.Round(running, 2);
+        }
+        catch (Exception ex)
+        {
+            Log($"ComputeTaxInclusivePriceAsync error: {ex.Message}");
+            return dto.Price;
+        }
+    }
     
     public async Task<ProductDto> UpdateProductAsync(ProductDto productDto)
     {
@@ -177,7 +260,36 @@ public class ProductService : IProductService
         existingProduct.Markup = productDto.Markup;
         existingProduct.ImagePath = productDto.ImagePath;
         existingProduct.Color = productDto.Color;
+    // Brand
+    existingProduct.BrandId = productDto.BrandId > 0 ? productDto.BrandId : null;
         existingProduct.UnitOfMeasurementId = productDto.UnitOfMeasurementId > 0 ? productDto.UnitOfMeasurementId : 1; // Default to "Pieces"
+    // Purchase/Selling Units
+    existingProduct.PurchaseUnitId = productDto.PurchaseUnitId;
+    existingProduct.SellingUnitId = productDto.SellingUnitId;
+
+    // Tax & attributes
+    existingProduct.IsTaxInclusivePrice = productDto.IsTaxInclusivePrice;
+    existingProduct.IsDiscountAllowed = productDto.IsDiscountAllowed;
+    existingProduct.MaxDiscount = productDto.MaxDiscount;
+    existingProduct.IsPriceChangeAllowed = productDto.IsPriceChangeAllowed;
+    existingProduct.IsService = productDto.IsService;
+    existingProduct.AgeRestriction = productDto.AgeRestriction;
+
+    // Stock control
+    existingProduct.IsStockTracked = productDto.IsStockTracked;
+    existingProduct.AllowNegativeStock = productDto.AllowNegativeStock;
+    existingProduct.IsUsingSerialNumbers = productDto.IsUsingSerialNumbers;
+    existingProduct.InitialStock = productDto.IsUsingSerialNumbers ? 0 : productDto.InitialStock;
+    existingProduct.MinimumStock = productDto.MinimumStock;
+    existingProduct.MaximumStock = productDto.MaximumStock;
+    existingProduct.ReorderLevel = productDto.ReorderLevel;
+    existingProduct.ReorderQuantity = productDto.ReorderQuantity;
+    existingProduct.AverageCost = productDto.AverageCost;
+    existingProduct.LastCost = productDto.LastCost;
+
+    // Grouping
+    existingProduct.ProductGroupId = productDto.ProductGroupId;
+    existingProduct.Group = productDto.Group;
         
         // Handle barcode updates
         System.Diagnostics.Debug.WriteLine($"UpdateProductAsync: Clearing existing {existingProduct.ProductBarcodes.Count} barcodes for product {existingProduct.Id}");
@@ -218,6 +330,31 @@ public class ProductService : IProductService
             System.Diagnostics.Debug.WriteLine("UpdateProductAsync: No barcodes to add");
         }
         
+        // Update ProductTaxes based on SelectedTaxTypeIds
+        if (productDto.SelectedTaxTypeIds != null)
+        {
+            existingProduct.ProductTaxes.Clear();
+            foreach (var taxTypeId in productDto.SelectedTaxTypeIds.Distinct())
+            {
+                existingProduct.ProductTaxes.Add(new ProductTax
+                {
+                    ProductId = existingProduct.Id,
+                    TaxTypeId = taxTypeId,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
+        // Recompute and cache TaxInclusivePriceValue on update
+        try
+        {
+            existingProduct.TaxInclusivePriceValue = await ComputeTaxInclusivePriceAsync(productDto);
+        }
+        catch (Exception ex)
+        {
+            Log($"Tax-inclusive price compute on update failed: {ex.Message}");
+        }
+
         existingProduct.UpdatedAt = DateTime.UtcNow;
         
         await _unitOfWork.Products.UpdateAsync(existingProduct);
@@ -340,13 +477,13 @@ public class ProductService : IProductService
         return category != null ? MapCategoryToDto(category) : null;
     }
     
-    public async Task<CategoryTranslationDto> CreateCategoryTranslationAsync(CategoryTranslationDto translationDto)
+    public Task<CategoryTranslationDto> CreateCategoryTranslationAsync(CategoryTranslationDto translationDto)
     {
         // Note: This would require a CategoryTranslation repository
         // For now, return the input as if it was saved
         translationDto.Id = new Random().Next(1000, 9999); // Mock ID
         translationDto.CreatedAt = DateTime.UtcNow;
-        return translationDto;
+        return Task.FromResult(translationDto);
     }
 
     // Unit of Measurement methods
@@ -391,6 +528,15 @@ public class ProductService : IProductService
             Markup = product.Markup,
             ImagePath = product.ImagePath,
             Color = product.Color ?? "#FFC107",
+            // Tax & attributes
+            IsTaxInclusivePrice = product.IsTaxInclusivePrice,
+            IsDiscountAllowed = product.IsDiscountAllowed,
+            MaxDiscount = product.MaxDiscount,
+            IsPriceChangeAllowed = product.IsPriceChangeAllowed,
+            IsService = product.IsService,
+            AgeRestriction = product.AgeRestriction,
+            SelectedTaxTypeIds = product.ProductTaxes?.Select(pt => pt.TaxTypeId).Distinct().ToList() ?? new List<int>(),
+            TaxInclusivePriceValue = product.TaxInclusivePriceValue,
             // Stock Control Properties
             IsStockTracked = product.IsStockTracked,
             AllowNegativeStock = product.AllowNegativeStock,
@@ -478,6 +624,13 @@ public class ProductService : IProductService
             Markup = dto.Markup,
             ImagePath = dto.ImagePath,
             Color = dto.Color ?? "#FFC107",
+            // Tax & attributes
+            IsTaxInclusivePrice = dto.IsTaxInclusivePrice,
+            IsDiscountAllowed = dto.IsDiscountAllowed,
+            MaxDiscount = dto.MaxDiscount,
+            IsPriceChangeAllowed = dto.IsPriceChangeAllowed,
+            IsService = dto.IsService,
+            AgeRestriction = dto.AgeRestriction,
             // Stock Control Properties
             IsStockTracked = dto.IsStockTracked,
             AllowNegativeStock = dto.AllowNegativeStock,
