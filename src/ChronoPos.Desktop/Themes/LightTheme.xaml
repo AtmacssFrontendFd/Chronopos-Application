@@ -7,6 +7,10 @@
     <converters:FlowDirectionToHorizontalAlignmentConverter x:Key="FlowDirectionToHorizontalAlignmentConverter"/>
     <converters:FlowDirectionToReverseHorizontalAlignmentConverter x:Key="FlowDirectionToReverseHorizontalAlignmentConverter"/>
     <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    <converters:ModuleToColorConverter x:Key="ModuleToColorConverter"/>
+    <converters:ModuleToIconConverter x:Key="ModuleToIconConverter"/>
+    <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+    <converters:InverseStringToVisibilityConverter x:Key="InverseStringToVisibilityConverter"/>
 
     <!-- Font Family -->
     <FontFamily x:Key="PoppinsFont">pack://application:,,,/ChronoPos.Desktop;component/Fonts/#Poppins Regular</FontFamily>
@@ -71,6 +75,17 @@
     <SolidColorBrush x:Key="MutedRed" Color="#FF5A5A"/>
     <SolidColorBrush x:Key="MutedPink" Color="#FDE7F0"/>
     <SolidColorBrush x:Key="LightBlue" Color="#ECECFF"/>
+
+    <!-- Effects -->
+    <DropShadowEffect x:Key="DropShadowEffect" 
+                      Color="Black" 
+                      Direction="315" 
+                      ShadowDepth="2" 
+                      Opacity="0.3" 
+                      BlurRadius="5"/>
+
+    <!-- Hover Background -->
+    <SolidColorBrush x:Key="HoverBackground" Color="#F5F5F5"/>
 
     <!-- Button Styles for Light Theme -->
     <Style x:Key="ModernButtonStyle" TargetType="Button">

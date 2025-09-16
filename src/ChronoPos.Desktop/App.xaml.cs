@@ -96,7 +96,11 @@ public partial class App : System.Windows.Application
                     
                     // Register stock service
                     services.AddTransient<IStockService, Infrastructure.Services.StockService>();
-                    LogMessage("StockService registered as Transient");                    // Register theme service
+                    LogMessage("StockService registered as Transient");
+                    
+                    // Register global search service
+                    services.AddTransient<IGlobalSearchService, Application.Services.GlobalSearchService>();
+                    LogMessage("GlobalSearchService registered as Transient");                    // Register theme service
                     services.AddSingleton<IThemeService, ThemeService>();
                     LogMessage("ThemeService registered");
 

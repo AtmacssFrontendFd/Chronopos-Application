@@ -8,6 +8,8 @@ using ChronoPos.Desktop.Views;
 using Microsoft.Extensions.DependencyInjection;
 using ChronoPos.Infrastructure.Services;
 using System.Windows;
+using System.Collections.ObjectModel;
+using ChronoPos.Domain.Entities;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -19,6 +21,8 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly IProductService _productService;
     private readonly IServiceProvider _serviceProvider;
     private readonly IDatabaseLocalizationService _databaseLocalizationService;
+    private readonly IGlobalSearchService _globalSearchService;
+    private System.Timers.Timer? _searchDelayTimer;
 
     [ObservableProperty]
     private string currentPageTitle = "Dashboard";
@@ -63,11 +67,64 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private string logoutButtonText = "Logout";
 
+    // Global Search Properties
+    [ObservableProperty]
+    private string globalSearchQuery = string.Empty;
+
+    [ObservableProperty]
+    private bool showGlobalSearchResults = false;
+
+    [ObservableProperty]
+    private bool hasGlobalSearchText = false;
+
+    [ObservableProperty]
+    private string globalSearchResultsHeader = "Search Results";
+
+    [ObservableProperty]
+    private bool hasMoreGlobalSearchResults = false;
+
+    [ObservableProperty]
+    private GlobalSearchResultDto? selectedGlobalSearchResult;
+
+    [ObservableProperty]
+    private ObservableCollection<GlobalSearchResultDto> globalSearchResults = new();
+
+    // Language switching properties
+    [ObservableProperty]
+    private ObservableCollection<Language> availableLanguages = new();
+
+    [ObservableProperty]
+    private Language? selectedLanguage;
+
+    [ObservableProperty]
+    private string currentLanguageCode = "en";
+
+    [ObservableProperty]
+    private string currentLanguageDisplayName = "English";
+
+    // Commands
+    public ICommand ClearGlobalSearchCommand { get; }
+    public ICommand ShowAllGlobalSearchResultsCommand { get; }
+    public ICommand ChangeLanguageCommand { get; }
+    public ICommand ToggleLanguageCommand { get; }
+
     public MainWindowViewModel(IProductService productService, IServiceProvider serviceProvider)
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _databaseLocalizationService = serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+        _globalSearchService = serviceProvider.GetRequiredService<IGlobalSearchService>();
+        
+        // Initialize commands
+        ClearGlobalSearchCommand = new RelayCommand(ClearGlobalSearch);
+        ShowAllGlobalSearchResultsCommand = new RelayCommand(ShowAllGlobalSearchResults);
+        ChangeLanguageCommand = new AsyncRelayCommand<Language>(ChangeLanguageAsync);
+        ToggleLanguageCommand = new AsyncRelayCommand(ToggleLanguageAsync);
+        
+        // Initialize search delay timer
+        _searchDelayTimer = new System.Timers.Timer(300); // 300ms delay
+        _searchDelayTimer.Elapsed += OnSearchDelayElapsed;
+        _searchDelayTimer.AutoReset = false;
         
         // Subscribe to language change events
         _databaseLocalizationService.LanguageChanged += OnLanguageChanged;
@@ -75,10 +132,14 @@ public partial class MainWindowViewModel : ObservableObject
         // Initialize translations and ensure keywords exist
         _ = InitializeTranslationsAsync();
         
+        // Initialize languages
+        _ = LoadLanguagesAsync();
+        
         // Start timer to update date/time
         var timer = new System.Windows.Threading.DispatcherTimer();
         timer.Interval = TimeSpan.FromSeconds(1);
         timer.Tick += (s, e) => CurrentDateTime = DateTime.Now.ToString("dddd, MMMM dd, yyyy - HH:mm:ss");
+        timer.Start();
         timer.Start();
 
     // Show dashboard by default
@@ -1175,4 +1236,276 @@ public partial class MainWindowViewModel : ObservableObject
         card.Child = stackPanel;
         return card;
     }
+
+    #region Global Search Methods
+
+    partial void OnGlobalSearchQueryChanged(string value)
+    {
+        HasGlobalSearchText = !string.IsNullOrWhiteSpace(value);
+        
+        // Reset and restart the search delay timer
+        _searchDelayTimer?.Stop();
+        
+        if (HasGlobalSearchText)
+        {
+            _searchDelayTimer?.Start();
+        }
+        else
+        {
+            ClearGlobalSearchResults();
+        }
+    }
+
+    private async void OnSearchDelayElapsed(object? sender, System.Timers.ElapsedEventArgs e)
+    {
+        if (HasGlobalSearchText)
+        {
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () => 
+            {
+                await PerformQuickGlobalSearchAsync();
+            });
+        }
+    }
+
+    private async Task PerformQuickGlobalSearchAsync()
+    {
+        try
+        {
+            var results = await _globalSearchService.GetQuickSearchAsync(GlobalSearchQuery, 5);
+            
+            GlobalSearchResults.Clear();
+            foreach (var result in results)
+            {
+                GlobalSearchResults.Add(result);
+            }
+
+            HasMoreGlobalSearchResults = results.Count >= 5;
+            ShowGlobalSearchResults = GlobalSearchResults.Count > 0;
+            
+            // Update header with result count
+            GlobalSearchResultsHeader = GlobalSearchResults.Count > 0 
+                ? $"Found {GlobalSearchResults.Count} result{(GlobalSearchResults.Count != 1 ? "s" : "")}"
+                : "No results found";
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Quick search error: {ex.Message}");
+            ClearGlobalSearchResults();
+        }
+    }
+
+    public void ClearGlobalSearch()
+    {
+        GlobalSearchQuery = string.Empty;
+        ClearGlobalSearchResults();
+    }
+
+    private void ClearGlobalSearchResults()
+    {
+        GlobalSearchResults.Clear();
+        ShowGlobalSearchResults = false;
+        HasMoreGlobalSearchResults = false;
+        SelectedGlobalSearchResult = null;
+    }
+
+    private void ShowAllGlobalSearchResults()
+    {
+        if (HasGlobalSearchText)
+        {
+            // Navigate to a dedicated search results page
+            StatusMessage = $"Showing all results for '{GlobalSearchQuery}'";
+            ShowGlobalSearchResults = false;
+        }
+    }
+
+    public void SelectNextGlobalSearchResult()
+    {
+        if (GlobalSearchResults.Count == 0)
+            return;
+
+        var currentIndex = SelectedGlobalSearchResult != null ? GlobalSearchResults.IndexOf(SelectedGlobalSearchResult) : -1;
+        var nextIndex = (currentIndex + 1) % GlobalSearchResults.Count;
+        SelectedGlobalSearchResult = GlobalSearchResults[nextIndex];
+    }
+
+    public void SelectPreviousGlobalSearchResult()
+    {
+        if (GlobalSearchResults.Count == 0)
+            return;
+
+        var currentIndex = SelectedGlobalSearchResult != null ? GlobalSearchResults.IndexOf(SelectedGlobalSearchResult) : 0;
+        var previousIndex = currentIndex <= 0 ? GlobalSearchResults.Count - 1 : currentIndex - 1;
+        SelectedGlobalSearchResult = GlobalSearchResults[previousIndex];
+    }
+
+    public void OpenSelectedGlobalSearchResult()
+    {
+        if (SelectedGlobalSearchResult != null)
+        {
+            OpenGlobalSearchResult(SelectedGlobalSearchResult);
+        }
+        else if (GlobalSearchResults.Count > 0)
+        {
+            OpenGlobalSearchResult(GlobalSearchResults[0]);
+        }
+    }
+
+    public void OpenGlobalSearchResult(object? result)
+    {
+        if (result is GlobalSearchResultDto searchResult)
+        {
+            NavigateToSearchResult(searchResult);
+            ShowGlobalSearchResults = false;
+        }
+    }
+
+    private void NavigateToSearchResult(GlobalSearchResultDto result)
+    {
+        try
+        {
+            switch (result.SearchType.ToLowerInvariant())
+            {
+                case "product":
+                    // Navigate to product management and highlight the product
+                    _ = ShowManagement();
+                    StatusMessage = $"Navigated to product: {result.Title}";
+                    break;
+                
+                case "customer":
+                    // Navigate to customer management
+                    StatusMessage = $"Navigated to customer: {result.Title}";
+                    break;
+                
+                case "sale":
+                    // Navigate to sales/transactions
+                    _ = ShowTransactions();
+                    StatusMessage = $"Navigated to sale: {result.Title}";
+                    break;
+                
+                case "brand":
+                case "category":
+                    // Navigate to management
+                    _ = ShowManagement();
+                    StatusMessage = $"Navigated to {result.SearchType.ToLowerInvariant()}: {result.Title}";
+                    break;
+                
+                default:
+                    StatusMessage = $"Opening: {result.Title}";
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error navigating to result: {ex.Message}";
+        }
+    }
+
+    #region Language Switching Methods
+
+    private async Task LoadLanguagesAsync()
+    {
+        try
+        {
+            var languages = await _databaseLocalizationService.GetAvailableLanguagesAsync();
+            
+            AvailableLanguages.Clear();
+            foreach (var lang in languages)
+            {
+                AvailableLanguages.Add(lang);
+            }
+
+            // Set current language
+            var currentLang = await _databaseLocalizationService.GetCurrentLanguageAsync();
+            SelectedLanguage = currentLang ?? AvailableLanguages.FirstOrDefault();
+            
+            if (SelectedLanguage != null)
+            {
+                CurrentLanguageCode = SelectedLanguage.LanguageCode;
+                CurrentLanguageDisplayName = SelectedLanguage.LanguageName;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading languages: {ex.Message}");
+            
+            // Fallback to default languages
+            AvailableLanguages.Clear();
+            AvailableLanguages.Add(new Language 
+            { 
+                LanguageCode = "en", 
+                LanguageName = "English", 
+                IsRtl = false 
+            });
+            AvailableLanguages.Add(new Language 
+            { 
+                LanguageCode = "ur", 
+                LanguageName = "اردو", 
+                IsRtl = true 
+            });
+            
+            SelectedLanguage = AvailableLanguages.First();
+            CurrentLanguageCode = "en";
+            CurrentLanguageDisplayName = "English";
+        }
+    }
+
+    private async Task ChangeLanguageAsync(Language? language)
+    {
+        if (language == null) return;
+
+        try
+        {
+            await _databaseLocalizationService.SetCurrentLanguageAsync(language.LanguageCode);
+            SelectedLanguage = language;
+            CurrentLanguageCode = language.LanguageCode;
+            CurrentLanguageDisplayName = language.LanguageName;
+            
+            StatusMessage = $"Language changed to {language.LanguageName}";
+            
+            // Update layout direction based on language
+            var layoutDirectionService = _serviceProvider.GetService<ILayoutDirectionService>();
+            if (layoutDirectionService != null)
+            {
+                if (language.IsRtl)
+                {
+                    layoutDirectionService.ChangeDirection(LayoutDirection.RightToLeft);
+                }
+                else
+                {
+                    layoutDirectionService.ChangeDirection(LayoutDirection.LeftToRight);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error changing language: {ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"Error changing language: {ex.Message}");
+        }
+    }
+
+    private async Task ToggleLanguageAsync()
+    {
+        try
+        {
+            if (AvailableLanguages.Count < 2) return;
+
+            // Find current language index
+            var currentIndex = AvailableLanguages.IndexOf(SelectedLanguage ?? AvailableLanguages.First());
+            
+            // Toggle to next language (cycle through available languages)
+            var nextIndex = (currentIndex + 1) % AvailableLanguages.Count;
+            var nextLanguage = AvailableLanguages[nextIndex];
+            
+            await ChangeLanguageAsync(nextLanguage);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error toggling language: {ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"Error toggling language: {ex.Message}");
+        }
+    }
+
+    #endregion
+
+    #endregion
 }

@@ -11,7 +11,7 @@
     
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="60"/>
+            <RowDefinition Height="80"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="30"/>
         </Grid.RowDefinitions>
@@ -23,33 +23,165 @@
                 BorderBrush="{DynamicResource BorderLight}">
             <Grid Margin="{DynamicResource CardPaddingThickness}">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 
+                <!-- Logo and Title -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Logo Image (will show if logo.png exists) -->
+                    <Image Source="/Images/logo.png" 
+                           Width="40" 
+                           Height="40" 
+                           Margin="0,0,10,0"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center"/>
+                    
+                    <!-- Text Logo as fallback -->
                     <TextBlock Text="ChronoPos" 
                                FontSize="{DynamicResource FontSizeXXLarge}" 
                                FontWeight="Bold" 
                                Foreground="{DynamicResource TextPrimary}" 
                                VerticalAlignment="Center"/>
-                    <TextBlock Text="Point of Sale System" 
+                    
+                    <!-- <TextBlock Text="Point of Sale System" 
                                FontSize="{DynamicResource FontSizeSmall}" 
                                Foreground="{DynamicResource TextSecondary}" 
                                VerticalAlignment="Center" 
-                               Margin="15,0,0,0"/>
+                               Margin="15,0,0,0"/> -->
                 </StackPanel>
                 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- Search Bar -->
+                <Grid Grid.Column="1" HorizontalAlignment="Center" MinWidth="400" MaxWidth="600" Margin="20,0" VerticalAlignment="Center">
+                    <Border Background="{DynamicResource CardBackground}"
+                            BorderBrush="{DynamicResource BorderLight}"
+                            BorderThickness="1"
+                            CornerRadius="25"
+                            Height="45"
+                            Padding="3">
+                        <Grid Margin="18,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Search Icon -->
+                            <TextBlock Grid.Column="0"
+                                      Text="🔍"
+                                      FontSize="18"
+                                      Foreground="{DynamicResource TextSecondary}"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Center"
+                                      Margin="0,0,12,0"/>
+                            
+                            <!-- Search TextBox -->
+                            <TextBox Grid.Column="1"
+                                    x:Name="GlobalSearchTextBox"
+                                    BorderThickness="0"
+                                    Background="Transparent"
+                                    Foreground="{DynamicResource TextPrimary}"
+                                    FontSize="14"
+                                    VerticalAlignment="Center"
+                                    VerticalContentAlignment="Center"
+                                    Text="{Binding GlobalSearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                                    Tag="Search products, customers, sales..."
+                                    GotFocus="GlobalSearchTextBox_GotFocus"
+                                    LostFocus="GlobalSearchTextBox_LostFocus"
+                                    KeyDown="GlobalSearchTextBox_KeyDown">
+                                <TextBox.Style>
+                                    <Style TargetType="TextBox">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="TextBox">
+                                                    <ScrollViewer x:Name="PART_ContentHost"
+                                                                Background="Transparent"
+                                                                Focusable="false"
+                                                                HorizontalScrollBarVisibility="Hidden"
+                                                                VerticalScrollBarVisibility="Hidden"/>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsFocused" Value="False">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBox.Style>
+                            </TextBox>
+                            
+                            <!-- Clear Button -->
+                            <Button Grid.Column="2"
+                                   x:Name="ClearSearchButton"
+                                   Background="Transparent"
+                                   BorderThickness="0"
+                                   Width="24"
+                                   Height="24"
+                                   Visibility="{Binding HasGlobalSearchText, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                   Command="{Binding ClearGlobalSearchCommand}"
+                                   Margin="12,0,0,0">
+                                <TextBlock Text="❌"
+                                          FontSize="12"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+                
+                <!-- User Info -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="{Binding CurrentDateTime}" 
                                FontSize="{DynamicResource FontSizeVerySmall}" 
                                Foreground="{DynamicResource TextPrimary}" 
                                VerticalAlignment="Center" 
                                Margin="0,0,20,0"/>
-                    <TextBlock Text="{Binding CurrentUser}" 
-                               FontSize="{DynamicResource FontSizeVerySmall}" 
-                               Foreground="{DynamicResource TextSecondary}" 
-                               VerticalAlignment="Center"/>
+                    
+                    <!-- Language Switcher -->
+                    <Border Background="{DynamicResource SurfaceBackground}"
+                            BorderBrush="{DynamicResource BorderLight}"
+                            BorderThickness="1"
+                            CornerRadius="15"
+                            Margin="0,0,15,0">
+                        <Button Background="Transparent"
+                                BorderThickness="0"
+                                Padding="8,4"
+                                Command="{Binding ToggleLanguageCommand}"
+                                ToolTip="Switch Language">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🌐" 
+                                          FontSize="14" 
+                                          VerticalAlignment="Center" 
+                                          Margin="0,0,5,0"/>
+                                <TextBlock Text="{Binding CurrentLanguageDisplayName}" 
+                                          FontSize="{DynamicResource FontSizeVerySmall}"
+                                          VerticalAlignment="Center"
+                                          Foreground="{DynamicResource TextPrimary}"/>
+                            </StackPanel>
+                        </Button>
+                    </Border>
+                    
+                    <!-- User Icon and Name -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Background="{DynamicResource Primary}"
+                                CornerRadius="15"
+                                Width="30"
+                                Height="30"
+                                Margin="0,0,8,0">
+                            <TextBlock Text="👤"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Foreground="White"
+                                      FontSize="16"/>
+                        </Border>
+                        <TextBlock Text="{Binding CurrentUser}" 
+                                   FontSize="{DynamicResource FontSizeSmall}" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}" 
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
                 </StackPanel>
             </Grid>
         </Border>

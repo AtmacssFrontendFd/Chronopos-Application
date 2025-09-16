@@ -7,11 +7,14 @@ public interface IChronoPosDbContext
 {
     DbSet<Product> Products { get; set; }
     DbSet<Category> Categories { get; set; }
+    DbSet<Brand> Brands { get; set; }
+    DbSet<ProductImage> ProductImages { get; set; }
     DbSet<Customer> Customers { get; set; }
     DbSet<Sale> Sales { get; set; }
     DbSet<SaleItem> SaleItems { get; set; }
     DbSet<StockAdjustment> StockAdjustments { get; set; }
     DbSet<StockAdjustmentItem> StockAdjustmentItems { get; set; }
+    DbSet<StockAdjustmentReason> StockAdjustmentReasons { get; set; }
     DbSet<StockTransfer> StockTransfers { get; set; }
     DbSet<StockTransferItem> StockTransferItems { get; set; }
     
