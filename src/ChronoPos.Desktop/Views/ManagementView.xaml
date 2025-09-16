@@ -5,11 +5,15 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vm="clr-namespace:ChronoPos.Desktop.ViewModels"
              xmlns:controls="clr-namespace:ChronoPos.Desktop.Views.Controls"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
              mc:Ignorable="d" 
              d:DesignHeight="800" d:DesignWidth="1200"
              d:DataContext="{d:DesignInstance Type=vm:ManagementViewModel}">
 
     <UserControl.Resources>
+        <!-- Converters -->
+        <converters:FlowDirectionToGridColumnConverter x:Key="FlowDirectionToGridColumnConverter" />
+        
         <!-- Page-specific styles that respect zoom and theme settings -->
         <Style x:Key="PageHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="{DynamicResource FontSizeXXLarge}" />
@@ -43,19 +47,36 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Refresh Button aligned dynamically -->
-        <controls:RefreshButton Grid.Row="0"
-                                HorizontalAlignment="{DynamicResource AppReverseHorizontalAlignment}"
-                                VerticalAlignment="Top"
-                                ButtonText="Refresh"
-                                ButtonIcon="🔄"
-                                Command="{Binding RefreshModulesCommand}"
-                                ButtonBackground="{DynamicResource PrimaryBrush}"
-                                ButtonForeground="White"
-                                MinButtonWidth="120"
-                                ButtonHeight="36"
-                                ButtonWidth="120"
-                                Margin="0,0,0,10" />
+        <!-- Header with Title and Refresh Button -->
+        <Grid Grid.Row="0" Margin="20,10,20,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Title -->
+            <TextBlock Grid.Column="0"
+                       Text="{Binding PageTitle}"
+                       FontSize="{DynamicResource FontSizeLarge}"
+                       FontWeight="Bold"
+                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                       Foreground="{DynamicResource TextPrimary}"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Left"/>
+
+            <!-- Refresh Button -->
+            <controls:RefreshButton Grid.Column="1"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    ButtonText="Refresh"
+                                    ButtonIcon="🔄"
+                                    Command="{Binding RefreshModulesCommand}"
+                                    ButtonBackground="{DynamicResource PrimaryBrush}"
+                                    ButtonForeground="White"
+                                    MinButtonWidth="120"
+                                    ButtonHeight="36"
+                                    ButtonWidth="120" />
+        </Grid>
 
         <!-- Main Content Area -->
         <Grid Grid.Row="1">

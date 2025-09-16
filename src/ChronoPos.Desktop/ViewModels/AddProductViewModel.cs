@@ -457,6 +457,25 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string yesButton = "Yes";
     [ObservableProperty] private string noButton = "No";
 
+    // Missing localization properties
+    [ObservableProperty] private string priceIncludingTaxLabel = "Price Including Tax";
+    [ObservableProperty] private string taxTypesLabel = "Tax Types";
+    [ObservableProperty] private string selectedTaxTypesLabel = "Selected Tax Types";
+    [ObservableProperty] private string barcodeValueLabel = "Barcode Value:";
+    [ObservableProperty] private string addNewBarcodeTitle = "Add New Barcode";
+    [ObservableProperty] private string productBarcodesTitle = "Product Barcodes";
+    [ObservableProperty] private string noBarcodesMessage = "No barcodes added yet";
+    [ObservableProperty] private string addBarcodesInstruction = "Add barcode values above or click Generate";
+    [ObservableProperty] private string barcodeTypeLabel = "Type:";
+    [ObservableProperty] private string primaryImageLabel = "Primary";
+    [ObservableProperty] private string addImageLabel = "Add Image";
+    [ObservableProperty] private string noImagesMessage = "No images added yet";
+    [ObservableProperty] private string addImagesInstruction = "Click the + button above to add your first image";
+    [ObservableProperty] private string chooseColorLabel = "Choose Color:";
+    [ObservableProperty] private string selectedColorLabel = "Selected:";
+    [ObservableProperty] private string addButtonText = "Add";
+    [ObservableProperty] private string generateButtonText = "Generate";
+
     #endregion
 
     #endregion
@@ -766,6 +785,10 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             FileLogger.Log($"📊 Initial status: {StatusMessage}");
 
             // Load translations (translations are now seeded at application startup)
+            FileLogger.Log("🌐 Ensuring AddProduct translation keywords are in database");
+            await AddProductTranslations.EnsureTranslationKeywordsAsync(_databaseLocalizationService);
+            FileLogger.Log("✅ AddProduct translation keywords ensured");
+            
             FileLogger.Log("🌐 Loading translations");
             await LoadTranslationsAsync();
             FileLogger.Log("✅ Translations loaded");
@@ -1337,6 +1360,25 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         ConfirmResetMessage = await GetTranslationAsync("ConfirmResetMessage", "Are you sure you want to reset all fields?");
         YesButton = await GetTranslationAsync("Yes", "Yes");
         NoButton = await GetTranslationAsync("No", "No");
+
+        // Missing localization properties
+        PriceIncludingTaxLabel = await GetTranslationAsync("price_including_tax_label", "Price Including Tax");
+        TaxTypesLabel = await GetTranslationAsync("tax_types_label", "Tax Types");
+        SelectedTaxTypesLabel = await GetTranslationAsync("selected_tax_types_label", "Selected Tax Types");
+        BarcodeValueLabel = await GetTranslationAsync("barcode_value_label", "Barcode Value:");
+        AddNewBarcodeTitle = await GetTranslationAsync("add_new_barcode_title", "Add New Barcode");
+        ProductBarcodesTitle = await GetTranslationAsync("product_barcodes_title", "Product Barcodes");
+        NoBarcodesMessage = await GetTranslationAsync("no_barcodes_message", "No barcodes added yet");
+        AddBarcodesInstruction = await GetTranslationAsync("add_barcodes_instruction", "Add barcode values above or click Generate");
+        BarcodeTypeLabel = await GetTranslationAsync("barcode_type_label", "Type:");
+        PrimaryImageLabel = await GetTranslationAsync("primary_image_label", "Primary");
+        AddImageLabel = await GetTranslationAsync("add_image_label", "Add Image");
+        NoImagesMessage = await GetTranslationAsync("no_images_message", "No images added yet");
+        AddImagesInstruction = await GetTranslationAsync("add_images_instruction", "Click the + button above to add your first image");
+        ChooseColorLabel = await GetTranslationAsync("choose_color_label", "Choose Color:");
+        SelectedColorLabel = await GetTranslationAsync("selected_color_label", "Selected:");
+        AddButtonText = await GetTranslationAsync("add_button_text", "Add");
+        GenerateButtonText = await GetTranslationAsync("generate_button_text", "Generate");
     }
 
     private async Task<string> GetTranslationAsync(string key, string fallback)
@@ -1430,6 +1472,26 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(SellingUnitLabel));
             OnPropertyChanged(nameof(BarcodesTitle));
             OnPropertyChanged(nameof(UnitPricesTitle));
+            
+            // Missing localized properties
+            OnPropertyChanged(nameof(PriceIncludingTaxLabel));
+            OnPropertyChanged(nameof(TaxTypesLabel));
+            OnPropertyChanged(nameof(SelectedTaxTypesLabel));
+            OnPropertyChanged(nameof(BarcodeValueLabel));
+            OnPropertyChanged(nameof(AddNewBarcodeTitle));
+            OnPropertyChanged(nameof(ProductBarcodesTitle));
+            OnPropertyChanged(nameof(NoBarcodesMessage));
+            OnPropertyChanged(nameof(AddBarcodesInstruction));
+            OnPropertyChanged(nameof(BarcodeTypeLabel));
+            OnPropertyChanged(nameof(PrimaryImageLabel));
+            OnPropertyChanged(nameof(AddImageLabel));
+            OnPropertyChanged(nameof(NoImagesMessage));
+            OnPropertyChanged(nameof(AddImagesInstruction));
+            OnPropertyChanged(nameof(ChooseColorLabel));
+            OnPropertyChanged(nameof(SelectedColorLabel));
+            OnPropertyChanged(nameof(AddButtonText));
+            OnPropertyChanged(nameof(GenerateButtonText));
+            
             FileLogger.Log($"✅ Language change completed successfully for language: {languageCode}");
         }
         catch (Exception ex)
@@ -2153,7 +2215,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             Barcode = Barcodes?.FirstOrDefault()?.Value, // Temporary for compatibility - will be handled by separate barcodes table
             Price = Price,
             CategoryId = CategoryId ?? 1, // Default category if none selected
-            StockQuantity = 0, // New products start with 0 stock
+            StockQuantity = (int)InitialStock, // Set stock quantity from user input
             IsActive = IsEnabled,
             CostPrice = Cost,
             Markup = calculatedMarkup,

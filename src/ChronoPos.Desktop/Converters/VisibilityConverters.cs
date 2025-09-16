@@ -80,15 +80,26 @@ namespace ChronoPos.Desktop.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is int count)
+            int count = 0;
+            
+            if (value is int intCount)
             {
-                return count > 0 ? Visibility.Visible : Visibility.Collapsed;
+                count = intCount;
             }
-            if (value is ICollection collection)
+            else if (value is ICollection collection)
             {
-                return collection.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+                count = collection.Count;
             }
-            return Visibility.Collapsed;
+            
+            // If parameter is provided, check if count equals parameter
+            if (parameter != null && int.TryParse(parameter.ToString(), out int targetCount))
+            {
+                // Show when count equals target (e.g., show "no items" message when count = 0)
+                return count == targetCount ? Visibility.Visible : Visibility.Collapsed;
+            }
+            
+            // Default behavior: show when count > 0
+            return count > 0 ? Visibility.Visible : Visibility.Collapsed;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

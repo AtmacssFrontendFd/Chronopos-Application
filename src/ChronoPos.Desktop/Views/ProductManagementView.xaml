@@ -4,12 +4,17 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:controls="clr-namespace:ChronoPos.Desktop.Views.Controls"
+             xmlns:viewControls="clr-namespace:ChronoPos.Desktop.Views.Controls"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
              mc:Ignorable="d" 
              Background="{DynamicResource MainBackground}"
              FlowDirection="{Binding CurrentFlowDirection}"
              FontFamily="{DynamicResource PoppinsFontFallback}">
 
     <UserControl.Resources>
+        <!-- Converters -->
+        <converters:FlowDirectionToGridColumnConverter x:Key="FlowDirectionToGridColumnConverter" />
+        
         <!-- Category Button Style with Dynamic Resources -->
         <Style x:Key="CategoryButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
@@ -119,38 +124,121 @@
         <!-- Title Header -->
         <Grid Grid.Row="0" Margin="{DynamicResource DefaultMarginThickness}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- Back Button with Dynamic Resources -->
-            <controls:RefreshButton Grid.Column="0"
-                                    HorizontalAlignment="{DynamicResource AppHorizontalAlignment}"
-                                    VerticalAlignment="Top"
-                                    ButtonText="{Binding BackButtonText}"
-                                    ButtonIcon="⬅️"
-                                    Command="{Binding NavigateBackCommand}"
-                                    ButtonBackground="{DynamicResource Primary}"
-                                    ButtonForeground="White"
-                                    MinButtonWidth="100"
-                                    ButtonHeight="{DynamicResource ButtonHeight}"
-                                    ButtonWidth="100" />
+            <!-- Left Side: Back Button + Title in LTR, Refresh Button in RTL -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- Back Button + Title (visible in LTR) -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    
+                    <viewControls:CircularBackButton VerticalAlignment="Center"
+                                                     Command="{Binding NavigateBackCommand}"
+                                                     ButtonSize="30"
+                                                     ButtonBackground="{DynamicResource SurfaceBackground}"
+                                                     ButtonForeground="{DynamicResource TextSecondary}"
+                                                     ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                                                     ButtonHoverForeground="{DynamicResource TextSecondary}"
+                                                     Margin="0,0,10,0"/>
 
-            
+                    <TextBlock Text="{Binding PageTitle}"
+                               FontSize="{DynamicResource FontSizeLarge}"
+                               FontWeight="Bold"
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource TextPrimary}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
 
-            <!-- Refresh Button with Dynamic Resources -->
-            <controls:RefreshButton Grid.Column="2"
-                                    HorizontalAlignment="{DynamicResource AppReverseHorizontalAlignment}"
-                                    VerticalAlignment="Top"
-                                    ButtonText="{Binding RefreshButtonText}"
-                                    ButtonIcon="🔄"
-                                    Command="{Binding RefreshDataCommand}"
-                                    ButtonBackground="{DynamicResource Primary}"
-                                    ButtonForeground="White"
-                                    MinButtonWidth="120"
-                                    ButtonHeight="{DynamicResource ButtonHeight}"
-                                    ButtonWidth="120" />
+                <!-- Refresh Button (visible in RTL) -->
+                <controls:RefreshButton HorizontalAlignment="Left"
+                                        VerticalAlignment="Top"
+                                        ButtonText="{Binding RefreshButtonText}"
+                                        ButtonIcon="🔄"
+                                        Command="{Binding RefreshDataCommand}"
+                                        ButtonBackground="{DynamicResource Primary}"
+                                        ButtonForeground="White"
+                                        MinButtonWidth="120"
+                                        ButtonHeight="{DynamicResource ButtonHeight}"
+                                        ButtonWidth="120">
+                    <controls:RefreshButton.Style>
+                        <Style TargetType="controls:RefreshButton">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </controls:RefreshButton.Style>
+                </controls:RefreshButton>
+            </StackPanel>
+
+            <!-- Right Side: Refresh Button in LTR, Back Button + Title in RTL -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                <!-- Refresh Button (visible in LTR) -->
+                <controls:RefreshButton HorizontalAlignment="Right"
+                                        VerticalAlignment="Top"
+                                        ButtonText="{Binding RefreshButtonText}"
+                                        ButtonIcon="🔄"
+                                        Command="{Binding RefreshDataCommand}"
+                                        ButtonBackground="{DynamicResource Primary}"
+                                        ButtonForeground="White"
+                                        MinButtonWidth="120"
+                                        ButtonHeight="{DynamicResource ButtonHeight}"
+                                        ButtonWidth="120">
+                    <controls:RefreshButton.Style>
+                        <Style TargetType="controls:RefreshButton">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </controls:RefreshButton.Style>
+                </controls:RefreshButton>
+
+                <!-- Back Button + Title (visible in RTL) -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    
+                    <TextBlock Text="{Binding PageTitle}"
+                               FontSize="{DynamicResource FontSizeLarge}"
+                               FontWeight="Bold"
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource TextPrimary}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"/>
+
+                    <viewControls:CircularBackButton VerticalAlignment="Center"
+                                                     Command="{Binding NavigateBackCommand}"
+                                                     ButtonSize="30"
+                                                     ButtonBackground="{DynamicResource SurfaceBackground}"
+                                                     ButtonForeground="{DynamicResource TextSecondary}"
+                                                     ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                                                     ButtonHoverForeground="{DynamicResource TextSecondary}"/>
+                </StackPanel>
+            </StackPanel>
         </Grid>
 
         <!-- Categories Section -->

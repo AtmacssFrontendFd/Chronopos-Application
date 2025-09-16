@@ -44,16 +44,16 @@ public static class ProductManagementTranslations
                 "back_button",
                 new Dictionary<string, string>
                 {
-                    { "en", "← Back" },
-                    { "ur", "← واپس" }
+                    { "en", " Back" },
+                    { "ur", " واپس" }
                 }
             },
             {
                 "refresh_button",
                 new Dictionary<string, string>
                 {
-                    { "en", "🔄 Refresh" },
-                    { "ur", "🔄 ریفریش" }
+                    { "en", " Refresh" },
+                    { "ur", " ریفریش" }
                 }
             },
 
@@ -70,8 +70,8 @@ public static class ProductManagementTranslations
                 "add_new_category_button",
                 new Dictionary<string, string>
                 {
-                    { "en", "➕ Add Category" },
-                    { "ur", "➕ قسم شامل کریں" }
+                    { "en", " Add Category" },
+                    { "ur", " قسم شامل کریں" }
                 }
             },
             {
@@ -128,8 +128,8 @@ public static class ProductManagementTranslations
                 "add_new_product_button",
                 new Dictionary<string, string>
                 {
-                    { "en", "➕ Add Product" },
-                    { "ur", "➕ پروڈکٹ شامل کریں" }
+                    { "en", "Add Product" },
+                    { "ur", "پروڈکٹ شامل کریں" }
                 }
             },
 

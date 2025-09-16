@@ -25,7 +25,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="BorderBrush" Value="#333"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource TextSecondary}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -35,21 +35,37 @@
     </UserControl.Resources>
 
     <StackPanel>
-        <TextBlock Text="Choose Color:" FontWeight="SemiBold" Margin="0,0,0,10"/>
+        <TextBlock Text="{Binding ChooseColorLabel}" 
+                   FontWeight="SemiBold" 
+                   FontFamily="{DynamicResource PoppinsFontFallback}"
+                   FontSize="{DynamicResource FontSizeSmall}"
+                   Foreground="{DynamicResource TextPrimary}"
+                   Margin="0,0,0,10"/>
         
         <!-- Current Color Display -->
         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-            <TextBlock Text="Selected: " VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBlock Text="{Binding SelectedColorLabel}" 
+                       VerticalAlignment="Center" 
+                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                       FontSize="{DynamicResource FontSizeSmall}"
+                       Foreground="{DynamicResource TextSecondary}"
+                       Margin="0,0,10,0"/>
             <Border Width="30" Height="25" 
                     Background="{Binding SelectedColor}" 
-                    BorderBrush="#CCC" 
+                    BorderBrush="{DynamicResource BorderLight}" 
                     BorderThickness="1" 
                     CornerRadius="4"
                     Margin="0,0,10,0"/>
             <TextBox Text="{Binding SelectedColor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                      Width="80" 
                      VerticalAlignment="Center"
-                     FontSize="11"/>
+                     FontSize="{DynamicResource FontSizeVerySmall}"
+                     FontFamily="{DynamicResource PoppinsFontFallback}"
+                     Background="{DynamicResource SurfaceBackground}"
+                     Foreground="{DynamicResource TextSecondary}"
+                     BorderBrush="{DynamicResource BorderLight}"
+                     BorderThickness="1"
+                     Padding="4"/>
         </StackPanel>
 
         <!-- Color Palette -->

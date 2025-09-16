@@ -45,8 +45,8 @@ public static class AddProductTranslations
                 "back_button",
                 new Dictionary<string, string>
                 {
-                    { "en", "← Back" },
-                    { "ur", "← واپس" }
+                    { "en", "Back" },
+                    { "ur", "واپس" }
                 }
             },
             {
@@ -625,6 +625,144 @@ public static class AddProductTranslations
                 {
                     { "en", "Enable individual serial number tracking for this product" },
                     { "ur", "اس پروڈکٹ کے لیے انفرادی سیریل نمبر ٹریکنگ فعال کریں" }
+                }
+            },
+
+            // Missing Localization Keys
+            {
+                "price_including_tax_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Price Including Tax" },
+                    { "ur", "ٹیکس شامل قیمت" }
+                }
+            },
+            {
+                "tax_types_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Tax Types" },
+                    { "ur", "ٹیکس کی اقسام" }
+                }
+            },
+            {
+                "selected_tax_types_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Selected Tax Types" },
+                    { "ur", "منتخب کردہ ٹیکس کی اقسام" }
+                }
+            },
+            {
+                "barcode_value_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Barcode Value:" },
+                    { "ur", "بارکوڈ کی قدر:" }
+                }
+            },
+            {
+                "add_new_barcode_title",
+                new Dictionary<string, string>
+                {
+                    { "en", "Add New Barcode" },
+                    { "ur", "نیا بارکوڈ شامل کریں" }
+                }
+            },
+            {
+                "product_barcodes_title",
+                new Dictionary<string, string>
+                {
+                    { "en", "Product Barcodes" },
+                    { "ur", "پروڈکٹ بارکوڈز" }
+                }
+            },
+            {
+                "no_barcodes_message",
+                new Dictionary<string, string>
+                {
+                    { "en", "No barcodes added yet" },
+                    { "ur", "ابھی تک کوئی بارکوڈ شامل نہیں کیا گیا" }
+                }
+            },
+            {
+                "add_barcodes_instruction",
+                new Dictionary<string, string>
+                {
+                    { "en", "Add barcode values above or click Generate" },
+                    { "ur", "اوپر بارکوڈ کی قیمتیں شامل کریں یا جنریٹ پر کلک کریں" }
+                }
+            },
+            {
+                "barcode_type_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Type:" },
+                    { "ur", "قسم:" }
+                }
+            },
+            {
+                "primary_image_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Primary" },
+                    { "ur", "بنیادی" }
+                }
+            },
+            {
+                "add_image_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Add Image" },
+                    { "ur", "تصویر شامل کریں" }
+                }
+            },
+            {
+                "no_images_message",
+                new Dictionary<string, string>
+                {
+                    { "en", "No images added yet" },
+                    { "ur", "ابھی تک کوئی تصویر شامل نہیں کی گئی" }
+                }
+            },
+            {
+                "add_images_instruction",
+                new Dictionary<string, string>
+                {
+                    { "en", "Click the + button above to add your first image" },
+                    { "ur", "اپنی پہلی تصویر شامل کرنے کے لیے اوپر + بٹن پر کلک کریں" }
+                }
+            },
+            {
+                "choose_color_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Choose Color:" },
+                    { "ur", "رنگ منتخب کریں:" }
+                }
+            },
+            {
+                "selected_color_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Selected:" },
+                    { "ur", "منتخب کردہ:" }
+                }
+            },
+            {
+                "add_button_text",
+                new Dictionary<string, string>
+                {
+                    { "en", "Add" },
+                    { "ur", "شامل کریں" }
+                }
+            },
+            {
+                "generate_button_text",
+                new Dictionary<string, string>
+                {
+                    { "en", "Generate" },
+                    { "ur", "بنائیں" }
                 }
             },
 

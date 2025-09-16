@@ -223,20 +223,11 @@
                     BorderThickness="1">
                 <Grid Margin="{DynamicResource CardPaddingThickness}">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Page Title -->
-                    <TextBlock Grid.Row="0" 
-                               Text="{Binding CurrentPageTitle}" 
-                               FontSize="{DynamicResource FontSizeLarge}" 
-                               FontWeight="Bold" 
-                               Foreground="{DynamicResource TextPrimary}"
-                               Margin="0,0,0,20"/>
-
                     <!-- Content Frame -->
-                    <ContentControl Grid.Row="1" Content="{Binding CurrentView}"/>
+                    <ContentControl Grid.Row="0" Content="{Binding CurrentView}"/>
                 </Grid>
             </Border>
         </Grid>
