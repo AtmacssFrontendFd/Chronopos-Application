@@ -132,6 +132,10 @@ public partial class App : System.Windows.Application
                     services.AddSingleton<IZoomService, ZoomService>();
                     LogMessage("ZoomService registered");
 
+                    // Register icon service
+                    services.AddSingleton<IIconService, IconService>();
+                    LogMessage("IconService registered");
+
                     // Register MainWindowViewModel as Singleton for stable event subscriptions
                     services.AddSingleton<MainWindowViewModel>();
                     LogMessage("MainWindowViewModel registered as Singleton");
@@ -218,6 +222,21 @@ public partial class App : System.Windows.Application
             {
                 LogMessage($"Font service error: {ex.Message}");
                 LogMessage($"Font service stack trace: {ex.StackTrace}");
+            }
+
+            // Initialize icon service
+            try 
+            {
+                LogMessage("Initializing icon service...");
+                var iconService = _host.Services.GetRequiredService<IIconService>();
+                LogMessage("Icon service retrieved");
+                iconService.RegisterIconResources();
+                LogMessage("Icon service initialized successfully");
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"Icon service error: {ex.Message}");
+                LogMessage($"Icon service stack trace: {ex.StackTrace}");
             }
 
             // Initialize localization service

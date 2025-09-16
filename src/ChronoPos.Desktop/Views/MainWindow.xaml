@@ -1,6 +1,7 @@
 <Window x:Class="ChronoPos.Desktop.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:ChronoPos.Desktop.Views.Controls"
         Title="ChronoPos - Point of Sale System" 
         Height="800" 
         Width="1200"
@@ -189,7 +190,7 @@
         <!-- Main Content -->
         <Grid Grid.Row="1" Margin="{DynamicResource DefaultMarginThickness}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="200"/>
+                <ColumnDefinition Width="160"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
@@ -200,151 +201,62 @@
                     Margin="0,0,10,0"
                     BorderBrush="{DynamicResource BorderLight}"
                     BorderThickness="1">
-                <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
-                    <TextBlock Text="Navigation" 
-                               FontSize="{DynamicResource FontSizeMedium}" 
-                               FontWeight="Bold" 
-                               Foreground="{DynamicResource TextPrimary}"
-                               Margin="0,0,0,15"/>
-                    
-                    <Button Command="{Binding ShowDashboardCommand}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="🏠" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="{Binding DashboardButtonText}" VerticalAlignment="Center"/>
+                <ScrollViewer VerticalScrollBarVisibility="Hidden"
+                             HorizontalScrollBarVisibility="Disabled"
+                             CanContentScroll="True">
+                    <StackPanel Margin="10,15,10,15">
+                            <!-- Navigation Buttons using SidebarButton -->
+                            <controls:SidebarButton IconName="dashboard"
+                                                   ButtonText="{Binding DashboardButtonText}"
+                                                   Command="{Binding ShowDashboardCommand}"
+                                                   IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=Dashboard}"
+                                                   Margin="0,0,0,5"/>
+                            
+                            <controls:SidebarButton IconName="transactions"
+                                                   ButtonText="{Binding TransactionsButtonText}"
+                                                   Command="{Binding ShowTransactionsCommand}"
+                                                   IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=Transactions}"
+                                                   Margin="0,0,0,5"/>
+                            
+                            <controls:SidebarButton IconName="management"
+                                                   ButtonText="{Binding ManagementButtonText}"
+                                                   Command="{Binding ShowManagementCommand}"
+                                                   IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=Management}"
+                                                   Margin="0,0,0,5"/>
+                            
+                            <controls:SidebarButton IconName="reservation"
+                                                   ButtonText="{Binding ReservationButtonText}"
+                                                   Command="{Binding ShowReservationCommand}"
+                                                   IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=Reservation}"
+                                                   Margin="0,0,0,5"/>
+                            
+                            <controls:SidebarButton IconName="order_table"
+                                                   ButtonText="{Binding OrderTableButtonText}"
+                                                   Command="{Binding ShowOrderTableCommand}"
+                                                   IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=OrderTable}"
+                                                   Margin="0,0,0,5"/>
+                            
+                            <controls:SidebarButton IconName="reports"
+                                                   ButtonText="{Binding ReportsButtonText}"
+                                                   Command="{Binding ShowReportsCommand}"
+                                                   IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=Reports}"
+                                                   Margin="0,0,0,15"/>
+                            
+                            <Separator Background="{DynamicResource BorderLight}" Margin="0,10,0,5"/>
+                            
+                            <controls:SidebarButton IconName="settings"
+                                                   ButtonText="{Binding SettingsButtonText}"
+                                                   Command="{Binding ShowSettingsCommand}"
+                                                   IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=Settings}"
+                                                   Margin="0,0,0,5"/>
+                            
+                            <controls:SidebarButton IconName="logout"
+                                                   ButtonText="{Binding LogoutButtonText}"
+                                                   Command="{Binding LogoutCommand}"
+                                                   IsLogoutButton="True"
+                                                   Margin="0,10,0,5"/>
                         </StackPanel>
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Dashboard">
-                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    
-                    <Button Command="{Binding ShowTransactionsCommand}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="💳" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="{Binding TransactionsButtonText}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Transactions">
-                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    
-                    <Button Command="{Binding ShowManagementCommand}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="📦" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="{Binding ManagementButtonText}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Management">
-                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    
-                    <Button Command="{Binding ShowReservationCommand}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="🏨" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="{Binding ReservationButtonText}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Reservation">
-                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    
-                    <Button Command="{Binding ShowOrderTableCommand}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="📋" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="{Binding OrderTableButtonText}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedPage}" Value="OrderTable">
-                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    
-                    <Button Margin="0,0,0,25"
-                            Command="{Binding ShowReportsCommand}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="📈" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="{Binding ReportsButtonText}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Reports">
-                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    
-                    <Separator Background="{DynamicResource BorderLight}" Margin="0,15,0,10"/>
-                    
-                    <Button Command="{Binding ShowSettingsCommand}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="⚙️" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="{Binding SettingsButtonText}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Settings">
-                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    
-                    <Button Background="{DynamicResource Error}"
-                            Foreground="White"
-                            Margin="0,15,0,5"
-                            Command="{Binding LogoutCommand}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="🚪" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="{Binding LogoutButtonText}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                                <Setter Property="Background" Value="{DynamicResource Error}"/>
-                                <Setter Property="Foreground" Value="White"/>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                </StackPanel>
+                </ScrollViewer>
             </Border>
 
             <!-- Content Area -->
@@ -367,10 +279,10 @@
         <!-- Status Bar -->
         <StatusBar Grid.Row="2" Background="{DynamicResource SurfaceBackground}">
             <StatusBarItem>
-                <TextBlock Text="Ready" Foreground="{DynamicResource TextPrimary}"/>
+                <TextBlock Text="© 2025 ChronoPos - All Rights Reserved" Foreground="{DynamicResource TextPrimary}"/>
             </StatusBarItem>
             <StatusBarItem HorizontalAlignment="Right">
-                <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource TextPrimary}"/>
+                <TextBlock Text="Professional Edition" Foreground="{DynamicResource TextPrimary}"/>
             </StatusBarItem>
         </StatusBar>
     </Grid>

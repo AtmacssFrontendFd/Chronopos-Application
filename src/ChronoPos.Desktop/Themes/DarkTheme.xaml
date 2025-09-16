@@ -6,6 +6,8 @@
     <converters:FlowDirectionToTextAlignmentConverter x:Key="FlowDirectionToTextAlignmentConverter"/>
     <converters:FlowDirectionToHorizontalAlignmentConverter x:Key="FlowDirectionToHorizontalAlignmentConverter"/>
     <converters:FlowDirectionToReverseHorizontalAlignmentConverter x:Key="FlowDirectionToReverseHorizontalAlignmentConverter"/>
+    <converters:HalfValueConverter x:Key="HalfValueConverter"/>
+    <converters:EqualsConverter x:Key="EqualsConverter"/>
     <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
 
     <!-- Font Family -->
@@ -66,6 +68,10 @@
     <SolidColorBrush x:Key="Info" Color="#339EA5"/>
     <SolidColorBrush x:Key="Warning" Color="#FFEDBE"/>
     <SolidColorBrush x:Key="Error" Color="#E70000"/>
+
+    <!-- Icon Circle Backgrounds for Sidebar Buttons -->
+    <SolidColorBrush x:Key="IconCircleBackground" Color="#FFFFFF"/>        <!-- White for dark theme -->
+    <SolidColorBrush x:Key="IconCircleSelectedBackground" Color="#000000"/> <!-- Black when selected -->
 
     <!-- Muted Variants -->
     <SolidColorBrush x:Key="MutedRed" Color="#FF3A3A"/>

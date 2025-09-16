@@ -1,0 +1,122 @@
+<UserControl x:Class="ChronoPos.Desktop.Views.Controls.SidebarButton"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ChronoPos.Desktop.Views.Controls"
+             mc:Ignorable="d" 
+             d:DesignHeight="100" d:DesignWidth="100">
+    
+    <Button Command="{Binding Command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            CommandParameter="{Binding CommandParameter, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            Padding="6"
+            Margin="2"
+            Width="120"
+            Height="90"
+            FontFamily="{DynamicResource PoppinsFontFallback}"
+            Cursor="Hand"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            HorizontalContentAlignment="Center"
+            VerticalContentAlignment="Center">
+        
+        <Button.Style>
+            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
+                <!-- Default state -->
+                <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                
+                <!-- Selected state -->
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                        <Setter Property="Foreground" Value="White"/>
+                    </DataTrigger>
+                    
+                    <!-- Logout button state (Error color) -->
+                    <DataTrigger Binding="{Binding IsLogoutButton, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource Error}"/>
+                        <Setter Property="Foreground" Value="White"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Button.Style>
+        
+        <!-- Button Content: Icon + Text in 2 rows -->
+        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>  <!-- Icon row -->
+                <RowDefinition Height="Auto"/>  <!-- Text row -->
+            </Grid.RowDefinitions>
+            
+            <!-- Row 1: Icon in Circle -->
+            <Border Grid.Row="0"
+                    Width="{Binding CircleSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    Height="{Binding CircleSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    CornerRadius="{Binding CircleSize, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource HalfValueConverter}}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Margin="0,0,0,6">
+                
+                <!-- Circle background that changes based on theme and selection -->
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <!-- Default: Theme-based circle background -->
+                        <Setter Property="Background" Value="{DynamicResource IconCircleBackground}"/>
+                        
+                        <Style.Triggers>
+                            <!-- When button is selected, circle becomes white/light -->
+                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource IconCircleSelectedBackground}"/>
+                            </DataTrigger>
+                            
+                            <!-- When logout button, circle becomes white/light -->
+                            <DataTrigger Binding="{Binding IsLogoutButton, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource IconCircleSelectedBackground}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                
+                <!-- Icon inside circle -->
+                <controls:IconifyIcon IconName="{Binding IconName, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                     IconSize="{Binding IconSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                     IconColor="{DynamicResource Primary}"
+                                     HorizontalAlignment="Center"
+                                     VerticalAlignment="Center"/>
+            </Border>
+            
+            <!-- Row 2: Button Text -->
+            <TextBlock Grid.Row="1"
+                       Text="{Binding ButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       FontSize="{DynamicResource FontSizeSmall}"
+                       FontWeight="Medium"
+                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       MaxWidth="90">
+                
+                <!-- Text color inherits from button foreground (theme-aware) -->
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                        
+                        <Style.Triggers>
+                            <!-- When selected, text becomes white -->
+                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                <Setter Property="Foreground" Value="White"/>
+                            </DataTrigger>
+                            
+                            <!-- When logout button, text becomes white -->
+                            <DataTrigger Binding="{Binding IsLogoutButton, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                <Setter Property="Foreground" Value="White"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </Grid>
+    </Button>
+</UserControl>

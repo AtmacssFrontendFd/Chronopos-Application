@@ -1,0 +1,22 @@
+<UserControl x:Class="ChronoPos.Desktop.Views.Controls.IconifyIcon"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="24" d:DesignWidth="24"
+             Loaded="IconifyIcon_Loaded">
+    
+    <Viewbox Width="{Binding IconSize, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+             Height="{Binding IconSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
+             Stretch="Uniform">
+        
+        <Canvas Width="24" Height="24">
+            <Path x:Name="IconPath"
+                  Fill="{Binding IconColor, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                  Data="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"/>
+        </Canvas>
+        
+    </Viewbox>
+    
+</UserControl>
