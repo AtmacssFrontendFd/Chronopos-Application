@@ -17,6 +17,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
     #region Fields
     
     private readonly IProductService _productService;
+    private readonly IDiscountService _discountService;
     private readonly Action? _navigateToAddProduct;
     private readonly Action<ProductDto>? _navigateToEditProduct;
     private readonly Action? _navigateBack;
@@ -78,6 +79,21 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private ObservableCollection<CategoryDto> parentCategories = new();
+
+    // Discount properties for categories
+    [ObservableProperty]
+    private ObservableCollection<DiscountDto> availableDiscounts = new();
+
+    [ObservableProperty]
+    private ObservableCollection<int> selectedDiscountIds = new();
+    public List<int> SelectedDiscountIdsList => SelectedDiscountIds.ToList();
+
+    // Dropdown-based discount selection helper state
+    [ObservableProperty]
+    private DiscountDto? selectedDiscount;
+
+    [ObservableProperty]
+    private ObservableCollection<DiscountDto> selectedDiscounts = new();
 
     // Settings properties
     [ObservableProperty]
@@ -217,6 +233,16 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _categoryInfoDisplayOrder = "• Display order controls the sorting in category lists";
 
+    // Discount labels for categories
+    [ObservableProperty]
+    private string _categoryDiscountsLabel = "Category Discounts";
+
+    [ObservableProperty]
+    private string _selectedCategoryDiscountsLabel = "Selected Discounts";
+
+    [ObservableProperty]
+    private string _categoryDiscountTooltip = "Select discounts applicable to this category";
+
     // Dynamic Category Form Title
     public string CurrentCategoryFormTitle => IsEditMode ? EditCategoryTitle : AddCategoryTitle;
 
@@ -226,6 +252,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
 
     public ProductManagementViewModel(
         IProductService productService,
+        IDiscountService discountService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -238,6 +265,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
         Action? navigateBack = null)
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
+        _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -284,6 +312,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
             await LoadTranslationsAsync();
 
             await LoadCategoriesAsync();
+            await LoadDiscountsAsync();
             await LoadProductsAsync();
 
             DebugBindings();
@@ -330,6 +359,34 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
         SelectedCategory = Categories.FirstOrDefault();
     }
 
+    private async Task LoadDiscountsAsync()
+    {
+        try
+        {
+            var discounts = await _discountService.GetActiveDiscountsAsync();
+            AvailableDiscounts.Clear();
+            foreach (var discount in discounts)
+            {
+                AvailableDiscounts.Add(discount);
+            }
+            // Initialize selected list from ids if any
+            if (SelectedDiscountIds?.Any() == true)
+            {
+                SelectedDiscounts.Clear();
+                foreach (var id in SelectedDiscountIds)
+                {
+                    var match = AvailableDiscounts.FirstOrDefault(x => x.Id == id);
+                    if (match != null && !SelectedDiscounts.Any(x => x.Id == match.Id))
+                        SelectedDiscounts.Add(match);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading discounts: {ex.Message}");
+        }
+    }
+
     private async Task LoadProductsAsync()
     {
         var productList = await _productService.GetAllProductsAsync();
@@ -340,7 +397,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
             Products.Add(product);
         }
 
-        FilterProducts();
+        await FilterProducts();
     }
 
     #endregion
@@ -348,7 +405,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
     #region Commands
 
     [RelayCommand]
-    private async void FilterProducts()
+    private async Task FilterProducts()
     {
         var filtered = Products.AsEnumerable();
 
@@ -517,6 +574,9 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
     private void AddNewCategory()
     {
         CurrentCategory = new CategoryDto { IsActive = true, DisplayOrder = 0 };
+        // Clear discount selections for new category
+        SelectedDiscountIds.Clear();
+        SelectedDiscounts.Clear();
         IsEditMode = false;
         IsCategoryFormVisible = true;
     }
@@ -534,8 +594,24 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
             IsActive = category.IsActive,
             ParentCategoryId = category.ParentCategoryId,
             DisplayOrder = category.DisplayOrder,
-            NameArabic = category.NameArabic
+            NameArabic = category.NameArabic,
+            SelectedDiscountIds = category.SelectedDiscountIds
         };
+        
+        // Load selected discounts for editing
+        SelectedDiscountIds.Clear();
+        SelectedDiscounts.Clear();
+        if (category.SelectedDiscountIds?.Any() == true)
+        {
+            foreach (var id in category.SelectedDiscountIds)
+            {
+                SelectedDiscountIds.Add(id);
+                var match = AvailableDiscounts.FirstOrDefault(x => x.Id == id);
+                if (match != null && !SelectedDiscounts.Any(x => x.Id == match.Id))
+                    SelectedDiscounts.Add(match);
+            }
+        }
+        
         IsEditMode = true;
         IsCategoryFormVisible = true;
     }
@@ -553,6 +629,9 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
                 StatusMessage = await GetTranslationAsync("status_ready", "Please fix category validation errors");
                 return;
             }
+
+            // Set selected discount IDs before saving
+            CurrentCategory.SelectedDiscountIds = SelectedDiscountIdsList;
 
             if (IsEditMode)
             {
@@ -577,6 +656,145 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
         {
             IsLoading = false;
         }
+    }
+
+    [RelayCommand]
+    private void AddSelectedDiscount()
+    {
+        if (SelectedDiscount == null) return;
+        
+        var discountToAdd = SelectedDiscount;
+        
+        // Check stackable business rules
+        var validationResult = ValidateDiscountAddition(discountToAdd);
+        if (!validationResult.IsValid)
+        {
+            StatusMessage = validationResult.ErrorMessage;
+            MessageBox.Show(validationResult.ErrorMessage, "Cannot Add Discount", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        
+        // Avoid duplicates
+        if (!SelectedDiscountIds.Contains(discountToAdd.Id))
+            SelectedDiscountIds.Add(discountToAdd.Id);
+        if (!SelectedDiscounts.Any(x => x.Id == discountToAdd.Id))
+            SelectedDiscounts.Add(discountToAdd);
+            
+        // Clear dropdown selection for quick add of next
+        SelectedDiscount = null;
+        StatusMessage = $"Added discount: {discountToAdd.DiscountName}";
+        
+        // Update available discounts based on new selection
+        FilterAvailableDiscounts();
+    }
+
+    [RelayCommand]
+    private void RemoveDiscount(DiscountDto? discount)
+    {
+        if (discount == null) return;
+        // Remove from both collections
+        var removed = SelectedDiscounts.FirstOrDefault(x => x.Id == discount.Id);
+        if (removed != null)
+            SelectedDiscounts.Remove(removed);
+        var idIndex = SelectedDiscountIds.IndexOf(discount.Id);
+        if (idIndex >= 0)
+            SelectedDiscountIds.RemoveAt(idIndex);
+        StatusMessage = $"Removed discount: {discount.DiscountName}";
+        
+        // Update available discounts after removal
+        FilterAvailableDiscounts();
+    }
+
+    /// <summary>
+    /// Validates whether a discount can be added based on stackable business rules
+    /// </summary>
+    private (bool IsValid, string ErrorMessage) ValidateDiscountAddition(DiscountDto discountToAdd)
+    {
+        // Rule 1: Cannot add duplicate discounts
+        if (SelectedDiscounts.Any(d => d.Id == discountToAdd.Id))
+        {
+            return (false, "This discount is already selected.");
+        }
+
+        // Rule 2: If trying to add a non-stackable discount
+        if (!discountToAdd.IsStackable)
+        {
+            // Cannot add if there are already any discounts selected
+            if (SelectedDiscounts.Any())
+            {
+                return (false, "Cannot add non-stackable discount when other discounts are already selected. Remove existing discounts first.");
+            }
+        }
+        
+        // Rule 3: If trying to add a stackable discount
+        if (discountToAdd.IsStackable)
+        {
+            // Cannot add if there's already a non-stackable discount selected
+            var hasNonStackableDiscount = SelectedDiscounts.Any(d => !d.IsStackable);
+            if (hasNonStackableDiscount)
+            {
+                return (false, "Cannot add stackable discount when a non-stackable discount is already selected. Remove the non-stackable discount first.");
+            }
+            // Stackable + Stackable is allowed, so continue
+        }
+
+        return (true, string.Empty);
+    }
+
+    /// <summary>
+    /// Filters available discounts based on current selection and stackable rules
+    /// </summary>
+    private async void FilterAvailableDiscounts()
+    {
+        try
+        {
+            // Get all active discounts fresh from service
+            var discountService = GetDiscountService();
+            if (discountService == null) return;
+            
+            var allActiveDiscounts = await discountService.GetActiveDiscountsAsync();
+            AvailableDiscounts.Clear();
+
+            // If no discounts selected, show all active discounts
+            if (!SelectedDiscounts.Any())
+            {
+                foreach (var discount in allActiveDiscounts.Where(d => d.IsCurrentlyActive))
+                {
+                    AvailableDiscounts.Add(discount);
+                }
+                return;
+            }
+
+            // If there's a non-stackable discount selected, show no available discounts
+            var hasNonStackableSelected = SelectedDiscounts.Any(d => !d.IsStackable);
+            if (hasNonStackableSelected)
+            {
+                // No discounts can be added
+                return;
+            }
+
+            // If only stackable discounts are selected, show only other stackable discounts
+            // (since stackable + stackable is allowed, but stackable + non-stackable is not allowed)
+            foreach (var discount in allActiveDiscounts.Where(d => d.IsCurrentlyActive && d.IsStackable && !SelectedDiscounts.Any(s => s.Id == d.Id)))
+            {
+                AvailableDiscounts.Add(discount);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error filtering discounts: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Helper method to get discount service - need to implement based on your DI setup
+    /// </summary>
+    private IDiscountService? GetDiscountService()
+    {
+        // This should be injected or retrieved from your service locator
+        // For now, return null and the filtering won't work
+        // You may need to inject IDiscountService into this ViewModel
+        return null; // TODO: Implement proper service retrieval
     }
 
 private void DebugBindings()
@@ -688,7 +906,7 @@ private void DebugBindings()
         {
             await LoadCategoriesAsync();
             await LoadProductsAsync();
-            FilterProducts();
+            await FilterProducts();
             StatusMessage = await GetTranslationAsync("status_data_refreshed", "Data refreshed successfully");
         }
         catch (Exception ex)
@@ -742,17 +960,17 @@ private void DebugBindings()
 
     partial void OnSelectedCategoryChanged(CategoryDto? value)
     {
-        FilterProducts();
+        _ = FilterProducts();
     }
 
     partial void OnSearchTextChanged(string value)
     {
-        FilterProducts();
+        _ = FilterProducts();
     }
 
     partial void OnSelectedSearchTypeChanged(string value)
     {
-        FilterProducts();
+        _ = FilterProducts();
     }
 
     #endregion
@@ -883,6 +1101,11 @@ private void DebugBindings()
             DisplayOrderHelp = await GetTranslationAsync("display_order_help", "Lower numbers appear first in the list");
             NoParentCategoryText = await GetTranslationAsync("no_parent_category", "No Parent Category");
             
+            // Category Discount labels
+            CategoryDiscountsLabel = await GetTranslationAsync("category_discounts_label", "Category Discounts");
+            SelectedCategoryDiscountsLabel = await GetTranslationAsync("selected_category_discounts_label", "Selected Discounts");
+            CategoryDiscountTooltip = await GetTranslationAsync("category_discount_tooltip", "Select discounts applicable to this category");
+            
             // Info Panel
             CategoryInfoTitle = await GetTranslationAsync("category_info_title", "ℹ️ Category Information");
             CategoryInfoNameRequired = await GetTranslationAsync("category_info_name_required", "• Category name is required and will be used in product listings");
@@ -902,6 +1125,11 @@ private void DebugBindings()
         // Also force update of search-related properties
         OnPropertyChanged(nameof(SearchTypeProductName));
         OnPropertyChanged(nameof(SearchTypeCategory));
+        
+        // Force update of discount label properties
+        OnPropertyChanged(nameof(CategoryDiscountsLabel));
+        OnPropertyChanged(nameof(SelectedCategoryDiscountsLabel));
+        OnPropertyChanged(nameof(CategoryDiscountTooltip));
             // Status Message
             if (StatusMessage == "Ready" || string.IsNullOrEmpty(StatusMessage))
             {
@@ -935,7 +1163,7 @@ private void DebugBindings()
         await LoadCategoriesAsync();
         
         // Update product count display
-        FilterProducts();
+        _ = FilterProducts();
     }
 
     #endregion

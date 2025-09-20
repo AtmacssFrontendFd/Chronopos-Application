@@ -99,6 +99,7 @@ public class Product
     public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
     public virtual ICollection<ProductComment> ProductComments { get; set; } = new List<ProductComment>();
     public virtual ICollection<ProductTax> ProductTaxes { get; set; } = new List<ProductTax>();
+    public virtual ICollection<ProductDiscount> ProductDiscounts { get; set; } = new List<ProductDiscount>();
     public virtual ICollection<StockTransaction> StockTransactions { get; set; } = new List<StockTransaction>();
     public virtual ICollection<StockAlert> StockAlerts { get; set; } = new List<StockAlert>();
     public virtual ICollection<StockLevel> StockLevels { get; set; } = new List<StockLevel>();

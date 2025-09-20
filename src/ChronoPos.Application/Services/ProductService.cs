@@ -53,14 +53,50 @@ public class ProductService : IProductService
     
     public async Task<IEnumerable<ProductDto>> GetAllProductsAsync()
     {
-        var products = await _unitOfWork.Products.GetAllAsync();
-        return products.Select(MapToDto);
+        Log("ProductService.GetAllProductsAsync: Starting...");
+        
+        try
+        {
+            Log("ProductService.GetAllProductsAsync: Calling _unitOfWork.Products.GetAllAsync()");
+            var products = await _unitOfWork.Products.GetAllAsync();
+            
+            Log($"ProductService.GetAllProductsAsync: Repository returned {products?.Count() ?? 0} products");
+            
+            if (products != null)
+            {
+                foreach (var product in products.Take(3)) // Log first 3 products for debugging
+                {
+                    Log($"ProductService.GetAllProductsAsync: Product found - ID: {product.Id}, Name: '{product.Name}', IsActive: {product.IsActive}");
+                }
+                if (products.Count() > 3)
+                {
+                    Log($"ProductService.GetAllProductsAsync: ... and {products.Count() - 3} more products");
+                }
+                
+                var result = products.Select(MapToDtoWithDiscounts);
+                var resultList = result.ToList(); // Materialize to count
+                
+                Log($"ProductService.GetAllProductsAsync: Returning {resultList.Count} DTOs");
+                return resultList;
+            }
+            else
+            {
+                Log("ProductService.GetAllProductsAsync: Repository returned null products");
+                return new List<ProductDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"ProductService.GetAllProductsAsync: ERROR - {ex.Message}");
+            Log($"ProductService.GetAllProductsAsync: Stack trace - {ex.StackTrace}");
+            throw;
+        }
     }
     
     public async Task<ProductDto?> GetProductByIdAsync(int id)
     {
         var product = await _unitOfWork.Products.GetByIdAsync(id);
-        return product != null ? MapToDto(product) : null;
+        return product != null ? MapToDtoWithDiscounts(product) : null;
     }
     
     public async Task<IEnumerable<ProductDto>> GetProductsByCategoryAsync(int categoryId)
@@ -163,6 +199,23 @@ public class ProductService : IProductService
                 await _unitOfWork.Products.UpdateAsync(createdProduct);
                 await _unitOfWork.SaveChangesAsync();
                 Log("ProductTaxes mappings saved successfully");
+            }
+            
+            // Handle ProductDiscounts mapping after product has an Id
+            if (productDto.SelectedDiscountIds != null && productDto.SelectedDiscountIds.Any())
+            {
+                Log($"Adding {productDto.SelectedDiscountIds.Distinct().Count()} ProductDiscounts mappings for product ID {createdProduct.Id}");
+                
+                var productDiscounts = productDto.SelectedDiscountIds.Distinct().Select(discountId => new ProductDiscount
+                {
+                    ProductId = createdProduct.Id,
+                    DiscountsId = discountId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                });
+
+                await _unitOfWork.ProductDiscounts.AddRangeAsync(productDiscounts);
+                Log("ProductDiscounts mappings saved successfully");
             }
             
             // Ensure computed tax-inclusive value persisted if ProductTaxes were just added
@@ -344,6 +397,15 @@ public class ProductService : IProductService
                 });
             }
         }
+        
+        // Update ProductDiscounts based on SelectedDiscountIds
+        if (productDto.SelectedDiscountIds != null)
+        {
+            await _unitOfWork.ProductDiscounts.UpdateProductDiscountsAsync(
+                existingProduct.Id, 
+                productDto.SelectedDiscountIds.Distinct()
+            );
+        }
 
         // Recompute and cache TaxInclusivePriceValue on update
         try
@@ -378,8 +440,44 @@ public class ProductService : IProductService
     // Category management methods
     public async Task<IEnumerable<CategoryDto>> GetAllCategoriesAsync()
     {
-        var categories = await _unitOfWork.Categories.GetAllAsync();
-        return categories.Select(MapCategoryToDto);
+        Log("ProductService.GetAllCategoriesAsync: Starting...");
+        
+        try
+        {
+            Log("ProductService.GetAllCategoriesAsync: Calling _unitOfWork.Categories.GetAllAsync()");
+            var categories = await _unitOfWork.Categories.GetAllAsync();
+            
+            Log($"ProductService.GetAllCategoriesAsync: Repository returned {categories?.Count() ?? 0} categories");
+            
+            if (categories != null)
+            {
+                foreach (var category in categories.Take(3)) // Log first 3 categories for debugging
+                {
+                    Log($"ProductService.GetAllCategoriesAsync: Category found - ID: {category.Id}, Name: '{category.Name}', IsActive: {category.IsActive}");
+                }
+                if (categories.Count() > 3)
+                {
+                    Log($"ProductService.GetAllCategoriesAsync: ... and {categories.Count() - 3} more categories");
+                }
+                
+                var result = categories.Select(MapCategoryToDto);
+                var resultList = result.ToList(); // Materialize to count
+                
+                Log($"ProductService.GetAllCategoriesAsync: Returning {resultList.Count} DTOs");
+                return resultList;
+            }
+            else
+            {
+                Log("ProductService.GetAllCategoriesAsync: Repository returned null categories");
+                return new List<CategoryDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"ProductService.GetAllCategoriesAsync: ERROR - {ex.Message}");
+            Log($"ProductService.GetAllCategoriesAsync: Stack trace - {ex.StackTrace}");
+            throw;
+        }
     }
     
     public async Task<CategoryDto> CreateCategoryAsync(CategoryDto categoryDto)
@@ -403,6 +501,23 @@ public class ProductService : IProductService
             Log("Calling _unitOfWork.SaveChangesAsync...");
             await _unitOfWork.SaveChangesAsync();
             Log("SaveChanges completed successfully");
+            
+            // Handle CategoryDiscounts mapping after category has an Id
+            if (categoryDto.SelectedDiscountIds != null && categoryDto.SelectedDiscountIds.Any())
+            {
+                Log($"Adding {categoryDto.SelectedDiscountIds.Distinct().Count()} CategoryDiscounts mappings for category ID {createdCategory.Id}");
+                
+                var categoryDiscounts = categoryDto.SelectedDiscountIds.Distinct().Select(discountId => new CategoryDiscount
+                {
+                    CategoryId = createdCategory.Id,
+                    DiscountsId = discountId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                });
+
+                await _unitOfWork.CategoryDiscounts.AddRangeAsync(categoryDiscounts);
+                Log("CategoryDiscounts mappings saved successfully");
+            }
             
             // Create Arabic translation if provided
             if (!string.IsNullOrWhiteSpace(categoryDto.NameArabic))
@@ -536,6 +651,7 @@ public class ProductService : IProductService
             IsService = product.IsService,
             AgeRestriction = product.AgeRestriction,
             SelectedTaxTypeIds = product.ProductTaxes?.Select(pt => pt.TaxTypeId).Distinct().ToList() ?? new List<int>(),
+            SelectedDiscountIds = product.ProductDiscounts?.Where(pd => pd.DeletedAt == null).Select(pd => pd.DiscountsId).Distinct().ToList() ?? new List<int>(),
             TaxInclusivePriceValue = product.TaxInclusivePriceValue,
             // Stock Control Properties
             IsStockTracked = product.IsStockTracked,
@@ -570,6 +686,57 @@ public class ProductService : IProductService
             CreatedAt = product.CreatedAt,
             UpdatedAt = product.UpdatedAt
         };
+    }
+
+    /// <summary>
+    /// Maps Product entity to ProductDto with discount details for display
+    /// </summary>
+    private static ProductDto MapToDtoWithDiscounts(Product product)
+    {
+        var dto = MapToDto(product);
+
+        // Map active discounts for display
+        if (product.ProductDiscounts?.Any() == true)
+        {
+            var now = DateTime.UtcNow;
+            dto.ActiveDiscounts = product.ProductDiscounts
+                .Where(pd => pd.DeletedAt == null && pd.Discount != null)
+                .Select(pd => pd.Discount)
+                .Where(d => d.IsActive && d.DeletedAt == null)
+                .Where(d => now >= d.StartDate && now <= d.EndDate) // Only currently active
+                .Select(d => new DiscountDisplayDto
+                {
+                    Id = d.Id,
+                    DiscountName = d.DiscountName,
+                    DiscountCode = d.DiscountCode,
+                    FormattedDiscountValue = d.FormattedDiscountValue,
+                    IsActive = d.IsActive,
+                    IsCurrentlyActive = d.IsCurrentlyActive,
+                    IsStackable = d.IsStackable,
+                    StatusDisplay = d.StatusDisplay,
+                    EndDate = d.EndDate
+                })
+                .OrderByDescending(d => d.IsCurrentlyActive)
+                .ThenBy(d => d.EndDate)
+                .ToList();
+
+            // Create display string for table
+            dto.ActiveDiscountsDisplay = dto.ActiveDiscounts.Any()
+                ? string.Join(", ", dto.ActiveDiscounts.Take(2).Select(d => d.ShortDisplay))
+                : "No active discounts";
+
+            // Add "+" indicator if there are more than 2 discounts
+            if (dto.ActiveDiscounts.Count > 2)
+            {
+                dto.ActiveDiscountsDisplay += $" +{dto.ActiveDiscounts.Count - 2} more";
+            }
+        }
+        else
+        {
+            dto.ActiveDiscountsDisplay = "No discounts";
+        }
+
+        return dto;
     }
     
     private async Task<int> GenerateUniquePLUAsync()
@@ -712,7 +879,10 @@ public class ProductService : IProductService
             ParentCategoryId = category.ParentCategoryId,
             ParentCategoryName = category.ParentCategory?.Name ?? string.Empty,
             DisplayOrder = category.DisplayOrder,
-            ProductCount = category.Products?.Count ?? 0
+            ProductCount = category.Products?.Count ?? 0,
+            SelectedDiscountIds = category.CategoryDiscounts?.Where(cd => cd.DeletedAt == null)
+                                                             .Select(cd => cd.DiscountsId)
+                                                             .ToList() ?? new List<int>()
         };
     }
     

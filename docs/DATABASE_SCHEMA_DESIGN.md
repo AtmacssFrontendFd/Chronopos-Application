@@ -1482,41 +1482,76 @@ CREATE TABLE `customers_groups` (
   `deleted_at` timestamp,
   `deleted_by` int
 );
+
+
+
 --discounts tables
 CREATE TABLE `discounts` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `discount_name` varchar(150),
-  `discount_name_ar` varchar(150),
-  `discount_code` varchar(50) UNIQUE,
-  `discount_type` varchar(20),
-  `discount_value` decimal(10,2),
-  `max_discount_amount` decimal(10,2),
-  `min_purchase_amount` decimal(10,2),
-  `start_date` date,
-  `end_date` date,
-  `applicable_on` varchar(50),
-  `applicable_id` int,
-  `is_active` boolean DEFAULT true,
-  `created_by` int,
-  `created_at` timestamp,
-  `updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
+  `id` INT PRIMARY KEY AUTO_INCREMENT,
+  `discount_name` VARCHAR(150) NOT NULL,
+  `discount_name_ar` VARCHAR(150),
+  `discount_description` VARCHAR(150),
+  `discount_code` VARCHAR(50) UNIQUE NOT NULL,
+  
+  -- % or fixed amount
+  `discount_type` ENUM('PERCENTAGE','FIXED') NOT NULL,
+  `discount_value` DECIMAL(10,2) NOT NULL,
+  
+  -- Business rules
+  `max_discount_amount` DECIMAL(10,2),         -- cap per discount
+  `min_purchase_amount` DECIMAL(10,2),         -- eligibility condition
+  
+  -- Validity
+  `start_date` DATE NOT NULL,
+  `end_date` DATE NOT NULL,
+  
+  -- Scope of discount
+  `applicable_on` ENUM('product','category','customer','order') NOT NULL,
+  `applicable_id` INT,                         -- links to product_id, category_id, etc.
+  
+  -- Multiple discount handling
+  `priority` INT DEFAULT 0,                    -- higher = applied first
+  `is_stackable` BOOLEAN DEFAULT FALSE,        -- can combine with others?
+  
+  -- System flags
+  `is_active` BOOLEAN DEFAULT TRUE,
+  
+  -- Audit fields
+  `created_by` INT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_by` INT,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` TIMESTAMP NULL,
+  `deleted_by` INT,
+  
+  -- Optional for multi-store/currency
+  `store_id` INT,
+  `currency_code` CHAR(3) DEFAULT 'USD'
 );
 
+-- Useful indexes
+CREATE INDEX idx_discount_date ON discounts (start_date, end_date);
+CREATE INDEX idx_discount_scope ON discounts (applicable_on, applicable_id);
+
 CREATE TABLE `product_discount` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int,
-  `discounts_id` int,
-  `is_active` boolean DEFAULT true,
-  `created_by` int,
-  `created_at` timestamp,
-  `updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
+  `id` INT PRIMARY KEY AUTO_INCREMENT,
+  `product_id` INT NOT NULL,
+  `discounts_id` INT NOT NULL,
+  
+  -- Audit
+  `created_by` INT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_by` INT,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` TIMESTAMP NULL,
+  `deleted_by` INT,
+  
+  -- Prevent duplicate mapping
+  UNIQUE KEY uq_product_discount (product_id, discounts_id)
 );
+
+-- Indexes for faster joins
+CREATE INDEX idx_product_discount ON product_discount (product_id, discounts_id);
 
 CREATE TABLE `customers_group_relation` (
   `id` int PRIMARY KEY AUTO_INCREMENT,

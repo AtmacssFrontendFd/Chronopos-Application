@@ -6,7 +6,7 @@ namespace ChronoPos.Infrastructure.Services
     public static class FileLogger
     {
         private static readonly string LogDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
-        private static readonly string LogFilePath = Path.Combine(LogDirectory, $"stock_adjustment_service_{DateTime.Now:yyyyMMdd}.log");
+        private static readonly string LogFilePath = Path.Combine(LogDirectory, $"infrastructure_{DateTime.Now:yyyyMMdd}.log");
         private static readonly object LockObject = new object();
 
         static FileLogger()
@@ -26,6 +26,9 @@ namespace ChronoPos.Infrastructure.Services
                     string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
                     string logEntry = $"[{timestamp}] {message}";
                     File.AppendAllText(LogFilePath, logEntry + Environment.NewLine);
+                    
+                    // Also write to console for immediate feedback
+                    Console.WriteLine(logEntry);
                 }
                 catch (Exception ex)
                 {
@@ -35,9 +38,17 @@ namespace ChronoPos.Infrastructure.Services
             }
         }
 
-        public static void LogSeparator(string title)
+        public static void LogSeparator(string title = "")
         {
-            Log($"================================================== {title} ==================================================");
+            var separator = new string('=', 50);
+            if (!string.IsNullOrEmpty(title))
+            {
+                Log($"{separator} {title} {separator}");
+            }
+            else
+            {
+                Log(separator);
+            }
         }
 
         public static void LogError(string message, Exception? ex = null)

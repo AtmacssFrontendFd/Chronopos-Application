@@ -23,3 +23,23 @@ public enum SaleStatus
     Cancelled = 3,
     Refunded = 4
 }
+
+/// <summary>
+/// Represents the type of discount (percentage or fixed amount)
+/// </summary>
+public enum DiscountType
+{
+    Percentage = 1,
+    Fixed = 2
+}
+
+/// <summary>
+/// Represents what the discount is applicable on
+/// </summary>
+public enum DiscountApplicableOn
+{
+    Product = 1,
+    Category = 2,
+    Customer = 3,
+    Order = 4
+}

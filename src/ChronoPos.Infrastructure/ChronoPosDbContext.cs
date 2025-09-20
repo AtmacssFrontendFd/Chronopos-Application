@@ -50,6 +50,11 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.User> Users { get; set; }
     public DbSet<Domain.Entities.ShopLocation> ShopLocations { get; set; }
     public DbSet<Domain.Entities.UnitOfMeasurement> UnitsOfMeasurement { get; set; }
+    
+    // Discount system entities
+    public DbSet<Domain.Entities.Discount> Discounts { get; set; }
+    public DbSet<Domain.Entities.ProductDiscount> ProductDiscounts { get; set; }
+    public DbSet<Domain.Entities.CategoryDiscount> CategoryDiscounts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -682,6 +687,155 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                   .WithMany(u => u.DerivedUnits)
                   .HasForeignKey(u => u.BaseUomId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Configure Discount entity
+        modelBuilder.Entity<Domain.Entities.Discount>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.DiscountName).IsRequired().HasMaxLength(150);
+            entity.Property(e => e.DiscountNameAr).HasMaxLength(150);
+            entity.Property(e => e.DiscountDescription).HasMaxLength(150);
+            entity.Property(e => e.DiscountCode).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.DiscountType).IsRequired();
+            entity.Property(e => e.DiscountValue).IsRequired().HasPrecision(18, 2);
+            entity.Property(e => e.MaxDiscountAmount).HasPrecision(18, 2);
+            entity.Property(e => e.MinPurchaseAmount).HasPrecision(18, 2);
+            entity.Property(e => e.StartDate).IsRequired();
+            entity.Property(e => e.EndDate).IsRequired();
+            entity.Property(e => e.ApplicableOn).IsRequired();
+            entity.Property(e => e.Priority).IsRequired();
+            entity.Property(e => e.IsStackable).IsRequired();
+            entity.Property(e => e.IsActive).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+            entity.Property(e => e.CurrencyCode).HasMaxLength(3);
+
+            // Unique constraint on discount code
+            entity.HasIndex(e => e.DiscountCode).IsUnique();
+
+            // Foreign key relationships
+            entity.HasOne(d => d.Store)
+                  .WithMany()
+                  .HasForeignKey(d => d.StoreId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.CreatedByUser)
+                  .WithMany()
+                  .HasForeignKey(d => d.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.UpdatedByUser)
+                  .WithMany()
+                  .HasForeignKey(d => d.UpdatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.DeletedByUser)
+                  .WithMany()
+                  .HasForeignKey(d => d.DeletedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.DiscountType);
+            entity.HasIndex(e => e.ApplicableOn);
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => new { e.StartDate, e.EndDate });
+        });
+
+        // Configure ProductDiscount entity
+        modelBuilder.Entity<Domain.Entities.ProductDiscount>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("product_discount");
+            
+            entity.Property(e => e.ProductId).IsRequired();
+            entity.Property(e => e.DiscountsId).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Unique constraint to prevent duplicate mappings
+            entity.HasIndex(e => new { e.ProductId, e.DiscountsId })
+                  .IsUnique()
+                  .HasDatabaseName("uq_product_discount");
+
+            // Foreign key relationships
+            entity.HasOne(d => d.Product)
+                  .WithMany(p => p.ProductDiscounts)
+                  .HasForeignKey(d => d.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.Discount)
+                  .WithMany(d => d.ProductDiscounts)
+                  .HasForeignKey(d => d.DiscountsId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.CreatedByUser)
+                  .WithMany()
+                  .HasForeignKey(d => d.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.UpdatedByUser)
+                  .WithMany()
+                  .HasForeignKey(d => d.UpdatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.DeletedByUser)
+                  .WithMany()
+                  .HasForeignKey(d => d.DeletedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.ProductId);
+            entity.HasIndex(e => e.DiscountsId);
+            entity.HasIndex(e => e.DeletedAt);
+        });
+
+        // Configure CategoryDiscount entity
+        modelBuilder.Entity<Domain.Entities.CategoryDiscount>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("category_discount");
+            
+            entity.Property(e => e.CategoryId).IsRequired();
+            entity.Property(e => e.DiscountsId).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Unique constraint to prevent duplicate mappings
+            entity.HasIndex(e => new { e.CategoryId, e.DiscountsId })
+                  .IsUnique()
+                  .HasDatabaseName("uq_category_discount");
+
+            // Foreign key relationships
+            entity.HasOne(d => d.Category)
+                  .WithMany(c => c.CategoryDiscounts)
+                  .HasForeignKey(d => d.CategoryId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.Discount)
+                  .WithMany(d => d.CategoryDiscounts)
+                  .HasForeignKey(d => d.DiscountsId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.CreatedByUser)
+                  .WithMany()
+                  .HasForeignKey(d => d.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.UpdatedByUser)
+                  .WithMany()
+                  .HasForeignKey(d => d.UpdatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.DeletedByUser)
+                  .WithMany()
+                  .HasForeignKey(d => d.DeletedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.CategoryId);
+            entity.HasIndex(e => e.DiscountsId);
+            entity.HasIndex(e => e.DeletedAt);
         });
 
         // Seed initial data

@@ -654,6 +654,22 @@ public static class AddProductTranslations
                 }
             },
             {
+                "discounts_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Product Discounts" },
+                    { "ur", "پروڈکٹ کی رعایات" }
+                }
+            },
+            {
+                "selected_discounts_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Selected Product Discounts" },
+                    { "ur", "منتخب کردہ پروڈکٹ کی رعایات" }
+                }
+            },
+            {
                 "barcode_value_label",
                 new Dictionary<string, string>
                 {

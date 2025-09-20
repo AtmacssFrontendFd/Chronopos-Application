@@ -25,6 +25,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     private readonly IBrandService _brandService;
     private readonly IProductImageService _productImageService;
     private readonly ITaxTypeService _taxTypeService;
+    private readonly IDiscountService _discountService;
     private readonly Action? _navigateBack;
     
     // Settings services
@@ -194,6 +195,21 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private ObservableCollection<TaxTypeDto> selectedTaxTypes = new();
+
+    // Discount properties
+    [ObservableProperty]
+    private ObservableCollection<DiscountDto> availableDiscounts = new();
+
+    [ObservableProperty]
+    private ObservableCollection<int> selectedDiscountIds = new();
+    public List<int> SelectedDiscountIdsList => SelectedDiscountIds.ToList();
+
+    // Dropdown-based discount selection helper state
+    [ObservableProperty]
+    private DiscountDto? selectedDiscount;
+
+    [ObservableProperty]
+    private ObservableCollection<DiscountDto> selectedDiscounts = new();
 
     [ObservableProperty]
     private ObservableCollection<StoreDto> availableStores = new();
@@ -461,6 +477,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string priceIncludingTaxLabel = "Price Including Tax";
     [ObservableProperty] private string taxTypesLabel = "Tax Types";
     [ObservableProperty] private string selectedTaxTypesLabel = "Selected Tax Types";
+    [ObservableProperty] private string discountsLabel = "Product Discounts";
+    [ObservableProperty] private string selectedDiscountsLabel = "Selected Product Discounts";
     [ObservableProperty] private string barcodeValueLabel = "Barcode Value:";
     [ObservableProperty] private string addNewBarcodeTitle = "Add New Barcode";
     [ObservableProperty] private string productBarcodesTitle = "Product Barcodes";
@@ -734,6 +752,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         IBrandService brandService,
     IProductImageService productImageService,
     ITaxTypeService taxTypeService,
+    IDiscountService discountService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -747,6 +766,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         _brandService = brandService ?? throw new ArgumentNullException(nameof(brandService));
     _productImageService = productImageService ?? throw new ArgumentNullException(nameof(productImageService));
     _taxTypeService = taxTypeService ?? throw new ArgumentNullException(nameof(taxTypeService));
+    _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -821,6 +841,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
 
             FileLogger.Log("🏦 Loading tax types");
             await LoadTaxTypesAsync();
+            await LoadDiscountsAsync();
             FileLogger.Log("✅ Loaded tax types");
 
             StatusMessage = "Ready to create new product";
@@ -965,6 +986,37 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             FileLogger.Log($"❌ Error loading tax types: {ex.Message}");
+        }
+    }
+
+    private async Task LoadDiscountsAsync()
+    {
+        try
+        {
+            var discounts = await _discountService.GetActiveDiscountsAsync();
+            AvailableDiscounts.Clear();
+            foreach (var discount in discounts)
+            {
+                AvailableDiscounts.Add(discount);
+            }
+            // Initialize selected list from ids if any
+            if (SelectedDiscountIds?.Any() == true)
+            {
+                SelectedDiscounts.Clear();
+                foreach (var id in SelectedDiscountIds)
+                {
+                    var match = AvailableDiscounts.FirstOrDefault(x => x.Id == id);
+                    if (match != null && !SelectedDiscounts.Any(x => x.Id == match.Id))
+                        SelectedDiscounts.Add(match);
+                }
+            }
+            
+            // Apply stackable filtering based on current selection
+            FilterAvailableDiscounts();
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"❌ Error loading discounts: {ex.Message}");
         }
     }
 
@@ -1115,6 +1167,17 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
                 var match = AvailableTaxTypes.FirstOrDefault(x => x.Id == id);
                 if (match != null && !SelectedTaxTypes.Any(x => x.Id == match.Id))
                     SelectedTaxTypes.Add(match);
+            }
+            
+            // Load selected discounts
+            SelectedDiscountIds = new ObservableCollection<int>(product.SelectedDiscountIds ?? new List<int>());
+            // Build SelectedDiscounts for chip list
+            SelectedDiscounts.Clear();
+            foreach (var id in SelectedDiscountIds)
+            {
+                var match = AvailableDiscounts.FirstOrDefault(x => x.Id == id);
+                if (match != null && !SelectedDiscounts.Any(x => x.Id == match.Id))
+                    SelectedDiscounts.Add(match);
             }
             
             // Note: No need to recalculate tax-inclusive price here since we already loaded 
@@ -1365,6 +1428,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         PriceIncludingTaxLabel = await GetTranslationAsync("price_including_tax_label", "Price Including Tax");
         TaxTypesLabel = await GetTranslationAsync("tax_types_label", "Tax Types");
         SelectedTaxTypesLabel = await GetTranslationAsync("selected_tax_types_label", "Selected Tax Types");
+        DiscountsLabel = await GetTranslationAsync("discounts_label", "Product Discounts");
+        SelectedDiscountsLabel = await GetTranslationAsync("selected_discounts_label", "Selected Product Discounts");
         BarcodeValueLabel = await GetTranslationAsync("barcode_value_label", "Barcode Value:");
         AddNewBarcodeTitle = await GetTranslationAsync("add_new_barcode_title", "Add New Barcode");
         ProductBarcodesTitle = await GetTranslationAsync("product_barcodes_title", "Product Barcodes");
@@ -1477,6 +1542,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(PriceIncludingTaxLabel));
             OnPropertyChanged(nameof(TaxTypesLabel));
             OnPropertyChanged(nameof(SelectedTaxTypesLabel));
+            OnPropertyChanged(nameof(DiscountsLabel));
+            OnPropertyChanged(nameof(SelectedDiscountsLabel));
             OnPropertyChanged(nameof(BarcodeValueLabel));
             OnPropertyChanged(nameof(AddNewBarcodeTitle));
             OnPropertyChanged(nameof(ProductBarcodesTitle));
@@ -1579,6 +1646,131 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             SelectedTaxTypeIds.RemoveAt(idIndex);
         StatusMessage = $"Removed tax type: {tax.Name}";
         CalculateTaxInclusivePrice();
+    }
+
+    [RelayCommand]
+    private void AddSelectedDiscount()
+    {
+        if (SelectedDiscount == null) return;
+        
+        var discountToAdd = SelectedDiscount;
+        
+        // Check stackable business rules
+        var validationResult = ValidateDiscountAddition(discountToAdd);
+        if (!validationResult.IsValid)
+        {
+            StatusMessage = validationResult.ErrorMessage;
+            MessageBox.Show(validationResult.ErrorMessage, "Cannot Add Discount", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        
+        // Avoid duplicates
+        if (!SelectedDiscountIds.Contains(discountToAdd.Id))
+            SelectedDiscountIds.Add(discountToAdd.Id);
+        if (!SelectedDiscounts.Any(x => x.Id == discountToAdd.Id))
+            SelectedDiscounts.Add(discountToAdd);
+            
+        // Clear dropdown selection for quick add of next
+        SelectedDiscount = null;
+        StatusMessage = $"Added discount: {discountToAdd.DiscountName}";
+        
+        // Update available discounts based on new selection
+        FilterAvailableDiscounts();
+    }
+
+    [RelayCommand]
+    private void RemoveDiscount(DiscountDto? discount)
+    {
+        if (discount == null) return;
+        // Remove from both collections
+        var removed = SelectedDiscounts.FirstOrDefault(x => x.Id == discount.Id);
+        if (removed != null)
+            SelectedDiscounts.Remove(removed);
+        var idIndex = SelectedDiscountIds.IndexOf(discount.Id);
+        if (idIndex >= 0)
+            SelectedDiscountIds.RemoveAt(idIndex);
+        StatusMessage = $"Removed discount: {discount.DiscountName}";
+        
+        // Update available discounts after removal
+        FilterAvailableDiscounts();
+    }
+
+    /// <summary>
+    /// Validates whether a discount can be added based on stackable business rules
+    /// </summary>
+    private (bool IsValid, string ErrorMessage) ValidateDiscountAddition(DiscountDto discountToAdd)
+    {
+        // Rule 1: Cannot add duplicate discounts
+        if (SelectedDiscounts.Any(d => d.Id == discountToAdd.Id))
+        {
+            return (false, "This discount is already selected.");
+        }
+
+        // Rule 2: If trying to add a non-stackable discount
+        if (!discountToAdd.IsStackable)
+        {
+            // Cannot add if there are already any discounts selected
+            if (SelectedDiscounts.Any())
+            {
+                return (false, "Cannot add non-stackable discount when other discounts are already selected. Remove existing discounts first.");
+            }
+        }
+        
+        // Rule 3: If trying to add a stackable discount
+        if (discountToAdd.IsStackable)
+        {
+            // Cannot add if there's already a non-stackable discount selected
+            var hasNonStackableDiscount = SelectedDiscounts.Any(d => !d.IsStackable);
+            if (hasNonStackableDiscount)
+            {
+                return (false, "Cannot add stackable discount when a non-stackable discount is already selected. Remove the non-stackable discount first.");
+            }
+            // Stackable + Stackable is allowed, so continue
+        }
+
+        return (true, string.Empty);
+    }
+
+    /// <summary>
+    /// Filters available discounts based on current selection and stackable rules
+    /// </summary>
+    private async void FilterAvailableDiscounts()
+    {
+        try
+        {
+            // Get all active discounts fresh from service
+            var allActiveDiscounts = await _discountService.GetActiveDiscountsAsync();
+            AvailableDiscounts.Clear();
+
+            // If no discounts selected, show all active discounts
+            if (!SelectedDiscounts.Any())
+            {
+                foreach (var discount in allActiveDiscounts.Where(d => d.IsCurrentlyActive))
+                {
+                    AvailableDiscounts.Add(discount);
+                }
+                return;
+            }
+
+            // If there's a non-stackable discount selected, show no available discounts
+            var hasNonStackableSelected = SelectedDiscounts.Any(d => !d.IsStackable);
+            if (hasNonStackableSelected)
+            {
+                // No discounts can be added
+                return;
+            }
+
+            // If only stackable discounts are selected, show only other stackable discounts
+            // (since stackable + stackable is allowed, but stackable + non-stackable is not allowed)
+            foreach (var discount in allActiveDiscounts.Where(d => d.IsCurrentlyActive && d.IsStackable && !SelectedDiscounts.Any(s => s.Id == d.Id)))
+            {
+                AvailableDiscounts.Add(discount);
+            }
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"❌ Error filtering available discounts: {ex.Message}");
+        }
     }
 
     [RelayCommand]
@@ -2039,6 +2231,13 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         
         Barcodes.Clear();
         Comments.Clear();
+        
+        // Clear tax and discount selections
+        SelectedTaxTypes.Clear();
+        SelectedTaxTypeIds.Clear();
+        SelectedDiscounts.Clear();
+        SelectedDiscountIds.Clear();
+        
         NewBarcode = string.Empty;
         NewComment = string.Empty;
         
@@ -2273,7 +2472,10 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             }).ToList() ?? new List<ProductBarcodeDto>(),
 
             // Selected tax types
-            SelectedTaxTypeIds = SelectedTaxTypeIdsList
+            SelectedTaxTypeIds = SelectedTaxTypeIdsList,
+            
+            // Selected discounts
+            SelectedDiscountIds = SelectedDiscountIdsList
         };
 
         FileLogger.Log($"📦 CreateProductDto: Created DTO with {productDto.ProductBarcodes.Count} barcodes:");

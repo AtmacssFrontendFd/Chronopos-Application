@@ -6,7 +6,7 @@ namespace ChronoPos.Desktop.Services
     public static class FileLogger
     {
         private static readonly string LogDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
-        private static readonly string LogFilePath = Path.Combine(LogDirectory, $"stock_management_{DateTime.Now:yyyyMMdd}.log");
+        private static readonly string LogFilePath = Path.Combine(LogDirectory, $"desktop_ui_{DateTime.Now:yyyyMMdd}.log");
         private static readonly object LockObject = new object();
 
         static FileLogger()

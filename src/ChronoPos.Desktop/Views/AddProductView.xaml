@@ -1106,6 +1106,96 @@
                             </StackPanel>
                         </Grid>
 
+                        <!-- Product Discounts Section -->
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{Binding DiscountsLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox ItemsSource="{Binding AvailableDiscounts}"
+                                              SelectedItem="{Binding SelectedDiscount, Mode=TwoWay}"
+                                              Style="{StaticResource FormComboBoxStyle}"
+                                              Margin="0,0,5,0">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding DiscountName}"/>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <Button Grid.Column="1"
+                                            Content="+"
+                                            Command="{Binding AddSelectedDiscountCommand}"
+                                            Style="{StaticResource FormButtonStyle}"
+                                            Background="#28A745"
+                                            Foreground="White"
+                                            Width="40"
+                                            Height="35"/>
+                                </Grid>
+                                
+                                <!-- Stackable Logic Hint -->
+                                <TextBlock Margin="0,5,0,0" 
+                                           FontSize="11" 
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           TextWrapping="Wrap">
+                                    <Run Text="💡 "/>
+                                    <Run Text="Stackable Rule: Non-stackable discounts cannot be combined with other discounts. Stackable discounts can only be combined with one non-stackable discount."/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Selected Product Discounts Chips Section -->
+                        <Grid Margin="0,5,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{Binding SelectedDiscountsLabel}" Style="{StaticResource FieldLabelStyle}" Margin="0,5,0,5"/>
+                                <!-- Selected discounts chips -->
+                                <ItemsControl ItemsSource="{Binding SelectedDiscounts}" Margin="0,0,0,5">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource SurfaceBackground}" 
+                                                    BorderBrush="{DynamicResource BorderLight}" 
+                                                    BorderThickness="1" 
+                                                    CornerRadius="12" 
+                                                    Margin="4" 
+                                                    Padding="8,4">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding DiscountName}" 
+                                                               FontSize="{DynamicResource FontSizeVerySmall}"
+                                                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                               Foreground="{DynamicResource TextPrimary}"/>
+                                                    <Button Content="✕"
+                                                            Command="{Binding DataContext.RemoveDiscountCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Background="Transparent"
+                                                            BorderThickness="0"
+                                                            Foreground="{DynamicResource Error}"
+                                                            FontSize="{DynamicResource FontSizeSmall}"
+                                                            FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                            Padding="4,0"
+                                                            Cursor="Hand"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Grid>
+
                         <WrapPanel Orientation="Horizontal" Margin="0,10,0,0">
                             <CheckBox Content="{Binding AllowDiscountsLabel}" 
                                       IsChecked="{Binding IsDiscountAllowed, Mode=TwoWay}"

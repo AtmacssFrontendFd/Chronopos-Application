@@ -184,7 +184,7 @@ public partial class ManagementViewModel : ObservableObject
         var primaryColorBrush = GetPrimaryColorBrush();
         var buttonBackgroundBrush = GetButtonBackgroundBrush();
 
-        // Create modules with localized content from database (All 6 original modules)
+        // Create modules with localized content from database (All 7 modules including Add Options)
         var moduleData = new[]
         {
             new { Type = "Stock", TitleKey = "management.stock", CountLabel = "Items", Count = await GetStockCountAsync() },
@@ -192,7 +192,8 @@ public partial class ManagementViewModel : ObservableObject
             new { Type = "Supplier", TitleKey = "management.supplier", CountLabel = "Suppliers", Count = await GetSupplierCountAsync() },
             new { Type = "Customer", TitleKey = "management.customers", CountLabel = "Customers", Count = await GetCustomerCountAsync() },
             new { Type = "Payment", TitleKey = "management.payment", CountLabel = "Transactions", Count = await GetPaymentCountAsync() },
-            new { Type = "Service", TitleKey = "management.service", CountLabel = "Services", Count = await GetServiceCountAsync() }
+            new { Type = "Service", TitleKey = "management.service", CountLabel = "Services", Count = await GetServiceCountAsync() },
+            new { Type = "AddOptions", TitleKey = "management.add_options", CountLabel = "Options", Count = 14 }
         };
 
         // Add modules to collection - All use the same primary color

@@ -46,6 +46,16 @@ public interface IUnitOfWork : IDisposable
     IRepository<ChronoPos.Domain.Entities.TaxType> TaxTypes { get; }
     
     /// <summary>
+    /// Product Discount repository
+    /// </summary>
+    IProductDiscountRepository ProductDiscounts { get; }
+    
+    /// <summary>
+    /// Category Discount repository
+    /// </summary>
+    ICategoryDiscountRepository CategoryDiscounts { get; }
+    
+    /// <summary>
     /// Saves all changes asynchronously
     /// </summary>
     Task<int> SaveChangesAsync();

@@ -83,6 +83,8 @@ public class LanguageSeedingService : ILanguageSeedingService
         await SeedAddProductTranslationsAsync(localizationService);
         await SeedProductManagementTranslationsAsync(localizationService);
         await SeedStockManagementTranslationsAsync(localizationService);
+        await SeedManagementTranslationsAsync(localizationService);
+        await SeedAddOptionsTranslationsAsync(localizationService);
         await SeedSettingsTranslationsAsync(localizationService);
         await SeedSalesTranslationsAsync(localizationService);
         await SeedReportsTranslationsAsync(localizationService);
@@ -883,6 +885,200 @@ public class LanguageSeedingService : ILanguageSeedingService
         };
 
         await SeedTranslationCategory("Reports", reportsTranslations, localizationService);
+    }
+
+    private async Task SeedManagementTranslationsAsync(IDatabaseLocalizationService localizationService)
+    {
+        var managementTranslations = new Dictionary<string, Dictionary<string, string>>
+        {
+            {
+                "management.stock",
+                new Dictionary<string, string>
+                {
+                    { "en", "Stock Management" },
+                    { "ur", "اسٹاک کا انتظام" }
+                }
+            },
+            {
+                "management.products",
+                new Dictionary<string, string>
+                {
+                    { "en", "Product Management" },
+                    { "ur", "پروڈکٹ کا انتظام" }
+                }
+            },
+            {
+                "management.supplier",
+                new Dictionary<string, string>
+                {
+                    { "en", "Supplier Management" },
+                    { "ur", "سپلائر کا انتظام" }
+                }
+            },
+            {
+                "management.customers",
+                new Dictionary<string, string>
+                {
+                    { "en", "Customer Management" },
+                    { "ur", "کسٹمر کا انتظام" }
+                }
+            },
+            {
+                "management.payment",
+                new Dictionary<string, string>
+                {
+                    { "en", "Payment Management" },
+                    { "ur", "ادائیگی کا انتظام" }
+                }
+            },
+            {
+                "management.service",
+                new Dictionary<string, string>
+                {
+                    { "en", "Service Management" },
+                    { "ur", "سروس کا انتظام" }
+                }
+            },
+            {
+                "management.add_options",
+                new Dictionary<string, string>
+                {
+                    { "en", "Add Options" },
+                    { "ur", "اضافی اختیارات" }
+                }
+            }
+        };
+
+        await SeedTranslationCategory("Management", managementTranslations, localizationService);
+    }
+
+    private async Task SeedAddOptionsTranslationsAsync(IDatabaseLocalizationService localizationService)
+    {
+        var addOptionsTranslations = new Dictionary<string, Dictionary<string, string>>
+        {
+            {
+                "add_options.page_title",
+                new Dictionary<string, string>
+                {
+                    { "en", "Add Options" },
+                    { "ur", "اضافی اختیارات" }
+                }
+            },
+            {
+                "add_options.brand",
+                new Dictionary<string, string>
+                {
+                    { "en", "Brand" },
+                    { "ur", "برانڈ" }
+                }
+            },
+            {
+                "add_options.category",
+                new Dictionary<string, string>
+                {
+                    { "en", "Category" },
+                    { "ur", "کیٹگری" }
+                }
+            },
+            {
+                "add_options.product_attributes",
+                new Dictionary<string, string>
+                {
+                    { "en", "Product Attributes" },
+                    { "ur", "پروڈکٹ کی خصوصیات" }
+                }
+            },
+            {
+                "add_options.product_combinations",
+                new Dictionary<string, string>
+                {
+                    { "en", "Product Combinations" },
+                    { "ur", "پروڈکٹ کے مجموعے" }
+                }
+            },
+            {
+                "add_options.product_grouping",
+                new Dictionary<string, string>
+                {
+                    { "en", "Product Grouping" },
+                    { "ur", "پروڈکٹ گروپنگ" }
+                }
+            },
+            {
+                "add_options.price_types",
+                new Dictionary<string, string>
+                {
+                    { "en", "Price Types" },
+                    { "ur", "قیمت کی اقسام" }
+                }
+            },
+            {
+                "add_options.payment_types",
+                new Dictionary<string, string>
+                {
+                    { "en", "Payment Types" },
+                    { "ur", "ادائیگی کی اقسام" }
+                }
+            },
+            {
+                "add_options.tax_rates",
+                new Dictionary<string, string>
+                {
+                    { "en", "Tax Rates" },
+                    { "ur", "ٹیکس کی شرح" }
+                }
+            },
+            {
+                "add_options.customer",
+                new Dictionary<string, string>
+                {
+                    { "en", "Customer" },
+                    { "ur", "کسٹمر" }
+                }
+            },
+            {
+                "add_options.suppliers",
+                new Dictionary<string, string>
+                {
+                    { "en", "Suppliers" },
+                    { "ur", "سپلائرز" }
+                }
+            },
+            {
+                "add_options.uom",
+                new Dictionary<string, string>
+                {
+                    { "en", "Unit of Measure (UOM)" },
+                    { "ur", "پیمائش کی اکائی" }
+                }
+            },
+            {
+                "add_options.shop",
+                new Dictionary<string, string>
+                {
+                    { "en", "Shop" },
+                    { "ur", "دکان" }
+                }
+            },
+            {
+                "add_options.customer_groups",
+                new Dictionary<string, string>
+                {
+                    { "en", "Customer Groups" },
+                    { "ur", "کسٹمر گروپس" }
+                }
+            },
+            {
+                "add_options.discounts",
+                new Dictionary<string, string>
+                {
+                    { "en", "Discounts" },
+                    { "ur", "رعایت" }
+                }
+            }
+        };
+
+        await SeedTranslationCategory("Add Options", addOptionsTranslations, localizationService);
     }
 
     private async Task SeedTranslationCategory(string category, Dictionary<string, Dictionary<string, string>> translations, IDatabaseLocalizationService localizationService)

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ChronoPos.Domain.Entities;
 using ChronoPos.Domain.Interfaces;
+using System.IO;
 
 namespace ChronoPos.Infrastructure.Repositories;
 
@@ -9,16 +10,87 @@ namespace ChronoPos.Infrastructure.Repositories;
 /// </summary>
 public class ProductRepository : Repository<Product>, IProductRepository
 {
+    private static readonly string LogDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
+    private static readonly string LogFilePath = Path.Combine(LogDirectory, $"product_repository_{DateTime.Now:yyyyMMdd}.log");
+    private static readonly object LockObject = new object();
+    
+    static ProductRepository()
+    {
+        if (!Directory.Exists(LogDirectory))
+        {
+            Directory.CreateDirectory(LogDirectory);
+        }
+    }
+    
+    private static void Log(string message)
+    {
+        try
+        {
+            lock (LockObject)
+            {
+                File.AppendAllText(LogFilePath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}{Environment.NewLine}");
+            }
+        }
+        catch
+        {
+            // Silent fail to prevent logging from breaking the application
+        }
+    }
+    
     public ProductRepository(ChronoPosDbContext context) : base(context)
     {
     }
 
     public override async Task<IEnumerable<Product>> GetAllAsync()
     {
-        return await _dbSet
-            .Include(p => p.Category)
-            .Include(p => p.ProductBarcodes)
-            .ToListAsync();
+        Log("ProductRepository.GetAllAsync: Starting...");
+        
+        try
+        {
+            Log($"ProductRepository.GetAllAsync: DbSet null check: {_dbSet == null}");
+            Log($"ProductRepository.GetAllAsync: Context null check: {_context == null}");
+            
+            if (_dbSet == null)
+            {
+                Log("ProductRepository.GetAllAsync: ERROR - _dbSet is null");
+                return new List<Product>();
+            }
+            
+            // First count total products
+            var totalCount = await _dbSet.CountAsync();
+            Log($"ProductRepository.GetAllAsync: Total products in database: {totalCount}");
+            
+            // Execute the main query with includes
+            Log("ProductRepository.GetAllAsync: Executing query with includes...");
+            var result = await _dbSet
+                .Include(p => p.Category)
+                .Include(p => p.ProductBarcodes)
+                .Include(p => p.ProductDiscounts.Where(pd => pd.DeletedAt == null))
+                    .ThenInclude(pd => pd.Discount)
+                .ToListAsync();
+            
+            Log($"ProductRepository.GetAllAsync: Query returned {result.Count} products");
+            
+            // Log first few products for debugging
+            foreach (var product in result.Take(3))
+            {
+                Log($"ProductRepository.GetAllAsync: Product - ID: {product.Id}, Name: '{product.Name}', IsActive: {product.IsActive}");
+            }
+            
+            if (result.Count > 3)
+            {
+                Log($"ProductRepository.GetAllAsync: ... and {result.Count - 3} more products");
+            }
+            
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Log($"ProductRepository.GetAllAsync: ERROR - {ex.Message}");
+            Log($"ProductRepository.GetAllAsync: Inner Exception - {ex.InnerException?.Message}");
+            Log($"ProductRepository.GetAllAsync: Stack trace - {ex.StackTrace}");
+            throw;
+        }
     }
 
     public override async Task<Product?> GetByIdAsync(int id)
@@ -26,6 +98,8 @@ public class ProductRepository : Repository<Product>, IProductRepository
         return await _dbSet
             .Include(p => p.Category)
             .Include(p => p.ProductBarcodes)
+            .Include(p => p.ProductDiscounts.Where(pd => pd.DeletedAt == null))
+                .ThenInclude(pd => pd.Discount)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 

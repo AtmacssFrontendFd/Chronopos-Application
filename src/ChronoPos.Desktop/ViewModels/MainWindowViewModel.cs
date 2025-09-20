@@ -757,6 +757,9 @@ public partial class MainWindowViewModel : ObservableObject
                     case "Stock":
                         _ = ShowStockManagement();
                         break;
+                    case "AddOptions":
+                        _ = ShowAddOptions();
+                        break;
                     default:
                         StatusMessage = $"Navigation to {moduleType} not implemented yet";
                         break;
@@ -809,6 +812,7 @@ public partial class MainWindowViewModel : ObservableObject
         {
             // Create the ProductManagementViewModel with proper navigation delegates
             var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var discountService = _serviceProvider.GetRequiredService<IDiscountService>();
             var themeService = _serviceProvider.GetRequiredService<IThemeService>();
             var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
             var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
@@ -819,6 +823,7 @@ public partial class MainWindowViewModel : ObservableObject
             
             var productManagementViewModel = new ProductManagementViewModel(
                 productService,
+                discountService,
                 themeService,
                 zoomService,
                 localizationService,
@@ -886,6 +891,7 @@ public partial class MainWindowViewModel : ObservableObject
             var brandService = _serviceProvider.GetRequiredService<IBrandService>();
             var productImageService = _serviceProvider.GetRequiredService<IProductImageService>();
             var taxTypeService = _serviceProvider.GetRequiredService<ITaxTypeService>();
+            var discountService = _serviceProvider.GetRequiredService<IDiscountService>();
             
             // Create ViewModel with navigation callback
             var addProductViewModel = new AddProductViewModel(
@@ -893,6 +899,7 @@ public partial class MainWindowViewModel : ObservableObject
                 brandService,
                 productImageService,
                 taxTypeService,
+                discountService,
                 themeService,
                 zoomService,
                 localizationService,
@@ -956,6 +963,7 @@ public partial class MainWindowViewModel : ObservableObject
             var brandService = _serviceProvider.GetRequiredService<IBrandService>();
             var productImageService = _serviceProvider.GetRequiredService<IProductImageService>();
             var taxTypeService = _serviceProvider.GetRequiredService<ITaxTypeService>();
+            var discountService = _serviceProvider.GetRequiredService<IDiscountService>();
             
             // Create ViewModel with navigation callback
             var addProductViewModel = new AddProductViewModel(
@@ -963,6 +971,7 @@ public partial class MainWindowViewModel : ObservableObject
                 brandService,
                 productImageService,
                 taxTypeService,
+                discountService,
                 themeService,
                 zoomService,
                 localizationService,
@@ -1071,6 +1080,122 @@ public partial class MainWindowViewModel : ObservableObject
             FontSize.Large => 16,
             _ => 14
         };
+    }
+
+    [RelayCommand]
+    private async Task ShowAddOptions()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Add Options";
+        StatusMessage = "Loading add options...";
+        
+        try
+        {
+            // Create the AddOptionsViewModel with all required services
+            var addOptionsViewModel = new AddOptionsViewModel(
+                _serviceProvider.GetRequiredService<IThemeService>(),
+                _serviceProvider.GetRequiredService<IZoomService>(),
+                _serviceProvider.GetRequiredService<ILocalizationService>(),
+                _serviceProvider.GetRequiredService<IColorSchemeService>(),
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
+                _serviceProvider.GetRequiredService<IFontService>(),
+                _serviceProvider.GetRequiredService<IDatabaseLocalizationService>()
+            );
+
+            // Set up navigation from add options to specific modules
+            addOptionsViewModel.NavigateToModuleAction = (moduleType) =>
+            {
+                switch (moduleType)
+                {
+                    case "Discounts":
+                        _ = ShowDiscounts();
+                        break;
+                    default:
+                        StatusMessage = $"Navigation to {moduleType} module not implemented yet";
+                        break;
+                }
+            };
+
+            // Set up back navigation to return to Management
+            addOptionsViewModel.GoBackAction = () =>
+            {
+                ShowManagementCommand.Execute(null);
+            };
+
+            // Create the AddOptionsView and set its DataContext
+            var addOptionsView = new AddOptionsView
+            {
+                DataContext = addOptionsViewModel
+            };
+
+            CurrentView = addOptionsView;
+            StatusMessage = "Add options loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading add options: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ShowDiscounts()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Discount Management";
+        StatusMessage = "Loading discount management...";
+        
+        try
+        {
+            // Create the DiscountViewModel with all required services
+            var discountViewModel = new DiscountViewModel(
+                _serviceProvider.GetRequiredService<IDiscountService>(),
+                _serviceProvider.GetRequiredService<IProductService>(),
+                _serviceProvider.GetRequiredService<IThemeService>(),
+                _serviceProvider.GetRequiredService<IZoomService>(),
+                _serviceProvider.GetRequiredService<ILocalizationService>(),
+                _serviceProvider.GetRequiredService<IColorSchemeService>(),
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
+                _serviceProvider.GetRequiredService<IFontService>(),
+                _serviceProvider.GetRequiredService<ChronoPos.Infrastructure.Services.IDatabaseLocalizationService>(),
+                navigateToAddDiscount: () => { /* TODO: Implement add discount navigation */ },
+                navigateToEditDiscount: (discount) => { /* TODO: Implement edit discount navigation */ },
+                navigateBack: () =>
+                {
+                    ShowAddOptionsCommand.Execute(null);
+                }
+            );
+
+            // Create the DiscountView and set its DataContext
+            var discountView = new DiscountView
+            {
+                DataContext = discountViewModel
+            };
+
+            CurrentView = discountView;
+            StatusMessage = "Discount management loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading discount management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
     }
 
     [RelayCommand]

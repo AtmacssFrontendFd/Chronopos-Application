@@ -20,6 +20,8 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<UnitOfMeasurement>? _unitOfMeasurementRepository;
     private IProductImageRepository? _productImageRepository;
     private IRepository<TaxType>? _taxTypeRepository;
+    private IProductDiscountRepository? _productDiscountRepository;
+    private ICategoryDiscountRepository? _categoryDiscountRepository;
     
     public UnitOfWork(ChronoPosDbContext context)
     {
@@ -50,6 +52,12 @@ public class UnitOfWork : IUnitOfWork
 
     public IRepository<TaxType> TaxTypes =>
         _taxTypeRepository ??= new Repository<TaxType>(_context);
+    
+    public IProductDiscountRepository ProductDiscounts =>
+        _productDiscountRepository ??= new ProductDiscountRepository(_context);
+    
+    public ICategoryDiscountRepository CategoryDiscounts =>
+        _categoryDiscountRepository ??= new CategoryDiscountRepository(_context);
     
     public async Task<int> SaveChangesAsync()
     {

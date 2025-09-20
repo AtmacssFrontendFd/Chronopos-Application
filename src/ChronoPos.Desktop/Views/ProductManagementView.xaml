@@ -774,6 +774,52 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
+                        <!-- Discounts -->
+                        <DataGridTemplateColumn Header="Discounts" 
+                                              Width="140"
+                                              MinWidth="120">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,2">
+                                        <!-- Show pill only if there are active discounts -->
+                                        <Border x:Name="DiscountPill"
+                                                Background="{DynamicResource Success}"
+                                                CornerRadius="12"
+                                                Padding="8,3"
+                                                MinWidth="60"
+                                                Visibility="{Binding HasActiveDiscounts, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <TextBlock Text="{Binding CompactDiscountsDisplay}"
+                                                     Foreground="White"
+                                                     FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                     FontSize="{DynamicResource FontSizeExtraSmall}"
+                                                     FontWeight="SemiBold"
+                                                     TextAlignment="Center"
+                                                     VerticalAlignment="Center"
+                                                     HorizontalAlignment="Center"/>
+                                        </Border>
+                                        
+                                        <!-- Show dash when no discounts -->
+                                        <TextBlock x:Name="NoDiscountText"
+                                                 Text="—"
+                                                 Foreground="{DynamicResource TextTertiary}"
+                                                 FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                 FontSize="{DynamicResource FontSizeExtraSmall}"
+                                                 TextAlignment="Center"
+                                                 VerticalAlignment="Center"
+                                                 HorizontalAlignment="Center"
+                                                 Visibility="Collapsed"/>
+                                    </Grid>
+                                    
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding HasActiveDiscounts}" Value="False">
+                                            <Setter TargetName="NoDiscountText" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="DiscountPill" Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
                         <!-- Actions -->
                         <DataGridTemplateColumn Header="{Binding ColumnActions}" Width="150">
                             <DataGridTemplateColumn.CellTemplate>
@@ -1023,6 +1069,106 @@
                                   Foreground="{DynamicResource TextPrimary}"
                                   Margin="{DynamicResource DefaultMarginThickness}"
                                   FlowDirection="{Binding CurrentFlowDirection}"/>
+
+                        <!-- Category Discounts Section -->
+                        <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
+                            <TextBlock Text="{Binding CategoryDiscountsLabel}" 
+                                       FontSize="{DynamicResource FontSizeSmall}"
+                                       FontWeight="Medium"
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="{DynamicResource DefaultMarginThickness}"
+                                       TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ComboBox ItemsSource="{Binding AvailableDiscounts}"
+                                          SelectedItem="{Binding SelectedDiscount, Mode=TwoWay}"
+                                          MinHeight="{DynamicResource ButtonHeight}"
+                                          FontSize="{DynamicResource FontSizeSmall}"
+                                          FontFamily="{DynamicResource PoppinsFontFallback}"
+                                          Background="{DynamicResource CardBackground}"
+                                          Foreground="{DynamicResource TextPrimary}"
+                                          BorderBrush="{DynamicResource BorderLight}"
+                                          FlowDirection="{Binding CurrentFlowDirection}"
+                                          Margin="0,0,5,0">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding DiscountName}"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <Button Grid.Column="1"
+                                        Content="+"
+                                        Command="{Binding AddSelectedDiscountCommand}"
+                                        MinHeight="{DynamicResource ButtonHeight}"
+                                        Background="{DynamicResource Success}"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        Padding="8,4"
+                                        FontSize="{DynamicResource FontSizeSmall}"
+                                        FontFamily="{DynamicResource PoppinsFontFallback}"
+                                        Cursor="Hand"
+                                        Width="40"/>
+                            </Grid>
+                            
+                            <!-- Stackable Logic Hint -->
+                            <TextBlock Margin="0,5,0,0" 
+                                       FontSize="{DynamicResource FontSizeVerySmall}" 
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       TextWrapping="Wrap">
+                                <Run Text="💡 "/>
+                                <Run Text="Stackable Rule: Non-stackable discounts cannot be combined with other discounts. Stackable discounts can only be combined with one non-stackable discount."/>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <!-- Selected Category Discounts Chips Section -->
+                        <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
+                            <TextBlock Text="{Binding SelectedCategoryDiscountsLabel}" 
+                                       FontSize="{DynamicResource FontSizeSmall}"
+                                       FontWeight="Medium"
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,5"
+                                       TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
+                            <!-- Selected discount chips -->
+                            <ItemsControl ItemsSource="{Binding SelectedDiscounts}" Margin="0,5,0,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{DynamicResource SurfaceBackground}" 
+                                                BorderBrush="{DynamicResource BorderLight}" 
+                                                BorderThickness="1" 
+                                                CornerRadius="12" 
+                                                Margin="4" 
+                                                Padding="8,4">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding DiscountName}" 
+                                                           FontSize="{DynamicResource FontSizeVerySmall}"
+                                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                           Foreground="{DynamicResource TextPrimary}"/>
+                                                <Button Content="✕"
+                                                        Command="{Binding DataContext.RemoveDiscountCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Foreground="{DynamicResource Error}"
+                                                        FontSize="{DynamicResource FontSizeSmall}"
+                                                        FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                        Padding="4,0"
+                                                        Cursor="Hand"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
 
                         <!-- Information Panel -->
                         <Border BorderBrush="{DynamicResource Info}" 

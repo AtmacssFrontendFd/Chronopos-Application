@@ -28,4 +28,7 @@ public class CategoryDto
     
     // Arabic name for translation
     public string NameArabic { get; set; } = string.Empty;
+    
+    // Selected discount IDs for CategoryDiscounts mapping
+    public List<int> SelectedDiscountIds { get; set; } = new();
 }

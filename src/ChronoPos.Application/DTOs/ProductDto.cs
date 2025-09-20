@@ -56,6 +56,19 @@ public class ProductDto
 
     // Selected tax types for ProductTaxes mapping
     public List<int> SelectedTaxTypeIds { get; set; } = new();
+    
+    // Selected discount IDs for ProductDiscounts mapping
+    public List<int> SelectedDiscountIds { get; set; } = new();
+
+    // Discount display information
+    public List<DiscountDisplayDto> ActiveDiscounts { get; set; } = new();
+    public string ActiveDiscountsDisplay { get; set; } = string.Empty;
+    public bool HasActiveDiscounts => ActiveDiscounts.Any();
+    
+    /// <summary>
+    /// Compact discount display for tables (e.g., "NewYear2025 +3")
+    /// </summary>
+    public string CompactDiscountsDisplay => DiscountDisplayDto.GetCompactDisplay(ActiveDiscounts);
 
     // Display-only: cached tax-inclusive price value (Price + taxes)
     public decimal TaxInclusivePriceValue { get; set; } = 0;

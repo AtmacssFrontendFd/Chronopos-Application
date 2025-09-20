@@ -70,6 +70,9 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IProductImageRepository, ProductImageRepository>();
                     LogMessage("ProductImageRepository registered as Transient");
 
+                    services.AddTransient<IDiscountRepository, DiscountRepository>();
+                    LogMessage("DiscountRepository registered as Transient");
+
                     // Register application services as Transient to ensure fresh DbContext instances
                     services.AddTransient<IProductService, ProductService>();
                     LogMessage("ProductService registered as Transient");
@@ -100,7 +103,13 @@ public partial class App : System.Windows.Application
                     
                     // Register global search service
                     services.AddTransient<IGlobalSearchService, Application.Services.GlobalSearchService>();
-                    LogMessage("GlobalSearchService registered as Transient");                    // Register theme service
+                    LogMessage("GlobalSearchService registered as Transient");
+
+                    // Register discount service
+                    services.AddTransient<IDiscountService, DiscountService>();
+                    LogMessage("DiscountService registered as Transient");
+                    
+                    // Register theme service
                     services.AddSingleton<IThemeService, ThemeService>();
                     LogMessage("ThemeService registered");
 
@@ -145,6 +154,8 @@ public partial class App : System.Windows.Application
                     LogMessage("ProductManagementViewModel registered as Transient");
                     services.AddTransient<StockManagementViewModel>();
                     LogMessage("StockManagementViewModel registered as Transient");
+                    services.AddTransient<AddOptionsViewModel>();
+                    LogMessage("AddOptionsViewModel registered as Transient");
                     services.AddTransient<AddProductViewModel>();
                     LogMessage("AddProductViewModel registered as Transient");
                     services.AddTransient<SalesViewModel>();
@@ -153,6 +164,8 @@ public partial class App : System.Windows.Application
                     LogMessage("CustomersViewModel registered as Transient");
                     services.AddTransient<SettingsViewModel>();
                     LogMessage("SettingsViewModel registered as Transient");
+                    services.AddTransient<DiscountViewModel>();
+                    LogMessage("DiscountViewModel registered as Transient");
         
                     // Register Views - MainWindow as Singleton to match ViewModel
                     services.AddSingleton<MainWindow>();

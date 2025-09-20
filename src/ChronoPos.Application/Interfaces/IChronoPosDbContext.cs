@@ -34,6 +34,9 @@ public interface IChronoPosDbContext
     DbSet<LabelTranslation> LabelTranslations { get; set; }
     DbSet<Language> Languages { get; set; }
     
+    // Discount system entities
+    DbSet<Discount> Discounts { get; set; }
+    
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     int SaveChanges();
 }
