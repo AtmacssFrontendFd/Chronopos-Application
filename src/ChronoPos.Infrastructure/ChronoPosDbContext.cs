@@ -678,8 +678,12 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
-            entity.Property(e => e.Abbreviation).IsRequired().HasMaxLength(10);
-            entity.Property(e => e.ConversionFactor).HasPrecision(18, 6);
+            entity.Property(e => e.Abbreviation).HasMaxLength(10);
+            entity.Property(e => e.Type).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.CategoryTitle).HasMaxLength(50);
+            entity.Property(e => e.ConversionFactor).HasPrecision(10, 4);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.CreatedAt).IsRequired();
 
             // Unique constraint on name and abbreviation
@@ -691,6 +695,29 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                   .WithMany(u => u.DerivedUnits)
                   .HasForeignKey(u => u.BaseUomId)
                   .OnDelete(DeleteBehavior.Restrict);
+
+            // User relationships
+            entity.HasOne(u => u.Creator)
+                  .WithMany()
+                  .HasForeignKey(u => u.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(u => u.Updater)
+                  .WithMany()
+                  .HasForeignKey(u => u.UpdatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(u => u.Deleter)
+                  .WithMany()
+                  .HasForeignKey(u => u.DeletedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.Type);
+            entity.HasIndex(e => e.CategoryTitle);
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.DeletedAt);
         });
 
         // Configure Discount entity
@@ -857,7 +884,11 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 Id = 1, 
                 Name = "Pieces", 
                 Abbreviation = "pcs", 
+                Type = "Base",
+                CategoryTitle = "Count",
                 IsActive = true, 
+                Status = "Active",
+                CreatedBy = 1,
                 CreatedAt = baseDate 
             },
             new Domain.Entities.UnitOfMeasurement 
@@ -865,7 +896,11 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 Id = 2, 
                 Name = "Kilograms", 
                 Abbreviation = "kg", 
+                Type = "Base",
+                CategoryTitle = "Weight",
                 IsActive = true, 
+                Status = "Active",
+                CreatedBy = 1,
                 CreatedAt = baseDate 
             },
             new Domain.Entities.UnitOfMeasurement 
@@ -873,7 +908,13 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 Id = 3, 
                 Name = "Dozen", 
                 Abbreviation = "dz", 
+                Type = "Derived",
+                CategoryTitle = "Count",
+                BaseUomId = 1,
+                ConversionFactor = 12.0000m,
                 IsActive = true, 
+                Status = "Active",
+                CreatedBy = 1,
                 CreatedAt = baseDate 
             },
             new Domain.Entities.UnitOfMeasurement 
@@ -881,7 +922,39 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 Id = 4, 
                 Name = "Litres", 
                 Abbreviation = "L", 
+                Type = "Base",
+                CategoryTitle = "Volume",
                 IsActive = true, 
+                Status = "Active",
+                CreatedBy = 1,
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.UnitOfMeasurement 
+            { 
+                Id = 5, 
+                Name = "Grams", 
+                Abbreviation = "g", 
+                Type = "Derived",
+                CategoryTitle = "Weight",
+                BaseUomId = 2,
+                ConversionFactor = 0.0010m,
+                IsActive = true, 
+                Status = "Active",
+                CreatedBy = 1,
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.UnitOfMeasurement 
+            { 
+                Id = 6, 
+                Name = "Millilitres", 
+                Abbreviation = "ml", 
+                Type = "Derived",
+                CategoryTitle = "Volume",
+                BaseUomId = 4,
+                ConversionFactor = 0.0010m,
+                IsActive = true, 
+                Status = "Active",
+                CreatedBy = 1,
                 CreatedAt = baseDate 
             }
         );

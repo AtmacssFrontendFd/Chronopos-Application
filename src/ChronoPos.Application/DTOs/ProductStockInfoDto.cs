@@ -10,7 +10,7 @@ namespace ChronoPos.Application.DTOs
         public string ProductName { get; set; } = string.Empty;
         public string CategoryName { get; set; } = string.Empty;
         public decimal CurrentStock { get; set; }
-        public int UomId { get; set; }
+        public long UomId { get; set; }
         public string UomName { get; set; } = string.Empty;
         public decimal UnitCost { get; set; }
         public decimal SalePrice { get; set; }

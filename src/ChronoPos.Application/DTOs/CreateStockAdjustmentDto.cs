@@ -19,7 +19,7 @@ public class CreateStockAdjustmentDto
 public class CreateStockAdjustmentItemDto
 {
     public int ProductId { get; set; }
-    public int UomId { get; set; }
+    public long UomId { get; set; }
     public string? BatchNo { get; set; }
     public DateTime? ExpiryDate { get; set; }
     public decimal QuantityBefore { get; set; }

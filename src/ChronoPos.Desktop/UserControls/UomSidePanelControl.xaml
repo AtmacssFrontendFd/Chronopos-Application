@@ -1,0 +1,385 @@
+<UserControl x:Class="ChronoPos.Desktop.UserControls.UomSidePanelControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="600"
+             Background="{DynamicResource CardBackground}"
+             FlowDirection="{Binding CurrentFlowDirection}"
+             FontFamily="{DynamicResource PoppinsFontFallback}">
+
+    <UserControl.Resources>
+        <!-- Converters -->
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+
+        <!-- Input Field Style -->
+        <Style x:Key="InputFieldStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ScrollViewer x:Name="PART_ContentHost" 
+                                        Margin="{TemplateBinding Padding}"
+                                        VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ComboBox Style -->
+        <Style x:Key="ComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+        </Style>
+
+        <!-- Label Style -->
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Margin" Value="0,0,0,5"/>
+        </Style>
+
+        <!-- Section Header Style -->
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeMedium}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Margin" Value="0,0,0,15"/>
+        </Style>
+
+        <!-- Button Style -->
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Primary}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryDark}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryDarker}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Secondary Button Style -->
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+        </Style>
+
+        <!-- Validation Error Style -->
+        <Style x:Key="ValidationErrorStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeExtraSmall}"/>
+            <Setter Property="Foreground" Value="Red"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Margin" Value="0,2,0,0"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource SurfaceBackground}"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource BorderLight}"
+                Padding="{DynamicResource DefaultPaddingThickness}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="{Binding FormTitle}"
+                           FontSize="{DynamicResource FontSizeLarge}"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimary}"
+                           VerticalAlignment="Center"/>
+
+                <Button Grid.Column="1"
+                        Content="✕"
+                        Command="{Binding CloseCommand}"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Foreground="{DynamicResource TextSecondary}"
+                        Cursor="Hand"
+                        Padding="8"
+                        ToolTip="Close"/>
+            </Grid>
+        </Border>
+
+        <!-- Main Content -->
+        <ScrollViewer Grid.Row="1" 
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Padding="{DynamicResource DefaultPaddingThickness}">
+            <StackPanel Margin="0,20,0,0">
+                <TextBlock Text="Unit of Measurement Information" Style="{StaticResource SectionHeaderStyle}"/>
+                
+                <!-- Name -->
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock Text="Name *" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter the unit name (e.g., Kilogram, Meter)"/>
+                    <TextBlock Text="{Binding NameError}" 
+                               Style="{StaticResource ValidationErrorStyle}"
+                               Visibility="{Binding HasNameError, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </StackPanel>
+
+                <!-- Name Arabic -->
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock Text="Name (Arabic)" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding NameAr, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             FlowDirection="RightToLeft"
+                             ToolTip="Enter the unit name in Arabic"/>
+                </StackPanel>
+
+                <!-- Symbol -->
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock Text="Symbol *" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding Symbol, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             MaxLength="10"
+                             ToolTip="Enter the unit symbol (e.g., kg, m, pcs)"/>
+                    <TextBlock Text="{Binding SymbolError}" 
+                               Style="{StaticResource ValidationErrorStyle}"
+                               Visibility="{Binding HasSymbolError, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </StackPanel>
+
+                <!-- Type -->
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock Text="Type *" Style="{StaticResource LabelStyle}"/>
+                    <ComboBox SelectedValue="{Binding Type}"
+                              ItemsSource="{Binding UomTypes}"
+                              DisplayMemberPath="Display"
+                              SelectedValuePath="Value"
+                              Style="{StaticResource ComboBoxStyle}"
+                              ToolTip="Select unit type: Base (fundamental unit) or Derived (converted from base)"/>
+                    <TextBlock Text="{Binding TypeError}" 
+                               Style="{StaticResource ValidationErrorStyle}"
+                               Visibility="{Binding HasTypeError, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </StackPanel>
+
+                <!-- Category -->
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock Text="Category *" Style="{StaticResource LabelStyle}"/>
+                    <ComboBox SelectedValue="{Binding CategoryTitle}"
+                              ItemsSource="{Binding Categories}"
+                              DisplayMemberPath="Display"
+                              SelectedValuePath="Value"
+                              Style="{StaticResource ComboBoxStyle}"
+                              ToolTip="Select measurement category (Weight, Length, Volume, etc.)"/>
+                    <TextBlock Text="{Binding CategoryError}" 
+                               Style="{StaticResource ValidationErrorStyle}"
+                               Visibility="{Binding HasCategoryError, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </StackPanel>
+
+                <!-- Base UOM (only for derived units) -->
+                <StackPanel Margin="0,0,0,20" 
+                            Visibility="{Binding IsDerivedType, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="Base Unit *" Style="{StaticResource LabelStyle}"/>
+                    <ComboBox SelectedValue="{Binding BaseUomId}"
+                              ItemsSource="{Binding BaseUnits}"
+                              DisplayMemberPath="Display"
+                              SelectedValuePath="Value"
+                              Style="{StaticResource ComboBoxStyle}"
+                              ToolTip="Select the base unit this unit converts from"/>
+                    <TextBlock Text="{Binding BaseUomError}" 
+                               Style="{StaticResource ValidationErrorStyle}"
+                               Visibility="{Binding HasBaseUomError, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </StackPanel>
+
+                <!-- Conversion Factor (only for derived units) -->
+                <StackPanel Margin="0,0,0,20" 
+                            Visibility="{Binding IsDerivedType, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="Conversion Factor *" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding ConversionFactor, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter conversion factor to base unit (e.g., 1000 for kg to g)"/>
+                    <TextBlock Text="How many of this unit equals 1 base unit" 
+                               FontSize="{DynamicResource FontSizeExtraSmall}"
+                               Foreground="{DynamicResource TextSecondary}"
+                               Margin="0,2,0,0"/>
+                    <TextBlock Text="{Binding ConversionFactorError}" 
+                               Style="{StaticResource ValidationErrorStyle}"
+                               Visibility="{Binding HasConversionFactorError, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </StackPanel>
+
+                <!-- Conversion Example (only for derived units) -->
+                <StackPanel Margin="0,0,0,20" 
+                            Visibility="{Binding ShowConversionExample, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="Conversion Example" Style="{StaticResource LabelStyle}"/>
+                    <Border Background="{DynamicResource SurfaceBackground}"
+                            BorderBrush="{DynamicResource BorderLight}"
+                            BorderThickness="1"
+                            CornerRadius="{DynamicResource BorderCornerRadius}"
+                            Padding="10">
+                        <TextBlock Text="{Binding ConversionExample}"
+                                   FontFamily="Consolas"
+                                   FontSize="{DynamicResource FontSizeSmall}"
+                                   Foreground="{DynamicResource TextSecondary}"/>
+                    </Border>
+                </StackPanel>
+
+                <!-- Active Status -->
+                <StackPanel Margin="0,0,0,20">
+                    <CheckBox Content="Active"
+                              IsChecked="{Binding IsActive}"
+                              FontSize="{DynamicResource FontSizeSmall}"
+                              FontWeight="SemiBold"
+                              Foreground="{DynamicResource TextPrimary}"
+                              ToolTip="Check to make this unit available for use"/>
+                </StackPanel>
+
+                <!-- Status Message -->
+                <StackPanel Margin="0,0,0,20" 
+                            Visibility="{Binding HasStatusMessage, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Border Background="{DynamicResource OverlayBackground}"
+                            BorderBrush="{DynamicResource BorderLight}"
+                            BorderThickness="1"
+                            CornerRadius="{DynamicResource BorderCornerRadius}"
+                            Padding="10">
+                        <TextBlock Text="{Binding StatusMessage}"
+                                   FontSize="{DynamicResource FontSizeSmall}"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   TextWrapping="Wrap"/>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer Buttons -->
+        <Border Grid.Row="2" 
+                Background="{DynamicResource SurfaceBackground}"
+                BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource BorderLight}"
+                Padding="{DynamicResource DefaultPaddingThickness}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Validation Summary -->
+                <StackPanel Grid.Column="0" VerticalAlignment="Center"
+                            Visibility="{Binding HasValidationErrors, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="Please fix the following errors:"
+                               FontSize="{DynamicResource FontSizeExtraSmall}"
+                               Foreground="Red"
+                               FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding ValidationSummary}"
+                               FontSize="{DynamicResource FontSizeExtraSmall}"
+                               Foreground="Red"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <!-- Cancel Button -->
+                <Button Grid.Column="2"
+                        Content="Cancel"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Command="{Binding CancelCommand}"
+                        MinWidth="100"/>
+
+                <!-- Save Button -->
+                <Button Grid.Column="4"
+                        Content="{Binding SaveButtonText}"
+                        Style="{StaticResource ActionButtonStyle}"
+                        Command="{Binding SaveCommand}"
+                        IsEnabled="{Binding CanSave}"
+                        MinWidth="100"/>
+            </Grid>
+        </Border>
+
+        <!-- Loading Overlay -->
+        <Grid Grid.RowSpan="3"
+              Background="#80000000"
+              Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Border Background="{DynamicResource CardBackground}"
+                    BorderBrush="{DynamicResource BorderLight}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource BorderCornerRadius}"
+                    Padding="20"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                <StackPanel>
+                    <TextBlock Text="⏳" 
+                               FontSize="24" 
+                               HorizontalAlignment="Center" 
+                               Margin="0,0,0,10"/>
+                    <TextBlock Text="{Binding LoadingMessage}"
+                               FontSize="{DynamicResource FontSizeSmall}"
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource TextPrimary}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

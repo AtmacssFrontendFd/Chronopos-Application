@@ -74,15 +74,15 @@ public class ProductDto
     public decimal TaxInclusivePriceValue { get; set; } = 0;
     
     // Unit of Measurement
-    public int UnitOfMeasurementId { get; set; } = 1;
+    public long UnitOfMeasurementId { get; set; } = 1;
     public string UnitOfMeasurementName { get; set; } = "pcs";
     public string UnitOfMeasurementAbbreviation { get; set; } = "pcs";
     
     // Purchase and Selling Units (can be different from base UOM)
-    public int? PurchaseUnitId { get; set; }
+    public long? PurchaseUnitId { get; set; }
     public string PurchaseUnitName { get; set; } = string.Empty;
     
-    public int? SellingUnitId { get; set; }
+    public long? SellingUnitId { get; set; }
     public string SellingUnitName { get; set; } = string.Empty;
     
     // Product Grouping

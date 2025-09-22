@@ -69,7 +69,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     private int? categoryId;
 
     [ObservableProperty]
-    private int selectedUnitOfMeasurementId = 1; // Default to "Pieces"
+    private long selectedUnitOfMeasurementId = 1; // Default to "Pieces"
 
     [ObservableProperty]
     private UnitOfMeasurementDto? selectedUnitOfMeasurement;
@@ -131,10 +131,10 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
 
     // Purchase and Selling Units
     [ObservableProperty]
-    private int? purchaseUnitId;
+    private long? purchaseUnitId;
 
     [ObservableProperty]
-    private int? sellingUnitId;
+    private long? sellingUnitId;
 
     // Product Grouping
     [ObservableProperty]

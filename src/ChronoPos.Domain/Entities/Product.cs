@@ -76,14 +76,14 @@ public class Product
     public string? SKU { get; set; }
     
     // Measurement & Packaging
-    public int UnitOfMeasurementId { get; set; } = 1; // Default to first UOM (pcs)
+    public long UnitOfMeasurementId { get; set; } = 1; // Default to first UOM (pcs)
     public virtual UnitOfMeasurement? UnitOfMeasurement { get; set; }
     
     // Purchase and Selling Units (can be different from base UOM)
-    public int? PurchaseUnitId { get; set; }
+    public long? PurchaseUnitId { get; set; }
     public virtual UnitOfMeasurement? PurchaseUnit { get; set; }
     
-    public int? SellingUnitId { get; set; }
+    public long? SellingUnitId { get; set; }
     public virtual UnitOfMeasurement? SellingUnit { get; set; }
     
     // Product Grouping

@@ -1172,6 +1172,9 @@ public partial class MainWindowViewModel : ObservableObject
                     case "Discounts":
                         _ = ShowDiscounts();
                         break;
+                    case "UOM":
+                        _ = ShowUom();
+                        break;
                     case "ProductAttributes":
                         ShowProductAttributes();
                         break;
@@ -1252,6 +1255,57 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error loading discount management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ShowUom()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Unit of Measurement Management";
+        StatusMessage = "Loading UOM management...";
+        
+        try
+        {
+            // Create the UomViewModel with all required services
+            var uomViewModel = new UomViewModel(
+                _serviceProvider.GetRequiredService<IUomService>(),
+                _serviceProvider.GetRequiredService<IThemeService>(),
+                _serviceProvider.GetRequiredService<IZoomService>(),
+                _serviceProvider.GetRequiredService<ILocalizationService>(),
+                _serviceProvider.GetRequiredService<IColorSchemeService>(),
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
+                _serviceProvider.GetRequiredService<IFontService>(),
+                _serviceProvider.GetRequiredService<ChronoPos.Infrastructure.Services.IDatabaseLocalizationService>(),
+                navigateToAddUom: () => { /* TODO: Implement add UOM navigation */ },
+                navigateToEditUom: (uom) => { /* TODO: Implement edit UOM navigation */ },
+                navigateBack: () =>
+                {
+                    ShowAddOptionsCommand.Execute(null);
+                }
+            );
+
+            // Create the UomView and set its DataContext
+            var uomView = new UomView
+            {
+                DataContext = uomViewModel
+            };
+
+            CurrentView = uomView;
+            StatusMessage = "UOM management loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading UOM management: {ex.Message}";
             var errorContent = new System.Windows.Controls.TextBlock
             {
                 Text = $"Error: {ex.Message}",

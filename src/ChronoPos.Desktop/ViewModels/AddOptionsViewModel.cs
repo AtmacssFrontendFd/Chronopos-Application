@@ -7,6 +7,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Infrastructure.Services;
+using ChronoPos.Application.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -322,6 +324,26 @@ public partial class AddOptionsViewModel : ObservableObject
 
     private async Task<int> GetUOMCountAsync()
     {
+        try
+        {
+            // Get the UOM service from the service provider if available
+            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
+            if (serviceProvider != null)
+            {
+                var uomService = serviceProvider.GetService<IUomService>();
+                if (uomService != null)
+                {
+                    var uoms = await uomService.GetAllAsync();
+                    return uoms.Count();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting UOM count: {ex.Message}");
+        }
+        
+        // Fallback to mock data
         await Task.Delay(50);
         return 18;
     }

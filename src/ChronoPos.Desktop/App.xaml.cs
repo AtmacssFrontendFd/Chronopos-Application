@@ -116,6 +116,12 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IDiscountService, DiscountService>();
                     LogMessage("DiscountService registered as Transient");
 
+                    // Register UOM service and repository
+                    services.AddTransient<IUomRepository, UomRepository>();
+                    LogMessage("UomRepository registered as Transient");
+                    services.AddTransient<IUomService, UomService>();
+                    LogMessage("UomService registered as Transient");
+
                     // Register Product Attribute service
                     services.AddTransient<IProductAttributeService, ProductAttributeService>();
                     LogMessage("ProductAttributeService registered as Transient");
@@ -181,6 +187,10 @@ public partial class App : System.Windows.Application
                     LogMessage("ProductAttributeViewModel registered as Transient");
                     services.AddTransient<ProductAttributeSidePanelViewModel>();
                     LogMessage("ProductAttributeSidePanelViewModel registered as Transient");
+                    services.AddTransient<UomViewModel>();
+                    LogMessage("UomViewModel registered as Transient");
+                    services.AddTransient<UomSidePanelViewModel>();
+                    LogMessage("UomSidePanelViewModel registered as Transient");
         
                     // Register Views - MainWindow as Singleton to match ViewModel
                     services.AddSingleton<MainWindow>();
