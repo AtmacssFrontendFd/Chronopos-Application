@@ -868,6 +868,68 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private void ShowProductAttributes()
+    {
+        ChronoPos.Desktop.Services.FileLogger.Log("🔧 ShowProductAttributes method started");
+        
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Product Attributes";
+        StatusMessage = "Loading product attributes...";
+        
+        try
+        {
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Getting ProductAttributeService from DI container");
+            // Create the ProductAttributeViewModel
+            var productAttributeService = _serviceProvider.GetRequiredService<IProductAttributeService>();
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ ProductAttributeService retrieved successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Creating ProductAttributeViewModel");
+            var productAttributeViewModel = new ProductAttributeViewModel(productAttributeService);
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ ProductAttributeViewModel created successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Creating ProductAttributeView");
+            // Create the view and set the ViewModel
+            var productAttributeView = new ProductAttributeView();
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ ProductAttributeView created successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Setting DataContext");
+            productAttributeView.DataContext = productAttributeViewModel;
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ DataContext set successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Setting CurrentView");
+            CurrentView = productAttributeView;
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ CurrentView set successfully");
+            
+            StatusMessage = "Product attributes loaded successfully";
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ ShowProductAttributes completed successfully");
+        }
+        catch (Exception ex)
+        {
+            ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error in ShowProductAttributes: {ex.Message}");
+            ChronoPos.Desktop.Services.FileLogger.Log($"❌ ShowProductAttributes stack trace: {ex.StackTrace}");
+            StatusMessage = $"Error loading product attributes: {ex.Message}";
+            
+            // Fallback to simple error display
+            var errorContent = new System.Windows.Controls.StackPanel();
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = "Product Attributes", 
+                FontSize = 16, 
+                FontWeight = System.Windows.FontWeights.Bold,
+                Margin = new System.Windows.Thickness(0, 0, 0, 20) 
+            });
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = $"Error loading product attributes: {ex.Message}",
+                FontSize = 12,
+                Foreground = System.Windows.Media.Brushes.Red,
+                Margin = new System.Windows.Thickness(0, 20, 0, 0)
+            });
+            
+            CurrentView = errorContent;
+        }
+    }
+
     [RelayCommand]
     private void ShowAddProduct()
     {
@@ -1109,6 +1171,9 @@ public partial class MainWindowViewModel : ObservableObject
                 {
                     case "Discounts":
                         _ = ShowDiscounts();
+                        break;
+                    case "ProductAttributes":
+                        ShowProductAttributes();
                         break;
                     default:
                         StatusMessage = $"Navigation to {moduleType} module not implemented yet";

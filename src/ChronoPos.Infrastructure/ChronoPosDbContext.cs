@@ -56,6 +56,10 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.ProductDiscount> ProductDiscounts { get; set; }
     public DbSet<Domain.Entities.CategoryDiscount> CategoryDiscounts { get; set; }
 
+    // Product Attribute system entities
+    public DbSet<ProductAttribute> ProductAttributes { get; set; }
+    public DbSet<ProductAttributeValue> ProductAttributeValues { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
