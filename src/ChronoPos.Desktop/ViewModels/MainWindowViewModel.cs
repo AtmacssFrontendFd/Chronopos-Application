@@ -1169,6 +1169,9 @@ public partial class MainWindowViewModel : ObservableObject
             {
                 switch (moduleType)
                 {
+                    case "Brand":
+                        _ = ShowBrand();
+                        break;
                     case "Discounts":
                         _ = ShowDiscounts();
                         break;
@@ -1306,6 +1309,45 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error loading UOM management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ShowBrand()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Brand Management";
+        StatusMessage = "Loading brand management...";
+        
+        try
+        {
+            // Create the BrandViewModel with all required services and navigation callback
+            var brandViewModel = new BrandViewModel(
+                _serviceProvider.GetRequiredService<IBrandService>(),
+                navigateBack: () => ShowAddOptionsCommand.Execute(null)
+            );
+
+            // Create the BrandView and set its DataContext
+            var brandView = new BrandView
+            {
+                DataContext = brandViewModel
+            };
+
+            CurrentView = brandView;
+            StatusMessage = "Brand management loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading brand management: {ex.Message}";
             var errorContent = new System.Windows.Controls.TextBlock
             {
                 Text = $"Error: {ex.Message}",

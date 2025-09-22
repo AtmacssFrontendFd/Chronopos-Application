@@ -264,7 +264,27 @@ public partial class AddOptionsViewModel : ObservableObject
 
     private async Task<int> GetBrandCountAsync()
     {
-        await Task.Delay(50); // Simulate async operation
+        try
+        {
+            // Get the Brand service from the service provider if available
+            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
+            if (serviceProvider != null)
+            {
+                var brandService = serviceProvider.GetService<IBrandService>();
+                if (brandService != null)
+                {
+                    var brands = await brandService.GetAllAsync();
+                    return brands.Count();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting Brand count: {ex.Message}");
+        }
+        
+        // Fallback to mock data
+        await Task.Delay(50);
         return 45; // Mock count
     }
 
