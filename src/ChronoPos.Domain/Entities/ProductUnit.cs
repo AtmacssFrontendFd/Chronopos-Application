@@ -16,6 +16,9 @@ public class ProductUnit
     [Required]
     public long UnitId { get; set; }
     
+    [StringLength(100)]
+    public string Sku { get; set; } = string.Empty;
+    
     [Required]
     public int QtyInUnit { get; set; } = 1;
     

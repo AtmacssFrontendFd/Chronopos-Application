@@ -130,4 +130,35 @@ public class ProductUnitRepository : Repository<ProductUnit>, IProductUnitReposi
             .ThenBy(pu => pu.Unit.Name)
             .ToListAsync();
     }
+
+    /// <summary>
+    /// Gets a product unit by its SKU
+    /// </summary>
+    /// <param name="sku">The SKU to search for</param>
+    /// <returns>The product unit or null if not found</returns>
+    public async Task<ProductUnit?> GetBySkuAsync(string sku)
+    {
+        if (string.IsNullOrWhiteSpace(sku))
+            return null;
+
+        return await _context.ProductUnits
+            .Include(pu => pu.Unit)
+            .Include(pu => pu.Product)
+            .FirstOrDefaultAsync(pu => pu.Sku == sku);
+    }
+
+    /// <summary>
+    /// Gets all product units with their Product and Unit navigation properties
+    /// </summary>
+    /// <returns>List of all product units with navigation properties</returns>
+    public async Task<IEnumerable<ProductUnit>> GetAllWithNavigationAsync()
+    {
+        return await _context.ProductUnits
+            .Include(pu => pu.Product)
+            .Include(pu => pu.Unit)
+            .OrderBy(pu => pu.Product.Name)
+            .ThenBy(pu => pu.IsBase ? 0 : 1) // Base unit first within each product
+            .ThenBy(pu => pu.Unit.Name)
+            .ToListAsync();
+    }
 }

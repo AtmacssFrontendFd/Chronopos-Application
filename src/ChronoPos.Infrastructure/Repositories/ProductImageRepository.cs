@@ -20,24 +20,45 @@ public class ProductImageRepository : Repository<ProductImage>, IProductImageRep
     /// <returns>Collection of product images ordered by sort order</returns>
     public async Task<IEnumerable<ProductImage>> GetByProductIdAsync(int productId)
     {
-        Console.WriteLine($"ProductImageRepository.GetByProductIdAsync called for product ID: {productId}");
-        
-        var query = _context.Set<ProductImage>()
+        return await _context.Set<ProductImage>()
             .Where(pi => pi.ProductId == productId)
+            .Include(pi => pi.Product)
+            .Include(pi => pi.ProductUnit)
             .OrderBy(pi => pi.SortOrder)
-            .ThenBy(pi => pi.Id);
-            
-        Console.WriteLine($"SQL Query for product images: {query}");
-        
-        var result = await query.ToListAsync();
-        
-        Console.WriteLine($"ProductImageRepository found {result.Count} images for product ID: {productId}");
-        foreach (var img in result)
-        {
-            Console.WriteLine($"  Found Image ID {img.Id}: ProductId={img.ProductId}, IsPrimary={img.IsPrimary}, SortOrder={img.SortOrder}");
-        }
-        
-        return result;
+            .ThenBy(pi => pi.Id)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Gets all images for a specific product unit
+    /// </summary>
+    /// <param name="productUnitId">Product unit ID</param>
+    /// <returns>Collection of product images ordered by sort order</returns>
+    public async Task<IEnumerable<ProductImage>> GetByProductUnitIdAsync(int productUnitId)
+    {
+        return await _context.Set<ProductImage>()
+            .Where(pi => pi.ProductUnitId == productUnitId)
+            .Include(pi => pi.Product)
+            .Include(pi => pi.ProductUnit)
+            .OrderBy(pi => pi.SortOrder)
+            .ThenBy(pi => pi.Id)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Gets all images for a specific product group
+    /// </summary>
+    /// <param name="productGroupId">Product group ID</param>
+    /// <returns>Collection of product images ordered by sort order</returns>
+    public async Task<IEnumerable<ProductImage>> GetByProductGroupIdAsync(int productGroupId)
+    {
+        return await _context.Set<ProductImage>()
+            .Where(pi => pi.ProductGroupId == productGroupId)
+            .Include(pi => pi.Product)
+            .Include(pi => pi.ProductUnit)
+            .OrderBy(pi => pi.SortOrder)
+            .ThenBy(pi => pi.Id)
+            .ToListAsync();
     }
 
     /// <summary>
@@ -49,6 +70,18 @@ public class ProductImageRepository : Repository<ProductImage>, IProductImageRep
     {
         return await _context.Set<ProductImage>()
             .Where(pi => pi.ProductId == productId && pi.IsPrimary)
+            .FirstOrDefaultAsync();
+    }
+
+    /// <summary>
+    /// Gets the primary image for a product unit
+    /// </summary>
+    /// <param name="productUnitId">Product unit ID</param>
+    /// <returns>Primary product unit image if exists</returns>
+    public async Task<ProductImage?> GetPrimaryImageByProductUnitAsync(int productUnitId)
+    {
+        return await _context.Set<ProductImage>()
+            .Where(pi => pi.ProductUnitId == productUnitId && pi.IsPrimary)
             .FirstOrDefaultAsync();
     }
 
@@ -93,6 +126,52 @@ public class ProductImageRepository : Repository<ProductImage>, IProductImageRep
         {
             var productImages = await _context.Set<ProductImage>()
                 .Where(pi => pi.ProductId == productId)
+                .ToListAsync();
+
+            _context.Set<ProductImage>().RemoveRange(productImages);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Deletes all images for a specific product unit
+    /// </summary>
+    /// <param name="productUnitId">Product unit ID</param>
+    /// <returns>True if operation was successful</returns>
+    public async Task<bool> DeleteByProductUnitIdAsync(int productUnitId)
+    {
+        try
+        {
+            var productImages = await _context.Set<ProductImage>()
+                .Where(pi => pi.ProductUnitId == productUnitId)
+                .ToListAsync();
+
+            _context.Set<ProductImage>().RemoveRange(productImages);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Deletes all images for a specific product group
+    /// </summary>
+    /// <param name="productGroupId">Product group ID</param>
+    /// <returns>True if operation was successful</returns>
+    public async Task<bool> DeleteByProductGroupIdAsync(int productGroupId)
+    {
+        try
+        {
+            var productImages = await _context.Set<ProductImage>()
+                .Where(pi => pi.ProductGroupId == productGroupId)
                 .ToListAsync();
 
             _context.Set<ProductImage>().RemoveRange(productImages);
@@ -159,6 +238,7 @@ public class ProductImageRepository : Repository<ProductImage>, IProductImageRep
     {
         return await _context.Set<ProductImage>()
             .Include(pi => pi.Product)
+            .Include(pi => pi.ProductUnit)
             .OrderBy(pi => pi.ProductId)
             .ThenBy(pi => pi.SortOrder)
             .ToListAsync();
@@ -173,6 +253,7 @@ public class ProductImageRepository : Repository<ProductImage>, IProductImageRep
     {
         return await _context.Set<ProductImage>()
             .Include(pi => pi.Product)
+            .Include(pi => pi.ProductUnit)
             .FirstOrDefaultAsync(pi => pi.Id == id);
     }
 }

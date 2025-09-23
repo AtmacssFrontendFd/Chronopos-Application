@@ -27,6 +27,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     private readonly ITaxTypeService _taxTypeService;
     private readonly IDiscountService _discountService;
     private readonly IProductUnitService _productUnitService;
+    private readonly ISkuGenerationService _skuGenerationService;
     private readonly Action? _navigateBack;
     
     // Settings services
@@ -955,10 +956,33 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     /// <summary>
     /// Called when a ProductUnit's UnitId changes to recalculate pricing
     /// </summary>
-    public void OnProductUnitUOMChanged(ProductUnitDto productUnit)
+    public async void OnProductUnitUOMChanged(ProductUnitDto productUnit)
     {
         if (productUnit != null)
         {
+            // Regenerate SKU when UOM changes
+            try
+            {
+                var uom = UnitsOfMeasurement.FirstOrDefault(u => u.Id == productUnit.UnitId);
+                if (uom != null && !string.IsNullOrWhiteSpace(Name))
+                {
+                    int tempProductId = ProductId > 0 ? ProductId : ProductUnits.IndexOf(productUnit) + 1;
+                    string newSku = await _skuGenerationService.GenerateProductUnitSkuAsync(
+                        tempProductId,
+                        Name,
+                        uom.Id,
+                        uom.Name,
+                        productUnit.QtyInUnit);
+                    
+                    productUnit.Sku = newSku;
+                    FileLogger.Log($"   🔄 Regenerated SKU for UOM change: {newSku}");
+                }
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Log($"   ❌ Error regenerating SKU: {ex.Message}");
+            }
+            
             UpdateProductUnitPricing(productUnit);
             CalculateRemainingQuantity();
             ValidateProductUnits();
@@ -988,6 +1012,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     ITaxTypeService taxTypeService,
     IDiscountService discountService,
         IProductUnitService productUnitService,
+        ISkuGenerationService skuGenerationService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -1003,6 +1028,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     _taxTypeService = taxTypeService ?? throw new ArgumentNullException(nameof(taxTypeService));
     _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
         _productUnitService = productUnitService ?? throw new ArgumentNullException(nameof(productUnitService));
+        _skuGenerationService = skuGenerationService ?? throw new ArgumentNullException(nameof(skuGenerationService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -1450,7 +1476,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
                             CostOfUnit = productUnit.CostOfUnit,
                             PriceOfUnit = productUnit.PriceOfUnit,
                             DiscountAllowed = productUnit.DiscountAllowed,
-                            IsBase = productUnit.IsBase
+                            IsBase = productUnit.IsBase,
+                            Sku = productUnit.Sku
                         });
                     }
                 }
@@ -2329,12 +2356,35 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     #region Multi-UOM Commands
 
     [RelayCommand]
-    private void AddProductUnit()
+    private async void AddProductUnit()
     {
         FileLogger.Log($"➕ AddProductUnit called - Current units count: {ProductUnits.Count}");
         
         var firstUom = UnitsOfMeasurement.FirstOrDefault();
         FileLogger.Log($"   🎯 First available UOM: {firstUom?.DisplayName ?? "None"} (ID: {firstUom?.Id ?? 0})");
+        
+        // Generate SKU for the new product unit
+        string generatedSku = "TEMP-" + Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+        try
+        {
+            if (firstUom != null && !string.IsNullOrWhiteSpace(Name))
+            {
+                // Use a temporary product ID for SKU generation (we'll use current count + 1)
+                int tempProductId = ProductId > 0 ? ProductId : ProductUnits.Count + 1;
+                generatedSku = await _skuGenerationService.GenerateProductUnitSkuAsync(
+                    tempProductId,
+                    Name,
+                    firstUom.Id,
+                    firstUom.Name,
+                    1);
+                FileLogger.Log($"   🏷️ Generated SKU: {generatedSku}");
+            }
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"   ❌ Error generating SKU: {ex.Message}");
+            // Keep the temporary SKU if generation fails
+        }
         
         var newProductUnit = new ProductUnitDto
         {
@@ -2345,10 +2395,11 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             CostOfUnit = 0,
             PriceOfUnit = 0,
             DiscountAllowed = false,
-            IsBase = ProductUnits.Count == 0 // First one is base by default
+            IsBase = ProductUnits.Count == 0, // First one is base by default
+            Sku = generatedSku
         };
         
-        FileLogger.Log($"   📦 Created new ProductUnit - UnitId: {newProductUnit.UnitId}, IsBase: {newProductUnit.IsBase}");
+        FileLogger.Log($"   📦 Created new ProductUnit - UnitId: {newProductUnit.UnitId}, IsBase: {newProductUnit.IsBase}, SKU: {newProductUnit.Sku}");
         
         // Auto-calculate pricing based on conversion factor
         UpdateProductUnitPricing(newProductUnit);
@@ -2835,7 +2886,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
                 CostOfUnit = pu.CostOfUnit,
                 PriceOfUnit = pu.PriceOfUnit,
                 DiscountAllowed = pu.DiscountAllowed,
-                IsBase = pu.IsBase
+                IsBase = pu.IsBase,
+                Sku = pu.Sku
             }).ToList(),
             
             // Purchase and Selling Units

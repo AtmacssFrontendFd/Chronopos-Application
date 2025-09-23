@@ -930,6 +930,61 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private async Task ShowProductCombinations()
+    {
+        CurrentPageTitle = "Product Combinations";
+        StatusMessage = "Loading product combinations...";
+        
+        try
+        {
+            // Get services from DI container
+            var combinationService = _serviceProvider.GetRequiredService<IProductCombinationItemService>();
+            var productUnitService = _serviceProvider.GetRequiredService<IProductUnitService>();
+            var attributeService = _serviceProvider.GetRequiredService<IProductAttributeService>();
+            
+            // Create the ProductCombinationViewModel with back navigation
+            var productCombinationViewModel = new ProductCombinationViewModel(
+                combinationService,
+                productUnitService,
+                attributeService,
+                () => _ = ShowAddOptions() // Navigate back to Add Options
+            );
+            
+            // Create the view and set the ViewModel
+            var productCombinationView = new ProductCombinationView
+            {
+                DataContext = productCombinationViewModel
+            };
+            
+            CurrentView = productCombinationView;
+            StatusMessage = "Product combinations loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading product combinations: {ex.Message}";
+            
+            // Fallback to simple error display
+            var errorContent = new System.Windows.Controls.StackPanel();
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = "Product Combinations", 
+                FontSize = 16, 
+                FontWeight = System.Windows.FontWeights.Bold,
+                Margin = new System.Windows.Thickness(0, 0, 0, 20) 
+            });
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = $"Error loading product combinations: {ex.Message}",
+                FontSize = 12,
+                Foreground = System.Windows.Media.Brushes.Red,
+                Margin = new System.Windows.Thickness(0, 20, 0, 0)
+            });
+            
+            CurrentView = errorContent;
+        }
+    }
+
     [RelayCommand]
     private void ShowAddProduct()
     {
@@ -955,6 +1010,7 @@ public partial class MainWindowViewModel : ObservableObject
             var taxTypeService = _serviceProvider.GetRequiredService<ITaxTypeService>();
             var discountService = _serviceProvider.GetRequiredService<IDiscountService>();
             var productUnitService = _serviceProvider.GetRequiredService<IProductUnitService>();
+            var skuGenerationService = _serviceProvider.GetRequiredService<ISkuGenerationService>();
             
             // Create ViewModel with navigation callback
             var addProductViewModel = new AddProductViewModel(
@@ -964,6 +1020,7 @@ public partial class MainWindowViewModel : ObservableObject
                 taxTypeService,
                 discountService,
                 productUnitService,
+                skuGenerationService,
                 themeService,
                 zoomService,
                 localizationService,
@@ -1029,6 +1086,7 @@ public partial class MainWindowViewModel : ObservableObject
             var taxTypeService = _serviceProvider.GetRequiredService<ITaxTypeService>();
             var discountService = _serviceProvider.GetRequiredService<IDiscountService>();
             var productUnitService = _serviceProvider.GetRequiredService<IProductUnitService>();
+            var skuGenerationService = _serviceProvider.GetRequiredService<ISkuGenerationService>();
             
             // Create ViewModel with navigation callback
             var addProductViewModel = new AddProductViewModel(
@@ -1038,6 +1096,7 @@ public partial class MainWindowViewModel : ObservableObject
                 taxTypeService,
                 discountService,
                 productUnitService,
+                skuGenerationService,
                 themeService,
                 zoomService,
                 localizationService,
@@ -1184,6 +1243,9 @@ public partial class MainWindowViewModel : ObservableObject
                         break;
                     case "ProductAttributes":
                         ShowProductAttributes();
+                        break;
+                    case "ProductCombinations":
+                        _ = ShowProductCombinations();
                         break;
                     default:
                         StatusMessage = $"Navigation to {moduleType} module not implemented yet";

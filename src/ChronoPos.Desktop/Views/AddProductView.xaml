@@ -878,6 +878,21 @@
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
 
+                                    <!-- SKU Column -->
+                                    <DataGridTemplateColumn Header="SKU" Width="120">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Sku}"
+                                                           VerticalAlignment="Center"
+                                                           Margin="4,2"
+                                                           FontFamily="Consolas"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource TextSecondary}"
+                                                           ToolTip="{Binding Sku}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
                                     <!-- Delete Action Column -->
                                     <DataGridTemplateColumn Header="Action" Width="60">
                                         <DataGridTemplateColumn.CellTemplate>

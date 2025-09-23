@@ -14,15 +14,18 @@ public class ProductUnitService : IProductUnitService
     private readonly IProductUnitRepository _productUnitRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILoggingService _logger;
+    private readonly ISkuGenerationService _skuGenerationService;
 
     public ProductUnitService(
         IProductUnitRepository productUnitRepository,
         IUnitOfWork unitOfWork,
-        ILoggingService logger)
+        ILoggingService logger,
+        ISkuGenerationService skuGenerationService)
     {
         _productUnitRepository = productUnitRepository;
         _unitOfWork = unitOfWork;
         _logger = logger;
+        _skuGenerationService = skuGenerationService;
     }
 
     /// <summary>
@@ -37,6 +40,15 @@ public class ProductUnitService : IProductUnitService
             // Validate business rules
             await ValidateCreateProductUnit(createDto);
 
+            // Generate SKU if not provided
+            string sku = createDto.Sku;
+            if (string.IsNullOrWhiteSpace(sku))
+            {
+                // We need to get product and unit information for SKU generation
+                // For now, we'll generate a temporary SKU and update it after creation
+                sku = $"TEMP-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}";
+            }
+
             var productUnit = new ProductUnit
             {
                 ProductId = createDto.ProductId,
@@ -48,6 +60,7 @@ public class ProductUnitService : IProductUnitService
                 PriceType = createDto.PriceType,
                 DiscountAllowed = createDto.DiscountAllowed,
                 IsBase = createDto.IsBase,
+                Sku = sku,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -60,7 +73,31 @@ public class ProductUnitService : IProductUnitService
             var createdProductUnit = await _productUnitRepository.AddAsync(productUnit);
             await _unitOfWork.SaveChangesAsync();
 
-            _logger.Log($"Created product unit for Product ID {createDto.ProductId}, Unit ID {createDto.UnitId}");
+            // Generate proper SKU if it was temporary
+            if (string.IsNullOrWhiteSpace(createDto.Sku))
+            {
+                // Get the created product unit with navigation properties
+                var productUnitWithDetails = await _productUnitRepository.GetByIdAsync(createdProductUnit.Id);
+                if (productUnitWithDetails?.Product != null && productUnitWithDetails?.Unit != null)
+                {
+                    var generatedSku = await _skuGenerationService.GenerateProductUnitSkuAsync(
+                        productUnitWithDetails.ProductId,
+                        productUnitWithDetails.Product.Name,
+                        productUnitWithDetails.UnitId,
+                        productUnitWithDetails.Unit.Name,
+                        productUnitWithDetails.QtyInUnit);
+
+                    // Update the SKU
+                    productUnitWithDetails.Sku = generatedSku;
+                    productUnitWithDetails.UpdatedAt = DateTime.UtcNow;
+                    await _productUnitRepository.UpdateAsync(productUnitWithDetails);
+                    await _unitOfWork.SaveChangesAsync();
+
+                    createdProductUnit = productUnitWithDetails;
+                }
+            }
+
+            _logger.Log($"Created product unit for Product ID {createDto.ProductId}, Unit ID {createDto.UnitId} with SKU {createdProductUnit.Sku}");
 
             return MapToDto(createdProductUnit);
         }
@@ -94,6 +131,13 @@ public class ProductUnitService : IProductUnitService
             existingProductUnit.PriceType = updateDto.PriceType;
             existingProductUnit.DiscountAllowed = updateDto.DiscountAllowed;
             existingProductUnit.IsBase = updateDto.IsBase;
+            
+            // Update SKU if provided
+            if (!string.IsNullOrWhiteSpace(updateDto.Sku))
+            {
+                existingProductUnit.Sku = updateDto.Sku;
+            }
+            
             existingProductUnit.UpdatedAt = DateTime.UtcNow;
 
             // Ensure only one base unit per product
@@ -388,12 +432,48 @@ public class ProductUnitService : IProductUnitService
                 CostOfUnit = pu.CostOfUnit,
                 IsBase = pu.IsBase,
                 DiscountAllowed = pu.DiscountAllowed,
-                PriceType = pu.PriceType
+                PriceType = pu.PriceType,
+                Sku = pu.Sku
             });
         }
         catch (Exception ex)
         {
             _logger.LogError($"Error getting product unit summaries for Product ID {productId}: {ex.Message}", ex);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets all product units in the system
+    /// </summary>
+    /// <returns>List of all product units</returns>
+    public async Task<IEnumerable<ProductUnitDto>> GetAllAsync()
+    {
+        try
+        {
+            var productUnits = await _productUnitRepository.GetAllAsync();
+            return productUnits.Select(MapToDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error getting all product units: {ex.Message}", ex);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets all product units with navigation properties (for UI display)
+    /// </summary>
+    /// <returns>List of all product units with complete information</returns>
+    public async Task<IEnumerable<ProductUnit>> GetAllWithNavigationAsync()
+    {
+        try
+        {
+            return await _productUnitRepository.GetAllWithNavigationAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error getting all product units with navigation: {ex.Message}", ex);
             throw;
         }
     }
@@ -424,6 +504,7 @@ public class ProductUnitService : IProductUnitService
             PriceType = productUnit.PriceType,
             DiscountAllowed = productUnit.DiscountAllowed,
             IsBase = productUnit.IsBase,
+            Sku = productUnit.Sku,
             CreatedAt = productUnit.CreatedAt,
             UpdatedAt = productUnit.UpdatedAt,
             UnitName = productUnit.Unit?.Name,

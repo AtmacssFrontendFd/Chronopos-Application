@@ -60,6 +60,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     // Product Attribute system entities
     public DbSet<ProductAttribute> ProductAttributes { get; set; }
     public DbSet<ProductAttributeValue> ProductAttributeValues { get; set; }
+    public DbSet<ProductCombinationItem> ProductCombinationItems { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -145,6 +146,21 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                   .WithMany(p => p.ProductBarcodes)
                   .HasForeignKey(pb => pb.ProductId)
                   .OnDelete(DeleteBehavior.Cascade);
+
+            // Optional foreign key relationship with ProductUnit
+            entity.HasOne(pb => pb.ProductUnit)
+                  .WithMany()
+                  .HasForeignKey(pb => pb.ProductUnitId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Index on ProductId for performance
+            entity.HasIndex(e => e.ProductId);
+            
+            // Index on ProductUnitId for performance
+            entity.HasIndex(e => e.ProductUnitId);
+            
+            // Index on ProductGroupId for performance
+            entity.HasIndex(e => e.ProductGroupId);
         });
 
         // Configure ProductComment entity
@@ -234,11 +250,23 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                   .HasForeignKey(pi => pi.ProductId)
                   .OnDelete(DeleteBehavior.Cascade);
 
+            // Optional foreign key relationship with ProductUnit
+            entity.HasOne(pi => pi.ProductUnit)
+                  .WithMany()
+                  .HasForeignKey(pi => pi.ProductUnitId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
             // Index on ProductId and SortOrder for performance
             entity.HasIndex(e => new { e.ProductId, e.SortOrder });
 
             // Index on ProductId and IsPrimary for primary image queries
             entity.HasIndex(e => new { e.ProductId, e.IsPrimary });
+            
+            // Index on ProductUnitId for performance
+            entity.HasIndex(e => e.ProductUnitId);
+            
+            // Index on ProductGroupId for performance
+            entity.HasIndex(e => e.ProductGroupId);
         });
 
         // Configure ProductUnit entity
@@ -247,6 +275,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.ProductId).IsRequired();
             entity.Property(e => e.UnitId).IsRequired();
+            entity.Property(e => e.Sku).HasMaxLength(100).IsRequired();
             entity.Property(e => e.QtyInUnit).IsRequired().HasDefaultValue(1);
             entity.Property(e => e.CostOfUnit).IsRequired().HasPrecision(10, 2);
             entity.Property(e => e.PriceOfUnit).IsRequired().HasPrecision(10, 2);
@@ -272,6 +301,9 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
 
             // Index on ProductId for performance
             entity.HasIndex(e => e.ProductId);
+
+            // Index on SKU for uniqueness and performance
+            entity.HasIndex(e => e.Sku).IsUnique();
 
             // Index on IsBase for finding base units quickly
             entity.HasIndex(e => new { e.ProductId, e.IsBase });
@@ -904,6 +936,38 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasIndex(e => e.CategoryId);
             entity.HasIndex(e => e.DiscountsId);
             entity.HasIndex(e => e.DeletedAt);
+        });
+
+        // Configure ProductCombinationItem entity
+        modelBuilder.Entity<Domain.Entities.ProductCombinationItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("product_combination_items");
+
+            // Properties
+            entity.Property(e => e.ProductUnitId).IsRequired();
+            entity.Property(e => e.AttributeValueId).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(d => d.ProductUnit)
+                  .WithMany()
+                  .HasForeignKey(d => d.ProductUnitId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.AttributeValue)
+                  .WithMany()
+                  .HasForeignKey(d => d.AttributeValueId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.ProductUnitId);
+            entity.HasIndex(e => e.AttributeValueId);
+            
+            // Composite unique index to prevent duplicate combinations
+            entity.HasIndex(e => new { e.ProductUnitId, e.AttributeValueId })
+                  .IsUnique()
+                  .HasDatabaseName("IX_ProductCombinationItem_ProductUnit_AttributeValue");
         });
 
         // Seed initial data

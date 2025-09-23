@@ -15,6 +15,20 @@ public interface IProductImageService
     Task<IEnumerable<ProductImageDto>> GetByProductIdAsync(int productId);
 
     /// <summary>
+    /// Gets all images for a specific product unit
+    /// </summary>
+    /// <param name="productUnitId">Product unit ID</param>
+    /// <returns>Collection of product image DTOs</returns>
+    Task<IEnumerable<ProductImageDto>> GetByProductUnitIdAsync(int productUnitId);
+
+    /// <summary>
+    /// Gets all images for a specific product group
+    /// </summary>
+    /// <param name="productGroupId">Product group ID</param>
+    /// <returns>Collection of product image DTOs</returns>
+    Task<IEnumerable<ProductImageDto>> GetByProductGroupIdAsync(int productGroupId);
+
+    /// <summary>
     /// Gets the primary image for a product
     /// </summary>
     /// <param name="productId">Product ID</param>
@@ -27,6 +41,12 @@ public interface IProductImageService
     /// <param name="id">Product image ID</param>
     /// <returns>Product image DTO if found</returns>
     Task<ProductImageDto?> GetByIdAsync(int id);
+
+    /// <summary>
+    /// Gets all product images
+    /// </summary>
+    /// <returns>Collection of all product image DTOs</returns>
+    Task<IEnumerable<ProductImageDto>> GetAllAsync();
 
     /// <summary>
     /// Creates a new product image
@@ -48,7 +68,7 @@ public interface IProductImageService
     /// <param name="id">Product image ID</param>
     /// <param name="updateImageDto">Updated product image data</param>
     /// <returns>Updated product image DTO</returns>
-    Task<ProductImageDto> UpdateAsync(int id, UpdateProductImageDto updateImageDto);
+    Task<ProductImageDto?> UpdateAsync(int id, UpdateProductImageDto updateImageDto);
 
     /// <summary>
     /// Deletes a product image
@@ -65,6 +85,20 @@ public interface IProductImageService
     Task<bool> DeleteByProductIdAsync(int productId);
 
     /// <summary>
+    /// Deletes all images for a specific product unit
+    /// </summary>
+    /// <param name="productUnitId">Product unit ID</param>
+    /// <returns>True if deletion was successful</returns>
+    Task<bool> DeleteByProductUnitIdAsync(int productUnitId);
+
+    /// <summary>
+    /// Deletes all images for a specific product group
+    /// </summary>
+    /// <param name="productGroupId">Product group ID</param>
+    /// <returns>True if deletion was successful</returns>
+    Task<bool> DeleteByProductGroupIdAsync(int productGroupId);
+
+    /// <summary>
     /// Sets a specific image as primary
     /// </summary>
     /// <param name="productId">Product ID</param>
@@ -79,27 +113,12 @@ public interface IProductImageService
     /// <param name="imageOrders">Dictionary of image ID to new sort order</param>
     /// <returns>True if operation was successful</returns>
     Task<bool> ReorderImagesAsync(int productId, Dictionary<int, int> imageOrders);
+
+    /// <summary>
+    /// Gets the next sort order for a product's images
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <returns>Next available sort order</returns>
+    Task<int> GetNextSortOrderAsync(int productId);
 }
 
-/// <summary>
-/// DTO for creating a new product image
-/// </summary>
-public class CreateProductImageDto
-{
-    public int ProductId { get; set; }
-    public string ImageUrl { get; set; } = string.Empty;
-    public string AltText { get; set; } = string.Empty;
-    public int SortOrder { get; set; }
-    public bool IsPrimary { get; set; }
-}
-
-/// <summary>
-/// DTO for updating an existing product image
-/// </summary>
-public class UpdateProductImageDto
-{
-    public string ImageUrl { get; set; } = string.Empty;
-    public string AltText { get; set; } = string.Empty;
-    public int SortOrder { get; set; }
-    public bool IsPrimary { get; set; }
-}

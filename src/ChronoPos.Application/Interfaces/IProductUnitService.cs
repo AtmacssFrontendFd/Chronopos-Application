@@ -1,4 +1,5 @@
 using ChronoPos.Application.DTOs;
+using ChronoPos.Domain.Entities;
 
 namespace ChronoPos.Application.Interfaces;
 
@@ -93,6 +94,18 @@ public interface IProductUnitService
     /// <param name="productId">Product ID</param>
     /// <returns>List of product unit summaries</returns>
     Task<IEnumerable<ProductUnitSummaryDto>> GetSummariesByProductIdAsync(int productId);
+    
+    /// <summary>
+    /// Gets all product units in the system
+    /// </summary>
+    /// <returns>List of all product units</returns>
+    Task<IEnumerable<ProductUnitDto>> GetAllAsync();
+    
+    /// <summary>
+    /// Gets all product units with navigation properties (for UI display)
+    /// </summary>
+    /// <returns>List of all product units with complete information</returns>
+    Task<IEnumerable<ProductUnit>> GetAllWithNavigationAsync();
 }
 
 /// <summary>

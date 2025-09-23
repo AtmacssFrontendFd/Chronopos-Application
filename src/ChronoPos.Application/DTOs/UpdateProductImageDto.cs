@@ -3,9 +3,9 @@ using System.ComponentModel.DataAnnotations;
 namespace ChronoPos.Application.DTOs;
 
 /// <summary>
-/// Data Transfer Object for ProductImage operations
+/// Data Transfer Object for updating ProductImage
 /// </summary>
-public class ProductImageDto
+public class UpdateProductImageDto
 {
     public int Id { get; set; }
     
@@ -30,15 +30,4 @@ public class ProductImageDto
     public int SortOrder { get; set; } = 0;
     
     public bool IsPrimary { get; set; } = false;
-    
-    public DateTime CreatedAt { get; set; }
-    
-    public DateTime UpdatedAt { get; set; }
-    
-    // Navigation properties for UI
-    public string? ProductUnitName { get; set; }
-    public string? ProductUnitSku { get; set; }
-    
-    // For UI binding
-    public bool IsNew { get; set; } = true;
 }

@@ -29,6 +29,9 @@ public class ProductUnitDto : INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
+
+    [StringLength(100)]
+    public string Sku { get; set; } = string.Empty;
     
     [Required]
     [Range(1, int.MaxValue, ErrorMessage = "Quantity in unit must be at least 1")]
@@ -130,6 +133,9 @@ public class CreateProductUnitDto
     [Required]
     public long UnitId { get; set; }
     
+    [StringLength(100)]
+    public string Sku { get; set; } = string.Empty;
+    
     [Required]
     [Range(1, int.MaxValue, ErrorMessage = "Quantity in unit must be at least 1")]
     public int QtyInUnit { get; set; } = 1;
@@ -159,6 +165,9 @@ public class UpdateProductUnitDto
 {
     [Required]
     public int Id { get; set; }
+    
+    [StringLength(100)]
+    public string Sku { get; set; } = string.Empty;
     
     [Required]
     [Range(1, int.MaxValue, ErrorMessage = "Quantity in unit must be at least 1")]
@@ -191,6 +200,7 @@ public class ProductUnitSummaryDto
     public long UnitId { get; set; }
     public string UnitName { get; set; } = string.Empty;
     public string UnitAbbreviation { get; set; } = string.Empty;
+    public string Sku { get; set; } = string.Empty;
     public int QtyInUnit { get; set; }
     public decimal PriceOfUnit { get; set; }
     public decimal CostOfUnit { get; set; }

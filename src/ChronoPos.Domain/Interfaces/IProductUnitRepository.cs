@@ -57,4 +57,17 @@ public interface IProductUnitRepository : IRepository<ProductUnit>
     /// <param name="productId">The product ID</param>
     /// <returns>List of product units with unit information</returns>
     Task<IEnumerable<ProductUnit>> GetByProductIdWithUnitsAsync(int productId);
+    
+    /// <summary>
+    /// Gets a product unit by its SKU
+    /// </summary>
+    /// <param name="sku">The SKU to search for</param>
+    /// <returns>The product unit or null if not found</returns>
+    Task<ProductUnit?> GetBySkuAsync(string sku);
+    
+    /// <summary>
+    /// Gets all product units with their Product and Unit navigation properties
+    /// </summary>
+    /// <returns>List of all product units with navigation properties</returns>
+    Task<IEnumerable<ProductUnit>> GetAllWithNavigationAsync();
 }
