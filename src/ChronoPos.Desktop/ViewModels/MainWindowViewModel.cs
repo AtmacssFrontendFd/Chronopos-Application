@@ -954,6 +954,7 @@ public partial class MainWindowViewModel : ObservableObject
             var productImageService = _serviceProvider.GetRequiredService<IProductImageService>();
             var taxTypeService = _serviceProvider.GetRequiredService<ITaxTypeService>();
             var discountService = _serviceProvider.GetRequiredService<IDiscountService>();
+            var productUnitService = _serviceProvider.GetRequiredService<IProductUnitService>();
             
             // Create ViewModel with navigation callback
             var addProductViewModel = new AddProductViewModel(
@@ -962,6 +963,7 @@ public partial class MainWindowViewModel : ObservableObject
                 productImageService,
                 taxTypeService,
                 discountService,
+                productUnitService,
                 themeService,
                 zoomService,
                 localizationService,
@@ -1026,6 +1028,7 @@ public partial class MainWindowViewModel : ObservableObject
             var productImageService = _serviceProvider.GetRequiredService<IProductImageService>();
             var taxTypeService = _serviceProvider.GetRequiredService<ITaxTypeService>();
             var discountService = _serviceProvider.GetRequiredService<IDiscountService>();
+            var productUnitService = _serviceProvider.GetRequiredService<IProductUnitService>();
             
             // Create ViewModel with navigation callback
             var addProductViewModel = new AddProductViewModel(
@@ -1034,6 +1037,7 @@ public partial class MainWindowViewModel : ObservableObject
                 productImageService,
                 taxTypeService,
                 discountService,
+                productUnitService,
                 themeService,
                 zoomService,
                 localizationService,

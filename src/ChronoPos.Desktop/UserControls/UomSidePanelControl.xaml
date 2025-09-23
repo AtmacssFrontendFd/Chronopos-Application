@@ -257,10 +257,10 @@
                 <StackPanel Margin="0,0,0,20" 
                             Visibility="{Binding IsDerivedType, Converter={StaticResource BoolToVisibilityConverter}}">
                     <TextBlock Text="Conversion Factor *" Style="{StaticResource LabelStyle}"/>
-                    <TextBox Text="{Binding ConversionFactor, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBox Text="{Binding ConversionFactor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F4}"
                              Style="{StaticResource InputFieldStyle}"
-                             ToolTip="Enter conversion factor to base unit (e.g., 1000 for kg to g)"/>
-                    <TextBlock Text="How many of this unit equals 1 base unit" 
+                             ToolTip="Enter how many base units equal 1 of this unit (e.g., 10 for pack of 10, 1000 for kilogram to gram)"/>
+                    <TextBlock Text="How many base units equal 1 of this unit" 
                                FontSize="{DynamicResource FontSizeExtraSmall}"
                                Foreground="{DynamicResource TextSecondary}"
                                Margin="0,2,0,0"/>

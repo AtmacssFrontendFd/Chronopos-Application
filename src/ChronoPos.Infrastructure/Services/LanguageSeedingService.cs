@@ -724,6 +724,72 @@ public class LanguageSeedingService : ILanguageSeedingService
                     { "en", "Excise" },
                     { "ur", "ایکسائز" }
                 }
+            },
+
+            // Multi-UOM Labels
+            {
+                "uom_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "UOM" },
+                    { "ur", "یونٹ" }
+                }
+            },
+            {
+                "qty_in_unit_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Qty in Unit" },
+                    { "ur", "یونٹ میں مقدار" }
+                }
+            },
+            {
+                "cost_of_unit_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Cost of Unit" },
+                    { "ur", "یونٹ کی لاگت" }
+                }
+            },
+            {
+                "price_of_unit_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Price of Unit" },
+                    { "ur", "یونٹ کی قیمت" }
+                }
+            },
+            {
+                "discount_allowed_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Discount Allowed" },
+                    { "ur", "رعایت کی اجازت" }
+                }
+            },
+            {
+                "is_base_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Is Base" },
+                    { "ur", "بنیادی ہے" }
+                }
+            },
+            {
+                "action_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Action" },
+                    { "ur", "عمل" }
+                }
+            },
+            {
+                "pricing_cost_section",
+                new Dictionary<string, string>
+                {
+                    { "en", "Pricing & Cost" },
+                    { "ur", "قیمت اور لاگت" }
+                }
             }
         };
 

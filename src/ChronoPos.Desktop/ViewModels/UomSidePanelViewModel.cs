@@ -133,7 +133,7 @@ public partial class UomSidePanelViewModel : ObservableObject, IDisposable
             var baseUnit = BaseUnits.FirstOrDefault(b => b.Value.ToString() == BaseUomId.ToString());
             if (baseUnit == null) return string.Empty;
             
-            return $"1 {baseUnit.Display} = {ConversionFactor} {Symbol}";
+            return $"1 {Symbol} = {ConversionFactor} {baseUnit.Display}";
         }
     }
 

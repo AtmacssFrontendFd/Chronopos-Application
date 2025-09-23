@@ -26,6 +26,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     private readonly IProductImageService _productImageService;
     private readonly ITaxTypeService _taxTypeService;
     private readonly IDiscountService _discountService;
+    private readonly IProductUnitService _productUnitService;
     private readonly Action? _navigateBack;
     
     // Settings services
@@ -69,10 +70,14 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     private int? categoryId;
 
     [ObservableProperty]
-    private long selectedUnitOfMeasurementId = 1; // Default to "Pieces"
+    private long selectedUnitOfMeasurementId = 1; // Keep for backwards compatibility during transition
 
     [ObservableProperty]
     private UnitOfMeasurementDto? selectedUnitOfMeasurement;
+
+    // Multi-UOM Support
+    [ObservableProperty]
+    private ObservableCollection<ProductUnitDto> productUnits = new();
 
     [ObservableProperty]
     private bool isTaxInclusivePrice = true;
@@ -129,6 +134,13 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private int selectedStoreId = 1; // Default to store 1
 
+    // Remaining quantity tracking
+    [ObservableProperty]
+    private decimal remainingQuantity = 0;
+
+    [ObservableProperty]
+    private string remainingQuantityMessage = string.Empty;
+
     // Purchase and Selling Units
     [ObservableProperty]
     private long? purchaseUnitId;
@@ -157,6 +169,9 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     // Validation Properties
     [ObservableProperty]
     private Dictionary<string, string> stockValidationErrors = new();
+
+    [ObservableProperty]
+    private Dictionary<string, string> productUnitValidationErrors = new();
 
     [ObservableProperty]
     private int? ageRestriction;
@@ -320,6 +335,17 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string purchaseUnitLabel = "Purchase Unit";
     [ObservableProperty] private string sellingUnitLabel = "Selling Unit";
     [ObservableProperty] private string unitOfMeasurementLabel = "Unit of Measurement";
+    
+    // Multi-UOM Labels
+    [ObservableProperty] private string multiUOMLabel = "Units of Measurement";
+    [ObservableProperty] private string uomLabel = "UOM";
+    [ObservableProperty] private string qtyInUnitLabel = "Qty in Unit";
+    [ObservableProperty] private string costOfUnitLabel = "Cost of Unit";
+    [ObservableProperty] private string priceOfUnitLabel = "Price of Unit";
+    [ObservableProperty] private string discountAllowedLabel = "Discount Allowed";
+    [ObservableProperty] private string isBaseLabel = "Is Base";
+    [ObservableProperty] private string actionLabel = "Action";
+    
     [ObservableProperty] private string isTaxInclusivePriceLabel = "Tax Inclusive Price";
     [ObservableProperty] private string isDiscountAllowedLabel = "Discount Allowed";
     [ObservableProperty] private string maxDiscountLabel = "Max Discount";
@@ -665,6 +691,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     partial void OnInitialStockChanged(decimal value)
     {
         ValidateStockLevels();
+        CalculateRemainingQuantity();
     }
 
     partial void OnMinimumStockChanged(decimal value)
@@ -743,6 +770,213 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
 
     public bool HasStockValidationErrors => StockValidationErrors.Any();
 
+    private void ValidateProductUnits()
+    {
+        ProductUnitValidationErrors.Clear();
+
+        if (!ProductUnits.Any())
+        {
+            ProductUnitValidationErrors["ProductUnits"] = "At least one unit of measurement must be defined";
+        }
+        else
+        {
+            // Validate that exactly one base unit exists
+            var baseUnits = ProductUnits.Where(pu => pu.IsBase).ToList();
+            if (baseUnits.Count == 0)
+            {
+                ProductUnitValidationErrors["BaseUnit"] = "One unit must be marked as the base unit";
+            }
+            else if (baseUnits.Count > 1)
+            {
+                ProductUnitValidationErrors["BaseUnit"] = "Only one unit can be marked as the base unit";
+            }
+
+            // Validate each ProductUnit
+            for (int i = 0; i < ProductUnits.Count; i++)
+            {
+                var unit = ProductUnits[i];
+                
+                if (unit.QtyInUnit <= 0)
+                {
+                    ProductUnitValidationErrors[$"QtyInUnit_{i}"] = $"Quantity in unit must be greater than 0 for {GetUnitName(unit.UnitId)}";
+                }
+                
+                if (unit.PriceOfUnit < 0)
+                {
+                    ProductUnitValidationErrors[$"PriceOfUnit_{i}"] = $"Price cannot be negative for {GetUnitName(unit.UnitId)}";
+                }
+                
+                if (unit.CostOfUnit < 0)
+                {
+                    ProductUnitValidationErrors[$"CostOfUnit_{i}"] = $"Cost cannot be negative for {GetUnitName(unit.UnitId)}";
+                }
+            }
+
+            // Check for duplicate units
+            var duplicateUnits = ProductUnits.GroupBy(pu => pu.UnitId)
+                                           .Where(g => g.Count() > 1)
+                                           .Select(g => g.Key);
+            
+            foreach (var unitId in duplicateUnits)
+            {
+                ProductUnitValidationErrors[$"Duplicate_{unitId}"] = $"Unit {GetUnitName(unitId)} is defined multiple times";
+            }
+
+            // Validate remaining quantity
+            ValidateRemainingQuantity();
+        }
+
+        OnPropertyChanged(nameof(ProductUnitValidationErrors));
+        OnPropertyChanged(nameof(HasProductUnitValidationErrors));
+    }
+
+    public bool HasProductUnitValidationErrors => ProductUnitValidationErrors.Any();
+
+    private string GetUnitName(long unitId)
+    {
+        return UnitsOfMeasurement.FirstOrDefault(u => u.Id == unitId)?.DisplayName ?? "Unknown";
+    }
+
+    #endregion
+
+    #region Automatic Calculations
+
+    /// <summary>
+    /// Updates cost and price of units for all UOMs based on base cost and price
+    /// </summary>
+    private void UpdateProductUnitPricing()
+    {
+        FileLogger.Log($"🔄 UpdateProductUnitPricing called - Processing {ProductUnits.Count} units");
+        FileLogger.Log($"   💰 Base Cost: {Cost}, Base Price: {Price}");
+        
+        foreach (var productUnit in ProductUnits)
+        {
+            UpdateProductUnitPricing(productUnit);
+        }
+        
+        FileLogger.Log($"✅ Completed updating all product unit pricing");
+    }
+
+    /// <summary>
+    /// Updates cost and price of unit for a specific UOM based on conversion factor
+    /// </summary>
+    [RelayCommand]
+    public void UpdateProductUnitPricing(ProductUnitDto productUnit)
+    {
+        var uom = UnitsOfMeasurement.FirstOrDefault(u => u.Id == productUnit.UnitId);
+        if (uom == null) 
+        {
+            FileLogger.Log($"❌ UOM not found for UnitId: {productUnit.UnitId}");
+            return;
+        }
+
+        var conversionFactor = uom.ConversionFactor ?? 1;
+        var oldCost = productUnit.CostOfUnit;
+        var oldPrice = productUnit.PriceOfUnit;
+        
+        FileLogger.Log($"🔧 Updating pricing for UOM: {uom.DisplayName} (Factor: {conversionFactor})");
+        FileLogger.Log($"   📊 Before - Cost: {oldCost}, Price: {oldPrice}");
+        
+        // Cost of unit = Cost price * conversion factor
+        if (Cost > 0)
+        {
+            productUnit.CostOfUnit = Cost * conversionFactor;
+            FileLogger.Log($"   💵 Cost calculation: {Cost} * {conversionFactor} = {productUnit.CostOfUnit}");
+        }
+        
+        // Price of unit = Selling price * conversion factor  
+        if (Price > 0)
+        {
+            productUnit.PriceOfUnit = Price * conversionFactor;
+            FileLogger.Log($"   💰 Price calculation: {Price} * {conversionFactor} = {productUnit.PriceOfUnit}");
+        }
+        
+        FileLogger.Log($"   📊 After - Cost: {productUnit.CostOfUnit}, Price: {productUnit.PriceOfUnit}");
+        
+        // Trigger property change notifications
+        OnPropertyChanged(nameof(ProductUnits));
+    }
+
+    /// <summary>
+    /// Calculates remaining quantity based on initial stock and UOM quantities
+    /// </summary>
+    [RelayCommand]
+    public void CalculateRemainingQuantity()
+    {
+        if (InitialStock <= 0)
+        {
+            RemainingQuantity = 0;
+            RemainingQuantityMessage = string.Empty;
+            return;
+        }
+
+        decimal usedQuantity = 0;
+        
+        foreach (var productUnit in ProductUnits)
+        {
+            var uom = UnitsOfMeasurement.FirstOrDefault(u => u.Id == productUnit.UnitId);
+            if (uom == null) continue;
+            
+            var conversionFactor = uom.ConversionFactor ?? 1;
+            usedQuantity += productUnit.QtyInUnit * conversionFactor;
+        }
+
+        RemainingQuantity = InitialStock - usedQuantity;
+        
+        if (InitialStock > 0)
+        {
+            RemainingQuantityMessage = $"Remaining quantity: {RemainingQuantity:F0} units";
+        }
+        else
+        {
+            RemainingQuantityMessage = string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Validates that remaining quantity is not negative
+    /// </summary>
+    private bool ValidateRemainingQuantity()
+    {
+        CalculateRemainingQuantity();
+        
+        if (RemainingQuantity < 0)
+        {
+            StockValidationErrors["RemainingQuantity"] = "Total UOM quantities exceed initial stock. Please adjust quantities or increase initial stock.";
+            return false;
+        }
+        else
+        {
+            StockValidationErrors.Remove("RemainingQuantity");
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Called when a ProductUnit's UnitId changes to recalculate pricing
+    /// </summary>
+    public void OnProductUnitUOMChanged(ProductUnitDto productUnit)
+    {
+        if (productUnit != null)
+        {
+            UpdateProductUnitPricing(productUnit);
+            CalculateRemainingQuantity();
+            ValidateProductUnits();
+        }
+    }
+
+    /// <summary>
+    /// Called when a ProductUnit's QtyInUnit changes to recalculate remaining quantity
+    /// </summary>
+    public void OnProductUnitQuantityChanged(ProductUnitDto productUnit)
+    {
+        if (productUnit != null)
+        {
+            CalculateRemainingQuantity();
+            ValidateProductUnits();
+        }
+    }
+
     #endregion
 
     #region Constructor
@@ -753,6 +987,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     IProductImageService productImageService,
     ITaxTypeService taxTypeService,
     IDiscountService discountService,
+        IProductUnitService productUnitService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -767,6 +1002,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     _productImageService = productImageService ?? throw new ArgumentNullException(nameof(productImageService));
     _taxTypeService = taxTypeService ?? throw new ArgumentNullException(nameof(taxTypeService));
     _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
+        _productUnitService = productUnitService ?? throw new ArgumentNullException(nameof(productUnitService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -785,6 +1021,11 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         MaxDiscount = 100;
         SelectedUnitOfMeasurementId = 1; // Default to "Pieces"
         Color = "#FFC107";
+        
+        FileLogger.Log($"🏗️ AddProductViewModel constructor - NOT adding default ProductUnit");
+        
+        // Subscribe to ProductUnits collection changes for validation
+        ProductUnits.CollectionChanged += (s, e) => ValidateProductUnits();
         
         _ = InitializeAsync();
     }
@@ -843,6 +1084,12 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             await LoadTaxTypesAsync();
             await LoadDiscountsAsync();
             FileLogger.Log("✅ Loaded tax types");
+
+            // Initialize calculations after data is loaded
+            FileLogger.Log("🧮 Initializing calculations");
+            UpdateProductUnitPricing();
+            CalculateRemainingQuantity();
+            FileLogger.Log("✅ Initial calculations completed");
 
             StatusMessage = "Ready to create new product";
             FileLogger.Log($"🎯 Final status: {StatusMessage}");
@@ -1180,6 +1427,42 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
                     SelectedDiscounts.Add(match);
             }
             
+            // Load ProductUnits for edit mode
+            try
+            {
+                FileLogger.Log($"🔄 Loading ProductUnits for product ID: {product.Id}");
+                ProductUnits.Clear();
+                
+                var existingProductUnits = await _productUnitService.GetByProductIdAsync(product.Id);
+                foreach (var productUnit in existingProductUnits)
+                {
+                    var uom = UnitsOfMeasurement.FirstOrDefault(u => u.Id == productUnit.UnitId);
+                    if (uom != null)
+                    {
+                        ProductUnits.Add(new ProductUnitDto
+                        {
+                            Id = (int)productUnit.Id,
+                            ProductId = (int)productUnit.ProductId,
+                            UnitId = productUnit.UnitId,
+                            UnitName = uom.Name,
+                            UnitAbbreviation = uom.Abbreviation,
+                            QtyInUnit = productUnit.QtyInUnit,
+                            CostOfUnit = productUnit.CostOfUnit,
+                            PriceOfUnit = productUnit.PriceOfUnit,
+                            DiscountAllowed = productUnit.DiscountAllowed,
+                            IsBase = productUnit.IsBase
+                        });
+                    }
+                }
+                
+                FileLogger.Log($"✅ Loaded {ProductUnits.Count} ProductUnits for edit mode");
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Log($"⚠️ Error loading ProductUnits: {ex.Message}");
+                // Don't fail the entire operation if ProductUnits can't be loaded
+            }
+            
             // Note: No need to recalculate tax-inclusive price here since we already loaded 
             // the saved value from product.TaxInclusivePriceValue above
 
@@ -1272,6 +1555,17 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         PurchaseUnitLabel = await GetTranslationAsync("purchase_unit_label", "Purchase Unit");
         SellingUnitLabel = await GetTranslationAsync("selling_unit_label", "Selling Unit");
         UnitOfMeasurementLabel = await GetTranslationAsync("unit_of_measurement_label", "Unit of Measurement");
+        
+        // Multi-UOM Labels
+        MultiUOMLabel = await GetTranslationAsync("multi_uom_label", "Units of Measurement");
+        UomLabel = await GetTranslationAsync("uom_label", "UOM");
+        QtyInUnitLabel = await GetTranslationAsync("qty_in_unit_label", "Qty in Unit");
+        CostOfUnitLabel = await GetTranslationAsync("cost_of_unit_label", "Cost of Unit");
+        PriceOfUnitLabel = await GetTranslationAsync("price_of_unit_label", "Price of Unit");
+        DiscountAllowedLabel = await GetTranslationAsync("discount_allowed_label", "Discount Allowed");
+        IsBaseLabel = await GetTranslationAsync("is_base_label", "Is Base");
+        ActionLabel = await GetTranslationAsync("action_label", "Action");
+        
         IsTaxInclusivePriceLabel = await GetTranslationAsync("tax_inclusive_price_label", "Tax Inclusive Price");
         IsDiscountAllowedLabel = await GetTranslationAsync("discount_allowed_label", "Discount Allowed");
         MaxDiscountLabel = await GetTranslationAsync("max_discount_label", "Maximum Discount %");
@@ -2032,6 +2326,82 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         }
     }
 
+    #region Multi-UOM Commands
+
+    [RelayCommand]
+    private void AddProductUnit()
+    {
+        FileLogger.Log($"➕ AddProductUnit called - Current units count: {ProductUnits.Count}");
+        
+        var firstUom = UnitsOfMeasurement.FirstOrDefault();
+        FileLogger.Log($"   🎯 First available UOM: {firstUom?.DisplayName ?? "None"} (ID: {firstUom?.Id ?? 0})");
+        
+        var newProductUnit = new ProductUnitDto
+        {
+            Id = 0, // New item
+            ProductId = 0, // Will be set when product is saved
+            UnitId = firstUom?.Id ?? 1,
+            QtyInUnit = 1,
+            CostOfUnit = 0,
+            PriceOfUnit = 0,
+            DiscountAllowed = false,
+            IsBase = ProductUnits.Count == 0 // First one is base by default
+        };
+        
+        FileLogger.Log($"   📦 Created new ProductUnit - UnitId: {newProductUnit.UnitId}, IsBase: {newProductUnit.IsBase}");
+        
+        // Auto-calculate pricing based on conversion factor
+        UpdateProductUnitPricing(newProductUnit);
+        
+        ProductUnits.Add(newProductUnit);
+        FileLogger.Log($"   ✅ Added to collection - New count: {ProductUnits.Count}");
+        
+        // Update remaining quantity calculation
+        CalculateRemainingQuantity();
+        
+        StatusMessage = "New UOM added";
+        FileLogger.Log($"✅ AddProductUnit completed");
+    }
+
+    [RelayCommand]
+    private void RemoveProductUnit(ProductUnitDto? productUnit)
+    {
+        if (productUnit != null && ProductUnits.Contains(productUnit))
+        {
+            ProductUnits.Remove(productUnit);
+            
+            // If we removed the base unit, set the first remaining as base
+            if (productUnit.IsBase && ProductUnits.Any())
+            {
+                ProductUnits.First().IsBase = true;
+            }
+            
+            // Update remaining quantity calculation
+            CalculateRemainingQuantity();
+            
+            StatusMessage = "UOM removed";
+        }
+    }
+
+    [RelayCommand]
+    private void SetBaseUnit(ProductUnitDto? productUnit)
+    {
+        if (productUnit != null && ProductUnits.Contains(productUnit))
+        {
+            // Clear all base flags first
+            foreach (var unit in ProductUnits)
+            {
+                unit.IsBase = false;
+            }
+            
+            // Set the selected unit as base
+            productUnit.IsBase = true;
+            StatusMessage = $"Base unit set to {UnitsOfMeasurement.FirstOrDefault(u => u.Id == productUnit.UnitId)?.DisplayName ?? "Unknown"}";
+        }
+    }
+
+    #endregion
+
     #endregion
 
     [RelayCommand]
@@ -2382,6 +2752,13 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         if (Cost > 0 && Price > 0 && Price < Cost)
             ValidationErrors.Add("Warning: Selling price is lower than cost price");
 
+        // Validate ProductUnits
+        ValidateProductUnits();
+        if (HasProductUnitValidationErrors)
+        {
+            ValidationErrors.AddRange(ProductUnitValidationErrors.Values);
+        }
+
         // Update validation status
         HasValidationErrors = ValidationErrors.Any();
         ValidationMessage = HasValidationErrors 
@@ -2441,10 +2818,25 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             ReorderQuantity = ReorderQuantity,
             AverageCost = AverageCost,
             LastCost = AverageCost, // Set last cost same as average cost initially
-            // UOM Properties
+            // UOM Properties - Keep for backwards compatibility but will be handled by ProductUnits
             UnitOfMeasurementId = SelectedUnitOfMeasurementId > 0 ? SelectedUnitOfMeasurementId : 1, // Default to "Pieces"
             UnitOfMeasurementName = SelectedUnitOfMeasurement?.Name ?? "Pieces",
             UnitOfMeasurementAbbreviation = SelectedUnitOfMeasurement?.Abbreviation ?? "pcs",
+            
+            // Multi-UOM Support
+            ProductUnits = ProductUnits.Select(pu => new ProductUnitDto
+            {
+                Id = pu.Id,
+                ProductId = 0, // Will be set by the service
+                UnitId = pu.UnitId,
+                UnitName = UnitsOfMeasurement.FirstOrDefault(u => u.Id == pu.UnitId)?.Name ?? "Unknown",
+                UnitAbbreviation = UnitsOfMeasurement.FirstOrDefault(u => u.Id == pu.UnitId)?.Abbreviation ?? "unk",
+                QtyInUnit = pu.QtyInUnit,
+                CostOfUnit = pu.CostOfUnit,
+                PriceOfUnit = pu.PriceOfUnit,
+                DiscountAllowed = pu.DiscountAllowed,
+                IsBase = pu.IsBase
+            }).ToList(),
             
             // Purchase and Selling Units
             PurchaseUnitId = PurchaseUnitId,
@@ -2562,21 +2954,35 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
 
     partial void OnPriceChanged(decimal value)
     {
+        FileLogger.Log($"🏷️ OnPriceChanged called - New Price: {value}, Old Cost: {Cost}");
+        
         if (Cost > 0 && value > Cost)
         {
             Markup = ((value - Cost) / Cost) * 100;
+            FileLogger.Log($"   📈 Markup calculated: {Markup:F2}%");
         }
         CalculateTaxInclusivePrice();
+        
+        FileLogger.Log($"   🔄 Calling UpdateProductUnitPricing for all units...");
+        UpdateProductUnitPricing(); // Auto-calculate price of units
         ValidateForm();
+        FileLogger.Log($"✅ OnPriceChanged completed");
     }
 
     partial void OnCostChanged(decimal value)
     {
+        FileLogger.Log($"💵 OnCostChanged called - New Cost: {value}, Current Price: {Price}");
+        
         if (Price > 0 && value > 0 && Price > value)
         {
             Markup = ((Price - value) / value) * 100;
+            FileLogger.Log($"   📈 Markup calculated: {Markup:F2}%");
         }
+        
+        FileLogger.Log($"   🔄 Calling UpdateProductUnitPricing for all units...");
+        UpdateProductUnitPricing(); // Auto-calculate cost of units
         ValidateForm();
+        FileLogger.Log($"✅ OnCostChanged completed");
     }
 
     partial void OnCodeChanged(string value)

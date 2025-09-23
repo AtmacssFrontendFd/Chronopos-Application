@@ -122,6 +122,12 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IUomService, UomService>();
                     LogMessage("UomService registered as Transient");
 
+                    // Register ProductUnit service and repository
+                    services.AddTransient<IProductUnitRepository, ProductUnitRepository>();
+                    LogMessage("ProductUnitRepository registered as Transient");
+                    services.AddTransient<IProductUnitService, ProductUnitService>();
+                    LogMessage("ProductUnitService registered as Transient");
+
                     // Register Product Attribute service
                     services.AddTransient<IProductAttributeService, ProductAttributeService>();
                     LogMessage("ProductAttributeService registered as Transient");

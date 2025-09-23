@@ -14,6 +14,7 @@ public class ProductService : IProductService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IBrandRepository _brandRepository;
     private readonly IProductImageRepository _productImageRepository;
+    private readonly IProductUnitService _productUnitService;
     private static readonly string LogDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
     private static readonly string LogFilePath = Path.Combine(LogDirectory, $"product_service_{DateTime.Now:yyyyMMdd}.log");
     private static readonly object LockObject = new object();
@@ -44,11 +45,12 @@ public class ProductService : IProductService
         }
     }
     
-    public ProductService(IUnitOfWork unitOfWork, IBrandRepository brandRepository, IProductImageRepository productImageRepository)
+    public ProductService(IUnitOfWork unitOfWork, IBrandRepository brandRepository, IProductImageRepository productImageRepository, IProductUnitService productUnitService)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _brandRepository = brandRepository ?? throw new ArgumentNullException(nameof(brandRepository));
         _productImageRepository = productImageRepository ?? throw new ArgumentNullException(nameof(productImageRepository));
+        _productUnitService = productUnitService ?? throw new ArgumentNullException(nameof(productUnitService));
     }
     
     public async Task<IEnumerable<ProductDto>> GetAllProductsAsync()
@@ -228,6 +230,33 @@ public class ProductService : IProductService
             catch (Exception ex)
             {
                 Log($"Recompute tax-inclusive price after tax mapping failed: {ex.Message}");
+            }
+
+            // Handle ProductUnits creation after product has an Id
+            if (productDto.ProductUnits != null && productDto.ProductUnits.Any())
+            {
+                Log($"Creating {productDto.ProductUnits.Count} ProductUnits for product ID {createdProduct.Id}");
+                try
+                {
+                    var createProductUnitDtos = productDto.ProductUnits.Select(pu => new CreateProductUnitDto
+                    {
+                        ProductId = createdProduct.Id,
+                        UnitId = pu.UnitId,
+                        QtyInUnit = pu.QtyInUnit,
+                        CostOfUnit = pu.CostOfUnit,
+                        PriceOfUnit = pu.PriceOfUnit,
+                        DiscountAllowed = pu.DiscountAllowed,
+                        IsBase = pu.IsBase
+                    }).ToList();
+
+                    await _productUnitService.CreateMultipleAsync(createdProduct.Id, createProductUnitDtos);
+                    Log("ProductUnits created successfully");
+                }
+                catch (Exception ex)
+                {
+                    Log($"ProductUnits creation failed: {ex.Message}");
+                    throw; // Re-throw to maintain transaction integrity
+                }
             }
 
             Log("Mapping result to DTO...");
@@ -415,6 +444,33 @@ public class ProductService : IProductService
         catch (Exception ex)
         {
             Log($"Tax-inclusive price compute on update failed: {ex.Message}");
+        }
+
+        // Handle ProductUnits update
+        if (productDto.ProductUnits != null)
+        {
+            Log($"Updating ProductUnits for product ID {existingProduct.Id}");
+            try
+            {
+                var updateProductUnitDtos = productDto.ProductUnits.Select(pu => new CreateProductUnitDto
+                {
+                    ProductId = existingProduct.Id,
+                    UnitId = pu.UnitId,
+                    QtyInUnit = pu.QtyInUnit,
+                    CostOfUnit = pu.CostOfUnit,
+                    PriceOfUnit = pu.PriceOfUnit,
+                    DiscountAllowed = pu.DiscountAllowed,
+                    IsBase = pu.IsBase
+                }).ToList();
+
+                await _productUnitService.UpdateAllForProductAsync(existingProduct.Id, updateProductUnitDtos);
+                Log("ProductUnits updated successfully");
+            }
+            catch (Exception ex)
+            {
+                Log($"ProductUnits update failed: {ex.Message}");
+                throw; // Re-throw to maintain transaction integrity
+            }
         }
 
         existingProduct.UpdatedAt = DateTime.UtcNow;

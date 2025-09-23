@@ -38,6 +38,9 @@ public class ProductDto
     // Multiple barcodes support
     public List<ProductBarcodeDto> ProductBarcodes { get; set; } = new();
 
+    // Multiple UOM support
+    public List<ProductUnitDto> ProductUnits { get; set; } = new();
+
     public bool IsActive { get; set; } = true;    public decimal CostPrice { get; set; } = 0;
     
     public decimal? Markup { get; set; }

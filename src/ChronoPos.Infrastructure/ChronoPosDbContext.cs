@@ -25,6 +25,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.ProductBarcode> ProductBarcodes { get; set; }
     public DbSet<Domain.Entities.ProductComment> ProductComments { get; set; }
     public DbSet<Domain.Entities.ProductTax> ProductTaxes { get; set; }
+    public DbSet<Domain.Entities.ProductUnit> ProductUnits { get; set; }
     public DbSet<Domain.Entities.TaxType> TaxTypes { get; set; }
     public DbSet<Domain.Entities.Brand> Brands { get; set; }
     public DbSet<Domain.Entities.ProductImage> ProductImages { get; set; }
@@ -238,6 +239,42 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
 
             // Index on ProductId and IsPrimary for primary image queries
             entity.HasIndex(e => new { e.ProductId, e.IsPrimary });
+        });
+
+        // Configure ProductUnit entity
+        modelBuilder.Entity<Domain.Entities.ProductUnit>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ProductId).IsRequired();
+            entity.Property(e => e.UnitId).IsRequired();
+            entity.Property(e => e.QtyInUnit).IsRequired().HasDefaultValue(1);
+            entity.Property(e => e.CostOfUnit).IsRequired().HasPrecision(10, 2);
+            entity.Property(e => e.PriceOfUnit).IsRequired().HasPrecision(10, 2);
+            entity.Property(e => e.PriceType).HasMaxLength(50).HasDefaultValue("Retail");
+            entity.Property(e => e.DiscountAllowed).IsRequired().HasDefaultValue(false);
+            entity.Property(e => e.IsBase).IsRequired().HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationship with Product
+            entity.HasOne(pu => pu.Product)
+                  .WithMany(p => p.ProductUnits)
+                  .HasForeignKey(pu => pu.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Foreign key relationship with UnitOfMeasurement
+            entity.HasOne(pu => pu.Unit)
+                  .WithMany()
+                  .HasForeignKey(pu => pu.UnitId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Unique constraint on Product-Unit combination (one record per product-unit pair)
+            entity.HasIndex(e => new { e.ProductId, e.UnitId }).IsUnique();
+
+            // Index on ProductId for performance
+            entity.HasIndex(e => e.ProductId);
+
+            // Index on IsBase for finding base units quickly
+            entity.HasIndex(e => new { e.ProductId, e.IsBase });
         });
 
         // Configure Customer entity

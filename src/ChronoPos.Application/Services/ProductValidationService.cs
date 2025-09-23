@@ -1,6 +1,7 @@
 using ChronoPos.Domain.Entities;
 using ChronoPos.Application.Interfaces;
 using System.Text.RegularExpressions;
+using ValidationResult = ChronoPos.Application.Interfaces.ValidationResult;
 
 namespace ChronoPos.Application.Services;
 
