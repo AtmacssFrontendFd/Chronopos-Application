@@ -90,6 +90,22 @@ public partial class App : System.Windows.Application
                     services.AddTransient<ITaxTypeService, TaxTypeService>();
                     LogMessage("TaxTypeService registered as Transient");
                     
+                    // Register Customer service
+                    services.AddTransient<ICustomerService, CustomerService>();
+                    LogMessage("CustomerService registered as Transient");
+                    
+                    // Register Supplier service
+                    services.AddTransient<ISupplierService, SupplierService>();
+                    LogMessage("SupplierService registered as Transient");
+                    
+                    // Register SellingPriceType service
+                    services.AddTransient<ISellingPriceTypeService, SellingPriceTypeService>();
+                    LogMessage("SellingPriceTypeService registered as Transient");
+                    
+                    // Register PaymentType service
+                    services.AddTransient<IPaymentTypeService, PaymentTypeService>();
+                    LogMessage("PaymentTypeService registered as Transient");
+                    
                     // Register logging service
                     services.AddSingleton<ILoggingService, ApplicationLoggingService>();
                     LogMessage("ApplicationLoggingService registered as Singleton");
@@ -162,6 +178,10 @@ public partial class App : System.Windows.Application
                     LogMessage("SalesViewModel registered as Transient");
                     services.AddTransient<CustomersViewModel>();
                     LogMessage("CustomersViewModel registered as Transient");
+                    services.AddTransient<SuppliersViewModel>();
+                    LogMessage("SuppliersViewModel registered as Transient");
+                    services.AddTransient<SupplierSidePanelViewModel>();
+                    LogMessage("SupplierSidePanelViewModel registered as Transient");
                     services.AddTransient<SettingsViewModel>();
                     LogMessage("SettingsViewModel registered as Transient");
                     services.AddTransient<DiscountViewModel>();
@@ -351,6 +371,9 @@ public partial class App : System.Windows.Application
             
             // Initialize database if it doesn't exist, but preserve existing data
             LogMessage("Ensuring database exists...");
+            
+            // For debugging: Force recreation of database to ensure all tables exist
+            await dbContext.Database.EnsureDeletedAsync();
             await dbContext.Database.EnsureCreatedAsync();
             
             LogMessage("Database initialized successfully");

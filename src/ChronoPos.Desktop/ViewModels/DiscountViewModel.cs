@@ -248,7 +248,7 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private async void EditDiscount(DiscountDto? discount)
+    private async Task EditDiscount(DiscountDto? discount)
     {
         if (discount != null)
         {

@@ -50,17 +50,32 @@ public interface IUnitOfWork : IDisposable
     /// </summary>
     IProductDiscountRepository ProductDiscounts { get; }
     
-    /// <summary>
-    /// Category Discount repository
+    /// <summary>  
+    /// Category Discount repository 
     /// </summary>
     ICategoryDiscountRepository CategoryDiscounts { get; }
+    
+    /// <summary>
+    /// Selling Price Type repository
+    /// </summary>
+    ISellingPriceTypeRepository SellingPriceTypes { get; }
+    
+    /// <summary>
+    /// Payment Type repository
+    /// </summary>
+    IPaymentTypeRepository PaymentTypes { get; }
+    
+    /// <summary>
+    /// Supplier repository
+    /// </summary>
+    ISupplierRepository Suppliers { get; }
     
     /// <summary>
     /// Saves all changes asynchronously
     /// </summary>
     Task<int> SaveChangesAsync();
     
-    /// <summary>
+    /// <summary> 
     /// Begins a database transaction asynchronously
     /// </summary>
     Task BeginTransactionAsync();

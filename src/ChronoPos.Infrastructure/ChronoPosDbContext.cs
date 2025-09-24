@@ -18,6 +18,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.Product> Products { get; set; }
     public DbSet<Domain.Entities.Category> Categories { get; set; }
     public DbSet<Domain.Entities.Customer> Customers { get; set; }
+    public DbSet<Domain.Entities.Supplier> Suppliers { get; set; }
     public DbSet<Domain.Entities.Sale> Sales { get; set; }
     public DbSet<Domain.Entities.SaleItem> SaleItems { get; set; }
     
@@ -55,6 +56,12 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.Discount> Discounts { get; set; }
     public DbSet<Domain.Entities.ProductDiscount> ProductDiscounts { get; set; }
     public DbSet<Domain.Entities.CategoryDiscount> CategoryDiscounts { get; set; }
+    
+    // Selling Price Types
+    public DbSet<Domain.Entities.SellingPriceType> SellingPriceTypes { get; set; }
+
+    // Payment Types
+    public DbSet<Domain.Entities.PaymentType> PaymentTypes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -175,6 +182,49 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasIndex(e => e.Name).IsUnique();
         });
 
+        // Configure SellingPriceType entity
+        modelBuilder.Entity<Domain.Entities.SellingPriceType>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("selling_price_types");
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.TypeName).IsRequired().HasMaxLength(100).HasColumnName("type_name");
+            entity.Property(e => e.ArabicName).IsRequired().HasMaxLength(100).HasColumnName("arabic_name");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Status).HasDefaultValue(true).HasColumnName("status");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.CreatedAt).IsRequired().HasColumnName("created_at");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(e => e.DeletedBy).HasColumnName("deleted_by");
+            entity.Property(e => e.DeletedAt).HasColumnName("deleted_at");
+
+            // Unique constraint on type name
+            entity.HasIndex(e => e.TypeName).IsUnique();
+        });
+
+        // Configure PaymentType entity
+        modelBuilder.Entity<Domain.Entities.PaymentType>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("Payment_Options");
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(255).HasColumnName("name");
+            entity.Property(e => e.PaymentCode).IsRequired().HasMaxLength(50).HasColumnName("payment_code");
+            entity.Property(e => e.NameAr).HasMaxLength(255).HasColumnName("name_ar");
+            entity.Property(e => e.Status).HasDefaultValue(true).HasColumnName("status");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(e => e.DeletedBy).HasColumnName("deleted_by");
+            entity.Property(e => e.DeletedAt).HasColumnName("deleted_at");
+
+            // Unique constraints
+            entity.HasIndex(e => e.Name).IsUnique();
+            entity.HasIndex(e => e.PaymentCode).IsUnique();
+        });
+
         // Configure ProductTax entity
         modelBuilder.Entity<Domain.Entities.ProductTax>(entity =>
         {
@@ -250,6 +300,51 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
 
             // Index on email for quick lookup
             entity.HasIndex(e => e.Email).IsUnique();
+        });
+
+        // Configure Supplier entity
+        modelBuilder.Entity<Domain.Entities.Supplier>(entity =>
+        {
+            entity.HasKey(e => e.SupplierId);
+            entity.Property(e => e.CompanyName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.LogoPicture).HasMaxLength(255);
+            entity.Property(e => e.LicenseNumber).HasMaxLength(50);
+            entity.Property(e => e.OwnerName).HasMaxLength(100);
+            entity.Property(e => e.OwnerMobile).HasMaxLength(20);
+            entity.Property(e => e.VatTrnNumber).HasMaxLength(50);
+            entity.Property(e => e.Email).HasMaxLength(100);
+            entity.Property(e => e.AddressLine1).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.AddressLine2).HasMaxLength(255);
+            entity.Property(e => e.Building).HasMaxLength(100);
+            entity.Property(e => e.Area).HasMaxLength(100);
+            entity.Property(e => e.PoBox).HasMaxLength(20);
+            entity.Property(e => e.City).HasMaxLength(100);
+            entity.Property(e => e.State).HasMaxLength(100);
+            entity.Property(e => e.Country).HasMaxLength(100);
+            entity.Property(e => e.Website).HasMaxLength(100);
+            entity.Property(e => e.KeyContactName).HasMaxLength(100);
+            entity.Property(e => e.KeyContactMobile).HasMaxLength(20);
+            entity.Property(e => e.KeyContactEmail).HasMaxLength(100);
+            entity.Property(e => e.Mobile).HasMaxLength(20);
+            entity.Property(e => e.LocationLatitude).HasPrecision(10, 8);
+            entity.Property(e => e.LocationLongitude).HasPrecision(11, 8);
+            entity.Property(e => e.CompanyPhoneNumber).HasMaxLength(20);
+            entity.Property(e => e.Gstin).HasMaxLength(20);
+            entity.Property(e => e.Pan).HasMaxLength(20);
+            entity.Property(e => e.PaymentTerms).HasMaxLength(50);
+            entity.Property(e => e.OpeningBalance).HasPrecision(12, 2);
+            entity.Property(e => e.BalanceType).HasMaxLength(20);
+            entity.Property(e => e.Status).HasMaxLength(20);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Index on email for quick lookup (if provided)
+            entity.HasIndex(e => e.Email);
+            
+            // Index on company name for quick lookup
+            entity.HasIndex(e => e.CompanyName);
+            
+            // Index on VAT/TRN number for quick lookup
+            entity.HasIndex(e => e.VatTrnNumber);
         });
 
         // Configure Sale entity
@@ -901,6 +996,25 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             new Domain.Entities.TaxType { Id = 1, Name = "VAT", Description = "Value Added Tax", Value = 10.0000m, IsPercentage = true, IncludedInPrice = false, AppliesToBuying = false, AppliesToSelling = true, CalculationOrder = 1, IsActive = true, CreatedAt = baseDate },
             new Domain.Entities.TaxType { Id = 2, Name = "Sales Tax", Description = "General Sales Tax", Value = 5.0000m, IsPercentage = true, IncludedInPrice = false, AppliesToBuying = false, AppliesToSelling = true, CalculationOrder = 1, IsActive = true, CreatedAt = baseDate },
             new Domain.Entities.TaxType { Id = 3, Name = "Luxury Tax", Description = "Luxury Goods Tax", Value = 15.0000m, IsPercentage = true, IncludedInPrice = false, AppliesToBuying = false, AppliesToSelling = true, CalculationOrder = 2, IsActive = true, CreatedAt = baseDate }
+        );
+
+        // Seed Selling Price Types
+        modelBuilder.Entity<Domain.Entities.SellingPriceType>().HasData(
+            new Domain.Entities.SellingPriceType { Id = 1, TypeName = "Retail", ArabicName = "بيع بالتجزئة", Description = "Standard retail pricing", Status = true, CreatedBy = 1, CreatedAt = baseDate },
+            new Domain.Entities.SellingPriceType { Id = 2, TypeName = "Wholesale", ArabicName = "بيع بالجملة", Description = "Bulk pricing for wholesale customers", Status = true, CreatedBy = 1, CreatedAt = baseDate },
+            new Domain.Entities.SellingPriceType { Id = 3, TypeName = "VIP", ArabicName = "في آي بي", Description = "Premium pricing for VIP customers", Status = true, CreatedBy = 1, CreatedAt = baseDate },
+            new Domain.Entities.SellingPriceType { Id = 4, TypeName = "Staff", ArabicName = "موظف", Description = "Employee discount pricing", Status = true, CreatedBy = 1, CreatedAt = baseDate },
+            new Domain.Entities.SellingPriceType { Id = 5, TypeName = "Student", ArabicName = "طالب", Description = "Student discount pricing", Status = true, CreatedBy = 1, CreatedAt = baseDate }
+        );
+
+        // Seed Payment Types
+        modelBuilder.Entity<Domain.Entities.PaymentType>().HasData(
+            new Domain.Entities.PaymentType { Id = 1, Name = "Cash", PaymentCode = "CASH", NameAr = "نقد", Status = true, CreatedBy = 1, CreatedAt = baseDate },
+            new Domain.Entities.PaymentType { Id = 2, Name = "Credit Card", PaymentCode = "CC", NameAr = "بطاقة ائتمان", Status = true, CreatedBy = 1, CreatedAt = baseDate },
+            new Domain.Entities.PaymentType { Id = 3, Name = "Debit Card", PaymentCode = "DC", NameAr = "بطاقة خصم", Status = true, CreatedBy = 1, CreatedAt = baseDate },
+            new Domain.Entities.PaymentType { Id = 4, Name = "Digital Wallet", PaymentCode = "DW", NameAr = "محفظة رقمية", Status = true, CreatedBy = 1, CreatedAt = baseDate },
+            new Domain.Entities.PaymentType { Id = 5, Name = "Bank Transfer", PaymentCode = "BT", NameAr = "تحويل مصرفي", Status = true, CreatedBy = 1, CreatedAt = baseDate },
+            new Domain.Entities.PaymentType { Id = 6, Name = "Check", PaymentCode = "CHK", NameAr = "شيك", Status = true, CreatedBy = 1, CreatedAt = baseDate }
         );
 
         // Seed Customers

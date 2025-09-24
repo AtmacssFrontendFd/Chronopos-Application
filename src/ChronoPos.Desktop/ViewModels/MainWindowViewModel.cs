@@ -1099,7 +1099,10 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IColorSchemeService>(),
                 _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
                 _serviceProvider.GetRequiredService<IFontService>(),
-                _serviceProvider.GetRequiredService<IDatabaseLocalizationService>()
+                _serviceProvider.GetRequiredService<IDatabaseLocalizationService>(),
+                _serviceProvider.GetRequiredService<ITaxTypeService>(),
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ISupplierService>()
             );
 
             // Set up navigation from add options to specific modules
@@ -1109,6 +1112,21 @@ public partial class MainWindowViewModel : ObservableObject
                 {
                     case "Discounts":
                         _ = ShowDiscounts();
+                        break;
+                    case "PriceTypes":
+                        _ = ShowPriceTypes();
+                        break;
+                    case "PaymentTypes":
+                        _ = ShowPaymentTypes();
+                        break;
+                    case "TaxRates":
+                        _ = ShowTaxTypes();
+                        break;
+                    case "Customers":
+                        _ = ShowCustomers();
+                        break;
+                    case "Suppliers":
+                        _ = ShowSuppliers();
                         break;
                     default:
                         StatusMessage = $"Navigation to {moduleType} module not implemented yet";
@@ -1187,6 +1205,238 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error loading discount management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ShowPriceTypes()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Price Types Management";
+        StatusMessage = "Loading price types management...";
+        
+        try
+        {
+            // Create the PriceTypesViewModel with all required services
+            var priceTypesViewModel = new PriceTypesViewModel(
+                _serviceProvider.GetRequiredService<ISellingPriceTypeService>(),
+                _serviceProvider.GetRequiredService<IThemeService>(),
+                _serviceProvider.GetRequiredService<IZoomService>(),
+                _serviceProvider.GetRequiredService<ILocalizationService>(),
+                _serviceProvider.GetRequiredService<IColorSchemeService>(),
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
+                _serviceProvider.GetRequiredService<IFontService>(),
+                _serviceProvider.GetRequiredService<ChronoPos.Infrastructure.Services.IDatabaseLocalizationService>()
+            );
+
+            // Set up back navigation to return to Add Options
+            priceTypesViewModel.GoBackAction = () =>
+            {
+                ShowAddOptionsCommand.Execute(null);
+            };
+
+            // Create the PriceTypesView and set its DataContext
+            var priceTypesView = new PriceTypesView
+            {
+                DataContext = priceTypesViewModel
+            };
+
+            CurrentView = priceTypesView;
+            StatusMessage = "Price types management loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading price types management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ShowPaymentTypes()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Payment Types Management";
+        StatusMessage = "Loading payment types management...";
+        
+        try
+        {
+            // Create the PaymentTypesViewModel with all required services
+            var paymentTypesViewModel = new PaymentTypesViewModel(
+                _serviceProvider.GetRequiredService<IPaymentTypeService>(),
+                _serviceProvider.GetRequiredService<IThemeService>(),
+                _serviceProvider.GetRequiredService<IZoomService>(),
+                _serviceProvider.GetRequiredService<ILocalizationService>(),
+                _serviceProvider.GetRequiredService<IColorSchemeService>(),
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
+                _serviceProvider.GetRequiredService<IFontService>(),
+                _serviceProvider.GetRequiredService<ChronoPos.Infrastructure.Services.IDatabaseLocalizationService>()
+            );
+
+            // Set up back navigation to return to Add Options
+            paymentTypesViewModel.GoBackAction = () =>
+            {
+                ShowAddOptionsCommand.Execute(null);
+            };
+
+            // Create the PaymentTypesView and set its DataContext
+            var paymentTypesView = new PaymentTypesView
+            {
+                DataContext = paymentTypesViewModel
+            };
+
+            CurrentView = paymentTypesView;
+            StatusMessage = "Payment types management loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading payment types management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ShowTaxTypes()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Tax Rates Management";
+        StatusMessage = "Loading tax rates management...";
+        
+        try
+        {
+            // Create the TaxTypesViewModel with all required services
+            var taxTypesViewModel = new TaxTypesViewModel(
+                _serviceProvider.GetRequiredService<ITaxTypeService>()
+            );
+
+            // Set up back navigation to return to Add Options
+            taxTypesViewModel.GoBackAction = () =>
+            {
+                ShowAddOptionsCommand.Execute(null);
+            };
+
+            // Create the TaxTypesView and set its DataContext
+            var taxTypesView = new TaxTypesView
+            {
+                DataContext = taxTypesViewModel
+            };
+
+            CurrentView = taxTypesView;
+            StatusMessage = "Tax rates management loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading tax rates management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowCustomers()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Customer Management";
+        StatusMessage = "Loading customer management...";
+        
+        try
+        {
+            // Create the CustomersViewModel with all required services
+            var customersViewModel = new CustomersViewModel(
+                _serviceProvider.GetRequiredService<ICustomerService>()
+            );
+
+            // Set up back navigation to return to Add Options
+            customersViewModel.GoBackAction = () =>
+            {
+                ShowAddOptionsCommand.Execute(null);
+            };
+
+            // Create the CustomersView and set its DataContext
+            var customersView = new CustomersView
+            {
+                DataContext = customersViewModel
+            };
+
+            CurrentView = customersView;
+            StatusMessage = "Customer management loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading customer management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowSuppliers()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Supplier Management";
+        StatusMessage = "Loading supplier management...";
+        
+        try
+        {
+            // Create the SuppliersViewModel with all required services
+            var suppliersViewModel = new SuppliersViewModel(
+                _serviceProvider.GetRequiredService<ISupplierService>()
+            );
+
+            // Set up back navigation to return to Add Options
+            suppliersViewModel.GoBackAction = () =>
+            {
+                ShowAddOptionsCommand.Execute(null);
+            };
+
+            // Create the SuppliersView and set its DataContext
+            var suppliersView = new SuppliersView
+            {
+                DataContext = suppliersViewModel
+            };
+
+            CurrentView = suppliersView;
+            StatusMessage = "Supplier management loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading supplier management: {ex.Message}";
             var errorContent = new System.Windows.Controls.TextBlock
             {
                 Text = $"Error: {ex.Message}",
