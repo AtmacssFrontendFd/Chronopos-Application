@@ -14,6 +14,11 @@ public class PaymentTypeDto
     public DateTime? CreatedAt { get; set; }
     public int? UpdatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }
+
+    // Display properties for UI binding
+    public string NameArDisplay => NameAr ?? "-";
+    public string StatusDisplay => Status ? "Active" : "Inactive";
+    public string CreatedAtFormatted => CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-";
 }
 
 /// <summary>

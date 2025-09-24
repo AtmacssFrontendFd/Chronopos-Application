@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.ViewModels;
 using ChronoPos.Infrastructure.Services;
 
 namespace ChronoPos.Desktop.ViewModels;
@@ -45,24 +46,6 @@ public partial class PaymentTypesViewModel : ObservableObject
     private PaymentTypeDto? _selectedPaymentType;
 
     /// <summary>
-    /// Payment type being edited/created
-    /// </summary>
-    [ObservableProperty]
-    private PaymentTypeDto _currentPaymentType = new();
-
-    /// <summary>
-    /// Whether we're in edit mode or create mode
-    /// </summary>
-    [ObservableProperty]
-    private bool _isEditMode = false;
-
-    /// <summary>
-    /// Whether the side panel is open
-    /// </summary>
-    [ObservableProperty]
-    private bool _isSidePanelOpen = false;
-
-    /// <summary>
     /// Loading indicator
     /// </summary>
     [ObservableProperty]
@@ -78,7 +61,7 @@ public partial class PaymentTypesViewModel : ObservableObject
     /// Whether to show only active payment types
     /// </summary>
     [ObservableProperty]
-    private bool _showOnlyActive = true;
+    private bool _showActiveOnly = true;
 
     /// <summary>
     /// Search text for filtering payment types
@@ -87,10 +70,10 @@ public partial class PaymentTypesViewModel : ObservableObject
     private string _searchText = string.Empty;
 
     /// <summary>
-    /// Text for the active filter button
+    /// Whether the side panel is visible
     /// </summary>
     [ObservableProperty]
-    private string _activeFilterButtonText = "Show All";
+    private bool _isSidePanelVisible = false;
 
     /// <summary>
     /// Current flow direction for UI
@@ -99,10 +82,10 @@ public partial class PaymentTypesViewModel : ObservableObject
     private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
 
     /// <summary>
-    /// Form title (Add/Edit Payment Type)
+    /// Side panel view model
     /// </summary>
     [ObservableProperty]
-    private string _formTitle = "Add Payment Type";
+    private PaymentTypeSidePanelViewModel _sidePanelViewModel;
 
     #endregion
 
@@ -118,7 +101,7 @@ public partial class PaymentTypesViewModel : ObservableObject
             var filtered = PaymentTypes.AsEnumerable();
 
             // Apply active filter
-            if (ShowOnlyActive)
+            if (ShowActiveOnly)
             {
                 filtered = filtered.Where(p => p.Status);
             }
@@ -136,6 +119,11 @@ public partial class PaymentTypesViewModel : ObservableObject
             return new ObservableCollection<PaymentTypeDto>(filtered);
         }
     }
+
+    /// <summary>
+    /// Whether there are any payment types
+    /// </summary>
+    public bool HasPaymentTypes => PaymentTypes.Count > 0;
 
     #endregion
 
@@ -172,12 +160,15 @@ public partial class PaymentTypesViewModel : ObservableObject
         _fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
         _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
 
+        // Initialize side panel view model
+        _sidePanelViewModel = new PaymentTypeSidePanelViewModel(paymentTypeService, layoutDirectionService);
+        _sidePanelViewModel.OnSave += OnPaymentTypeSaved;
+        _sidePanelViewModel.OnCancel += OnSidePanelCancelRequested;
+        _sidePanelViewModel.OnClose += OnSidePanelCancelRequested;
+
         // Initialize with current values
         CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
             ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
-
-        // Initialize ActiveFilterButtonText
-        UpdateActiveFilterButtonText();
 
         // Load payment types
         _ = Task.Run(LoadPaymentTypesAsync);
@@ -211,10 +202,8 @@ public partial class PaymentTypesViewModel : ObservableObject
     [RelayCommand]
     private void AddNew()
     {
-        CurrentPaymentType = new PaymentTypeDto { Status = true };
-        FormTitle = "Add Payment Type";
-        IsEditMode = true;
-        IsSidePanelOpen = true;
+        SidePanelViewModel.ResetForNew();
+        IsSidePanelVisible = true;
     }
 
     /// <summary>
@@ -225,17 +214,8 @@ public partial class PaymentTypesViewModel : ObservableObject
     {
         if (paymentType != null)
         {
-            CurrentPaymentType = new PaymentTypeDto
-            {
-                Id = paymentType.Id,
-                Name = paymentType.Name,
-                PaymentCode = paymentType.PaymentCode,
-                NameAr = paymentType.NameAr,
-                Status = paymentType.Status
-            };
-            FormTitle = "Edit Payment Type";
-            IsEditMode = true;
-            IsSidePanelOpen = true;
+            SidePanelViewModel.LoadPaymentType(paymentType);
+            IsSidePanelVisible = true;
         }
     }
 
@@ -280,135 +260,12 @@ public partial class PaymentTypesViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Command to save the current payment type
-    /// </summary>
-    [RelayCommand]
-    private async Task Save()
-    {
-        try
-        {
-            // Validate required fields
-            if (string.IsNullOrWhiteSpace(CurrentPaymentType.Name))
-            {
-                MessageBox.Show("Please enter a payment type name.", "Validation Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(CurrentPaymentType.PaymentCode))
-            {
-                MessageBox.Show("Please enter a payment code.", "Validation Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            IsLoading = true;
-
-            if (CurrentPaymentType.Id == 0)
-            {
-                // Creating new payment type
-                StatusMessage = "Creating payment type...";
-                
-                // Check if name already exists
-                if (await _paymentTypeService.ExistsAsync(CurrentPaymentType.Name))
-                {
-                    MessageBox.Show("A payment type with this name already exists.", "Validation Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                // Check if payment code already exists
-                if (await _paymentTypeService.PaymentCodeExistsAsync(CurrentPaymentType.PaymentCode))
-                {
-                    MessageBox.Show("A payment type with this payment code already exists.", "Validation Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                var createDto = new CreatePaymentTypeDto
-                {
-                    Name = CurrentPaymentType.Name,
-                    PaymentCode = CurrentPaymentType.PaymentCode,
-                    NameAr = CurrentPaymentType.NameAr,
-                    Status = CurrentPaymentType.Status,
-                    CreatedBy = 1 // Assuming user ID 1 for now
-                };
-
-                await _paymentTypeService.CreateAsync(createDto);
-                StatusMessage = "Payment type created successfully";
-            }
-            else
-            {
-                // Updating existing payment type
-                StatusMessage = "Updating payment type...";
-                
-                // Check if name already exists (excluding current item)
-                if (await _paymentTypeService.ExistsAsync(CurrentPaymentType.Name, CurrentPaymentType.Id))
-                {
-                    MessageBox.Show("A payment type with this name already exists.", "Validation Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                // Check if payment code already exists (excluding current item)
-                if (await _paymentTypeService.PaymentCodeExistsAsync(CurrentPaymentType.PaymentCode, CurrentPaymentType.Id))
-                {
-                    MessageBox.Show("A payment type with this payment code already exists.", "Validation Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                var updateDto = new UpdatePaymentTypeDto
-                {
-                    Id = CurrentPaymentType.Id,
-                    Name = CurrentPaymentType.Name,
-                    PaymentCode = CurrentPaymentType.PaymentCode,
-                    NameAr = CurrentPaymentType.NameAr,
-                    Status = CurrentPaymentType.Status,
-                    UpdatedBy = 1 // Assuming user ID 1 for now
-                };
-
-                await _paymentTypeService.UpdateAsync(updateDto);
-                StatusMessage = "Payment type updated successfully";
-            }
-
-            // Close the side panel and refresh the list
-            IsEditMode = false;
-            IsSidePanelOpen = false;
-            CurrentPaymentType = new PaymentTypeDto();
-            await LoadPaymentTypesAsync();
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Error saving payment type: {ex.Message}";
-            MessageBox.Show($"Error saving payment type: {ex.Message}", "Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-        finally
-        {
-            IsLoading = false;
-        }
-    }
-
-    /// <summary>
-    /// Command to cancel editing
-    /// </summary>
-    [RelayCommand]
-    private void Cancel()
-    {
-        IsEditMode = false;
-        IsSidePanelOpen = false;
-        CurrentPaymentType = new PaymentTypeDto();
-    }
-
-    /// <summary>
     /// Command to toggle active filter
     /// </summary>
     [RelayCommand]
     private void ToggleActiveFilter()
     {
-        ShowOnlyActive = !ShowOnlyActive;
-        UpdateActiveFilterButtonText();
+        ShowActiveOnly = !ShowActiveOnly;
         OnPropertyChanged(nameof(FilteredPaymentTypes));
     }
 
@@ -448,6 +305,7 @@ public partial class PaymentTypesViewModel : ObservableObject
             
             // Force refresh of filtered collection
             OnPropertyChanged(nameof(FilteredPaymentTypes));
+            OnPropertyChanged(nameof(HasPaymentTypes));
             
             StatusMessage = $"Loaded {paymentTypes.Count()} payment types";
         }
@@ -464,11 +322,20 @@ public partial class PaymentTypesViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Update the active filter button text
+    /// Handle payment type saved event from side panel
     /// </summary>
-    private void UpdateActiveFilterButtonText()
+    private async void OnPaymentTypeSaved()
     {
-        ActiveFilterButtonText = ShowOnlyActive ? "Show All" : "Active Only";
+        IsSidePanelVisible = false;
+        await LoadPaymentTypesAsync();
+    }
+
+    /// <summary>
+    /// Handle cancel request from side panel
+    /// </summary>
+    private void OnSidePanelCancelRequested()
+    {
+        IsSidePanelVisible = false;
     }
 
     #endregion
@@ -476,9 +343,9 @@ public partial class PaymentTypesViewModel : ObservableObject
     #region Property Changed Handlers
 
     /// <summary>
-    /// Handle changes to ShowOnlyActive property
+    /// Handle changes to ShowActiveOnly property
     /// </summary>
-    partial void OnShowOnlyActiveChanged(bool value)
+    partial void OnShowActiveOnlyChanged(bool value)
     {
         OnPropertyChanged(nameof(FilteredPaymentTypes));
     }
