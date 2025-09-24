@@ -174,13 +174,8 @@
     </UserControl.Resources>
 
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
-        </Grid.ColumnDefinitions>
-
-        <!-- Main Content -->
-        <Grid Grid.Column="0">
+        <!-- Main Content - Always full width -->
+        <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -450,34 +445,7 @@
         </Border>
         </Grid>
 
-        <!-- Side Panel for Add/Edit -->
-        <Grid Grid.Column="1" 
-              Width="{Binding IsSidePanelOpen, Converter={StaticResource BoolToGridLengthConverter}, ConverterParameter='500'}">
-            <Border Background="{DynamicResource SidePanelBackground}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1,0,0,0"
-                    Visibility="{Binding IsSidePanelOpen, Converter={StaticResource BoolToVisibilityConverter}}">
-                
-                <Grid Margin="20">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
 
-                    <!-- Panel Header -->
-                    <Grid Grid.Row="0" Margin="0,0,0,20">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <TextBlock Grid.Column="0"
-                                   Text="{Binding IsEditMode, Converter={x:Static converters:BooleanToStringConverter.Instance}, ConverterParameter='Edit Supplier;Add Supplier'}"
-                                   FontSize="{DynamicResource FontSizeMedium}"
-                                   FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimary}"
-                                   VerticalAlignment="Center"/>
 
                         <Button Grid.Column="1"
                                 Content="✕"
