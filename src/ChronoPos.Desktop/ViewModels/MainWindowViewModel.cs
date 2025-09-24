@@ -885,7 +885,10 @@ public partial class MainWindowViewModel : ObservableObject
             ChronoPos.Desktop.Services.FileLogger.Log("✅ ProductAttributeService retrieved successfully");
             
             ChronoPos.Desktop.Services.FileLogger.Log("🔧 Creating ProductAttributeViewModel");
-            var productAttributeViewModel = new ProductAttributeViewModel(productAttributeService);
+            var productAttributeViewModel = new ProductAttributeViewModel(
+                productAttributeService,
+                () => _ = ShowAddOptions() // Navigate back to Add Options
+            );
             ChronoPos.Desktop.Services.FileLogger.Log("✅ ProductAttributeViewModel created successfully");
             
             ChronoPos.Desktop.Services.FileLogger.Log("🔧 Creating ProductAttributeView");

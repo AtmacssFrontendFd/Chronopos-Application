@@ -97,8 +97,12 @@ namespace ChronoPos.Desktop.ViewModels
             _isEditMode = false;
             _editingAttributeId = 0;
 
+            FileLogger.Log("🔧 ProductAttributeSidePanelViewModel constructor started");
+            
             InitializeCollections();
             _ = LoadAvailableAttributesAsync();
+            
+            FileLogger.Log("🔧 ProductAttributeSidePanelViewModel constructor completed - CancelCommand should be available");
         }
 
         public ProductAttributeSidePanelViewModel(IProductAttributeService attributeService, ProductAttributeDto attribute)
@@ -171,6 +175,9 @@ namespace ChronoPos.Desktop.ViewModels
         {
             try
             {
+                IsLoading = true;
+                StatusMessage = "Loading attributes...";
+                
                 var attributes = await _attributeService.GetAllAttributesAsync();
                 
                 System.Windows.Application.Current.Dispatcher.Invoke(() =>
@@ -195,12 +202,18 @@ namespace ChronoPos.Desktop.ViewModels
                     {
                         SelectedAttributeForValue = AvailableAttributes.First();
                     }
+                    
+                    StatusMessage = "Ready";
                 });
             }
             catch (Exception ex)
             {
                 FileLogger.Log($"❌ Error loading attributes: {ex.Message}");
                 StatusMessage = $"Error loading attributes: {ex.Message}";
+            }
+            finally
+            {
+                IsLoading = false;
             }
         }
 
@@ -385,7 +398,36 @@ namespace ChronoPos.Desktop.ViewModels
         [RelayCommand]
         private void Cancel()
         {
-            CloseRequested?.Invoke(this, EventArgs.Empty);
+            try
+            {
+                FileLogger.Log("🔄 CANCEL COMMAND EXECUTED - Cancel button clicked - attempting to close side panel");
+                
+                // Reset any ongoing loading state
+                IsLoading = false;
+                StatusMessage = "Cancelled";
+                
+                FileLogger.Log($"🔄 CloseRequested event has {CloseRequested?.GetInvocationList().Length ?? 0} subscribers");
+                
+                // Trigger close event
+                CloseRequested?.Invoke(this, EventArgs.Empty);
+                
+                FileLogger.Log("✅ Close request event invoked successfully");
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Log($"❌ Error in Cancel command: {ex.Message}");
+                FileLogger.Log($"❌ Stack trace: {ex.StackTrace}");
+                
+                // Force the close event even if there's an error
+                try
+                {
+                    CloseRequested?.Invoke(this, EventArgs.Empty);
+                }
+                catch (Exception innerEx)
+                {
+                    FileLogger.Log($"❌ Error in fallback close request: {innerEx.Message}");
+                }
+            }
         }
 
         [RelayCommand]

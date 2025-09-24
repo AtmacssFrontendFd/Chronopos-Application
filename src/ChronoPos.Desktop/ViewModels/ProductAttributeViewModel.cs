@@ -13,6 +13,7 @@ namespace ChronoPos.Desktop.ViewModels
     public partial class ProductAttributeViewModel : ObservableObject
     {
         private readonly IProductAttributeService _attributeService;
+        private readonly Action? _navigateBack;
 
         [ObservableProperty]
         private ObservableCollection<ProductAttributeValueDto> _attributeValues = new();
@@ -79,10 +80,29 @@ namespace ChronoPos.Desktop.ViewModels
                 }
             }
         }
+        
+        public bool HasAttributeValues 
+        { 
+            get 
+            {
+                try
+                {
+                    var result = FilteredAttributeValues != null && FilteredAttributeValues.Count > 0;
+                    ChronoPos.Desktop.Services.FileLogger.Log($"🔄 HasAttributeValues accessed: {result} (Count: {FilteredAttributeValues?.Count ?? 0})");
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error in HasAttributeValues: {ex.Message}");
+                    return false;
+                }
+            }
+        }
 
-        public ProductAttributeViewModel(IProductAttributeService attributeService)
+        public ProductAttributeViewModel(IProductAttributeService attributeService, Action? navigateBack = null)
         {
             _attributeService = attributeService ?? throw new ArgumentNullException(nameof(attributeService));
+            _navigateBack = navigateBack;
             
             ChronoPos.Desktop.Services.FileLogger.Log("🔧 ProductAttributeViewModel constructor started");
 
@@ -156,6 +176,7 @@ namespace ChronoPos.Desktop.ViewModels
                 }
 
                 OnPropertyChanged(nameof(AttributeCountText));
+                OnPropertyChanged(nameof(HasAttributeValues));
                 ChronoPos.Desktop.Services.FileLogger.Log($"🔍 FilterAttributes completed - {FilteredAttributeValues.Count} filtered from {AttributeValues.Count} total");
             }
             catch (Exception ex)
@@ -192,6 +213,7 @@ namespace ChronoPos.Desktop.ViewModels
                         ChronoPos.Desktop.Services.FileLogger.Log("🔄 Calling FilterAttributes");
                         FilterAttributes();
                         OnPropertyChanged(nameof(AttributeCountText));
+                        OnPropertyChanged(nameof(HasAttributeValues));
                         ChronoPos.Desktop.Services.FileLogger.Log("🔄 UI update completed successfully");
                     }
                     catch (Exception dispatcherEx)
@@ -218,6 +240,8 @@ namespace ChronoPos.Desktop.ViewModels
                     {
                         AttributeValues.Clear();
                         FilteredAttributeValues.Clear();
+                        OnPropertyChanged(nameof(HasAttributeValues));
+                        OnPropertyChanged(nameof(AttributeCountText));
                     });
                     ChronoPos.Desktop.Services.FileLogger.Log("🔄 Cleared collections after error");
                 }
@@ -239,12 +263,16 @@ namespace ChronoPos.Desktop.ViewModels
             try
             {
                 var sidePanelViewModel = new ProductAttributeSidePanelViewModel(_attributeService);
+                FileLogger.Log("🔧 Subscribing to sidePanelViewModel events");
                 sidePanelViewModel.AttributeSaved += OnAttributeSaved;
                 sidePanelViewModel.CloseRequested += OnSidePanelCloseRequested;
+                FileLogger.Log("✅ Event subscriptions completed");
                 
                 // Create the view and set its DataContext
                 var sidePanelView = new ProductAttributeSidePanelView();
+                FileLogger.Log("🔧 Setting DataContext on sidePanelView");
                 sidePanelView.DataContext = sidePanelViewModel;
+                FileLogger.Log($"✅ DataContext set - Type: {sidePanelView.DataContext?.GetType().Name}");
                 
                 SidePanelContent = sidePanelView;
                 IsSidePanelVisible = true;
@@ -360,6 +388,31 @@ namespace ChronoPos.Desktop.ViewModels
             }
         }
 
+        [RelayCommand]
+        private void Back()
+        {
+            try
+            {
+                FileLogger.Log("🔄 Back button clicked - attempting to navigate back");
+                
+                if (_navigateBack != null)
+                {
+                    _navigateBack.Invoke();
+                    FileLogger.Log("✅ Navigation back completed successfully");
+                }
+                else
+                {
+                    StatusMessage = "Navigation back not configured.";
+                    FileLogger.Log("⚠️ Navigation back not configured");
+                }
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Log($"❌ Error in Back command: {ex.Message}");
+                StatusMessage = $"Error navigating back: {ex.Message}";
+            }
+        }
+
         private async void OnAttributeSaved(object? sender, EventArgs e)
         {
             try
@@ -379,17 +432,37 @@ namespace ChronoPos.Desktop.ViewModels
         {
             try
             {
-                IsSidePanelVisible = false;
-                SidePanelContent = null;
-                StatusMessage = "Ready";
+                FileLogger.Log("🔄 Side panel close requested - starting close process");
+                
+                // Ensure we're on UI thread
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    IsSidePanelVisible = false;
+                    SidePanelContent = null;
+                    StatusMessage = "Ready";
+                });
+                
                 FileLogger.Log("✅ Side panel closed successfully");
             }
             catch (Exception ex)
             {
                 FileLogger.Log($"❌ Error closing side panel: {ex.Message}");
-                // Still try to hide the panel
-                IsSidePanelVisible = false;
-                SidePanelContent = null;
+                FileLogger.Log($"❌ Stack trace: {ex.StackTrace}");
+                
+                // Force close even if there's an error
+                try
+                {
+                    System.Windows.Application.Current.Dispatcher.BeginInvoke(() =>
+                    {
+                        IsSidePanelVisible = false;
+                        SidePanelContent = null;
+                        StatusMessage = "Ready";
+                    });
+                }
+                catch (Exception innerEx)
+                {
+                    FileLogger.Log($"❌ Error in fallback close operation: {innerEx.Message}");
+                }
             }
         }
     }
