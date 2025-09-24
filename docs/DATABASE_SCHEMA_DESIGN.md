@@ -2077,7 +2077,7 @@ CREATE TABLE `shop_locations` (
 );
 
 CREATE TABLE `shop_location_translation_ar` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `id` int PRIMARY KEY AUTO_INCREMENT, 
   `shop_location_id` int NOT NULL,
   `language_id` int NOT NULL,
   `name_ar` varchar(100),

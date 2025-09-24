@@ -621,19 +621,186 @@ public class ProductService : IProductService
     
     public async Task<CategoryDto> UpdateCategoryAsync(CategoryDto categoryDto)
     {
-        var existingCategory = await _unitOfWork.Categories.GetByIdAsync(categoryDto.Id);
-        if (existingCategory == null)
-            throw new ArgumentException($"Category with ID {categoryDto.Id} not found.");
+        Log("=== UpdateCategoryAsync STARTED ===");
+        Log($"UpdateCategoryAsync - CategoryId: {categoryDto.Id}");
+        Log($"UpdateCategoryAsync - Name: '{categoryDto.Name}'");
+        Log($"UpdateCategoryAsync - NameArabic: '{categoryDto.NameArabic}'");
+        Log($"UpdateCategoryAsync - Description: '{categoryDto.Description}'");
+        Log($"UpdateCategoryAsync - IsActive: {categoryDto.IsActive}");
+        Log($"UpdateCategoryAsync - SelectedDiscountIds: [{string.Join(", ", categoryDto.SelectedDiscountIds ?? new List<int>())}]");
+
+        try
+        {
+            var existingCategory = await _unitOfWork.Categories.GetByIdAsync(categoryDto.Id);
+            if (existingCategory == null)
+            {
+                Log($"UpdateCategoryAsync - Category with ID {categoryDto.Id} not found");
+                throw new ArgumentException($"Category with ID {categoryDto.Id} not found.");
+            }
+
+            Log($"UpdateCategoryAsync - Found existing category: '{existingCategory.Name}'");
+                
+            existingCategory.Name = categoryDto.Name;
+            existingCategory.Description = categoryDto.Description;
+            existingCategory.IsActive = categoryDto.IsActive;
+            existingCategory.UpdatedAt = DateTime.UtcNow;
             
-        existingCategory.Name = categoryDto.Name;
-        existingCategory.Description = categoryDto.Description;
-        existingCategory.IsActive = categoryDto.IsActive;
-        existingCategory.UpdatedAt = DateTime.UtcNow;
+            Log("UpdateCategoryAsync - Updating basic category properties");
+            await _unitOfWork.Categories.UpdateAsync(existingCategory);
+            await _unitOfWork.SaveChangesAsync();
+            Log("UpdateCategoryAsync - Basic category update saved");
+
+            // Handle Arabic translation
+            if (!string.IsNullOrWhiteSpace(categoryDto.NameArabic))
+            {
+                Log($"UpdateCategoryAsync - Processing Arabic translation: '{categoryDto.NameArabic}'");
+                await UpdateCategoryTranslationAsync(categoryDto.Id, categoryDto.NameArabic, categoryDto.Description);
+            }
+            else
+            {
+                Log("UpdateCategoryAsync - No Arabic translation provided");
+            }
+
+            // Handle discount mappings
+            if (categoryDto.SelectedDiscountIds != null && categoryDto.SelectedDiscountIds.Any())
+            {
+                Log($"UpdateCategoryAsync - Processing discount mappings: [{string.Join(", ", categoryDto.SelectedDiscountIds)}]");
+                await UpdateCategoryDiscountsAsync(categoryDto.Id, categoryDto.SelectedDiscountIds);
+            }
+            else
+            {
+                Log("UpdateCategoryAsync - No discount mappings provided, clearing existing discounts");
+                await UpdateCategoryDiscountsAsync(categoryDto.Id, new List<int>());
+            }
+
+            Log("UpdateCategoryAsync - Mapping result to DTO");
+            var result = MapCategoryToDto(existingCategory);
+            Log($"UpdateCategoryAsync - Final result NameArabic: '{result.NameArabic}'");
+            Log($"UpdateCategoryAsync - Final result SelectedDiscountIds: [{string.Join(", ", result.SelectedDiscountIds ?? new List<int>())}]");
+            
+            Log("=== UpdateCategoryAsync COMPLETED SUCCESSFULLY ===");
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Log($"=== UpdateCategoryAsync FAILED ===");
+            Log($"ERROR: {ex.Message}");
+            Log($"STACK TRACE: {ex.StackTrace}");
+            throw;
+        }
+    }
+
+    private async Task UpdateCategoryTranslationAsync(int categoryId, string nameArabic, string description)
+    {
+        Log($"UpdateCategoryTranslationAsync - CategoryId: {categoryId}, NameArabic: '{nameArabic}'");
         
-        await _unitOfWork.Categories.UpdateAsync(existingCategory);
-        await _unitOfWork.SaveChangesAsync();
+        if (string.IsNullOrWhiteSpace(nameArabic))
+        {
+            Log("UpdateCategoryTranslationAsync - No Arabic name provided, skipping");
+            return;
+        }
+
+        try
+        {
+            // Get category with translations
+            var category = await _unitOfWork.Categories.GetByIdAsync(categoryId);
+            if (category == null)
+            {
+                Log($"UpdateCategoryTranslationAsync - Category {categoryId} not found");
+                return;
+            }
+
+            Log($"UpdateCategoryTranslationAsync - Category found, existing translations count: {category.CategoryTranslations?.Count ?? 0}");
+
+            // Initialize translations collection if null
+            if (category.CategoryTranslations == null)
+            {
+                category.CategoryTranslations = new List<Domain.Entities.CategoryTranslation>();
+                Log("UpdateCategoryTranslationAsync - Initialized empty translations collection");
+            }
+
+            // Check if Arabic translation already exists
+            var existingArabicTranslation = category.CategoryTranslations.FirstOrDefault(t => t.LanguageCode == "ar");
+            
+            if (existingArabicTranslation != null)
+            {
+                Log($"UpdateCategoryTranslationAsync - Updating existing Arabic translation from '{existingArabicTranslation.Name}' to '{nameArabic}'");
+                existingArabicTranslation.Name = nameArabic;
+                existingArabicTranslation.Description = description ?? string.Empty;
+            }
+            else
+            {
+                Log("UpdateCategoryTranslationAsync - Creating new Arabic translation");
+                var newTranslation = new Domain.Entities.CategoryTranslation
+                {
+                    CategoryId = categoryId,
+                    LanguageCode = "ar",
+                    Name = nameArabic,
+                    Description = description ?? string.Empty,
+                    CreatedAt = DateTime.UtcNow
+                };
+                category.CategoryTranslations.Add(newTranslation);
+            }
+
+            Log("UpdateCategoryTranslationAsync - Saving translation changes");
+            await _unitOfWork.SaveChangesAsync();
+            Log("UpdateCategoryTranslationAsync - Translation saved successfully");
+        }
+        catch (Exception ex)
+        {
+            Log($"UpdateCategoryTranslationAsync ERROR: {ex.Message}");
+            Log($"UpdateCategoryTranslationAsync STACK TRACE: {ex.StackTrace}");
+            // Don't throw - just log the error so the main operation can continue
+        }
+    }
+
+    private async Task UpdateCategoryDiscountsAsync(int categoryId, List<int> discountIds)
+    {
+        Log($"UpdateCategoryDiscountsAsync - CategoryId: {categoryId}, DiscountIds: [{string.Join(", ", discountIds ?? new List<int>())}]");
         
-        return MapCategoryToDto(existingCategory);
+        try
+        {
+            // First remove existing mappings for this category
+            Log("UpdateCategoryDiscountsAsync - Getting existing discount mappings");
+            var existingMappings = await _unitOfWork.CategoryDiscounts.GetActiveDiscountsByCategoryIdAsync(categoryId);
+            Log($"UpdateCategoryDiscountsAsync - Found {existingMappings.Count()} existing mappings");
+
+            foreach (var mapping in existingMappings)
+            {
+                mapping.DeletedAt = DateTime.UtcNow;
+                Log($"UpdateCategoryDiscountsAsync - Marked mapping ID {mapping.Id} (DiscountId: {mapping.DiscountsId}) as deleted");
+            }
+
+            // Add new mappings if provided
+            if (discountIds != null && discountIds.Any())
+            {
+                Log($"UpdateCategoryDiscountsAsync - Creating {discountIds.Count} new mappings");
+                var newMappings = discountIds.Select(discountId => new Domain.Entities.CategoryDiscount
+                {
+                    CategoryId = categoryId,
+                    DiscountsId = discountId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                }).ToList();
+
+                await _unitOfWork.CategoryDiscounts.AddRangeAsync(newMappings);
+                Log($"UpdateCategoryDiscountsAsync - Added {newMappings.Count} new mappings");
+            }
+            else
+            {
+                Log("UpdateCategoryDiscountsAsync - No new discount mappings to create");
+            }
+
+            Log("UpdateCategoryDiscountsAsync - Saving discount mapping changes");
+            await _unitOfWork.SaveChangesAsync();
+            Log("UpdateCategoryDiscountsAsync - Discount mappings saved successfully");
+        }
+        catch (Exception ex)
+        {
+            Log($"UpdateCategoryDiscountsAsync ERROR: {ex.Message}");
+            Log($"UpdateCategoryDiscountsAsync STACK TRACE: {ex.StackTrace}");
+            // Don't throw - just log the error so the main operation can continue
+        }
     }
     
     public async Task DeleteCategoryAsync(int id)
@@ -936,6 +1103,8 @@ public class ProductService : IProductService
             ParentCategoryName = category.ParentCategory?.Name ?? string.Empty,
             DisplayOrder = category.DisplayOrder,
             ProductCount = category.Products?.Count ?? 0,
+            // Load Arabic translation if available
+            NameArabic = category.CategoryTranslations?.FirstOrDefault(t => t.LanguageCode == "ar")?.Name ?? string.Empty,
             SelectedDiscountIds = category.CategoryDiscounts?.Where(cd => cd.DeletedAt == null)
                                                              .Select(cd => cd.DiscountsId)
                                                              .ToList() ?? new List<int>()

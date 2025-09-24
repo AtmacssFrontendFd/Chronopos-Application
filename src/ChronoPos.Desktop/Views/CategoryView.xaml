@@ -1,0 +1,415 @@
+<UserControl x:Class="ChronoPos.Desktop.Views.CategoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ChronoPos.Desktop.Views.Controls"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             xmlns:userControls="clr-namespace:ChronoPos.Desktop.UserControls"
+             mc:Ignorable="d" 
+             Background="{DynamicResource MainBackground}"
+             FlowDirection="{Binding CurrentFlowDirection}"
+             FontFamily="{DynamicResource PoppinsFontFallback}">
+
+    <UserControl.Resources>
+        <!-- Converters -->
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+        <converters:FlowDirectionToGridColumnConverter x:Key="FlowDirectionToGridColumnConverter"/>
+        <converters:FlowDirectionToHorizontalAlignmentConverter x:Key="FlowDirectionToHorizontalAlignmentConverter"/>
+        <converters:BoolToGridLengthConverter x:Key="BoolToGridLengthConverter"/>
+
+        <!-- Button Style -->
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Primary}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryDark}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryDarker}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Small Action Button Style -->
+        <Style x:Key="SmallActionButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeExtraSmall}"/>
+            <Setter Property="MinWidth" Value="60"/>
+        </Style>
+
+        <!-- TreeView Item Style -->
+        <Style x:Key="CategoryTreeViewItemStyle" TargetType="TreeViewItem">
+            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TreeViewItem">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Category Item Content -->
+                            <Border Grid.Row="0" 
+                                    Background="{DynamicResource CardBackground}"
+                                    BorderBrush="{DynamicResource BorderLight}"
+                                    BorderThickness="1"
+                                    CornerRadius="{DynamicResource BorderCornerRadius}"
+                                    Margin="2"
+                                    Padding="12,8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Expand/Collapse Toggle -->
+                                    <Button Grid.Column="0"
+                                            x:Name="Expander"
+                                            Command="{Binding ToggleExpandCommand}"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Width="20"
+                                            Height="20"
+                                            Margin="0,0,8,0"
+                                            Visibility="{Binding HasSubCategories, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <TextBlock x:Name="ExpanderText" 
+                                                   Text="▶" 
+                                                   FontSize="12"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextSecondary}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                                            <Setter Property="Text" Value="▼"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Button>
+
+                                    <!-- Category Info -->
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <!-- Category Name -->
+                                        <TextBlock Text="{Binding Name}" 
+                                                   FontWeight="SemiBold"
+                                                   FontSize="{DynamicResource FontSizeMedium}"
+                                                   Foreground="{DynamicResource TextPrimary}"
+                                                   Margin="0,0,12,0"
+                                                   VerticalAlignment="Center"/>
+                                        
+                                        <!-- Discount Pills -->
+                                        <ItemsControl ItemsSource="{Binding DiscountPills}" 
+                                                     VerticalAlignment="Center">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="#E3F2FD" 
+                                                           CornerRadius="10" 
+                                                           Padding="8,3"
+                                                           Margin="0,0,6,0">
+                                                        <TextBlock Text="{Binding}" 
+                                                                  FontSize="10" 
+                                                                  Foreground="#1976D2"
+                                                                  FontWeight="Medium"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+
+                                    <!-- Action Buttons -->
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="8,0,0,0">
+                                        <Button Content="Edit" 
+                                                Style="{StaticResource SmallActionButtonStyle}"
+                                                Command="{Binding DataContext.EditCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                Background="{DynamicResource WarningBrush}"
+                                                Margin="2,0"/>
+                                        <Button Content="Add Sub" 
+                                                Style="{StaticResource SmallActionButtonStyle}"
+                                                Command="{Binding DataContext.AddSubCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                Background="{DynamicResource SuccessBrush}"
+                                                Margin="2,0"/>
+                                        <Button Content="Delete" 
+                                                Style="{StaticResource SmallActionButtonStyle}"
+                                                Command="{Binding DataContext.DeleteCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                Background="{DynamicResource DangerBrush}"
+                                                Margin="2,0"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <!-- Subcategories -->
+                            <ItemsPresenter Grid.Row="1" 
+                                            Margin="20,0,0,0"
+                                            Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <!-- Main Content - Always full width -->
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Grid Grid.Row="0" Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Back Button and Title -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Back Button -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
+                                        <Setter Property="FlowDirection" Value="LeftToRight"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <controls:CircularBackButton 
+                            Command="{Binding BackCommand}"
+                            Width="{DynamicResource ButtonHeight}"
+                            Height="{DynamicResource ButtonHeight}"
+                            Margin="0,0,10,0"/>
+                    </StackPanel>
+
+                    <!-- Title -->
+                    <TextBlock Text="Category Management" 
+                               FontSize="{DynamicResource FontSizeLarge}"
+                               FontWeight="Bold"
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource TextPrimary}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Add Category Button -->
+                <Button Grid.Column="1"
+                        Content="+ Add Category"
+                        Style="{StaticResource ActionButtonStyle}"
+                        Command="{Binding AddCategoryCommand}"/>
+            </Grid>
+
+            <!-- Search and Filters -->
+            <Grid Grid.Row="1" Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Search Box -->
+                <Border Grid.Column="0"
+                        Background="{DynamicResource CardBackground}"
+                        BorderBrush="{DynamicResource BorderLight}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource BorderCornerRadius}"
+                        Padding="12,8">
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             FontSize="{DynamicResource FontSizeMedium}"
+                             Foreground="{DynamicResource TextPrimary}"
+                             VerticalAlignment="Center">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox">
+                                <Style.Triggers>
+                                    <Trigger Property="Text" Value="">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+                </Border>
+
+                <!-- Filter Button -->
+                <Button Grid.Column="1"
+                        Content="Filter"
+                        Style="{StaticResource ActionButtonStyle}"
+                        Command="{Binding FilterCommand}"
+                        Background="Transparent"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource BorderLight}"
+                        BorderThickness="1"
+                        Margin="10,0,0,0"/>
+
+                <!-- Refresh Button -->
+                <Button Grid.Column="2"
+                        Content="Refresh"
+                        Style="{StaticResource ActionButtonStyle}"
+                        Command="{Binding RefreshDataCommand}"
+                        Background="Transparent"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource BorderLight}"
+                        BorderThickness="1"
+                        Margin="10,0,0,0"/>
+            </Grid>
+
+            <!-- Categories Tree View -->
+            <ScrollViewer Grid.Row="2" 
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Auto"
+                          CanContentScroll="True"
+                          PanningMode="Both">
+                <TreeView ItemsSource="{Binding HierarchicalCategories}"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          ScrollViewer.CanContentScroll="False"
+                          PreviewMouseWheel="TreeView_PreviewMouseWheel">
+                    <TreeView.ItemContainerStyle>
+                        <Style TargetType="TreeViewItem" BasedOn="{StaticResource CategoryTreeViewItemStyle}"/>
+                    </TreeView.ItemContainerStyle>
+                    <TreeView.ItemTemplate>
+                        <HierarchicalDataTemplate ItemsSource="{Binding SubCategories}">
+                            <ContentPresenter Content="{Binding}"/>
+                        </HierarchicalDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+            </ScrollViewer>
+
+            <!-- Status Bar -->
+            <Grid Grid.Row="3" Margin="0,20,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="{Binding StatusMessage}"
+                           FontSize="{DynamicResource FontSizeSmall}"
+                           Foreground="{DynamicResource TextSecondary}"
+                           VerticalAlignment="Center"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock Text="Total: "
+                               FontSize="{DynamicResource FontSizeSmall}"
+                               Foreground="{DynamicResource TextSecondary}"/>
+                    <TextBlock Text="{Binding TotalCategories}"
+                               FontSize="{DynamicResource FontSizeSmall}"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource Primary}"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Loading Indicator -->
+            <Grid Grid.Row="0" Grid.RowSpan="4"
+                  Background="#88000000"
+                  Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <ProgressBar IsIndeterminate="True" 
+                                 Width="200" 
+                                 Height="6" 
+                                 Background="{DynamicResource BorderLight}"
+                                 Foreground="{DynamicResource Primary}"/>
+                    <TextBlock Text="Loading categories..." 
+                               FontSize="{DynamicResource FontSizeMedium}"
+                               Foreground="White"
+                               HorizontalAlignment="Center"
+                               Margin="0,10,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+
+        <!-- Side Panel Overlay - Direct child of root Grid for proper z-index -->
+        <Border HorizontalAlignment="Right"
+                VerticalAlignment="Stretch"
+                Width="400"
+                Background="{DynamicResource CardBackground}"
+                BorderThickness="1,0,0,0"
+                BorderBrush="{DynamicResource BorderLight}"
+                Panel.ZIndex="1000"
+                Visibility="{Binding IsSidePanelVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="SidePanelTransform"/>
+            </Border.RenderTransform>
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsSidePanelVisible}" Value="True">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
+                                                       From="400" To="0" Duration="0:0:0.3">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.EnterActions>
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
+                                                       From="0" To="400" Duration="0:0:0.2">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseIn"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Border.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="12" Opacity="0.3" Direction="180"/>
+            </Border.Effect>
+            <userControls:CategorySidePanelControl DataContext="{Binding SidePanelViewModel}"/>
+        </Border>
+    </Grid>
+</UserControl>

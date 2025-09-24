@@ -18,7 +18,7 @@ public interface IUnitOfWork : IDisposable
     /// <summary>
     /// Category repository
     /// </summary>
-    IRepository<ChronoPos.Domain.Entities.Category> Categories { get; }
+    ICategoryRepository Categories { get; }
     
     /// <summary>
     /// Customer repository

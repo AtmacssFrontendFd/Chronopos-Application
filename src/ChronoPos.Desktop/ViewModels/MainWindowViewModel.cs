@@ -6,6 +6,7 @@ using ChronoPos.Application.DTOs;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.Views;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ChronoPos.Infrastructure.Services;
 using System.Windows;
 using System.Collections.ObjectModel;
@@ -1235,6 +1236,9 @@ public partial class MainWindowViewModel : ObservableObject
                     case "Brand":
                         _ = ShowBrand();
                         break;
+                    case "Category":
+                        _ = ShowCategory();
+                        break;
                     case "Discounts":
                         _ = ShowDiscounts();
                         break;
@@ -1414,6 +1418,47 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error loading brand management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowCategory()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Category Management";
+        StatusMessage = "Loading category management...";
+        
+        try
+        {
+            // Create the CategoryViewModel with all required services and navigation callback
+            var categoryViewModel = new CategoryViewModel(
+                _serviceProvider.GetRequiredService<IProductService>(),
+                _serviceProvider.GetRequiredService<IDiscountService>(),
+                _serviceProvider,
+                _serviceProvider.GetRequiredService<ILogger<CategoryViewModel>>(),
+                navigateBack: () => ShowAddOptionsCommand.Execute(null)
+            );
+
+            // Create the CategoryView and set its DataContext
+            var categoryView = new CategoryView
+            {
+                DataContext = categoryViewModel
+            };
+
+            CurrentView = categoryView;
+            StatusMessage = "Category management loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading category management: {ex.Message}";
             var errorContent = new System.Windows.Controls.TextBlock
             {
                 Text = $"Error: {ex.Message}",

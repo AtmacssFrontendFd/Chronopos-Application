@@ -217,6 +217,8 @@ public partial class App : System.Windows.Application
                     LogMessage("ProductCombinationViewModel registered as Transient");
                     services.AddTransient<ProductCombinationSidePanelViewModel>();
                     LogMessage("ProductCombinationSidePanelViewModel registered as Transient");
+                    services.AddTransient<CategorySidePanelViewModel>();
+                    LogMessage("CategorySidePanelViewModel registered as Transient");
         
                     // Register Views - MainWindow as Singleton to match ViewModel
                     services.AddSingleton<MainWindow>();
