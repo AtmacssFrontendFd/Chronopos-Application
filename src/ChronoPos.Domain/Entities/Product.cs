@@ -76,14 +76,14 @@ public class Product
     public string? SKU { get; set; }
     
     // Measurement & Packaging
-    public int UnitOfMeasurementId { get; set; } = 1; // Default to first UOM (pcs)
+    public long UnitOfMeasurementId { get; set; } = 1; // Default to first UOM (pcs)
     public virtual UnitOfMeasurement? UnitOfMeasurement { get; set; }
     
     // Purchase and Selling Units (can be different from base UOM)
-    public int? PurchaseUnitId { get; set; }
+    public long? PurchaseUnitId { get; set; }
     public virtual UnitOfMeasurement? PurchaseUnit { get; set; }
     
-    public int? SellingUnitId { get; set; }
+    public long? SellingUnitId { get; set; }
     public virtual UnitOfMeasurement? SellingUnit { get; set; }
     
     // Product Grouping
@@ -100,6 +100,7 @@ public class Product
     public virtual ICollection<ProductComment> ProductComments { get; set; } = new List<ProductComment>();
     public virtual ICollection<ProductTax> ProductTaxes { get; set; } = new List<ProductTax>();
     public virtual ICollection<ProductDiscount> ProductDiscounts { get; set; } = new List<ProductDiscount>();
+    public virtual ICollection<ProductUnit> ProductUnits { get; set; } = new List<ProductUnit>();
     public virtual ICollection<StockTransaction> StockTransactions { get; set; } = new List<StockTransaction>();
     public virtual ICollection<StockAlert> StockAlerts { get; set; } = new List<StockAlert>();
     public virtual ICollection<StockLevel> StockLevels { get; set; } = new List<StockLevel>();

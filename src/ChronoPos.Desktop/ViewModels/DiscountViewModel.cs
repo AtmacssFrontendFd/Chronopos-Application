@@ -6,6 +6,8 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using ChronoPos.Desktop.Services;
 using InfrastructureServices = ChronoPos.Infrastructure.Services;
+using System.Windows.Controls;
+using System.Windows.Documents;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -248,7 +250,7 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private async void EditDiscount(DiscountDto? discount)
+    private async Task EditDiscount(DiscountDto? discount)
     {
         if (discount != null)
         {
@@ -392,57 +394,80 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
 
     [RelayCommand]
     private void PrintCoupon(DiscountDto? discount)
+{
+    if (discount == null) return;
+
+    try
     {
-        if (discount == null) return;
-
-        try
+        // Create a styled FlowDocument
+        var document = new FlowDocument
         {
-            // Create coupon content
-            var couponContent = $@"
-╔══════════════════════════════════════╗
-║              DISCOUNT COUPON         ║
-╠══════════════════════════════════════╣
-║                                      ║
-║  {discount.DiscountName,-34}  ║
-║                                      ║
-║  Code: {discount.DiscountCode,-27}  ║
-║                                      ║
-║  Value: {discount.FormattedDiscountValue,-26}  ║
-║                                      ║
-║  {discount.DiscountDescription,-34}  ║
-║                                      ║
-║  Valid: {discount.StartDate:MM/dd/yyyy} - {discount.EndDate:MM/dd/yyyy}   ║
-║                                      ║
-║  Terms and conditions apply          ║
-║                                      ║
-╚══════════════════════════════════════╝
-";
+            FontFamily = new System.Windows.Media.FontFamily("Segoe UI"),
+            FontSize = 14,
+            PagePadding = new Thickness(40),
+            TextAlignment = TextAlignment.Center
+        };
 
-            // Show print dialog with coupon content
-            var printDialog = new System.Windows.Controls.PrintDialog();
-            if (printDialog.ShowDialog() == true)
-            {
-                var document = new System.Windows.Documents.FlowDocument();
-                var paragraph = new System.Windows.Documents.Paragraph();
-                paragraph.Inlines.Add(new System.Windows.Documents.Run(couponContent)
-                {
-                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
-                    FontSize = 12
-                });
-                document.Blocks.Add(paragraph);
-                
-                var paginator = ((System.Windows.Documents.IDocumentPaginatorSource)document).DocumentPaginator;
-                printDialog.PrintDocument(paginator, $"Discount Coupon - {discount.DiscountCode}");
-                
-                StatusMessage = $"Coupon printed for {discount.DiscountName}";
-            }
-        }
-        catch (Exception ex)
+        // Border container
+        var border = new Border
         {
-            StatusMessage = $"Error printing coupon: {ex.Message}";
-            MessageBox.Show($"Error printing coupon: {ex.Message}", "Print Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            BorderBrush = System.Windows.Media.Brushes.Black,
+            BorderThickness = new Thickness(2),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(20),
+            Margin = new Thickness(10)
+        };
+
+        // Stack content inside
+        var stackPanel = new StackPanel();
+
+        // Title
+        var title = new Paragraph(new Run("DISCOUNT COUPON"))
+        {
+            FontSize = 20,
+            FontWeight = FontWeights.Bold,
+            TextAlignment = TextAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 20)
+        };
+        stackPanel.Children.Add(new TextBlock
+        {
+            Text = "DISCOUNT COUPON",
+            FontSize = 24,
+            FontWeight = FontWeights.Bold,
+            Foreground = System.Windows.Media.Brushes.DarkBlue,
+            TextAlignment = TextAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 20)
+        });
+
+        // Details
+        stackPanel.Children.Add(new TextBlock { Text = $" {discount.DiscountName}", FontSize = 16, Margin = new Thickness(0, 5, 0, 5) });
+        stackPanel.Children.Add(new TextBlock { Text = $"Code: {discount.DiscountCode}", FontSize = 16, Margin = new Thickness(0, 5, 0, 5) });
+        stackPanel.Children.Add(new TextBlock { Text = $"Value: {discount.FormattedDiscountValue}", FontSize = 16, Margin = new Thickness(0, 5, 0, 5) });
+        stackPanel.Children.Add(new TextBlock { Text = $"{discount.DiscountDescription}", FontSize = 14, FontStyle = FontStyles.Italic, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 10) });
+        stackPanel.Children.Add(new TextBlock { Text = $"Valid: {discount.StartDate:MM/dd/yyyy} - {discount.EndDate:MM/dd/yyyy}", FontSize = 14, Margin = new Thickness(0, 5, 0, 15) });
+        stackPanel.Children.Add(new TextBlock { Text = "Terms and conditions apply", FontSize = 12, Foreground = System.Windows.Media.Brushes.Gray });
+
+        border.Child = stackPanel;
+
+        // Convert Border into BlockUIContainer
+        var container = new BlockUIContainer(border);
+        document.Blocks.Add(container);
+
+        // Print
+        var printDialog = new System.Windows.Controls.PrintDialog();
+        if (printDialog.ShowDialog() == true)
+        {
+            var paginator = ((IDocumentPaginatorSource)document).DocumentPaginator;
+            printDialog.PrintDocument(paginator, $"Discount Coupon - {discount.DiscountCode}");
+            StatusMessage = $"Coupon printed for {discount.DiscountName}";
         }
     }
+    catch (Exception ex)
+    {
+        StatusMessage = $"Error printing coupon: {ex.Message}";
+        MessageBox.Show($"Error printing coupon: {ex.Message}", "Print Error", MessageBoxButton.OK, MessageBoxImage.Error);
+    }
+}
 
     #endregion
 

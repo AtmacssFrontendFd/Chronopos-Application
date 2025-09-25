@@ -77,9 +77,9 @@ public class BrandService : IBrandService
         var brand = new Brand
         {
             Name = createBrandDto.Name.Trim(),
-            NameArabic = createBrandDto.NameArabic.Trim(),
-            Description = createBrandDto.Description.Trim(),
-            LogoUrl = createBrandDto.LogoUrl.Trim(),
+            NameArabic = createBrandDto.NameArabic?.Trim(),
+            Description = createBrandDto.Description?.Trim(),
+            LogoUrl = createBrandDto.LogoUrl?.Trim(),
             IsActive = createBrandDto.IsActive,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -112,9 +112,9 @@ public class BrandService : IBrandService
         }
 
         brand.Name = updateBrandDto.Name.Trim();
-        brand.NameArabic = updateBrandDto.NameArabic.Trim();
-        brand.Description = updateBrandDto.Description.Trim();
-        brand.LogoUrl = updateBrandDto.LogoUrl.Trim();
+        brand.NameArabic = updateBrandDto.NameArabic?.Trim();
+        brand.Description = updateBrandDto.Description?.Trim();
+        brand.LogoUrl = updateBrandDto.LogoUrl?.Trim();
         brand.IsActive = updateBrandDto.IsActive;
         brand.UpdatedAt = DateTime.UtcNow;
 

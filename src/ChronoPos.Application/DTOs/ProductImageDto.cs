@@ -11,6 +11,16 @@ public class ProductImageDto
     
     public int ProductId { get; set; }
     
+    /// <summary>
+    /// Optional ProductUnit ID - allows images to be specific to a product unit (UOM)
+    /// </summary>
+    public int? ProductUnitId { get; set; }
+    
+    /// <summary>
+    /// Optional ProductGroup ID - allows images to be associated with product groups
+    /// </summary>
+    public int? ProductGroupId { get; set; }
+    
     [Required]
     public string ImageUrl { get; set; } = string.Empty;
     
@@ -24,6 +34,10 @@ public class ProductImageDto
     public DateTime CreatedAt { get; set; }
     
     public DateTime UpdatedAt { get; set; }
+    
+    // Navigation properties for UI
+    public string? ProductUnitName { get; set; }
+    public string? ProductUnitSku { get; set; }
     
     // For UI binding
     public bool IsNew { get; set; } = true;

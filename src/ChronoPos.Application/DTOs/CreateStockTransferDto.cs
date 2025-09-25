@@ -18,7 +18,7 @@ public class CreateStockTransferDto
 public class CreateStockTransferItemDto
 {
     public int ProductId { get; set; }
-    public int UomId { get; set; }
+    public long UomId { get; set; }
     public string? BatchNo { get; set; }
     public DateTime? ExpiryDate { get; set; }
     public decimal QuantitySent { get; set; }

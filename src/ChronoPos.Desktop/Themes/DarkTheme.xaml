@@ -63,6 +63,8 @@
     <!-- Accents -->
     <SolidColorBrush x:Key="Primary" Color="#E1AF23"/>
     <SolidColorBrush x:Key="PrimaryAlt" Color="#FFBD0F"/>
+    <SolidColorBrush x:Key="PrimaryDark" Color="#C19A1F"/>
+    <SolidColorBrush x:Key="PrimaryDarker" Color="#A8841C"/>
     <SolidColorBrush x:Key="Secondary" Color="#FF5099"/>
     <SolidColorBrush x:Key="Success" Color="#37D101"/>
     <SolidColorBrush x:Key="Info" Color="#339EA5"/>

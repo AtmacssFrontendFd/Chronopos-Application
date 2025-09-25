@@ -67,11 +67,27 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IBrandRepository, BrandRepository>();
                     LogMessage("BrandRepository registered as Transient");
                     
+                    services.AddTransient<IStoreRepository, StoreRepository>();
+                    LogMessage("StoreRepository registered as Transient");
+                    
                     services.AddTransient<IProductImageRepository, ProductImageRepository>();
                     LogMessage("ProductImageRepository registered as Transient");
 
+                    services.AddTransient<IProductBarcodeRepository, ProductBarcodeRepository>();
+                    LogMessage("ProductBarcodeRepository registered as Transient");
+
                     services.AddTransient<IDiscountRepository, DiscountRepository>();
                     LogMessage("DiscountRepository registered as Transient");
+
+                    // Register Product Attribute repositories
+                    services.AddTransient<IProductAttributeRepository, ProductAttributeRepository>();
+                    LogMessage("ProductAttributeRepository registered as Transient");
+                    
+                    services.AddTransient<IProductAttributeValueRepository, ProductAttributeValueRepository>();
+                    LogMessage("ProductAttributeValueRepository registered as Transient");
+
+                    services.AddTransient<IProductCombinationItemRepository, ProductCombinationItemRepository>();
+                    LogMessage("ProductCombinationItemRepository registered as Transient");
 
                     // Register application services as Transient to ensure fresh DbContext instances
                     services.AddTransient<IProductService, ProductService>();
@@ -83,12 +99,34 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IBrandService, BrandService>();
                     LogMessage("BrandService registered as Transient");
                     
+                    services.AddTransient<IStoreService, StoreService>();
+                    LogMessage("StoreService registered as Transient");
+                    
                     services.AddTransient<IProductImageService, ProductImageService>();
                     LogMessage("ProductImageService registered as Transient");
+
+                    services.AddTransient<IProductBarcodeService, ProductBarcodeService>();
+                    LogMessage("ProductBarcodeService registered as Transient");
 
                     // Register TaxType service
                     services.AddTransient<ITaxTypeService, TaxTypeService>();
                     LogMessage("TaxTypeService registered as Transient");
+                    
+                    // Register Customer service
+                    services.AddTransient<ICustomerService, CustomerService>();
+                    LogMessage("CustomerService registered as Transient");
+                    
+                    // Register Supplier service
+                    services.AddTransient<ISupplierService, SupplierService>();
+                    LogMessage("SupplierService registered as Transient");
+                    
+                    // Register SellingPriceType service
+                    services.AddTransient<ISellingPriceTypeService, SellingPriceTypeService>();
+                    LogMessage("SellingPriceTypeService registered as Transient");
+                    
+                    // Register PaymentType service
+                    services.AddTransient<IPaymentTypeService, PaymentTypeService>();
+                    LogMessage("PaymentTypeService registered as Transient");
                     
                     // Register logging service
                     services.AddSingleton<ILoggingService, ApplicationLoggingService>();
@@ -108,6 +146,29 @@ public partial class App : System.Windows.Application
                     // Register discount service
                     services.AddTransient<IDiscountService, DiscountService>();
                     LogMessage("DiscountService registered as Transient");
+
+                    // Register UOM service and repository
+                    services.AddTransient<IUomRepository, UomRepository>();
+                    LogMessage("UomRepository registered as Transient");
+                    services.AddTransient<IUomService, UomService>();
+                    LogMessage("UomService registered as Transient");
+
+                    // Register ProductUnit service and repository
+                    services.AddTransient<IProductUnitRepository, ProductUnitRepository>();
+                    LogMessage("ProductUnitRepository registered as Transient");
+                    services.AddTransient<IProductUnitService, ProductUnitService>();
+                    LogMessage("ProductUnitService registered as Transient");
+
+                    // Register SKU Generation service
+                    services.AddTransient<ISkuGenerationService, SkuGenerationService>();
+                    LogMessage("SkuGenerationService registered as Transient");
+
+                    // Register Product Attribute service
+                    services.AddTransient<IProductAttributeService, ProductAttributeService>();
+                    LogMessage("ProductAttributeService registered as Transient");
+                    
+                    services.AddTransient<IProductCombinationItemService, ProductCombinationItemService>();
+                    LogMessage("ProductCombinationItemService registered as Transient");
                     
                     // Register theme service
                     services.AddSingleton<IThemeService, ThemeService>();
@@ -162,10 +223,28 @@ public partial class App : System.Windows.Application
                     LogMessage("SalesViewModel registered as Transient");
                     services.AddTransient<CustomersViewModel>();
                     LogMessage("CustomersViewModel registered as Transient");
+                    services.AddTransient<SuppliersViewModel>();
+                    LogMessage("SuppliersViewModel registered as Transient");
+                    services.AddTransient<SupplierSidePanelViewModel>();
+                    LogMessage("SupplierSidePanelViewModel registered as Transient");
                     services.AddTransient<SettingsViewModel>();
                     LogMessage("SettingsViewModel registered as Transient");
                     services.AddTransient<DiscountViewModel>();
                     LogMessage("DiscountViewModel registered as Transient");
+                    services.AddTransient<ProductAttributeViewModel>();
+                    LogMessage("ProductAttributeViewModel registered as Transient");
+                    services.AddTransient<ProductAttributeSidePanelViewModel>();
+                    LogMessage("ProductAttributeSidePanelViewModel registered as Transient");
+                    services.AddTransient<UomViewModel>();
+                    LogMessage("UomViewModel registered as Transient");
+                    services.AddTransient<UomSidePanelViewModel>();
+                    LogMessage("UomSidePanelViewModel registered as Transient");
+                    services.AddTransient<ProductCombinationViewModel>();
+                    LogMessage("ProductCombinationViewModel registered as Transient");
+                    services.AddTransient<ProductCombinationSidePanelViewModel>();
+                    LogMessage("ProductCombinationSidePanelViewModel registered as Transient");
+                    services.AddTransient<CategorySidePanelViewModel>();
+                    LogMessage("CategorySidePanelViewModel registered as Transient");
         
                     // Register Views - MainWindow as Singleton to match ViewModel
                     services.AddSingleton<MainWindow>();
@@ -351,6 +430,8 @@ public partial class App : System.Windows.Application
             
             // Initialize database if it doesn't exist, but preserve existing data
             LogMessage("Ensuring database exists...");
+            
+            // Only create database if it doesn't exist - preserve existing data
             await dbContext.Database.EnsureCreatedAsync();
             
             LogMessage("Database initialized successfully");

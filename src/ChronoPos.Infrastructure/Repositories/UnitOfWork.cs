@@ -13,7 +13,7 @@ public class UnitOfWork : IUnitOfWork
     private IDbContextTransaction? _transaction;
     
     private IProductRepository? _productRepository;
-    private IRepository<Category>? _categoryRepository;
+    private ICategoryRepository? _categoryRepository;
     private IRepository<Customer>? _customerRepository;
     private ISaleRepository? _saleRepository;
     private IRepository<SaleItem>? _saleItemRepository;
@@ -22,6 +22,9 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<TaxType>? _taxTypeRepository;
     private IProductDiscountRepository? _productDiscountRepository;
     private ICategoryDiscountRepository? _categoryDiscountRepository;
+    private ISellingPriceTypeRepository? _sellingPriceTypeRepository;
+    private IPaymentTypeRepository? _paymentTypeRepository;
+    private ISupplierRepository? _supplierRepository;
     
     public UnitOfWork(ChronoPosDbContext context)
     {
@@ -35,8 +38,8 @@ public class UnitOfWork : IUnitOfWork
     public IProductImageRepository ProductImages =>
         _productImageRepository ??= new ProductImageRepository(_context);
     
-    public IRepository<Category> Categories => 
-        _categoryRepository ??= new Repository<Category>(_context);
+    public ICategoryRepository Categories => 
+        _categoryRepository ??= new CategoryRepository(_context);
     
     public IRepository<Customer> Customers => 
         _customerRepository ??= new Repository<Customer>(_context);
@@ -58,6 +61,15 @@ public class UnitOfWork : IUnitOfWork
     
     public ICategoryDiscountRepository CategoryDiscounts =>
         _categoryDiscountRepository ??= new CategoryDiscountRepository(_context);
+    
+    public ISellingPriceTypeRepository SellingPriceTypes =>
+        _sellingPriceTypeRepository ??= new SellingPriceTypeRepository(_context);
+    
+    public IPaymentTypeRepository PaymentTypes =>
+        _paymentTypeRepository ??= new PaymentTypeRepository(_context);
+    
+    public ISupplierRepository Suppliers =>
+        _supplierRepository ??= new SupplierRepository(_context);
     
     public async Task<int> SaveChangesAsync()
     {

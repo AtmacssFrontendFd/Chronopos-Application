@@ -5,8 +5,10 @@ using System.Windows.Input;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ChronoPos.Application.Interfaces;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Infrastructure.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -25,6 +27,10 @@ public partial class AddOptionsViewModel : ObservableObject
     private readonly ILayoutDirectionService _layoutDirectionService;
     private readonly IFontService _fontService;
     private readonly IDatabaseLocalizationService _databaseLocalizationService;
+    private readonly ISellingPriceTypeService? _sellingPriceTypeService;
+    private readonly ITaxTypeService _taxTypeService;
+    private readonly ICustomerService _customerService;
+    private readonly ISupplierService _supplierService;
 
     #endregion
 
@@ -145,7 +151,10 @@ public partial class AddOptionsViewModel : ObservableObject
         IColorSchemeService colorSchemeService,
         ILayoutDirectionService layoutDirectionService,
         IFontService fontService,
-        IDatabaseLocalizationService databaseLocalizationService)
+        IDatabaseLocalizationService databaseLocalizationService,
+        ITaxTypeService taxTypeService,
+        ICustomerService customerService,
+        ISupplierService supplierService)
     {
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
@@ -154,6 +163,9 @@ public partial class AddOptionsViewModel : ObservableObject
         _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
         _fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
         _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
+        _taxTypeService = taxTypeService ?? throw new ArgumentNullException(nameof(taxTypeService));
+        _customerService = customerService ?? throw new ArgumentNullException(nameof(customerService));
+        _supplierService = supplierService ?? throw new ArgumentNullException(nameof(supplierService));
 
         // Subscribe to service events (commented out until proper event signatures are confirmed)
         // _themeService.ThemeChanged += OnThemeChanged;
@@ -203,7 +215,7 @@ public partial class AddOptionsViewModel : ObservableObject
                     new { Type = "PriceTypes", TitleKey = "add_options.price_types", CountLabel = "Price Types", Count = await GetPriceTypesCountAsync() },
                     new { Type = "PaymentTypes", TitleKey = "add_options.payment_types", CountLabel = "Payment Types", Count = await GetPaymentTypesCountAsync() },
                     new { Type = "TaxRates", TitleKey = "add_options.tax_rates", CountLabel = "Tax Rates", Count = await GetTaxRatesCountAsync() },
-                    new { Type = "Customer", TitleKey = "add_options.customer", CountLabel = "Customers", Count = await GetCustomerCountAsync() },
+                    new { Type = "Customers", TitleKey = "add_options.customer", CountLabel = "Customers", Count = await GetCustomerCountAsync() },
                     new { Type = "Suppliers", TitleKey = "add_options.suppliers", CountLabel = "Suppliers", Count = await GetSuppliersCountAsync() },
                     new { Type = "UOM", TitleKey = "add_options.uom", CountLabel = "UOMs", Count = await GetUOMCountAsync() },
                     new { Type = "Shop", TitleKey = "add_options.shop", CountLabel = "Shops", Count = await GetShopCountAsync() },
@@ -262,7 +274,27 @@ public partial class AddOptionsViewModel : ObservableObject
 
     private async Task<int> GetBrandCountAsync()
     {
-        await Task.Delay(50); // Simulate async operation
+        try
+        {
+            // Get the Brand service from the service provider if available
+            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
+            if (serviceProvider != null)
+            {
+                var brandService = serviceProvider.GetService<IBrandService>();
+                if (brandService != null)
+                {
+                    var brands = await brandService.GetAllAsync();
+                    return brands.Count();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting Brand count: {ex.Message}");
+        }
+        
+        // Fallback to mock data
+        await Task.Delay(50);
         return 45; // Mock count
     }
 
@@ -292,44 +324,127 @@ public partial class AddOptionsViewModel : ObservableObject
 
     private async Task<int> GetPriceTypesCountAsync()
     {
-        await Task.Delay(50);
-        return 8;
+        try 
+        {
+            if (_sellingPriceTypeService != null)
+            {
+                return await _sellingPriceTypeService.GetCountAsync();
+            }
+            
+            // Fallback to mock count
+            await Task.Delay(50);
+            return 5; // Number of seed price types
+        }
+        catch
+        {
+            return 0;
+        }
     }
 
     private async Task<int> GetPaymentTypesCountAsync()
     {
-        await Task.Delay(50);
-        return 12;
+        try
+        {
+            // For now, return a placeholder count
+            // TODO: Inject IPaymentTypeService and get real count
+            await Task.Delay(50);
+            return 6; // Number of seeded payment types
+        }
+        catch
+        {
+            return 0;
+        }
     }
 
     private async Task<int> GetTaxRatesCountAsync()
     {
-        await Task.Delay(50);
-        return 6;
+        try
+        {
+            var taxTypes = await _taxTypeService.GetAllTaxTypesAsync();
+            return taxTypes.Count();
+        }
+        catch
+        {
+            return 0; // Return 0 if there's an error loading tax types
+        }
     }
 
     private async Task<int> GetCustomerCountAsync()
     {
-        await Task.Delay(50);
-        return 89;
+        try
+        {
+            var customers = await _customerService.GetAllCustomersAsync();
+            return customers.Count();
+        }
+        catch
+        {
+            return 0; // Return 0 if there's an error loading customers
+        }
     }
 
     private async Task<int> GetSuppliersCountAsync()
     {
-        await Task.Delay(50);
-        return 23;
+        try
+        {
+            var suppliers = await _supplierService.GetAllSuppliersAsync();
+            return suppliers.Count();
+        }
+        catch (Exception)
+        {
+            return 0; // Return 0 if there's an error
+        }
     }
 
     private async Task<int> GetUOMCountAsync()
     {
+        try
+        {
+            // Get the UOM service from the service provider if available
+            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
+            if (serviceProvider != null)
+            {
+                var uomService = serviceProvider.GetService<IUomService>();
+                if (uomService != null)
+                {
+                    var uoms = await uomService.GetAllAsync();
+                    return uoms.Count();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting UOM count: {ex.Message}");
+        }
+        
+        // Fallback to mock data
         await Task.Delay(50);
         return 18;
     }
 
     private async Task<int> GetShopCountAsync()
     {
+        try
+        {
+            // Get the Store service from the service provider if available
+            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
+            if (serviceProvider != null)
+            {
+                var storeService = serviceProvider.GetService<IStoreService>();
+                if (storeService != null)
+                {
+                    var stores = await storeService.GetAllAsync();
+                    return stores.Count();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting Store count: {ex.Message}");
+        }
+        
+        // Fallback to mock data
         await Task.Delay(50);
-        return 3;
+        return 3; // Mock count
     }
 
     private async Task<int> GetCustomerGroupsCountAsync()

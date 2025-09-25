@@ -69,27 +69,3 @@ public interface IBrandService
     /// <returns>Collection of brands with product counts</returns>
     Task<IEnumerable<BrandDto>> GetBrandsWithProductCountAsync();
 }
-
-/// <summary>
-/// DTO for creating a new brand
-/// </summary>
-public class CreateBrandDto
-{
-    public string Name { get; set; } = string.Empty;
-    public string NameArabic { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public string LogoUrl { get; set; } = string.Empty;
-    public bool IsActive { get; set; } = true;
-}
-
-/// <summary>
-/// DTO for updating an existing brand
-/// </summary>
-public class UpdateBrandDto
-{
-    public string Name { get; set; } = string.Empty;
-    public string NameArabic { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public string LogoUrl { get; set; } = string.Empty;
-    public bool IsActive { get; set; }
-}

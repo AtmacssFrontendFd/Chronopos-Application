@@ -28,12 +28,42 @@ public class BrandDto
     
     public int ProductCount { get; set; } = 0;
     
-    // Display property for UI binding
+    // Display properties for UI binding
     public string DisplayName => Name;
+    public string NameArabicDisplay => NameArabic ?? "-";
+    public string DescriptionDisplay => Description ?? "-";
+    public string StatusDisplay => IsActive ? "Active" : "Inactive";
+    public string CreatedAtFormatted => CreatedAt.ToString("dd/MM/yyyy HH:mm");
+    public string UpdatedAtFormatted => UpdatedAt.ToString("dd/MM/yyyy HH:mm");
+    public string ProductCountDisplay => $"{ProductCount} products";
     
     // Override ToString for ComboBox display
     public override string ToString()
     {
         return Name;
     }
+}
+
+/// <summary>
+/// DTO for creating a new brand
+/// </summary>
+public class CreateBrandDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string? NameArabic { get; set; }
+    public string? Description { get; set; }
+    public string? LogoUrl { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+/// <summary>
+/// DTO for updating an existing brand
+/// </summary>
+public class UpdateBrandDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string? NameArabic { get; set; }
+    public string? Description { get; set; }
+    public string? LogoUrl { get; set; }
+    public bool IsActive { get; set; } = true;
 }

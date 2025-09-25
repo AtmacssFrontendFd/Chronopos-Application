@@ -4,6 +4,7 @@ using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Domain.Enums;
 using System.Collections.ObjectModel;
+using DataAnnotationsValidationResult = System.ComponentModel.DataAnnotations.ValidationResult;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Windows;
@@ -1053,7 +1054,7 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
     /// </summary>
     private bool ValidateForm()
     {
-        var validationResults = new List<ValidationResult>();
+        var validationResults = new List<DataAnnotationsValidationResult>();
         var context = new ValidationContext(this);
         
         if (!Validator.TryValidateObject(this, context, validationResults, true))

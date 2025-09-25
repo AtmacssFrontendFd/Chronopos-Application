@@ -16,7 +16,7 @@ public class StockTransferItem
     public int ProductId { get; set; }
     
     [Required]
-    public int UomId { get; set; }
+    public long UomId { get; set; }
     
     [StringLength(50)]
     public string? BatchNo { get; set; }

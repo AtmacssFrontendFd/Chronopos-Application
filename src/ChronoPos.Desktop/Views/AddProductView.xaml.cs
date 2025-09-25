@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using ChronoPos.Application.DTOs;
+using ChronoPos.Desktop.Services;
 
 namespace ChronoPos.Desktop.Views
 {
@@ -108,6 +109,59 @@ namespace ChronoPos.Desktop.Views
                 {
                     viewModel.AddBarcodeCommand?.Execute(null);
                 }
+            }
+        }
+
+        private void ProductUnitUOM_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            FileLogger.Log($"🔄 ProductUnitUOM_SelectionChanged triggered");
+            
+            if (sender is ComboBox comboBox && comboBox.DataContext is ProductUnitDto productUnit)
+            {
+                FileLogger.Log($"   📦 ProductUnit found - UnitId: {productUnit.UnitId}");
+                
+                if (this.DataContext is ViewModels.AddProductViewModel viewModel)
+                {
+                    FileLogger.Log($"   🎯 ViewModel found - Calling UpdateProductUnitPricingCommand");
+                    // When UOM changes, recalculate cost and price of unit
+                    viewModel.UpdateProductUnitPricingCommand?.Execute(productUnit);
+                    viewModel.CalculateRemainingQuantityCommand?.Execute(null);
+                    FileLogger.Log($"   ✅ Commands executed");
+                }
+                else
+                {
+                    FileLogger.Log($"   ❌ ViewModel not found");
+                }
+            }
+            else
+            {
+                FileLogger.Log($"   ❌ ComboBox or ProductUnit not found");
+            }
+        }
+
+        private void ProductUnitQuantity_LostFocus(object sender, RoutedEventArgs e)
+        {
+            FileLogger.Log($"🔢 ProductUnitQuantity_LostFocus triggered");
+            
+            if (sender is TextBox textBox && textBox.DataContext is ProductUnitDto productUnit)
+            {
+                FileLogger.Log($"   📦 ProductUnit found - QtyInUnit: {productUnit.QtyInUnit}");
+                
+                if (this.DataContext is ViewModels.AddProductViewModel viewModel)
+                {
+                    FileLogger.Log($"   🎯 ViewModel found - Calling CalculateRemainingQuantityCommand");
+                    // When quantity changes, recalculate remaining quantity
+                    viewModel.CalculateRemainingQuantityCommand?.Execute(null);
+                    FileLogger.Log($"   ✅ Command executed");
+                }
+                else
+                {
+                    FileLogger.Log($"   ❌ ViewModel not found");
+                }
+            }
+            else
+            {
+                FileLogger.Log($"   ❌ TextBox or ProductUnit not found");
             }
         }
 

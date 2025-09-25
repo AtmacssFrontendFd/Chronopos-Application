@@ -29,7 +29,7 @@ public class StockTransferItemDto
     public int TransferId { get; set; }
     public int ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
-    public int UomId { get; set; }
+    public long UomId { get; set; }
     public string UomName { get; set; } = string.Empty;
     public string? BatchNo { get; set; }
     public DateTime? ExpiryDate { get; set; }

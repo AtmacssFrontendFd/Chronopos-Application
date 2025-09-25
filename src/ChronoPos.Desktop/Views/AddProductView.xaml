@@ -721,6 +721,214 @@
                                 </ItemsControl>
                             </StackPanel>
                         </Grid>
+
+                        <!-- Multi-UOM Section -->
+                        <Grid Margin="0,20,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Header with UOM Label, Add Button, and Initial Stock -->
+                            <Grid Grid.Row="0" Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="200"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <!-- Left side with UOM Label and Add Button -->
+                                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                    <TextBlock Text="{Binding MultiUOMLabel}" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Center"/>
+                                    <Button Content="+ Add UOM"
+                                            Command="{Binding AddProductUnitCommand}"
+                                            Style="{StaticResource FormButtonStyle}"
+                                            Background="#28A745"
+                                            Foreground="White"
+                                            Margin="10,0,0,0"
+                                            Padding="8,4"
+                                            Height="32"/>
+                                </StackPanel>
+                                
+                                <!-- Right side with Initial Stock Quantity -->
+                                <StackPanel Grid.Column="2" Margin="20,0,0,0">
+                                    <TextBlock Text="{Binding InitialStockLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Text="{Binding InitialStock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                             Style="{StaticResource FormTextBoxStyle}"
+                                             Width="150"
+                                             HorizontalAlignment="Left"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Remaining Quantity Message -->
+                            <Border Grid.Row="1"
+                                    Margin="0,5,0,5"
+                                    Background="{DynamicResource SurfaceBackground}"
+                                    BorderBrush="{DynamicResource BorderLight}"
+                                    BorderThickness="1"
+                                    CornerRadius="{DynamicResource BorderCornerRadius}"
+                                    Padding="8,4"
+                                    Visibility="{Binding RemainingQuantityMessage, Converter={StaticResource StringToVisibilityConverter}}">
+                                <TextBlock Text="{Binding RemainingQuantityMessage}"
+                                           FontSize="{DynamicResource FontSizeSmall}"
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           HorizontalAlignment="Center"/>
+                            </Border>
+
+                            <!-- Multi-UOM Data Grid -->
+                            <DataGrid Grid.Row="2" 
+                                      ItemsSource="{Binding ProductUnits}"
+                                      AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      CanUserDeleteRows="True"
+                                      CanUserResizeRows="False"
+                                      CanUserSortColumns="True"
+                                      GridLinesVisibility="Horizontal"
+                                      HeadersVisibility="Column"
+                                      Background="{DynamicResource SurfaceBackground}"
+                                      BorderBrush="{DynamicResource BorderLight}"
+                                      BorderThickness="1"
+                                      RowHeaderWidth="0"
+                                      Margin="0,5,0,0"
+                                      MinHeight="150"
+                                      MaxHeight="300">
+                                
+                                <DataGrid.Columns>
+                                    <!-- UOM Dropdown Column -->
+                                    <DataGridTemplateColumn Header="UOM" Width="140">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <ComboBox ItemsSource="{Binding DataContext.UnitsOfMeasurement, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                          SelectedValue="{Binding UnitId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                          SelectedValuePath="Id"
+                                                          DisplayMemberPath="DisplayName"
+                                                          Margin="2"
+                                                          BorderThickness="0"
+                                                          Background="Transparent"
+                                                          SelectionChanged="ProductUnitUOM_SelectionChanged"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <!-- Qty in Unit Column -->
+                                    <DataGridTemplateColumn Header="Qty in Unit" Width="100">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding QtyInUnit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         Margin="2"
+                                                         BorderThickness="0"
+                                                         Background="Transparent"
+                                                         HorizontalAlignment="Stretch"
+                                                         LostFocus="ProductUnitQuantity_LostFocus"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <!-- Cost of Unit Column -->
+                                    <DataGridTemplateColumn Header="Cost of Unit" Width="100">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding CostOfUnit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}"
+                                                         Margin="2"
+                                                         BorderThickness="0"
+                                                         Background="Transparent"
+                                                         HorizontalAlignment="Stretch"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <!-- Price of Unit Column -->
+                                    <DataGridTemplateColumn Header="Price of Unit" Width="100">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding PriceOfUnit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}"
+                                                         Margin="2"
+                                                         BorderThickness="0"
+                                                         Background="Transparent"
+                                                         HorizontalAlignment="Stretch"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <!-- Discount Allowed Column -->
+                                    <DataGridTemplateColumn Header="Discount Allowed" Width="120">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding DiscountAllowed, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          Margin="2"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <!-- Is Base Column -->
+                                    <DataGridTemplateColumn Header="Is Base" Width="80">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsBase, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          Margin="2"
+                                                          Command="{Binding DataContext.SetBaseUnitCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                          CommandParameter="{Binding}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <!-- SKU Column -->
+                                    <DataGridTemplateColumn Header="SKU" Width="120">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Sku}"
+                                                           VerticalAlignment="Center"
+                                                           Margin="4,2"
+                                                           FontFamily="Consolas"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource TextSecondary}"
+                                                           ToolTip="{Binding Sku}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <!-- Delete Action Column -->
+                                    <DataGridTemplateColumn Header="Action" Width="60">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="🗑"
+                                                        Command="{Binding DataContext.RemoveProductUnitCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Foreground="{DynamicResource Error}"
+                                                        Cursor="Hand"
+                                                        Margin="2"
+                                                        ToolTip="Delete this UOM"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="BorderThickness" Value="0"/>
+                                        <Setter Property="Margin" Value="0,1"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.RowStyle>
+                            </DataGrid>
+                        </Grid>
                     </StackPanel>
                 </Border>
 
@@ -1086,20 +1294,9 @@
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
-                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="{Binding UnitOfMeasurementLabel}" Style="{StaticResource FieldLabelStyle}"/>
-                                <ComboBox ItemsSource="{Binding UnitsOfMeasurement}"
-                                          SelectedItem="{Binding SelectedUnitOfMeasurement, Mode=TwoWay}"
-                                          SelectedValue="{Binding SelectedUnitOfMeasurementId, Mode=TwoWay}"
-                                          SelectedValuePath="Id"
-                                          DisplayMemberPath="DisplayName"
-                                          Style="{StaticResource FormComboBoxStyle}"/>
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                            <StackPanel Grid.Column="0">
                                 <TextBlock Text="{Binding MaxDiscountLabel}" Style="{StaticResource FieldLabelStyle}"/>
                                 <TextBox Text="{Binding MaxDiscount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                          Style="{StaticResource FormTextBoxStyle}"/>

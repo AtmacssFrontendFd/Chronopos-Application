@@ -15,7 +15,7 @@ public class StockMovement
     public int? BatchId { get; set; }
     
     [Required]
-    public int UomId { get; set; }
+    public long UomId { get; set; }
     
     [Required]
     [StringLength(20)]
