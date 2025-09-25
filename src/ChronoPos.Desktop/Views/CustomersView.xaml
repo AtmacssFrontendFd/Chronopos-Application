@@ -23,11 +23,13 @@
     </UserControl.Resources>
 
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+        <!-- Main Content - Always full width -->
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
         <!-- Header Section -->
         <Grid Grid.Row="0" Margin="{DynamicResource DefaultMarginThickness}">
@@ -219,7 +221,8 @@
                           VerticalGridLinesBrush="Transparent"
                           ScrollViewer.VerticalScrollBarVisibility="Auto"
                           ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                          ScrollViewer.CanContentScroll="True">
+                          ScrollViewer.CanContentScroll="True"
+                          Visibility="{Binding HasCustomers, Converter={StaticResource BoolToVisibilityConverter}}">
 
                     <DataGrid.ColumnHeaderStyle>
                         <Style TargetType="DataGridColumnHeader">
@@ -354,6 +357,49 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
+                        <!-- Toggle Active Column -->
+                        <DataGridTemplateColumn Header="Active" Width="80">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ToggleButton IsChecked="{Binding IsActive, Mode=OneWay}"
+                                                  Command="{Binding DataContext.ToggleActiveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  CommandParameter="{Binding}"
+                                                  Width="50"
+                                                  Height="25"
+                                                  HorizontalAlignment="Center">
+                                        <ToggleButton.Style>
+                                            <Style TargetType="ToggleButton">
+                                                <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
+                                                <Setter Property="BorderThickness" Value="0"/>
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="ToggleButton">
+                                                            <Border x:Name="ToggleBorder"
+                                                                    Background="{TemplateBinding Background}"
+                                                                    CornerRadius="12.5"
+                                                                    Padding="2">
+                                                                <Ellipse x:Name="ToggleThumb"
+                                                                         Width="20"
+                                                                         Height="20"
+                                                                         Fill="White"
+                                                                         HorizontalAlignment="Left"/>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsChecked" Value="True">
+                                                                    <Setter TargetName="ToggleBorder" Property="Background" Value="{DynamicResource Primary}"/>
+                                                                    <Setter TargetName="ToggleThumb" Property="HorizontalAlignment" Value="Right"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </ToggleButton.Style>
+                                    </ToggleButton>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
                         <!-- Actions Column -->
                         <DataGridTemplateColumn Header="Actions" Width="150">
                             <DataGridTemplateColumn.CellTemplate>
@@ -386,7 +432,7 @@
 
                 <!-- No Data Message -->
                 <Grid Grid.Row="0" 
-                      Visibility="{Binding FilteredCustomers.Count, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                      Visibility="{Binding HasCustomers, Converter={StaticResource InverseBoolToVisibilityConverter}}">
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                         <TextBlock Text="👥" 
                                    FontSize="48" 
@@ -442,6 +488,8 @@
                 </Border>
             </Grid>
         </Border>
+
+        </Grid>
 
         <!-- Side Panel Overlay - Direct child of root Grid for proper z-index -->
         <Border HorizontalAlignment="Right"

@@ -34,10 +34,18 @@ public partial class CustomersViewModel : ObservableObject
     [ObservableProperty]
     private bool _showActiveOnly = true;
 
+    [ObservableProperty]
+    private System.Windows.FlowDirection _currentFlowDirection = System.Windows.FlowDirection.LeftToRight;
+
     /// <summary>
     /// Text for the active filter toggle button
     /// </summary>
     public string ActiveFilterButtonText => ShowActiveOnly ? "Show All" : "Active Only";
+
+    /// <summary>
+    /// Check if there are any customers to display
+    /// </summary>
+    public bool HasCustomers => FilteredCustomers.Count > 0;
 
     /// <summary>
     /// Action to navigate back (set by parent)
@@ -89,6 +97,7 @@ public partial class CustomersViewModel : ObservableObject
         }
         
         FilteredCustomers = new ObservableCollection<CustomerDto>(filtered);
+        OnPropertyChanged(nameof(HasCustomers));
     }
 
     [RelayCommand]
@@ -182,6 +191,32 @@ public partial class CustomersViewModel : ObservableObject
     private void ClearSearch()
     {
         SearchText = string.Empty;
+    }
+
+    [RelayCommand]
+    private async Task ToggleActiveAsync(CustomerDto? customer = null)
+    {
+        var targetCustomer = customer ?? SelectedCustomer;
+        if (targetCustomer?.Id > 0)
+        {
+            try
+            {
+                // Toggle the active status
+                targetCustomer.IsActive = !targetCustomer.IsActive;
+                
+                // Update the customer in the database
+                await _customerService.UpdateCustomerAsync(targetCustomer);
+                
+                // Refresh the filtered customers to update the display
+                FilterCustomers();
+            }
+            catch (Exception ex)
+            {
+                // Revert the change if update failed
+                targetCustomer.IsActive = !targetCustomer.IsActive;
+                MessageBox.Show($"Error updating customer status: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
     }
 
     private static bool IsValidEmail(string email)
