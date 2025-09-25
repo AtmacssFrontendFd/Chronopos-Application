@@ -45,10 +45,23 @@ public partial class SuppliersViewModel : ObservableObject
     [ObservableProperty]
     private SupplierSidePanelViewModel? _sidePanelViewModel;
 
+    [ObservableProperty]
+    private System.Windows.FlowDirection _currentFlowDirection = System.Windows.FlowDirection.LeftToRight;
+
     /// <summary>
     /// Text for the active filter toggle button
     /// </summary>
     public string ActiveFilterButtonText => ShowActiveOnly ? "Show All" : "Active Only";
+
+    /// <summary>
+    /// Check if there are any suppliers to display
+    /// </summary>
+    public bool HasSuppliers => FilteredSuppliers.Count > 0;
+
+    /// <summary>
+    /// Total number of suppliers
+    /// </summary>
+    public int TotalSuppliers => Suppliers.Count;
 
     /// <summary>
     /// Action to navigate back (set by parent)
@@ -94,6 +107,8 @@ public partial class SuppliersViewModel : ObservableObject
         
         FilteredSuppliers = new ObservableCollection<SupplierDto>(filtered);
         StatusMessage = $"Showing {FilteredSuppliers.Count} of {Suppliers.Count} suppliers";
+        OnPropertyChanged(nameof(HasSuppliers));
+        OnPropertyChanged(nameof(TotalSuppliers));
     }
 
     [RelayCommand]
@@ -291,6 +306,29 @@ public partial class SuppliersViewModel : ObservableObject
         IsSidePanelOpen = false;
         CurrentSupplier = new SupplierDto();
         SidePanelViewModel = null;
+    }
+
+    [RelayCommand]
+    private async Task ToggleActive(SupplierDto? supplier)
+    {
+        if (supplier == null) return;
+
+        try
+        {
+            supplier.IsActive = !supplier.IsActive;
+            supplier.Status = supplier.IsActive ? "Active" : "Inactive";
+            await _supplierService.UpdateSupplierAsync(supplier);
+            StatusMessage = $"Supplier '{supplier.CompanyName}' {(supplier.IsActive ? "activated" : "deactivated")} successfully.";
+            FilterSuppliers(); // Refresh the filtered list
+        }
+        catch (Exception ex)
+        {
+            // Revert the change
+            supplier.IsActive = !supplier.IsActive;
+            supplier.Status = supplier.IsActive ? "Active" : "Inactive";
+            StatusMessage = $"Error updating supplier: {ex.Message}";
+            MessageBox.Show($"Error updating supplier status: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void InitializeSidePanelViewModel()

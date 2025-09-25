@@ -52,6 +52,8 @@ public class SupplierDto
         set => Status = value ? "Active" : "Inactive";
     }
     
+    public string StatusDisplay => IsActive ? "Active" : "Inactive";
+    
     // Compatibility properties for existing ViewModels
     public string ContactName 
     { 

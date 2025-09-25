@@ -6,8 +6,8 @@
              xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
              mc:Ignorable="d" 
              d:DesignHeight="800" d:DesignWidth="600"
-             Background="White"
-             FontFamily="Segoe UI">
+             Background="{DynamicResource CardBackground}"
+             FontFamily="{DynamicResource PoppinsFontFallback}">
 
     <UserControl.Resources>
         <!-- Converters -->
@@ -16,28 +16,31 @@
 
         <!-- Input Field Style -->
         <Style x:Key="InputFieldStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Foreground" Value="Black"/>
-            <Setter Property="BorderBrush" Value="#D0D0D0"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="12"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
-            <Setter Property="MinHeight" Value="40"/>
+            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6">
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
                             <ScrollViewer x:Name="PART_ContentHost" 
                                         Margin="{TemplateBinding Padding}"
                                         VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="#007ACC"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryLight}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -47,20 +50,19 @@
 
         <!-- Label Style -->
         <Style x:Key="LabelStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="Black"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
-            <Setter Property="Margin" Value="0,0,0,5"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
 
-        <!-- Form Section Style -->
-        <Style x:Key="FormSectionStyle" TargetType="Border">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#E0E0E0"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="20"/>
+        <!-- Section Header Style -->
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeMedium}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
             <Setter Property="Margin" Value="0,0,0,20"/>
         </Style>
     </UserControl.Resources>
@@ -73,9 +75,11 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" 
-                Background="#F39C12"
-                Padding="20">
+        <Border Grid.Row="0"
+                Background="{DynamicResource SurfaceBackground}"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource BorderLight}"
+                Padding="{DynamicResource DefaultPaddingThickness}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -84,9 +88,10 @@
 
                 <TextBlock Grid.Column="0"
                            Text="{Binding FormTitle}"
-                           FontSize="18"
+                           FontSize="{DynamicResource FontSizeLarge}"
                            FontWeight="Bold"
-                           Foreground="White"
+                           Foreground="{DynamicResource TextPrimary}"
+                           FontFamily="{DynamicResource PoppinsFontFallback}"
                            VerticalAlignment="Center"/>
 
                 <Button Grid.Column="1"
@@ -94,190 +99,138 @@
                         Command="{Binding CloseSidePanelCommand}"
                         Background="Transparent"
                         BorderThickness="0"
-                        Foreground="White"
                         FontSize="16"
-                        Width="30"
-                        Height="30"
-                        Cursor="Hand">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="{TemplateBinding Background}" CornerRadius="15">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#40FFFFFF"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </Button.Style>
-                </Button>
+                        FontWeight="Bold"
+                        Foreground="{DynamicResource TextSecondary}"
+                        Cursor="Hand"
+                        Padding="8"
+                        ToolTip="Close"/>
             </Grid>
         </Border>
 
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" 
-                      VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled"
-                      Padding="20">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{DynamicResource DefaultPaddingThickness}">
             <StackPanel>
-                <!-- Supplier Information Section -->
-                <Border Style="{StaticResource FormSectionStyle}">
-                    <StackPanel>
-                        <TextBlock Text="Supplier Information" 
-                                   Style="{StaticResource LabelStyle}"
-                                   FontSize="16"
-                                   Margin="0,0,0,15"/>
+                <TextBlock Text="Supplier Information" Style="{StaticResource SectionHeaderStyle}"/>
+                
+                <!-- Company Name -->
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock Text="Company Name *" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingSupplier.CompanyName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" ToolTip="Enter company name"/>
+                </StackPanel>
+                
+                <!-- Contact Name -->
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock Text="Contact Name *" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingSupplier.ContactName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" ToolTip="Enter contact person name"/>
+                </StackPanel>
+                
+                <!-- Email -->
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock Text="Email" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingSupplier.Email, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" ToolTip="Enter email address"/>
+                </StackPanel>
+                
+                <!-- Phone Number -->
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock Text="Phone Number" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingSupplier.PhoneNumber, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" ToolTip="Enter phone number"/>
+                </StackPanel>
+                
+                <!-- VAT/TRN Number -->
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock Text="VAT/TRN Number" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingSupplier.VatTrnNumber, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" ToolTip="Enter VAT/TRN number"/>
+                </StackPanel>
+                
+                <!-- Website -->
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock Text="Website" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingSupplier.Website, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" ToolTip="Enter website URL"/>
+                </StackPanel>
 
-                        <!-- Company Name -->
-                        <StackPanel Margin="0,0,0,15">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                                <TextBlock Text="Company Name" Style="{StaticResource LabelStyle}"/>
-                                <TextBlock Text="*" Foreground="Red" FontWeight="Bold" Margin="2,0,0,0"/>
-                            </StackPanel>
-                            <TextBox Text="{Binding EditingSupplier.CompanyName, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource InputFieldStyle}"/>
-                        </StackPanel>
+                <TextBlock Text="Address Information" Style="{StaticResource SectionHeaderStyle}"/>
+                
+                <!-- Address -->
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock Text="Address *" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingSupplier.Address, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             Height="80"
+                             ToolTip="Enter full address"/>
+                </StackPanel>
+                
+                <!-- City and Country in a Grid -->
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="15"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-                        <!-- Contact Name -->
-                        <StackPanel Margin="0,0,0,15">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                                <TextBlock Text="Contact Name" Style="{StaticResource LabelStyle}"/>
-                                <TextBlock Text="*" Foreground="Red" FontWeight="Bold" Margin="2,0,0,0"/>
-                            </StackPanel>
-                            <TextBox Text="{Binding EditingSupplier.ContactName, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource InputFieldStyle}"/>
-                        </StackPanel>
-
-                        <!-- Email -->
-                        <StackPanel Margin="0,0,0,15">
-                            <TextBlock Text="Email" Style="{StaticResource LabelStyle}"/>
-                            <TextBox Text="{Binding EditingSupplier.Email, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource InputFieldStyle}"/>
-                        </StackPanel>
-
-                        <!-- Phone Number -->
-                        <StackPanel Margin="0,0,0,15">
-                            <TextBlock Text="Phone Number" Style="{StaticResource LabelStyle}"/>
-                            <TextBox Text="{Binding EditingSupplier.PhoneNumber, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource InputFieldStyle}"/>
-                        </StackPanel>
-
-                        <!-- VAT/TRN Number -->
-                        <StackPanel Margin="0,0,0,15">
-                            <TextBlock Text="VAT/TRN Number" Style="{StaticResource LabelStyle}"/>
-                            <TextBox Text="{Binding EditingSupplier.VatTrnNumber, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource InputFieldStyle}"/>
-                        </StackPanel>
-
-                        <!-- Website -->
-                        <StackPanel Margin="0,0,0,15">
-                            <TextBlock Text="Website" Style="{StaticResource LabelStyle}"/>
-                            <TextBox Text="{Binding EditingSupplier.Website, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource InputFieldStyle}"/>
-                        </StackPanel>
+                    <!-- City -->
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="City" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.City, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter city"/>
                     </StackPanel>
-                </Border>
 
-                <!-- Address Information Section -->
-                <Border Style="{StaticResource FormSectionStyle}">
-                    <StackPanel>
-                        <TextBlock Text="Address Information" 
-                                   Style="{StaticResource LabelStyle}"
-                                   FontSize="16"
-                                   Margin="0,0,0,15"/>
-
-                        <!-- Address -->
-                        <StackPanel Margin="0,0,0,15">
-                            <TextBlock Text="Address" Style="{StaticResource LabelStyle}"/>
-                            <TextBox Text="{Binding EditingSupplier.Address, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource InputFieldStyle}"
-                                     TextWrapping="Wrap"
-                                     AcceptsReturn="True"
-                                     Height="80"/>
-                        </StackPanel>
-
-                        <!-- City and Country in a Grid -->
-                        <Grid Margin="0,0,0,15">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="15"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <!-- City -->
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="City" Style="{StaticResource LabelStyle}"/>
-                                <TextBox Text="{Binding EditingSupplier.City, UpdateSourceTrigger=PropertyChanged}"
-                                         Style="{StaticResource InputFieldStyle}"/>
-                            </StackPanel>
-
-                            <!-- Country -->
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Text="Country" Style="{StaticResource LabelStyle}"/>
-                                <TextBox Text="{Binding EditingSupplier.Country, UpdateSourceTrigger=PropertyChanged}"
-                                         Style="{StaticResource InputFieldStyle}"/>
-                            </StackPanel>
-                        </Grid>
+                    <!-- Country -->
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Country" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.Country, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter country"/>
                     </StackPanel>
-                </Border>
+                </Grid>
 
-                <!-- Financial Information Section -->
-                <Border Style="{StaticResource FormSectionStyle}">
-                    <StackPanel>
-                        <TextBlock Text="Financial Information" 
-                                   Style="{StaticResource LabelStyle}"
-                                   FontSize="16"
-                                   Margin="0,0,0,15"/>
+                <TextBlock Text="Financial Information" Style="{StaticResource SectionHeaderStyle}"/>
+                
+                <!-- Credit Limit and Payment Terms in a Grid -->
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="15"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-                        <!-- Credit Limit and Payment Terms in a Grid -->
-                        <Grid Margin="0,0,0,15">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="15"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <!-- Credit Limit -->
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="Credit Limit" Style="{StaticResource LabelStyle}"/>
-                                <TextBox Text="{Binding EditingSupplier.CreditLimit, UpdateSourceTrigger=PropertyChanged}"
-                                         Style="{StaticResource InputFieldStyle}"/>
-                            </StackPanel>
-
-                            <!-- Payment Terms -->
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Text="Payment Terms" Style="{StaticResource LabelStyle}"/>
-                                <TextBox Text="{Binding EditingSupplier.PaymentTerms, UpdateSourceTrigger=PropertyChanged}"
-                                         Style="{StaticResource InputFieldStyle}"/>
-                            </StackPanel>
-                        </Grid>
-
-                        <!-- Status -->
-                        <StackPanel Margin="0,0,0,10">
-                            <CheckBox Content="Is Active"
-                                     IsChecked="{Binding EditingSupplier.IsActive}"
-                                     FontSize="14"
-                                     FontFamily="Segoe UI"
-                                     Foreground="Black"/>
-                        </StackPanel>
+                    <!-- Credit Limit -->
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Credit Limit" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.CreditLimit, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter credit limit"/>
                     </StackPanel>
-                </Border>
+
+                    <!-- Payment Terms -->
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Payment Terms" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.PaymentTerms, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter payment terms"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Status -->
+                <StackPanel Margin="0,0,0,20">
+                    <CheckBox Content="Is Active"
+                             IsChecked="{Binding EditingSupplier.IsActive}"
+                             FontSize="{DynamicResource FontSizeSmall}"
+                             FontFamily="{DynamicResource PoppinsFontFallback}"
+                             Foreground="{DynamicResource TextPrimary}"/>
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
 
         <!-- Footer -->
         <Border Grid.Row="2" 
-                Background="#F5F5F5"
+                Background="{DynamicResource SurfaceBackground}"
                 BorderThickness="0,1,0,0"
-                BorderBrush="#E0E0E0"
-                Padding="20">
+                BorderBrush="{DynamicResource BorderLight}"
+                Padding="{DynamicResource DefaultPaddingThickness}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -288,9 +241,9 @@
                 <!-- Validation Messages -->
                 <TextBlock Grid.Column="0"
                            Text="{Binding ValidationMessage}"
-                           FontSize="12"
-                           FontFamily="Segoe UI"
-                           Foreground="Red"
+                           FontSize="{DynamicResource FontSizeExtraSmall}"
+                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                           Foreground="{DynamicResource Error}"
                            VerticalAlignment="Center"
                            TextWrapping="Wrap"
                            Visibility="{Binding HasValidationErrors, Converter={StaticResource BoolToVisibilityConverter}}"/>
@@ -299,21 +252,25 @@
                 <Button Grid.Column="1"
                         Content="Cancel"
                         Command="{Binding CloseSidePanelCommand}"
-                        Background="White"
-                        Foreground="Black"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
                         BorderThickness="1"
-                        BorderBrush="#D0D0D0"
+                        BorderBrush="{DynamicResource BorderLight}"
                         Padding="15,8"
-                        Margin="0,0,10,0"/>
+                        Margin="0,0,10,0"
+                        FontFamily="{DynamicResource PoppinsFontFallback}"
+                        FontSize="{DynamicResource FontSizeSmall}"/>
 
                 <!-- Save Button -->
                 <Button Grid.Column="2"
                         Content="Save Supplier"
                         Command="{Binding SaveSupplierCommand}"
-                        Background="#F39C12"
+                        Background="{DynamicResource Primary}"
                         Foreground="White"
                         BorderThickness="0"
-                        Padding="15,8"/>
+                        Padding="15,8"
+                        FontFamily="{DynamicResource PoppinsFontFallback}"
+                        FontSize="{DynamicResource FontSizeSmall}"/>
             </Grid>
         </Border>
     </Grid>
