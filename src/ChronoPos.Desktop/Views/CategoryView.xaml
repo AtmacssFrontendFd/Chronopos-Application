@@ -92,9 +92,9 @@
                                     </Grid.ColumnDefinitions>
 
                                     <!-- Expand/Collapse Toggle -->
-                                    <Button Grid.Column="0"
+                                    <ToggleButton Grid.Column="0"
                                             x:Name="Expander"
-                                            Command="{Binding ToggleExpandCommand}"
+                                            IsChecked="{Binding RelativeSource={RelativeSource AncestorType=TreeViewItem}, Path=IsExpanded}"
                                             Background="Transparent"
                                             BorderThickness="0"
                                             Width="20"
@@ -110,14 +110,14 @@
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ToggleButton}, Path=IsChecked}" Value="True">
                                                             <Setter Property="Text" Value="▼"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </TextBlock.Style>
                                         </TextBlock>
-                                    </Button>
+                                    </ToggleButton>
 
                                     <!-- Category Info -->
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">

@@ -1272,6 +1272,9 @@ public partial class MainWindowViewModel : ObservableObject
                     case "Suppliers":
                         _ = ShowSuppliers();
                         break;
+                    case "Shop":
+                        _ = ShowStore();
+                        break;
                     default:
                         StatusMessage = $"Navigation to {moduleType} module not implemented yet";
                         break;
@@ -1581,6 +1584,44 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error loading category management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowStore()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Store Management";
+        StatusMessage = "Loading store management...";
+        
+        try
+        {
+            // Create the StoreViewModel with all required services and navigation callback
+            var storeViewModel = new StoreViewModel(
+                _serviceProvider.GetRequiredService<IStoreService>(),
+                navigateBack: () => ShowAddOptionsCommand.Execute(null)
+            );
+
+            // Create the StoreView and set its DataContext
+            var storeView = new StoreView
+            {
+                DataContext = storeViewModel
+            };
+
+            CurrentView = storeView;
+            StatusMessage = "Store management loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading store management: {ex.Message}";
             var errorContent = new System.Windows.Controls.TextBlock
             {
                 Text = $"Error: {ex.Message}",

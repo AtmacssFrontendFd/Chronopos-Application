@@ -44,5 +44,7 @@ namespace ChronoPos.Desktop.Views
             
             return FindParent<T>(parentObject);
         }
+
+
     }
 }

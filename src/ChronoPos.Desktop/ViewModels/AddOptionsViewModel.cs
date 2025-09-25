@@ -8,7 +8,6 @@ using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Infrastructure.Services;
-using ChronoPos.Application.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ChronoPos.Desktop.ViewModels;
@@ -424,8 +423,28 @@ public partial class AddOptionsViewModel : ObservableObject
 
     private async Task<int> GetShopCountAsync()
     {
+        try
+        {
+            // Get the Store service from the service provider if available
+            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
+            if (serviceProvider != null)
+            {
+                var storeService = serviceProvider.GetService<IStoreService>();
+                if (storeService != null)
+                {
+                    var stores = await storeService.GetAllAsync();
+                    return stores.Count();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting Store count: {ex.Message}");
+        }
+        
+        // Fallback to mock data
         await Task.Delay(50);
-        return 3;
+        return 3; // Mock count
     }
 
     private async Task<int> GetCustomerGroupsCountAsync()
