@@ -1,99 +1,323 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
+using ChronoPos.Application.Interfaces;
+using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.ViewModels;
+using ChronoPos.Infrastructure.Services;
 
 namespace ChronoPos.Desktop.ViewModels;
 
+/// <summary>
+/// ViewModel for managing tax types
+/// </summary>
 public partial class TaxTypesViewModel : ObservableObject
 {
-    private readonly ITaxTypeService _taxTypeService;
+    #region Private Fields
 
+    private readonly ITaxTypeService _taxTypeService;
+    private readonly IThemeService _themeService;
+    private readonly IZoomService _zoomService;
+    private readonly ILocalizationService _localizationService;
+    private readonly IColorSchemeService _colorSchemeService;
+    private readonly ILayoutDirectionService _layoutDirectionService;
+    private readonly IFontService _fontService;
+    private readonly IDatabaseLocalizationService _databaseLocalizationService;
+
+    #endregion
+
+    #region Observable Properties
+
+    /// <summary>
+    /// Collection of tax types
+    /// </summary>
     [ObservableProperty]
     private ObservableCollection<TaxTypeDto> _taxTypes = new();
 
+    /// <summary>
+    /// Currently selected tax type
+    /// </summary>
     [ObservableProperty]
-    private ObservableCollection<TaxTypeDto> _filteredTaxTypes = new();
+    private TaxTypeDto? _selectedTaxType;
 
+    /// <summary>
+    /// Loading indicator
+    /// </summary>
     [ObservableProperty]
-    private TaxTypeDto _selectedTaxType = new();
+    private bool _isLoading = false;
 
+    /// <summary>
+    /// Status message
+    /// </summary>
     [ObservableProperty]
-    private TaxTypeDto _editingTaxType = new();
+    private string _statusMessage = string.Empty;
 
+    /// <summary>
+    /// Whether to show only active tax types
+    /// </summary>
+    [ObservableProperty]
+    private bool _showActiveOnly = true;
+
+    /// <summary>
+    /// Search text for filtering tax types
+    /// </summary>
     [ObservableProperty]
     private string _searchText = string.Empty;
 
-    [ObservableProperty]
-    private bool _isOverlayVisible = false;
-
-    [ObservableProperty]
-    private bool _isEditMode = false;
-
-    [ObservableProperty]
-    private bool _showActiveOnly = false;
-
     /// <summary>
-    /// Text for the active filter toggle button
+    /// Whether the side panel is visible
     /// </summary>
-    public string ActiveFilterButtonText => ShowActiveOnly ? "Show All" : "Active Only";
+    [ObservableProperty]
+    private bool _isSidePanelVisible = false;
 
     /// <summary>
-    /// Title for the overlay form
+    /// Current flow direction for UI
     /// </summary>
-    public string FormTitle => IsEditMode ? "Edit Tax Type" : "Add Tax Type";
+    [ObservableProperty]
+    private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
 
     /// <summary>
-    /// Action to navigate back (set by parent)
+    /// Side panel view model
+    /// </summary>
+    [ObservableProperty]
+    private TaxTypeSidePanelViewModel _sidePanelViewModel;
+
+    #endregion
+
+    #region Computed Properties
+
+    /// <summary>
+    /// Filtered collection of tax types based on search and active filter
+    /// </summary>
+    public ObservableCollection<TaxTypeDto> FilteredTaxTypes
+    {
+        get
+        {
+            var filtered = TaxTypes.AsEnumerable();
+
+            // Apply active filter
+            if (ShowActiveOnly)
+            {
+                filtered = filtered.Where(t => t.IsActive);
+            }
+
+            // Apply search filter
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                var searchLower = SearchText.ToLower();
+                filtered = filtered.Where(t => 
+                    t.Name.ToLower().Contains(searchLower) ||
+                    (!string.IsNullOrEmpty(t.Description) && t.Description.ToLower().Contains(searchLower)));
+            }
+
+            return new ObservableCollection<TaxTypeDto>(filtered);
+        }
+    }
+
+    /// <summary>
+    /// Whether there are any tax types
+    /// </summary>
+    public bool HasTaxTypes => TaxTypes.Count > 0;
+
+    #endregion
+
+    #region Commands
+
+    /// <summary>
+    /// Back navigation action (set by parent)
     /// </summary>
     public Action? GoBackAction { get; set; }
 
-    public TaxTypesViewModel(ITaxTypeService taxTypeService)
+    #endregion
+
+    #region Constructor
+
+    /// <summary>
+    /// Constructor with all required services
+    /// </summary>
+    public TaxTypesViewModel(
+        ITaxTypeService taxTypeService,
+        IThemeService themeService,
+        IZoomService zoomService,
+        ILocalizationService localizationService,
+        IColorSchemeService colorSchemeService,
+        ILayoutDirectionService layoutDirectionService,
+        IFontService fontService,
+        IDatabaseLocalizationService databaseLocalizationService)
     {
-        _taxTypeService = taxTypeService;
-        _ = LoadTaxTypesAsync();
+        _taxTypeService = taxTypeService ?? throw new ArgumentNullException(nameof(taxTypeService));
+        _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
+        _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
+        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        _colorSchemeService = colorSchemeService ?? throw new ArgumentNullException(nameof(colorSchemeService));
+        _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
+        _fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
+        _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
+
+        // Initialize side panel view model
+        _sidePanelViewModel = new TaxTypeSidePanelViewModel(taxTypeService, layoutDirectionService);
+        _sidePanelViewModel.OnSave += OnTaxTypeSaved;
+        _sidePanelViewModel.OnCancel += OnSidePanelCancelRequested;
+        _sidePanelViewModel.OnClose += OnSidePanelCancelRequested;
+
+        // Initialize with current values
+        CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
+            ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+
+        // Load tax types
+        _ = Task.Run(LoadTaxTypesAsync);
     }
 
-    partial void OnSearchTextChanged(string value)
-    {
-        FilterTaxTypes();
-    }
+    #endregion
 
-    partial void OnShowActiveOnlyChanged(bool value)
-    {
-        FilterTaxTypes();
-        OnPropertyChanged(nameof(ActiveFilterButtonText));
-    }
+    #region Command Implementations
 
-    partial void OnIsEditModeChanged(bool value)
-    {
-        OnPropertyChanged(nameof(FormTitle));
-    }
-
-    private void FilterTaxTypes()
-    {
-        var filtered = TaxTypes.AsEnumerable();
-
-        if (ShowActiveOnly)
-        {
-            filtered = filtered.Where(t => t.IsActive);
-        }
-
-        if (!string.IsNullOrWhiteSpace(SearchText))
-        {
-            filtered = filtered.Where(t => 
-                t.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-                (t.Description?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false));
-        }
-        
-        FilteredTaxTypes = new ObservableCollection<TaxTypeDto>(filtered);
-    }
-
+    /// <summary>
+    /// Command to go back to previous screen
+    /// </summary>
     [RelayCommand]
+    private void GoBack()
+    {
+        GoBackAction?.Invoke();
+    }
+
+    /// <summary>
+    /// Command to refresh tax types
+    /// </summary>
+    [RelayCommand]
+    private async Task Refresh()
+    {
+        await LoadTaxTypesAsync();
+    }
+
+    /// <summary>
+    /// Command to add new tax type
+    /// </summary>
+    [RelayCommand]
+    private void AddNew()
+    {
+        SidePanelViewModel.ResetForNew();
+        IsSidePanelVisible = true;
+    }
+
+    /// <summary>
+    /// Command to edit a tax type
+    /// </summary>
+    [RelayCommand]
+    private void Edit(TaxTypeDto taxType)
+    {
+        if (taxType != null)
+        {
+            SidePanelViewModel.LoadTaxType(taxType);
+            IsSidePanelVisible = true;
+        }
+    }
+
+    /// <summary>
+    /// Command to delete a tax type
+    /// </summary>
+    [RelayCommand]
+    private async Task Delete(TaxTypeDto taxType)
+    {
+        if (taxType != null)
+        {
+            var result = MessageBox.Show(
+                $"Are you sure you want to delete the tax type '{taxType.Name}'?",
+                "Confirm Delete",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    IsLoading = true;
+                    StatusMessage = "Deleting tax type...";
+                    
+                    await _taxTypeService.DeleteTaxTypeAsync(taxType.Id);
+                    
+                    StatusMessage = "Tax type deleted successfully";
+                    await LoadTaxTypesAsync();
+                }
+                catch (Exception ex)
+                {
+                    StatusMessage = $"Error deleting tax type: {ex.Message}";
+                    MessageBox.Show($"Error deleting tax type: {ex.Message}", "Error", 
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                finally
+                {
+                    IsLoading = false;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Command to toggle active status of a tax type
+    /// </summary>
+    [RelayCommand]
+    private async Task ToggleActive(object parameter)
+    {
+        if (parameter is not TaxTypeDto taxType) return;
+
+        try
+        {
+            IsLoading = true;
+            StatusMessage = "Updating tax type status...";
+
+            // Toggle the active status
+            taxType.IsActive = !taxType.IsActive;
+            
+            // Update the tax type
+            await _taxTypeService.UpdateTaxTypeAsync(taxType);
+            
+            StatusMessage = "Tax type status updated successfully";
+            OnPropertyChanged(nameof(FilteredTaxTypes));
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error updating tax type status: {ex.Message}";
+            MessageBox.Show($"Error updating tax type status: {ex.Message}", "Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Command to toggle active filter
+    /// </summary>
+    [RelayCommand]
+    private void ToggleActiveFilter()
+    {
+        ShowActiveOnly = !ShowActiveOnly;
+        OnPropertyChanged(nameof(FilteredTaxTypes));
+    }
+
+    /// <summary>
+    /// Command to clear search
+    /// </summary>
+    [RelayCommand]
+    private void ClearSearch()
+    {
+        SearchText = string.Empty;
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    /// <summary>
+    /// Load all tax types from the service
+    /// </summary>
     private async Task LoadTaxTypesAsync()
     {
         try
@@ -108,167 +332,45 @@ public partial class TaxTypesViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
-    private void ShowAddTaxTypeOverlay()
+    /// <summary>
+    /// Filter tax types based on search and active status
+    /// </summary>
+    private void FilterTaxTypes()
     {
-        try
-        {
-            Console.WriteLine("=== ShowAddTaxTypeOverlay started ===");
-            EditingTaxType = new TaxTypeDto
-            {
-                IsActive = true,
-                IsPercentage = true,
-                CalculationOrder = 1
-            };
-            IsEditMode = false;
-            IsOverlayVisible = true;
-            Console.WriteLine($"ShowAddTaxTypeOverlay executed - IsOverlayVisible: {IsOverlayVisible}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error in ShowAddTaxTypeOverlay: {ex.Message}");
-        }
+        // Since FilteredTaxTypes is a computed property, just notify that it changed
+        OnPropertyChanged(nameof(FilteredTaxTypes));
     }
 
-    [RelayCommand]
-    private void ShowEditTaxTypeOverlay(TaxTypeDto? taxType = null)
+    /// <summary>
+    /// Handle tax type saved event from side panel
+    /// </summary>
+    private async void OnTaxTypeSaved()
     {
-        var targetTaxType = taxType ?? SelectedTaxType;
-        if (targetTaxType?.Id > 0)
-        {
-            EditingTaxType = new TaxTypeDto
-            {
-                Id = targetTaxType.Id,
-                Name = targetTaxType.Name,
-                Description = targetTaxType.Description,
-                Value = targetTaxType.Value,
-                IsPercentage = targetTaxType.IsPercentage,
-                IncludedInPrice = targetTaxType.IncludedInPrice,
-                AppliesToBuying = targetTaxType.AppliesToBuying,
-                AppliesToSelling = targetTaxType.AppliesToSelling,
-                CalculationOrder = targetTaxType.CalculationOrder,
-                IsActive = targetTaxType.IsActive
-            };
-            IsEditMode = true;
-            IsOverlayVisible = true;
-        }
-    }
-
-    [RelayCommand]
-    private async Task SaveTaxTypeAsync()
-    {
-        try
-        {
-            Console.WriteLine("=== SaveTaxTypeAsync started ===");
-            Console.WriteLine($"EditingTaxType.Name: '{EditingTaxType.Name}'");
-            Console.WriteLine($"EditingTaxType.Value: {EditingTaxType.Value}");
-            Console.WriteLine($"IsEditMode: {IsEditMode}");
-
-            // Basic validation
-            if (string.IsNullOrWhiteSpace(EditingTaxType.Name))
-            {
-                Console.WriteLine("Validation failed: Name is empty");
-                MessageBox.Show("Tax type name is required.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            if (EditingTaxType.Value < 0)
-            {
-                Console.WriteLine("Validation failed: Value is negative");
-                MessageBox.Show("Tax value cannot be negative.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            if (EditingTaxType.IsPercentage && EditingTaxType.Value > 100)
-            {
-                Console.WriteLine("Validation failed: Percentage over 100");
-                MessageBox.Show("Percentage value cannot exceed 100%.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            Console.WriteLine("Validation passed, calling service...");
-
-            if (IsEditMode)
-            {
-                await _taxTypeService.UpdateTaxTypeAsync(EditingTaxType);
-                MessageBox.Show("Tax type updated successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            else
-            {
-                await _taxTypeService.CreateTaxTypeAsync(EditingTaxType);
-                MessageBox.Show("Tax type created successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-
-            Console.WriteLine("Service call completed, closing overlay...");
-            CloseOverlay();
-            await LoadTaxTypesAsync();
-            Console.WriteLine("=== SaveTaxTypeAsync completed successfully ===");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"=== ERROR in SaveTaxTypeAsync: {ex.Message} ===");
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
-            MessageBox.Show($"Error saving tax type: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
-    [RelayCommand]
-    private async Task DeleteTaxTypeAsync(TaxTypeDto? taxType = null)
-    {
-        var targetTaxType = taxType ?? SelectedTaxType;
-        if (targetTaxType?.Id > 0)
-        {
-            var result = MessageBox.Show(
-                $"Are you sure you want to delete the tax type '{targetTaxType.Name}'?",
-                "Confirm Deletion",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
-            {
-                try
-                {
-                    await _taxTypeService.DeleteTaxTypeAsync(targetTaxType.Id);
-                    MessageBox.Show("Tax type deleted successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-                    await LoadTaxTypesAsync();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error deleting tax type: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
-    }
-
-    [RelayCommand]
-    private void CloseOverlay()
-    {
-        IsOverlayVisible = false;
-        EditingTaxType = new TaxTypeDto();
-        IsEditMode = false;
-    }
-
-    [RelayCommand]
-    private async Task RefreshAsync()
-    {
+        IsSidePanelVisible = false;
         await LoadTaxTypesAsync();
     }
 
-    [RelayCommand]
-    private void GoBack()
+    /// <summary>
+    /// Handle side panel cancel event
+    /// </summary>
+    private void OnSidePanelCancelRequested()
     {
-        GoBackAction?.Invoke();
+        IsSidePanelVisible = false;
     }
 
-    [RelayCommand]
-    private void ToggleActiveFilter()
+    #endregion
+
+    #region Event Handlers
+
+    partial void OnSearchTextChanged(string value)
     {
-        ShowActiveOnly = !ShowActiveOnly;
+        FilterTaxTypes();
     }
 
-    [RelayCommand]
-    private void ClearSearch()
+    partial void OnShowActiveOnlyChanged(bool value)
     {
-        SearchText = string.Empty;
+        FilterTaxTypes();
     }
+
+    #endregion
 }

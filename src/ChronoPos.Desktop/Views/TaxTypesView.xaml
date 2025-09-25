@@ -3,20 +3,22 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ChronoPos.Desktop.Views.Controls"
              xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             xmlns:userControls="clr-namespace:ChronoPos.Desktop.UserControls"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800"
              Background="{DynamicResource MainBackground}"
+             FlowDirection="{Binding CurrentFlowDirection}"
              FontFamily="{DynamicResource PoppinsFontFallback}">
 
     <UserControl.Resources>
         <!-- Converters -->
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+
         <converters:FlowDirectionToGridColumnConverter x:Key="FlowDirectionToGridColumnConverter"/>
         <converters:FlowDirectionToHorizontalAlignmentConverter x:Key="FlowDirectionToHorizontalAlignmentConverter"/>
         <converters:BoolToGridLengthConverter x:Key="BoolToGridLengthConverter"/>
-        <converters:BooleanToStringConverter x:Key="BooleanToStringConverter"/>
 
         <!-- Button Style -->
         <Style x:Key="ActionButtonStyle" TargetType="Button">
@@ -53,173 +55,101 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
-        <!-- Delete Button Style -->
-        <Style x:Key="DeleteButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
-            <Setter Property="Background" Value="{DynamicResource Danger}"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center" 
-                                            VerticalAlignment="Center"
-                                            Margin="{TemplateBinding Padding}"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Card Style -->
-        <Style x:Key="TaxTypeCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="{DynamicResource BorderCornerRadius}"/>
-            <Setter Property="Margin" Value="{DynamicResource DefaultMarginThickness}"/>
-            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
-        </Style>
     </UserControl.Resources>
 
     <Grid>
-        <!-- Main Content - Always full width -->
-        <Grid Margin="20">
+        <!-- Main Content -->
+        <Grid Margin="25">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <!-- Header Section -->
-            <Grid Grid.Row="0" Margin="0,0,0,20">
+            <Grid Grid.Row="0" Margin="0,0,0,25">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Back Button -->
-                <Button Grid.Column="0"
-                        Content="← Back"
-                        Command="{Binding GoBackCommand}"
-                        Height="36"
-                        MinWidth="80"
-                        Margin="0,0,15,0"
-                        VerticalAlignment="Center">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Background" Value="#FF6B35"/>
-                            <Setter Property="Foreground" Value="White"/>
-                            <Setter Property="BorderBrush" Value="#E55A2B"/>
-                            <Setter Property="BorderThickness" Value="1"/>
-                            <Setter Property="FontWeight" Value="SemiBold"/>
-                            <Setter Property="Cursor" Value="Hand"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="{TemplateBinding Background}"
-                                                BorderBrush="{TemplateBinding BorderBrush}"
-                                                BorderThickness="{TemplateBinding BorderThickness}"
-                                                CornerRadius="4">
-                                            <ContentPresenter HorizontalAlignment="Center"
-                                                            VerticalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#FF7A47"/>
-                                                <Setter Property="BorderBrush" Value="#FF6B35"/>
-                                            </Trigger>
-                                            <Trigger Property="IsPressed" Value="True">
-                                                <Setter Property="Background" Value="#D44B1F"/>
-                                                <Setter Property="BorderBrush" Value="#C2441C"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
+                <!-- Back Button and Title -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Back Button -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
+                                        <Setter Property="FlowDirection" Value="LeftToRight"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <controls:CircularBackButton 
+                            Command="{Binding GoBackCommand}"
+                            Width="{DynamicResource ButtonHeight}"
+                            Height="{DynamicResource ButtonHeight}"
+                            Margin="0,0,10,0"/>
+                    </StackPanel>
+
+                    <!-- Title -->
+                    <TextBlock Text="Tax Types" 
+                               FontSize="{DynamicResource FontSizeLarge}"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimary}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Action Buttons -->
+                <StackPanel Grid.Column="2" 
+                           Orientation="Horizontal" 
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Right">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="FlowDirection" Value="LeftToRight"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
+                                    <Setter Property="FlowDirection" Value="RightToLeft"/>
+                                </DataTrigger>
+                            </Style.Triggers>
                         </Style>
-                    </Button.Style>
-                </Button>
-
-                <!-- Title -->
-                <TextBlock Grid.Column="1"
-                          Text="Tax Types"
-                          FontSize="28"
-                          FontWeight="Bold"
-                          Foreground="{DynamicResource TextPrimary}"
-                          VerticalAlignment="Center"
-                          HorizontalAlignment="Left"/>
-
-                <!-- Refresh Button -->
-                <Button Grid.Column="2"
-                        Content="🔄 Refresh"
+                    </StackPanel.Style>
+                    <controls:RefreshButton 
                         Command="{Binding RefreshCommand}"
-                        Height="36"
-                        MinWidth="120"
-                        ToolTip="Refresh tax types">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Background" Value="#FFD700"/>
-                            <Setter Property="Foreground" Value="Black"/>
-                            <Setter Property="BorderBrush" Value="#FFC125"/>
-                            <Setter Property="BorderThickness" Value="1"/>
-                            <Setter Property="FontWeight" Value="SemiBold"/>
-                            <Setter Property="Cursor" Value="Hand"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="{TemplateBinding Background}"
-                                                BorderBrush="{TemplateBinding BorderBrush}"
-                                                BorderThickness="{TemplateBinding BorderThickness}"
-                                                CornerRadius="4">
-                                            <ContentPresenter HorizontalAlignment="Center"
-                                                            VerticalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#FFED4A"/>
-                                                <Setter Property="BorderBrush" Value="#FFD700"/>
-                                            </Trigger>
-                                            <Trigger Property="IsPressed" Value="True">
-                                                <Setter Property="Background" Value="#E6C200"/>
-                                                <Setter Property="BorderBrush" Value="#CC9900"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </Button.Style>
-                </Button>
-            </Grid>
+                        ButtonText="Refresh"
+                        ButtonIcon="🔄"
+                        MinButtonWidth="120"
+                        ButtonHeight="36"
+                        Margin="0,0,10,0"/>
+                    <Button Content="Add Tax Type"
+                            Style="{StaticResource ActionButtonStyle}"
+                            Command="{Binding AddNewCommand}"/>
+                </StackPanel>
+        </Grid>
 
             <!-- Search and Filter Section -->
             <Border Grid.Row="1" 
                     Background="{DynamicResource CardBackground}" 
                     CornerRadius="{DynamicResource BorderCornerRadius}"
-                    Margin="0,0,0,20">
-                <Grid Margin="20">
+                    BorderThickness="1"
+                    BorderBrush="{DynamicResource BorderLight}"
+                    Margin="0,0,0,25">
+                <Grid Margin="20,15">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
                     <!-- Search Section -->
                     <Border Grid.Column="0" 
-                            Background="{DynamicResource InputBackground}"
+                            Background="{DynamicResource MainBackground}"
                             BorderBrush="{DynamicResource BorderLight}"
                             BorderThickness="1"
-                            CornerRadius="6"
+                            CornerRadius="{DynamicResource BorderCornerRadius}"
                             Margin="0,0,15,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -242,19 +172,9 @@
                                     Background="Transparent"
                                     BorderThickness="0"
                                     FontSize="14"
-                                    Padding="0,12"
+                                    Padding="0,10"
                                     VerticalContentAlignment="Center"
-                                    Foreground="{DynamicResource TextPrimary}">
-                                <TextBox.Style>
-                                    <Style TargetType="TextBox">
-                                        <Style.Triggers>
-                                            <Trigger Property="Text" Value="">
-                                                <Setter Property="Background" Value="Transparent"/>
-                                            </Trigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBox.Style>
-                            </TextBox>
+                                    Foreground="{DynamicResource TextPrimary}"/>
 
                             <!-- Placeholder Text -->
                             <TextBlock Grid.Column="1"
@@ -262,6 +182,7 @@
                                       FontSize="14"
                                       Foreground="{DynamicResource TextSecondary}"
                                       VerticalAlignment="Center"
+                                      Margin="0,10"
                                       IsHitTestVisible="False">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
@@ -275,161 +196,360 @@
                                 </TextBlock.Style>
                             </TextBlock>
 
-                            <!-- Clear Search Button -->
-                            <Button Grid.Column="2"
-                                   Command="{Binding ClearSearchCommand}"
-                                   Background="Transparent"
-                                   BorderThickness="0"
-                                   Padding="8"
-                                   Margin="0,0,4,0"
-                                   Cursor="Hand"
-                                   Visibility="{Binding SearchText, Converter={StaticResource BoolToVisibilityConverter}}">
-                                <TextBlock Text="✕" 
-                                          FontSize="12" 
-                                          Foreground="{DynamicResource TextSecondary}"/>
-                            </Button>
+
                         </Grid>
                     </Border>
 
-                    <!-- Active Filter Toggle -->
+                    <!-- Filter Button -->
                     <Button Grid.Column="1"
-                            Content="{Binding ActiveFilterButtonText}"
                             Command="{Binding ToggleActiveFilterCommand}"
-                            Style="{StaticResource ActionButtonStyle}"
-                            Margin="0,0,15,0"
-                            MinWidth="120"/>
-
-                    <!-- Add New Button -->
-                    <Button Grid.Column="2"
-                            Content="+ Add Tax Type"
-                            Command="{Binding ShowAddTaxTypeOverlayCommand}"
-                            Style="{StaticResource ActionButtonStyle}"/>
+                            MinWidth="100"
+                            Margin="0,0,10,0"
+                            Style="{StaticResource ActionButtonStyle}">
+                        <Button.Content>
+                            <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="Active Only"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ShowActiveOnly}" Value="True">
+                                                <Setter Property="Text" Value="Show All"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Button.Content>
+                    </Button>
                 </Grid>
             </Border>
 
-            <!-- Tax Types DataGrid -->
+            <!-- DataGrid Section -->
             <Border Grid.Row="2" 
                     Background="{DynamicResource CardBackground}" 
-                    CornerRadius="{DynamicResource BorderCornerRadius}">
-                <DataGrid ItemsSource="{Binding FilteredTaxTypes}"
-                          SelectedItem="{Binding SelectedTaxType}"
-                          Style="{DynamicResource DataGridStyle}"
-                          AutoGenerateColumns="False"
-                          CanUserAddRows="False"
-                          CanUserDeleteRows="False"
-                          IsReadOnly="True"
-                          Margin="20">
-                    <DataGrid.Columns>
-                        <!-- Name Column -->
-                        <DataGridTextColumn Header="Name" 
-                                          Binding="{Binding Name}"
-                                          Width="200"/>
+                    CornerRadius="{DynamicResource BorderCornerRadius}"
+                    BorderThickness="1"
+                    BorderBrush="{DynamicResource BorderLight}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-                        <!-- Description Column -->
-                        <DataGridTextColumn Header="Description" 
-                                          Binding="{Binding Description}"
-                                          Width="250"/>
+                    <!-- DataGrid Content -->
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding FilteredTaxTypes}"
+                              SelectedItem="{Binding SelectedTaxType}"
+                              AutoGenerateColumns="False"
+                              GridLinesVisibility="None"
+                              HeadersVisibility="Column"
+                              Background="Transparent"
+                              BorderThickness="0"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              IsReadOnly="True"
+                              FontFamily="{DynamicResource PoppinsFontFallback}"
+                              FontSize="{DynamicResource FontSizeSmall}"
+                              FlowDirection="{Binding CurrentFlowDirection}"
+                              HorizontalGridLinesBrush="{DynamicResource BorderLight}"
+                              VerticalGridLinesBrush="Transparent"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                              ScrollViewer.CanContentScroll="True"
+                              Visibility="{Binding IsLoading, Converter={StaticResource InverseBoolToVisibilityConverter}}">
 
-                        <!-- Value Column -->
-                        <DataGridTextColumn Header="Value" 
-                                          Binding="{Binding Value, StringFormat=N4}"
-                                          Width="100"/>
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+                                <Setter Property="Padding" Value="12,8"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
 
-                        <!-- Type Column -->
-                        <DataGridTextColumn Header="Type" 
-                                          Binding="{Binding IsPercentage, Converter={StaticResource BooleanToStringConverter}, ConverterParameter='Percentage;Fixed Amount'}"
-                                          Width="120"/>
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
 
-                        <!-- Applies To Column -->
-                        <DataGridTemplateColumn Header="Applies To" Width="150">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Vertical">
-                                        <TextBlock Text="Buying" 
-                                                   Visibility="{Binding AppliesToBuying, Converter={StaticResource BoolToVisibilityConverter}}"
-                                                   FontSize="11" 
-                                                   Foreground="Green"/>
-                                        <TextBlock Text="Selling" 
-                                                   Visibility="{Binding AppliesToSelling, Converter={StaticResource BoolToVisibilityConverter}}"
-                                                   FontSize="11" 
-                                                   Foreground="Blue"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
+                        <DataGrid.CellStyle>
+                            <Style TargetType="DataGridCell">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Padding" Value="12,8"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.CellStyle>
 
-                        <!-- Status Column -->
-                        <DataGridTextColumn Header="Status" 
-                                          Binding="{Binding IsActive, Converter={StaticResource BooleanToStringConverter}, ConverterParameter='Active;Inactive'}"
-                                          Width="100"/>
+                        <DataGrid.Columns>
+                            <!-- Name Column -->
+                            <DataGridTextColumn Header="Name" 
+                                              Binding="{Binding Name}"
+                                              Width="200"
+                                              MinWidth="150">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="Medium"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
-                        <!-- Actions Column -->
-                        <DataGridTemplateColumn Header="Actions" Width="150">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Edit"
-                                               Command="{Binding DataContext.ShowEditTaxTypeOverlayCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                               CommandParameter="{Binding}"
-                                               Style="{DynamicResource ModernButtonStyle}"
-                                               Background="{DynamicResource Warning}"
-                                               Margin="0,0,5,0"
+                            <!-- Description Column -->
+                            <DataGridTextColumn Header="Description" 
+                                              Binding="{Binding Description}"
+                                              Width="250"
+                                              MinWidth="200">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        <Setter Property="TextWrapping" Value="Wrap"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- Value Column -->
+                            <DataGridTextColumn Header="Value" 
+                                              Binding="{Binding ValueDisplay}"
+                                              Width="120"
+                                              MinWidth="100">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- Type Column -->
+                            <DataGridTextColumn Header="Type" 
+                                              Binding="{Binding TypeDisplay}"
+                                              Width="130"
+                                              MinWidth="120">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- Applies To Column -->
+                            <DataGridTextColumn Header="Applies To" 
+                                              Binding="{Binding AppliesToDisplay}"
+                                              Width="150"
+                                              MinWidth="130">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- Status Column -->
+                            <DataGridTemplateColumn Header="Status" Width="100" MinWidth="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="12"
                                                Padding="8,4"
-                                               FontSize="11"/>
-                                        <Button Content="Delete"
-                                               Command="{Binding DataContext.DeleteTaxTypeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                               CommandParameter="{Binding}"
-                                               Style="{DynamicResource ModernButtonStyle}"
-                                               Background="{DynamicResource Danger}"
-                                               Padding="8,4"
-                                               FontSize="11"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
+                                               HorizontalAlignment="Center">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="{DynamicResource Error}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource Success}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding Status}"
+                                                      Foreground="White"
+                                                      FontSize="12"
+                                                      FontWeight="Medium"
+                                                      HorizontalAlignment="Center"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- Toggle Active Column -->
+                            <DataGridTemplateColumn Header="Active" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ToggleButton IsChecked="{Binding IsActive, Mode=OneWay}"
+                                                      Command="{Binding DataContext.ToggleActiveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      CommandParameter="{Binding}"
+                                                      Width="50"
+                                                      Height="25"
+                                                      HorizontalAlignment="Center">
+                                            <ToggleButton.Style>
+                                                <Style TargetType="ToggleButton">
+                                                    <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
+                                                    <Setter Property="BorderThickness" Value="0"/>
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="ToggleButton">
+                                                                <Border x:Name="ToggleBorder"
+                                                                        Background="{TemplateBinding Background}"
+                                                                        CornerRadius="12.5"
+                                                                        Padding="2">
+                                                                    <Ellipse x:Name="ToggleThumb"
+                                                                             Width="20"
+                                                                             Height="20"
+                                                                             Fill="White"
+                                                                             HorizontalAlignment="Left"/>
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsChecked" Value="True">
+                                                                        <Setter TargetName="ToggleBorder" Property="Background" Value="{DynamicResource Primary}"/>
+                                                                        <Setter TargetName="ToggleThumb" Property="HorizontalAlignment" Value="Right"/>
+                                                                    </Trigger>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter TargetName="ToggleBorder" Property="Opacity" Value="0.8"/>
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </ToggleButton.Style>
+                                        </ToggleButton>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- Actions Column -->
+                            <DataGridTemplateColumn Header="Actions" Width="150" MinWidth="140">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" 
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center">
+                                            <Button Content="✏️"
+                                                   Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                   CommandParameter="{Binding}"
+                                                   ToolTip="Edit Tax Type"
+                                                   Width="32"
+                                                   Height="32"
+                                                   Margin="0,0,8,0"
+                                                   Background="{DynamicResource Warning}"
+                                                   BorderThickness="0"
+                                                   Cursor="Hand">
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Border Background="{TemplateBinding Background}"
+                                                                           CornerRadius="16"
+                                                                           Width="32"
+                                                                           Height="32">
+                                                                        <ContentPresenter HorizontalAlignment="Center"
+                                                                                        VerticalAlignment="Center"/>
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter Property="Opacity" Value="0.8"/>
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            
+                                            <Button Content="🗑️"
+                                                   Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                   CommandParameter="{Binding}"
+                                                   ToolTip="Delete Tax Type"
+                                                   Width="32"
+                                                   Height="32"
+                                                   Background="{DynamicResource Error}"
+                                                   BorderThickness="0"
+                                                   Cursor="Hand">
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Border Background="{TemplateBinding Background}"
+                                                                           CornerRadius="16"
+                                                                           Width="32"
+                                                                           Height="32">
+                                                                        <ContentPresenter HorizontalAlignment="Center"
+                                                                                        VerticalAlignment="Center"/>
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter Property="Opacity" Value="0.8"/>
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
             </Border>
         </Grid>
-
-        <!-- Overlay Background when side panel is open -->
-        <Border Background="Black" 
-                Opacity="0.3"
-                Panel.ZIndex="999"
-                Visibility="{Binding IsOverlayVisible, Converter={StaticResource BoolToVisibilityConverter}}">
-            <Border.InputBindings>
-                <MouseBinding MouseAction="LeftClick" Command="{Binding CloseOverlayCommand}"/>
-            </Border.InputBindings>
-        </Border>
 
         <!-- Side Panel Overlay - Direct child of root Grid for proper z-index -->
         <Border HorizontalAlignment="Right"
                 VerticalAlignment="Stretch"
-                Width="450"
+                Width="600"
+                Panel.ZIndex="1000"
+                Visibility="{Binding IsSidePanelVisible, Converter={StaticResource BoolToVisibilityConverter}}"
                 Background="{DynamicResource CardBackground}"
                 BorderThickness="1,0,0,0"
-                BorderBrush="{DynamicResource BorderLight}"
-                Panel.ZIndex="1000"
-                Visibility="{Binding IsOverlayVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                BorderBrush="{DynamicResource BorderLight}">
             <Border.RenderTransform>
-                <TranslateTransform/>
+                <TranslateTransform x:Name="SidePanelTransform"/>
             </Border.RenderTransform>
             <Border.Style>
                 <Style TargetType="Border">
-                    <Setter Property="RenderTransform">
-                        <Setter.Value>
-                            <TranslateTransform X="450"/>
-                        </Setter.Value>
-                    </Setter>
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                        <DataTrigger Binding="{Binding IsSidePanelVisible}" Value="True">
                             <DataTrigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(TranslateTransform.X)"
-                                                       From="450"
-                                                       To="0"
-                                                       Duration="0:0:0.3">
+                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
+                                                       From="600" To="0" Duration="0:0:0.3">
                                             <DoubleAnimation.EasingFunction>
                                                 <CubicEase EasingMode="EaseOut"/>
                                             </DoubleAnimation.EasingFunction>
@@ -440,10 +560,8 @@
                             <DataTrigger.ExitActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(TranslateTransform.X)"
-                                                       From="0"
-                                                       To="450"
-                                                       Duration="0:0:0.2">
+                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
+                                                       From="0" To="600" Duration="0:0:0.2">
                                             <DoubleAnimation.EasingFunction>
                                                 <CubicEase EasingMode="EaseIn"/>
                                             </DoubleAnimation.EasingFunction>
@@ -455,166 +573,10 @@
                     </Style.Triggers>
                 </Style>
             </Border.Style>
-
-            <!-- Side Panel Content -->
-            <Grid Margin="25">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-
-                <!-- Form Header -->
-                <TextBlock Grid.Row="0"
-                          Text="{Binding FormTitle}"
-                          FontSize="20"
-                          FontWeight="Bold"
-                          Foreground="{DynamicResource TextPrimary}"
-                          Margin="0,0,0,25"
-                          HorizontalAlignment="Center"/>
-
-                <!-- Form Fields -->
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <!-- Name Field -->
-                        <StackPanel Margin="0,0,0,20">
-                            <TextBlock Text="Tax Type Name*"
-                                      FontWeight="Medium"
-                                      Foreground="{DynamicResource TextPrimary}"
-                                      Margin="0,0,0,8"
-                                      HorizontalAlignment="Left"/>
-                            <Border Background="{DynamicResource InputBackground}"
-                                    BorderBrush="{DynamicResource BorderLight}"
-                                    BorderThickness="1"
-                                    CornerRadius="{DynamicResource BorderCornerRadius}">
-                                <TextBox Text="{Binding EditingTaxType.Name, UpdateSourceTrigger=PropertyChanged}"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Padding="12"
-                                        FontSize="14"
-                                        Foreground="{DynamicResource TextPrimary}"/>
-                            </Border>
-                        </StackPanel>
-
-                        <!-- Description Field -->
-                        <StackPanel Margin="0,0,0,20">
-                            <TextBlock Text="Description"
-                                      FontWeight="Medium"
-                                      Foreground="{DynamicResource TextPrimary}"
-                                      Margin="0,0,0,8"
-                                      HorizontalAlignment="Left"/>
-                            <Border Background="{DynamicResource InputBackground}"
-                                    BorderBrush="{DynamicResource BorderLight}"
-                                    BorderThickness="1"
-                                    CornerRadius="{DynamicResource BorderCornerRadius}">
-                                <TextBox Text="{Binding EditingTaxType.Description, UpdateSourceTrigger=PropertyChanged}"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Padding="12"
-                                        FontSize="14"
-                                        Foreground="{DynamicResource TextPrimary}"/>
-                            </Border>
-                        </StackPanel>
-
-                        <!-- Tax Value Field -->
-                        <StackPanel Margin="0,0,0,20">
-                            <TextBlock Text="Tax Value*"
-                                      FontWeight="Medium"
-                                      Foreground="{DynamicResource TextPrimary}"
-                                      Margin="0,0,0,8"
-                                      HorizontalAlignment="Left"/>
-                            <Border Background="{DynamicResource InputBackground}"
-                                    BorderBrush="{DynamicResource BorderLight}"
-                                    BorderThickness="1"
-                                    CornerRadius="{DynamicResource BorderCornerRadius}">
-                                <TextBox Text="{Binding EditingTaxType.Value, UpdateSourceTrigger=PropertyChanged}"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Padding="12"
-                                        FontSize="14"
-                                        Foreground="{DynamicResource TextPrimary}"/>
-                            </Border>
-                        </StackPanel>
-
-                        <!-- Calculation Order Field -->
-                        <StackPanel Margin="0,0,0,20">
-                            <TextBlock Text="Calculation Order"
-                                      FontWeight="Medium"
-                                      Foreground="{DynamicResource TextPrimary}"
-                                      Margin="0,0,0,8"
-                                      HorizontalAlignment="Left"/>
-                            <Border Background="{DynamicResource InputBackground}"
-                                    BorderBrush="{DynamicResource BorderLight}"
-                                    BorderThickness="1"
-                                    CornerRadius="{DynamicResource BorderCornerRadius}">
-                                <TextBox Text="{Binding EditingTaxType.CalculationOrder, UpdateSourceTrigger=PropertyChanged}"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Padding="12"
-                                        FontSize="14"
-                                        Foreground="{DynamicResource TextPrimary}"/>
-                            </Border>
-                        </StackPanel>
-
-                        <!-- Tax Options -->
-                        <StackPanel Margin="0,0,0,20">
-                            <TextBlock Text="Tax Options"
-                                      FontWeight="Medium"
-                                      Foreground="{DynamicResource TextPrimary}"
-                                      Margin="0,0,0,15"/>
-                            
-                            <StackPanel>
-                                <CheckBox Content="Is Percentage"
-                                         IsChecked="{Binding EditingTaxType.IsPercentage}"
-                                         Margin="0,0,0,10"
-                                         FontSize="14"
-                                         Foreground="{DynamicResource TextPrimary}"/>
-                                
-                                <CheckBox Content="Included in Price"
-                                         IsChecked="{Binding EditingTaxType.IncludedInPrice}"
-                                         Margin="0,0,0,10"
-                                         FontSize="14"
-                                         Foreground="{DynamicResource TextPrimary}"/>
-                                
-                                <CheckBox Content="Applies to Buying"
-                                         IsChecked="{Binding EditingTaxType.AppliesToBuying}"
-                                         Margin="0,0,0,10"
-                                         FontSize="14"
-                                         Foreground="{DynamicResource TextPrimary}"/>
-                                
-                                <CheckBox Content="Applies to Selling"
-                                         IsChecked="{Binding EditingTaxType.AppliesToSelling}"
-                                         Margin="0,0,0,10"
-                                         FontSize="14"
-                                         Foreground="{DynamicResource TextPrimary}"/>
-                                
-                                <CheckBox Content="Is Active"
-                                         IsChecked="{Binding EditingTaxType.IsActive}"
-                                         FontSize="14"
-                                         Foreground="{DynamicResource TextPrimary}"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
-
-                <!-- Form Actions -->
-                <StackPanel Grid.Row="2" 
-                           Orientation="Horizontal" 
-                           HorizontalAlignment="Right"
-                           Margin="0,25,0,0">
-                    <Button Content="Cancel"
-                           Command="{Binding CloseOverlayCommand}"
-                           Background="{DynamicResource TextSecondary}"
-                           Foreground="White"
-                           Style="{DynamicResource ModernButtonStyle}"
-                           Margin="0,0,10,0"
-                           MinWidth="80"/>
-                    <Button Content="Save"
-                           Command="{Binding SaveTaxTypeCommand}"
-                           Style="{DynamicResource PrimaryButtonStyle}"
-                           MinWidth="80"/>
-                </StackPanel>
-            </Grid>
+            <Border.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="12" Opacity="0.3" Direction="180"/>
+            </Border.Effect>
+            <userControls:TaxTypeSidePanelControl DataContext="{Binding SidePanelViewModel}"/>
         </Border>
     </Grid>
 </UserControl>

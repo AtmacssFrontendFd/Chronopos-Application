@@ -1603,7 +1603,14 @@ public partial class MainWindowViewModel : ObservableObject
         {
             // Create the TaxTypesViewModel with all required services
             var taxTypesViewModel = new TaxTypesViewModel(
-                _serviceProvider.GetRequiredService<ITaxTypeService>()
+                _serviceProvider.GetRequiredService<ITaxTypeService>(),
+                _serviceProvider.GetRequiredService<IThemeService>(),
+                _serviceProvider.GetRequiredService<IZoomService>(),
+                _serviceProvider.GetRequiredService<ILocalizationService>(),
+                _serviceProvider.GetRequiredService<IColorSchemeService>(),
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
+                _serviceProvider.GetRequiredService<IFontService>(),
+                _serviceProvider.GetRequiredService<IDatabaseLocalizationService>()
             );
 
             // Set up back navigation to return to Add Options
