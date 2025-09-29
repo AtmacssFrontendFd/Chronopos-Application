@@ -9,6 +9,7 @@
     <converters:HalfValueConverter x:Key="HalfValueConverter"/>
     <converters:EqualsConverter x:Key="EqualsConverter"/>
     <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
 
     <!-- Font Family -->
     <FontFamily x:Key="PoppinsFont">pack://application:,,,/ChronoPos.Desktop;component/Fonts/#Poppins Regular</FontFamily>

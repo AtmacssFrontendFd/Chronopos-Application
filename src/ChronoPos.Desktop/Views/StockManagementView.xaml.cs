@@ -8,6 +8,8 @@ using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Infrastructure.Services;
 using ChronoPos.Desktop.Models;
+using DesktopFileLogger = ChronoPos.Desktop.Services.FileLogger;
+using ChronoPos.Application.Logging;
 
 namespace ChronoPos.Desktop.Views;
 
@@ -22,6 +24,25 @@ public partial class StockManagementView : UserControl
         
         // DataContext will be set by MainWindowViewModel
         // DataContext = new StockManagementSimpleViewModel();
+    }
+    
+    private async void SearchComboBox_DropDownOpened(object sender, EventArgs e)
+    {
+        DesktopFileLogger.Log("[StockManagementView] SearchComboBox_DropDownOpened called");
+        AppLogger.LogInfo("SearchComboBox_DropDownOpened event triggered", "User opened product dropdown", "ui_events");
+        
+        // Get the ViewModel and trigger initial load if SearchResults is empty
+        if (DataContext is ChronoPos.Desktop.ViewModels.StockManagementViewModel viewModel)
+        {
+            DesktopFileLogger.Log("[StockManagementView] Calling LoadInitialSearchResultsAsync");
+            AppLogger.LogInfo("Calling LoadInitialSearchResultsAsync", "ViewModel found, loading products", "ui_events");
+            await viewModel.LoadInitialSearchResultsAsync();
+        }
+        else
+        {
+            DesktopFileLogger.Log("[StockManagementView] DataContext is not StockManagementViewModel");
+            AppLogger.LogWarning("DataContext is not StockManagementViewModel", "Unexpected DataContext type", "ui_events");
+        }
     }
 }
 

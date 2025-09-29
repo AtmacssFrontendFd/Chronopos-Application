@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using ChronoPos.Domain.Entities;
 using CommunityToolkit.Mvvm.Input;
+using ChronoPos.Desktop.Services;
 
 namespace ChronoPos.Desktop.Views;
 
@@ -16,6 +17,9 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = viewModel;
+        
+        // Diagnose logging on startup
+        LoggerDiagnostic.DiagnoseLogging();
     }
 
     private void GlobalSearchTextBox_GotFocus(object sender, RoutedEventArgs e)

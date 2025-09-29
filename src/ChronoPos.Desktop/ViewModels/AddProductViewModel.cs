@@ -28,6 +28,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     private readonly IDiscountService _discountService;
     private readonly IProductUnitService _productUnitService;
     private readonly ISkuGenerationService _skuGenerationService;
+    private readonly IProductBatchService _productBatchService;
     private readonly Action? _navigateBack;
     
     // Settings services
@@ -295,6 +296,16 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private int productId = 0;
 
+    // Product Batch Properties
+    [ObservableProperty]
+    private ObservableCollection<ProductBatchDto> productBatches = new();
+
+    [ObservableProperty]
+    private bool hasProductBatches = false;
+
+    [ObservableProperty]
+    private ProductBatchDto? selectedProductBatch = null;
+
     #region Settings Properties
     [ObservableProperty]
     private int _currentZoom = 100;
@@ -321,6 +332,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string picturesTitle = "Pictures";
     [ObservableProperty] private string attributesTitle = "Attributes";
     [ObservableProperty] private string unitPricesTitle = "Unit Prices";
+    [ObservableProperty] private string productBatchesTitle = "Product Batches";
 
     // Form labels and inputs
     [ObservableProperty] private string codeLabel = "Code";
@@ -1013,6 +1025,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     IDiscountService discountService,
         IProductUnitService productUnitService,
         ISkuGenerationService skuGenerationService,
+        IProductBatchService productBatchService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -1029,6 +1042,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
         _productUnitService = productUnitService ?? throw new ArgumentNullException(nameof(productUnitService));
         _skuGenerationService = skuGenerationService ?? throw new ArgumentNullException(nameof(skuGenerationService));
+        _productBatchService = productBatchService ?? throw new ArgumentNullException(nameof(productBatchService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -1492,6 +1506,9 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             
             // Note: No need to recalculate tax-inclusive price here since we already loaded 
             // the saved value from product.TaxInclusivePriceValue above
+
+            // Load product batches for edit mode
+            await LoadProductBatchesAsync();
 
             // Update title and button text for edit mode
             await UpdateTitleForEditMode();
@@ -3192,6 +3209,103 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             throw; // Re-throw to be handled by the calling method
         }
     }
+
+    #region Product Batch Commands
+
+    [RelayCommand]
+    private async Task ShowProductBatchesAsync()
+    {
+        try
+        {
+            // Load current batches for the product
+            await LoadProductBatchesAsync();
+            StatusMessage = "Product Batches loaded successfully";
+            
+            // TODO: Implement AddProductBatchDialog or inline batch creation
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"❌ Error showing product batches: {ex.Message}");
+            StatusMessage = "Error loading product batches";
+        }
+    }
+
+    [RelayCommand]
+    private void EditProductBatch(ProductBatchDto? batch)
+    {
+        try
+        {
+            if (batch == null) return;
+            
+            StatusMessage = $"Editing batch: {batch.BatchNo}";
+            
+            // TODO: Implement EditProductBatchDialog
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"❌ Error editing product batch: {ex.Message}");
+            StatusMessage = "Error editing batch";
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteProductBatchAsync(ProductBatchDto? batch)
+    {
+        try
+        {
+            if (batch == null) return;
+
+            var result = MessageBox.Show(
+                $"Are you sure you want to delete batch '{batch.BatchNo}'?",
+                "Confirm Delete",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                await _productBatchService.DeleteProductBatchAsync(batch.Id);
+                await LoadProductBatchesAsync();
+                StatusMessage = $"Batch '{batch.BatchNo}' deleted successfully";
+            }
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"❌ Error deleting product batch: {ex.Message}");
+            StatusMessage = "Error deleting batch";
+        }
+    }
+
+    private async Task LoadProductBatchesAsync()
+    {
+        try
+        {
+            if (ProductId <= 0) 
+            {
+                ProductBatches.Clear();
+                HasProductBatches = false;
+                return;
+            }
+
+            var batches = await _productBatchService.GetProductBatchesByProductIdAsync(ProductId);
+            ProductBatches.Clear();
+            
+            foreach (var batch in batches)
+            {
+                ProductBatches.Add(batch);
+            }
+            
+            HasProductBatches = ProductBatches.Count > 0;
+            FileLogger.Log($"✅ Loaded {ProductBatches.Count} product batches for product {ProductId}");
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"❌ Error loading product batches: {ex.Message}");
+            ProductBatches.Clear();
+            HasProductBatches = false;
+        }
+    }
+
+    #endregion
 
     #endregion
 }

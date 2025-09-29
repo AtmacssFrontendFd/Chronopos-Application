@@ -856,7 +856,7 @@ public class ProductService : IProductService
                 IsNew = false
             }).ToList() ?? new List<ProductBarcodeDto>(),
             Price = product.Price,
-            StockQuantity = product.StockQuantity,
+            StockQuantity = (int)product.InitialStock,
             CategoryId = product.CategoryId,
             CategoryName = product.Category?.Name ?? string.Empty,
             BrandId = product.BrandId, // Map brand ID

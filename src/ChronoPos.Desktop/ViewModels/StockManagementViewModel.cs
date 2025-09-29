@@ -9,11 +9,14 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DesktopFileLogger = ChronoPos.Desktop.Services.FileLogger;
+using ChronoPos.Application.Logging;
 using ChronoPos.Desktop.Models;
 using ChronoPos.Desktop.Services;
 using InfrastructureServices = ChronoPos.Infrastructure.Services;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Domain.Enums;
+using System.Linq;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -31,6 +34,7 @@ public partial class StockManagementViewModel : ObservableObject
     private readonly ILayoutDirectionService _layoutDirectionService;
     private readonly IFontService _fontService;
     private readonly InfrastructureServices.IDatabaseLocalizationService _databaseLocalizationService;
+    private readonly IProductBatchService? _productBatchService;
 
     #endregion
 
@@ -122,7 +126,10 @@ public partial class StockManagementViewModel : ObservableObject
     private string _searchText = string.Empty;
 
     [ObservableProperty]
-    private string _selectedStatus = "All";
+    private DateTime? _startDate;
+
+    [ObservableProperty]
+    private DateTime? _endDate;
 
     [ObservableProperty]
     private bool _isTransferFormPanelOpen = false;
@@ -138,7 +145,7 @@ public partial class StockManagementViewModel : ObservableObject
 
     // Product Search Properties
     [ObservableProperty]
-    private ObservableCollection<ProductDto> _searchResults = new();
+    private ObservableCollection<StockAdjustmentSearchItemDto> _searchResults = new();
 
     [ObservableProperty]
     private ObservableCollection<StockAdjustmentReasonDto> _adjustmentReasons = new();
@@ -150,7 +157,6 @@ public partial class StockManagementViewModel : ObservableObject
     // Debouncing timer for search
     private readonly DispatcherTimer _searchDebounceTimer;
     private string _pendingSearchTerm = string.Empty;
-    private bool _isUpdatingFromSelection = false;
     private ProductDto? _lastSelectedProduct = null;
 
     // Common Properties for both modules
@@ -320,7 +326,8 @@ public partial class StockManagementViewModel : ObservableObject
     private async Task ClearFilters()
     {
         SearchText = string.Empty;
-        SelectedStatus = "All";
+        StartDate = null;
+        EndDate = null;
         
         // Refresh data after clearing filters
         await LoadStockAdjustmentsAsync();
@@ -345,6 +352,10 @@ public partial class StockManagementViewModel : ObservableObject
         // Load adjustment reasons
         await LoadAdjustmentReasonsAsync();
         LogMessage("[StockManagementViewModel] Adjustment reasons loaded");
+        
+        // Load initial search results to populate dropdown
+        await LoadInitialSearchResultsAsync();
+        LogMessage("[StockManagementViewModel] Initial search results loaded");
     }
 
     [RelayCommand]
@@ -377,7 +388,7 @@ public partial class StockManagementViewModel : ObservableObject
             
             // Validation
             DesktopFileLogger.Log($"[SaveAdjustProduct] Validating form data...");
-            DesktopFileLogger.Log($"[SaveAdjustProduct] SelectedProduct: {AdjustProduct.SelectedProduct?.Name ?? "NULL"}");
+            DesktopFileLogger.Log($"[SaveAdjustProduct] SelectedSearchItem: {AdjustProduct.SelectedSearchItem?.Name ?? "NULL"}");
             DesktopFileLogger.Log($"[SaveAdjustProduct] ProductId: {AdjustProduct.ProductId}");
             DesktopFileLogger.Log($"[SaveAdjustProduct] CurrentStock: {AdjustProduct.CurrentStock}");
             DesktopFileLogger.Log($"[SaveAdjustProduct] NewQuantity: {AdjustProduct.NewQuantity}");
@@ -385,10 +396,11 @@ public partial class StockManagementViewModel : ObservableObject
             DesktopFileLogger.Log($"[SaveAdjustProduct] DifferenceQuantity: {AdjustProduct.DifferenceQuantity}");
             DesktopFileLogger.Log($"[SaveAdjustProduct] ExpiryDate: {AdjustProduct.ExpiryDate}");
             
-            if (AdjustProduct.SelectedProduct == null)
+            if (!AdjustProduct.HasValidSelection)
             {
-                DesktopFileLogger.Log("[SaveAdjustProduct] ERROR: No product selected");
-                MessageBox.Show("Please select a product.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                DesktopFileLogger.Log($"[SaveAdjustProduct] ERROR: No valid selection - SelectedSearchItem: {AdjustProduct.SelectedSearchItem?.Name ?? "NULL"}, ProductId: {AdjustProduct.ProductId}");
+                var modeText = AdjustProduct.AdjustmentMode == StockAdjustmentMode.Product ? "product" : "product unit";
+                MessageBox.Show($"Please select a {modeText}.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -435,31 +447,39 @@ public partial class StockManagementViewModel : ObservableObject
             DesktopFileLogger.Log("[SaveAdjustProduct] Creating stock adjustment DTO...");
             
             // Get UOM ID from StockAdjustmentService (let it handle the lookup)
-            DesktopFileLogger.Log($"[SaveAdjustProduct] Getting UOM ID for ProductId: {AdjustProduct.SelectedProduct.Id}");
+            DesktopFileLogger.Log($"[SaveAdjustProduct] Getting UOM ID for ProductId: {AdjustProduct.ProductId}");
             
             // For now, we'll let the service handle UOM validation and use 1 as default
             // TODO: Add proper UOM lookup based on product configuration
             var productUomId = 1;
             DesktopFileLogger.Log($"[SaveAdjustProduct] Using UomId: {productUomId} (will be validated by service)");
             
+            var selectedItem = AdjustProduct.SelectedSearchItem;
+            var itemName = selectedItem?.Name ?? "Unknown Item";
+            
             var createDto = new CreateStockAdjustmentDto
             {
                 AdjustmentDate = DateTime.Now,
                 StoreLocationId = 1, // TODO: Get default store location or let user select
                 ReasonId = reasonId,
-                Remarks = $"Stock adjustment for {AdjustProduct.SelectedProduct.Name}",
+                Remarks = $"Stock adjustment for {itemName} ({AdjustProduct.AdjustmentMode})",
                 Items = new List<CreateStockAdjustmentItemDto>
                 {
                     new CreateStockAdjustmentItemDto
                     {
-                        ProductId = AdjustProduct.SelectedProduct.Id,
-                        UomId = productUomId,
+                        ProductId = AdjustProduct.ProductId,
+                        UomId = selectedItem?.UnitId ?? productUomId,
                         BatchNo = null,
                         ExpiryDate = AdjustProduct.ExpiryDate,
                         QuantityBefore = AdjustProduct.CurrentStock,
                         QuantityAfter = AdjustProduct.NewQuantity,
                         ReasonLine = AdjustProduct.ReasonText,
-                        RemarksLine = $"Adjusted from {AdjustProduct.CurrentStock} to {AdjustProduct.NewQuantity}"
+                        RemarksLine = $"{(AdjustProduct.IsIncrement ? "Increased" : "Decreased")} by {AdjustProduct.ChangeAmount} ({AdjustProduct.CurrentStock} → {AdjustProduct.NewQuantity})",
+                        AdjustmentMode = AdjustProduct.AdjustmentMode,
+                        ProductUnitId = selectedItem?.ProductUnitId,
+                        ConversionFactor = selectedItem?.ConversionFactor ?? 1,
+                        IsIncrement = AdjustProduct.IsIncrement,
+                        ChangeAmount = AdjustProduct.ChangeAmount
                     }
                 }
             };
@@ -532,29 +552,36 @@ public partial class StockManagementViewModel : ObservableObject
         DesktopFileLogger.Log($"Current SearchText: '{AdjustProduct.SearchText}'");
         DesktopFileLogger.Log($"Current SelectedProduct: {AdjustProduct.SelectedProduct?.Name ?? "NULL"} (ID: {AdjustProduct.SelectedProduct?.Id ?? 0})");
         DesktopFileLogger.Log($"Last Selected Product: {_lastSelectedProduct?.Name ?? "NULL"} (ID: {_lastSelectedProduct?.Id ?? 0})");
-        DesktopFileLogger.Log($"IsUpdatingFromSelection flag: {_isUpdatingFromSelection}");
+        DesktopFileLogger.Log($"IsUpdatingFromSelection flag: {AdjustProduct.IsUpdatingFromSelection}");
         
         if (e.PropertyName == nameof(AdjustProductModel.SearchText))
         {
             DesktopFileLogger.Log("=== SEARCHTEXT CHANGED ===");
             
-            // Don't trigger search if we're updating from a selection
-            if (_isUpdatingFromSelection)
+            // Don't trigger search if we're updating from a selection  
+            if (AdjustProduct.IsUpdatingFromSelection)
             {
-                DesktopFileLogger.Log("SKIPPING SEARCH: Updating from selection");
+                DesktopFileLogger.Log("SKIPPING SEARCH: Updating from selection (first check)");
+                return;
+            }
+            
+            // CRITICAL FIX: Don't search if we're updating from selection
+            if (AdjustProduct.IsUpdatingFromSelection)
+            {
+                DesktopFileLogger.Log("SKIPPING SEARCH: IsUpdatingFromSelection is true");
                 return;
             }
             
             // Only search if user is actually typing (not selecting)
             var currentText = AdjustProduct.SearchText ?? string.Empty;
-            var selectedProductName = AdjustProduct.SelectedProduct?.Name ?? string.Empty;
+            var selectedItemName = AdjustProduct.SelectedSearchItem?.Name ?? string.Empty;
             
-            DesktopFileLogger.Log($"Comparing: '{currentText}' vs '{selectedProductName}'");
+            DesktopFileLogger.Log($"Comparing: '{currentText}' vs '{selectedItemName}'");
             
-            // If the search text matches the selected product exactly, don't search
-            if (!string.IsNullOrEmpty(selectedProductName) && currentText.Equals(selectedProductName, StringComparison.OrdinalIgnoreCase))
+            // If the search text matches the selected item exactly, don't search
+            if (!string.IsNullOrEmpty(selectedItemName) && currentText.Equals(selectedItemName, StringComparison.OrdinalIgnoreCase))
             {
-                DesktopFileLogger.Log("SKIPPING SEARCH: SearchText matches selected product name");
+                DesktopFileLogger.Log("SKIPPING SEARCH: SearchText matches selected item name");
                 return;
             }
             
@@ -567,6 +594,22 @@ public partial class StockManagementViewModel : ObservableObject
             // Start new search timer with 300ms delay
             _searchDebounceTimer?.Start();
             DesktopFileLogger.Log("Search timer started");
+        }
+        else if (e.PropertyName == nameof(AdjustProductModel.SelectedSearchItem))
+        {
+            DesktopFileLogger.Log("=== SELECTEDSEARCHITEM CHANGED ===");
+            
+            var selectedItem = AdjustProduct.SelectedSearchItem;
+            if (selectedItem != null)
+            {
+                DesktopFileLogger.Log($"New selected item: {selectedItem.Name} (Mode: {selectedItem.Mode})");
+                
+                // Load current stock for the selected item
+                await LoadCurrentStockForSelectedItem(selectedItem);
+                
+                // Load available batches for the selected product
+                await LoadProductBatchesAsync(selectedItem.ProductId);
+            }
         }
         else if (e.PropertyName == nameof(AdjustProductModel.SelectedProduct))
         {
@@ -586,9 +629,8 @@ public partial class StockManagementViewModel : ObservableObject
                 {
                     DesktopFileLogger.Log($"Updating SearchText to match selected product: '{currentProduct.Name}'");
                     
-                    _isUpdatingFromSelection = true;
+                    // The flag is now managed in the Model itself
                     AdjustProduct.SearchText = currentProduct.Name;
-                    _isUpdatingFromSelection = false;
                     
                     DesktopFileLogger.Log($"SearchText updated successfully");
                 }
@@ -616,6 +658,36 @@ public partial class StockManagementViewModel : ObservableObject
     }
 
     // New Enhanced Commands for Stock Adjustment
+    [RelayCommand]
+    private void IncrementQuantity()
+    {
+        AdjustProduct.ChangeAmount += 1;
+    }
+
+    [RelayCommand]
+    private void DecrementQuantity()
+    {
+        if (AdjustProduct.ChangeAmount > 0)
+        {
+            AdjustProduct.ChangeAmount -= 1;
+        }
+    }
+
+    // Toggle commands for increment/decrement mode
+    [RelayCommand]
+    private void ToggleIncrementMode()
+    {
+        AppLogger.Log("Stock Management", "Toggling to Increment mode");
+        AdjustProduct.IsIncrement = true;
+    }
+
+    [RelayCommand]
+    private void ToggleDecrementMode()
+    {
+        AppLogger.Log("Stock Management", "Toggling to Decrement mode");
+        AdjustProduct.IsIncrement = false;
+    }
+
     [RelayCommand]
     private void Keypad(string input)
     {
@@ -659,6 +731,48 @@ public partial class StockManagementViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void SelectProductMode()
+    {
+        DesktopFileLogger.Log("[StockManagementViewModel] Product mode selected");
+        var previousMode = AdjustProduct.AdjustmentMode;
+        AdjustProduct.AdjustmentMode = StockAdjustmentMode.Product;
+        
+        // Only clear selection if mode actually changed
+        if (previousMode != StockAdjustmentMode.Product)
+        {
+            DesktopFileLogger.Log("[StockManagementViewModel] Mode changed, clearing selection");
+            SearchResults.Clear();
+            AdjustProduct.SearchText = string.Empty;
+            AdjustProduct.SelectedSearchItem = null;
+        }
+        else
+        {
+            DesktopFileLogger.Log("[StockManagementViewModel] Same mode selected, keeping current selection");
+        }
+    }
+
+    [RelayCommand]
+    private void SelectProductUnitMode()
+    {
+        DesktopFileLogger.Log("[StockManagementViewModel] Product Unit mode selected");
+        var previousMode = AdjustProduct.AdjustmentMode;
+        AdjustProduct.AdjustmentMode = StockAdjustmentMode.ProductUnit;
+        
+        // Only clear selection if mode actually changed
+        if (previousMode != StockAdjustmentMode.ProductUnit)
+        {
+            DesktopFileLogger.Log("[StockManagementViewModel] Mode changed, clearing selection");
+            SearchResults.Clear();
+            AdjustProduct.SearchText = string.Empty;
+            AdjustProduct.SelectedSearchItem = null;
+        }
+        else
+        {
+            DesktopFileLogger.Log("[StockManagementViewModel] Same mode selected, keeping current selection");
+        }
+    }
+
+    [RelayCommand]
     private async Task SaveStockAdjustment()
     {
         if (!AdjustProduct.IsValid)
@@ -682,10 +796,11 @@ public partial class StockManagementViewModel : ObservableObject
                     {
                         ProductId = AdjustProduct.ProductId,
                         UomId = 1, // TODO: Get from product
-                        BatchNo = null,
-                        ExpiryDate = AdjustProduct.ExpiryDate,
+                        BatchNo = AdjustProduct.SelectedBatch?.BatchNo,
+                        ExpiryDate = AdjustProduct.SelectedBatch?.ExpiryDate ?? AdjustProduct.ExpiryDate,
                         QuantityBefore = AdjustProduct.CurrentStock,
                         QuantityAfter = AdjustProduct.NewQuantity,
+                        ConversionFactor = 1, // Default for Product mode
                         ReasonLine = "Stock adjustment via touch interface"
                     }
                 }
@@ -695,6 +810,34 @@ public partial class StockManagementViewModel : ObservableObject
             if (_stockAdjustmentService != null)
             {
                 var result = await _stockAdjustmentService.CreateStockAdjustmentAsync(adjustmentDto);
+                
+                // Update ProductBatch quantity if batch is selected
+                if (AdjustProduct.SelectedBatch != null && _productBatchService != null)
+                {
+                    try
+                    {
+                        var quantityChange = AdjustProduct.NewQuantity - AdjustProduct.CurrentStock;
+                        var updatedBatch = new CreateProductBatchDto
+                        {
+                            ProductId = AdjustProduct.SelectedBatch.ProductId,
+                            BatchNo = AdjustProduct.SelectedBatch.BatchNo,
+                            ManufactureDate = AdjustProduct.SelectedBatch.ManufactureDate,
+                            ExpiryDate = AdjustProduct.SelectedBatch.ExpiryDate,
+                            Quantity = AdjustProduct.SelectedBatch.Quantity + quantityChange,
+                            UomId = AdjustProduct.SelectedBatch.UomId,
+                            CostPrice = AdjustProduct.SelectedBatch.CostPrice,
+                            LandedCost = AdjustProduct.SelectedBatch.LandedCost,
+                            Status = AdjustProduct.SelectedBatch.Status
+                        };
+                        
+                        await _productBatchService.UpdateProductBatchAsync(AdjustProduct.SelectedBatch.Id, updatedBatch);
+                    }
+                    catch (Exception batchEx)
+                    {
+                        // Log batch update error but don't fail the entire operation
+                        DesktopFileLogger.Log($"[StockManagementViewModel] Error updating ProductBatch: {batchEx.Message}");
+                    }
+                }
                 
                 // Show success message
                 MessageBox.Show($"Stock adjustment saved successfully!\nAdjustment No: {result.AdjustmentNo}", 
@@ -725,11 +868,17 @@ public partial class StockManagementViewModel : ObservableObject
         IFontService fontService,
         InfrastructureServices.IDatabaseLocalizationService databaseLocalizationService,
         IProductService? productService = null,
-        IStockAdjustmentService? stockAdjustmentService = null)
+        IStockAdjustmentService? stockAdjustmentService = null,
+        IProductBatchService? productBatchService = null)
     {
         LogMessage("[StockManagementViewModel] Constructor called");
         LogMessage($"[StockManagementViewModel] ProductService is null: {productService == null}");
         LogMessage($"[StockManagementViewModel] StockAdjustmentService is null: {stockAdjustmentService == null}");
+        
+        // New AppLogger usage
+        AppLogger.LogInfo("StockManagementViewModel initialized", 
+            $"ProductService: {(productService != null ? "Available" : "Null")}, StockAdjustmentService: {(stockAdjustmentService != null ? "Available" : "Null")}", 
+            "viewmodel");
         
         _themeService = themeService;
         _zoomService = zoomService;
@@ -740,6 +889,7 @@ public partial class StockManagementViewModel : ObservableObject
         _databaseLocalizationService = databaseLocalizationService;
         _productService = productService;
         _stockAdjustmentService = stockAdjustmentService;
+        _productBatchService = productBatchService;
 
         // Initialize search debouncing timer
         _searchDebounceTimer = new DispatcherTimer
@@ -788,7 +938,7 @@ public partial class StockManagementViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Handle property changes in the main ViewModel (e.g., SearchText)
+    /// Handle property changes in the main ViewModel (e.g., SearchText, StartDate, EndDate)
     /// </summary>
     private async void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -801,6 +951,13 @@ public partial class StockManagementViewModel : ObservableObject
             
             // Start new search timer with 300ms delay
             _searchDebounceTimer?.Start();
+        }
+        else if (e.PropertyName == nameof(StartDate) || e.PropertyName == nameof(EndDate))
+        {
+            LogMessage($"[Date Filter Changed] StartDate: '{StartDate}', EndDate: '{EndDate}'");
+            
+            // Reload data when date filters change
+            await LoadStockAdjustmentsAsync();
         }
     }
 
@@ -979,20 +1136,26 @@ public partial class StockManagementViewModel : ObservableObject
     {
         try
         {
-            DesktopFileLogger.LogSeparator("SEARCH START");
+            DesktopFileLogger.LogSeparator("UNIFIED SEARCH START");
             DesktopFileLogger.Log($"Search term: '{searchTerm}'");
-            DesktopFileLogger.Log($"ProductService is null: {_productService == null}");
-            DesktopFileLogger.Log($"Current SelectedProduct: {AdjustProduct.SelectedProduct?.Name ?? "NULL"}");
+            DesktopFileLogger.Log($"Adjustment mode: {AdjustProduct.AdjustmentMode}");
+            DesktopFileLogger.Log($"StockAdjustmentService is null: {_stockAdjustmentService == null}");
             DesktopFileLogger.Log($"SearchResults count before: {SearchResults.Count}");
             
-            // Don't clear results if we have a selected product and the search term matches
-            if (AdjustProduct.SelectedProduct != null && 
-                !string.IsNullOrEmpty(AdjustProduct.SelectedProduct.Name) &&
-                searchTerm.Equals(AdjustProduct.SelectedProduct.Name, StringComparison.OrdinalIgnoreCase))
+            // Don't clear results if we have a selected item and the search term matches
+            if (AdjustProduct.SelectedSearchItem != null && 
+                !string.IsNullOrEmpty(AdjustProduct.SelectedSearchItem.Name) &&
+                searchTerm.Equals(AdjustProduct.SelectedSearchItem.Name, StringComparison.OrdinalIgnoreCase))
             {
-                DesktopFileLogger.Log("SKIPPING SEARCH: Search term matches selected product, keeping current results");
+                DesktopFileLogger.Log("SKIPPING SEARCH: Search term matches selected item, keeping current results");
                 return;
             }
+            
+            // Store current selection to restore later if it matches new results
+            var currentSelection = AdjustProduct.SelectedSearchItem;
+            
+            // CRITICAL FIX: Temporarily disable selection binding to prevent WPF from clearing it
+            var tempSelection = AdjustProduct.SelectedSearchItem;
             
             DesktopFileLogger.Log("CLEARING SearchResults...");
             SearchResults.Clear();
@@ -1000,37 +1163,54 @@ public partial class StockManagementViewModel : ObservableObject
             
             if (string.IsNullOrWhiteSpace(searchTerm) || searchTerm.Length < 2)
             {
-                LogMessage("Search term too short, returning empty results");
+                DesktopFileLogger.Log("Search term too short, returning empty results");
                 return;
             }
 
-            if (_productService != null)
+            if (_stockAdjustmentService != null)
             {
-                LogMessage("Calling _productService.SearchProductsAsync...");
+                DesktopFileLogger.Log($"Calling unified search for mode: {AdjustProduct.AdjustmentMode}...");
                 
-                // Use the same logic as ProductManagementViewModel
-                var products = await _productService.SearchProductsAsync(searchTerm);
+                // Use the new unified search method
+                var searchItems = await _stockAdjustmentService.SearchForStockAdjustmentAsync(
+                    searchTerm, 
+                    AdjustProduct.AdjustmentMode, 
+                    10); // Limit to 10 results for dropdown
                 
-                LogMessage($"Raw products returned: {products?.Count() ?? 0}");
+                DesktopFileLogger.Log($"Search items returned: {searchItems?.Count ?? 0}");
                 
-                if (products != null)
+                if (searchItems != null)
                 {
-                    var productList = products.ToList();
-                    DesktopFileLogger.Log($"Products list count: {productList.Count}");
-                    
-                    foreach (var product in productList)
+                    foreach (var item in searchItems)
                     {
-                        DesktopFileLogger.Log($"Product found: {product.Name} (ID: {product.Id})");
-                    }
-                    
-                    foreach (var product in productList.Take(10)) // Limit to 10 results for dropdown
-                    {
-                        SearchResults.Add(product);
-                        DesktopFileLogger.Log($"Added to SearchResults: {product.Name}");
+                        SearchResults.Add(item);
+                        DesktopFileLogger.Log($"Added to SearchResults: {item.SearchDisplayText}");
                     }
                 }
                 
                 DesktopFileLogger.Log($"Final SearchResults count: {SearchResults.Count}");
+                
+                // CRITICAL FIX: Restore selection immediately after adding items, before UI update
+                if (currentSelection != null)
+                {
+                    var matchingItem = SearchResults.FirstOrDefault(r => 
+                        r.Id == currentSelection.Id && 
+                        r.Mode == currentSelection.Mode);
+                        
+                    if (matchingItem != null)
+                    {
+                        DesktopFileLogger.Log($"Restoring selection: {matchingItem.Name}");
+                        // Use Dispatcher to ensure this happens after UI update
+                        App.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
+                            AdjustProduct.SelectedSearchItem = matchingItem;
+                            DesktopFileLogger.Log($"Selection restored via Dispatcher: {matchingItem.Name}");
+                        }));
+                    }
+                    else
+                    {
+                        DesktopFileLogger.Log($"Previous selection '{currentSelection.Name}' not found in new results");
+                    }
+                }
                 
                 // Force UI update
                 OnPropertyChanged(nameof(SearchResults));
@@ -1038,21 +1218,49 @@ public partial class StockManagementViewModel : ObservableObject
             }
             else
             {
-                DesktopFileLogger.Log("ERROR: ProductService is null!");
+                DesktopFileLogger.Log("ERROR: StockAdjustmentService is null!");
             }
             
-            DesktopFileLogger.LogSeparator("SEARCH END");
+            DesktopFileLogger.LogSeparator("UNIFIED SEARCH END");
         }
         catch (Exception ex)
         {
-            DesktopFileLogger.Log($"SEARCH ERROR: {ex.Message}");
+            DesktopFileLogger.Log($"UNIFIED SEARCH ERROR: {ex.Message}");
             DesktopFileLogger.Log($"Stack trace: {ex.StackTrace}");
             SearchResults.Clear();
         }
     }
 
     /// <summary>
-    /// Load current stock level for selected product
+    /// Load current stock level for selected search item
+    /// </summary>
+    private async Task LoadCurrentStockForSelectedItem(StockAdjustmentSearchItemDto selectedItem)
+    {
+        try
+        {
+            DesktopFileLogger.Log($"Loading stock for: {selectedItem.Name} (Mode: {selectedItem.Mode})");
+            
+            if (selectedItem.Mode == StockAdjustmentMode.Product)
+            {
+                // For product mode, use the current quantity directly
+                AdjustProduct.CurrentStock = selectedItem.CurrentQuantity;
+                DesktopFileLogger.Log($"Product mode - Current stock set to: {selectedItem.CurrentQuantity}");
+            }
+            else if (selectedItem.Mode == StockAdjustmentMode.ProductUnit)
+            {
+                // For product unit mode, use the quantity in unit
+                AdjustProduct.CurrentStock = selectedItem.CurrentQuantity;
+                DesktopFileLogger.Log($"ProductUnit mode - Current stock set to: {selectedItem.CurrentQuantity} (QtyInUnit)");
+            }
+        }
+        catch (Exception ex)
+        {
+            DesktopFileLogger.Log($"Error loading stock for selected item: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Load current stock level for selected product (legacy method)
     /// </summary>
     private async Task LoadCurrentStockForSelectedProduct()
     {
@@ -1085,6 +1293,137 @@ public partial class StockManagementViewModel : ObservableObject
         {
             DesktopFileLogger.Log($"ERROR loading current stock: {ex.Message}");
             DesktopFileLogger.Log($"Stack trace: {ex.StackTrace}");
+        }
+    }
+
+    /// <summary>
+    /// Load product batches for the selected product
+    /// </summary>
+    private async Task LoadProductBatchesAsync(int productId)
+    {
+        try
+        {
+            DesktopFileLogger.Log($"Loading product batches for product ID: {productId}");
+            
+            if (_productBatchService != null && productId > 0)
+            {
+                var batches = await _productBatchService.GetProductBatchesByProductIdAsync(productId);
+                AdjustProduct.AvailableBatches = batches.ToList();
+                
+                // Auto-select first batch if available
+                if (batches.Any())
+                {
+                    AdjustProduct.SelectedBatch = batches.First();
+                }
+                
+                DesktopFileLogger.Log($"Loaded {batches.Count} batches for product {productId}");
+            }
+            else
+            {
+                DesktopFileLogger.Log("No ProductBatch service available or invalid product ID");
+                AdjustProduct.AvailableBatches = new List<ProductBatchDto>();
+                AdjustProduct.SelectedBatch = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            DesktopFileLogger.Log($"ERROR loading product batches: {ex.Message}");
+            AdjustProduct.AvailableBatches = new List<ProductBatchDto>();
+            AdjustProduct.SelectedBatch = null;
+        }
+    }
+
+    /// <summary>
+    /// Load initial search results when dropdown is opened (without search text)
+    /// </summary>
+    public async Task LoadInitialSearchResultsAsync()
+    {
+        AppLogger.LogSeparator("LOADING INITIAL SEARCH RESULTS", "stock_adjustment");
+        AppLogger.LogInfo($"LoadInitialSearchResultsAsync called", 
+            $"SearchResults.Count: {SearchResults.Count}, StockAdjustmentService null: {_stockAdjustmentService == null}", "stock_adjustment");
+        
+        // Force loading regardless of current SearchResults count to test
+        if (_stockAdjustmentService != null)
+        {
+            DesktopFileLogger.LogSeparator("LOADING INITIAL SEARCH RESULTS");
+            DesktopFileLogger.Log("Loading all products/units for dropdown display");
+            DesktopFileLogger.Log($"Adjustment mode: {AdjustProduct.AdjustmentMode}");
+            DesktopFileLogger.Log($"StockAdjustmentService is null: {_stockAdjustmentService == null}");
+            
+            AppLogger.LogInfo("Starting search for initial products", 
+                $"Mode: {AdjustProduct.AdjustmentMode}, Using search term: 'pr' (2 chars minimum required)", "stock_adjustment");
+            
+            try
+            {
+                // Use a 2-character search term to meet the minimum length requirement from PerformSearchAsync
+                // We'll try common 2-letter combinations that are likely to match products
+                var allItems = await _stockAdjustmentService.SearchForStockAdjustmentAsync(
+                    "pr", // Use "pr" for "product" - should match many items
+                    AdjustProduct.AdjustmentMode, 
+                    50); // Load more items initially (50 instead of 10)
+                
+                DesktopFileLogger.Log($"Initial search items returned: {allItems?.Count ?? 0}");
+                
+                // New AppLogger usage
+                AppLogger.LogInfo($"Search completed - items found: {allItems?.Count ?? 0}", 
+                    $"Search term: 'pr', Mode: {AdjustProduct.AdjustmentMode}", "stock_adjustment");
+                
+                // Try with different search terms if "pr" returns nothing
+                if ((allItems == null || allItems.Count == 0))
+                {
+                    AppLogger.LogWarning("No items found with 'pr', trying with other 2-character terms", "Testing different search approaches", "stock_adjustment");
+                    
+                    // Try with different 2-character combinations that might match products
+                    var testTerms = new[] { "bu", "te", "it", "ro", "co", "pa", "de" };
+                    foreach (var term in testTerms)
+                    {
+                        allItems = await _stockAdjustmentService.SearchForStockAdjustmentAsync(
+                            term, AdjustProduct.AdjustmentMode, 50);
+                        AppLogger.LogInfo($"Search with '{term}' returned: {allItems?.Count ?? 0} items", "stock_adjustment");
+                        if (allItems != null && allItems.Count > 0)
+                        {
+                            AppLogger.LogInfo($"Found products using search term: '{term}'", "stock_adjustment");
+                            break;
+                        }
+                    }
+                }
+                
+                if (allItems != null && allItems.Count > 0)
+                {
+                    SearchResults.Clear();
+                    AppLogger.LogInfo($"Clearing SearchResults and adding {allItems.Count} items", "stock_adjustment");
+                    
+                    foreach (var item in allItems)
+                    {
+                        SearchResults.Add(item);
+                        DesktopFileLogger.Log($"Added to initial SearchResults: {item.SearchDisplayText}");
+                        AppLogger.LogDebug($"Added item: {item.SearchDisplayText}", $"Name: {item.Name}, ID: {item.Id}", "stock_adjustment");
+                    }
+                    
+                    OnPropertyChanged(nameof(SearchResults));
+                    DesktopFileLogger.Log($"Initial SearchResults loaded: {SearchResults.Count} items");
+                    AppLogger.LogInfo($"Initial SearchResults populated successfully", 
+                        $"Final count: {SearchResults.Count}, PropertyChanged event fired", "stock_adjustment");
+                }
+                else
+                {
+                    DesktopFileLogger.Log("No items returned from initial search");
+                    AppLogger.LogWarning("No items found for initial search", 
+                        $"All search attempts returned empty results. Mode: {AdjustProduct.AdjustmentMode}", "stock_adjustment");
+                }
+            }
+            catch (Exception ex)
+            {
+                DesktopFileLogger.Log($"Error loading initial search results: {ex.Message}");
+                AppLogger.LogError("Exception in LoadInitialSearchResultsAsync", ex, 
+                    $"Mode: {AdjustProduct.AdjustmentMode}", "stock_adjustment");
+            }
+        }
+        else
+        {
+            AppLogger.LogWarning("LoadInitialSearchResultsAsync skipped", 
+                "_stockAdjustmentService is null - service not available", "stock_adjustment");
+            DesktopFileLogger.Log($"Skipping initial load - SearchResults.Count: {SearchResults.Count}, StockAdjustmentService is null: {_stockAdjustmentService == null}");
         }
     }
 
@@ -1155,9 +1494,9 @@ public partial class StockManagementViewModel : ObservableObject
         {
             if (_stockAdjustmentService != null)
             {
-                // Load actual data from service with search filter
+                // Load actual data from service with search filter and date range
                 var searchTerm = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim();
-                var result = await _stockAdjustmentService.GetStockAdjustmentsAsync(1, 100, searchTerm);
+                var result = await _stockAdjustmentService.GetStockAdjustmentsAsync(1, 100, searchTerm, null, null, StartDate, EndDate);
                 
                 StockAdjustments.Clear();
                 StockAdjustmentItems.Clear();

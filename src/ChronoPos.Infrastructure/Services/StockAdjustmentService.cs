@@ -1,6 +1,7 @@
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Domain.Entities;
+using ChronoPos.Domain.Enums;
 using ChronoPos.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -142,6 +143,7 @@ namespace ChronoPos.Infrastructure.Services
                     QuantityBefore = i.QuantityBefore,
                     QuantityAfter = i.QuantityAfter,
                     DifferenceQty = i.DifferenceQty,
+                    ConversionFactor = i.ConversionFactor,
                     ReasonLine = i.ReasonLine,
                     RemarksLine = i.RemarksLine,
                     // Financial data from Product
@@ -219,6 +221,7 @@ namespace ChronoPos.Infrastructure.Services
                             QuantityBefore = itemDto.QuantityBefore,
                             QuantityAfter = itemDto.QuantityAfter,
                             DifferenceQty = itemDto.QuantityAfter - itemDto.QuantityBefore,
+                            ConversionFactor = itemDto.ConversionFactor,
                             ReasonLine = itemDto.ReasonLine,
                             RemarksLine = itemDto.RemarksLine
                         };
@@ -238,18 +241,70 @@ namespace ChronoPos.Infrastructure.Services
                 {
                     foreach (var itemDto in createDto.Items)
                     {
-                        FileLogger.LogInfo($"Updating stock for ProductId: {itemDto.ProductId}");
-                        FileLogger.LogInfo($"New stock level: {itemDto.QuantityAfter}");
+                        FileLogger.LogInfo($"Processing adjustment for ProductId: {itemDto.ProductId}");
+                        FileLogger.LogInfo($"Adjustment mode: {itemDto.AdjustmentMode}");
+                        FileLogger.LogInfo($"New quantity: {itemDto.QuantityAfter}");
                         
-                        // Update the actual product stock quantity
+                        // Update the actual product stock quantity and initial stock using increment/decrement logic
                         var product = await _context.Products.FindAsync(itemDto.ProductId);
                         if (product != null)
                         {
                             var previousStock = product.StockQuantity;
-                            product.StockQuantity = (int)Math.Round(itemDto.QuantityAfter); // Convert decimal to int with rounding
+                            var previousInitialStock = product.InitialStock;
+                            
+                            decimal changeAmountInBaseUnit;
+                            
+                            if (itemDto.AdjustmentMode == StockAdjustmentMode.ProductUnit)
+                            {
+                                // For ProductUnit mode, apply conversion factor to change amount
+                                var conversionFactor = itemDto.ConversionFactor;
+                                changeAmountInBaseUnit = itemDto.ChangeAmount * conversionFactor;
+                                
+                                FileLogger.LogInfo($"ProductUnit mode: Change {itemDto.ChangeAmount} × Conversion Factor {conversionFactor} = {changeAmountInBaseUnit}");
+                                
+                                // Also update the ProductUnit table
+                                var productUnit = await _context.ProductUnits.FindAsync(itemDto.ProductUnitId);
+                                if (productUnit != null)
+                                {
+                                    var previousUnitQty = productUnit.QtyInUnit;
+                                    if (itemDto.IsIncrement)
+                                    {
+                                        productUnit.QtyInUnit = (int)(previousUnitQty + itemDto.ChangeAmount);
+                                    }
+                                    else
+                                    {
+                                        productUnit.QtyInUnit = (int)(previousUnitQty - itemDto.ChangeAmount);
+                                    }
+                                    productUnit.UpdatedAt = DateTime.Now;
+                                    
+                                    FileLogger.LogInfo($"ProductUnit updated: {previousUnitQty} → {productUnit.QtyInUnit}");
+                                }
+                            }
+                            else
+                            {
+                                // For Product mode, use change amount directly
+                                changeAmountInBaseUnit = itemDto.ChangeAmount;
+                                FileLogger.LogInfo($"Product mode: Using change amount directly = {changeAmountInBaseUnit}");
+                            }
+                            
+                            // Apply increment or decrement to Product
+                            if (itemDto.IsIncrement)
+                            {
+                                product.InitialStock = previousInitialStock + changeAmountInBaseUnit;
+                                product.StockQuantity = (int)Math.Round(previousStock + changeAmountInBaseUnit);
+                                FileLogger.LogInfo($"INCREMENT: Adding {changeAmountInBaseUnit} to stock");
+                            }
+                            else
+                            {
+                                product.InitialStock = previousInitialStock - changeAmountInBaseUnit;
+                                product.StockQuantity = (int)Math.Round(Math.Max(0, previousStock - changeAmountInBaseUnit)); // Prevent negative stock
+                                FileLogger.LogInfo($"DECREMENT: Subtracting {changeAmountInBaseUnit} from stock");
+                            }
+                            
                             product.UpdatedAt = DateTime.Now;
                             
                             FileLogger.LogInfo($"Product stock updated: {previousStock} → {product.StockQuantity}");
+                            FileLogger.LogInfo($"Product initial stock updated: {previousInitialStock} → {product.InitialStock}");
                         }
                         else
                         {
@@ -331,6 +386,7 @@ namespace ChronoPos.Infrastructure.Services
                         QuantityBefore = itemDto.QuantityBefore,
                         QuantityAfter = itemDto.QuantityAfter,
                         DifferenceQty = itemDto.QuantityAfter - itemDto.QuantityBefore,
+                        ConversionFactor = itemDto.ConversionFactor,
                         ReasonLine = itemDto.ReasonLine,
                         RemarksLine = itemDto.RemarksLine
                     };
@@ -717,6 +773,85 @@ namespace ChronoPos.Infrastructure.Services
             }
             
             FileLogger.LogInfo("All required foreign key records validated/created");
+        }
+
+        /// <summary>
+        /// Search for products and product units for stock adjustment
+        /// </summary>
+        public async Task<List<StockAdjustmentSearchItemDto>> SearchForStockAdjustmentAsync(
+            string searchTerm,
+            StockAdjustmentMode mode,
+            int maxResults = 50)
+        {
+            var results = new List<StockAdjustmentSearchItemDto>();
+
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return results;
+
+            var searchLower = searchTerm.ToLower();
+
+            try
+            {
+                if (mode == StockAdjustmentMode.Product)
+                {
+                    // Search for products only
+                    var products = await _context.Products
+                        .Where(p => p.Name.ToLower().Contains(searchLower) || 
+                                   p.Code.ToLower().Contains(searchLower))
+                        .Take(maxResults)
+                        .Select(p => new StockAdjustmentSearchItemDto
+                        {
+                            Id = p.Id,
+                            Name = p.Name,
+                            DisplayName = p.Name,
+                            Mode = StockAdjustmentMode.Product,
+                            CurrentQuantity = p.InitialStock,
+                            ProductId = p.Id,
+                            ImagePath = p.ImagePath
+                        })
+                        .ToListAsync();
+
+                    results.AddRange(products);
+                }
+                else if (mode == StockAdjustmentMode.ProductUnit)
+                {
+                    // Search for product units with conversion factors
+                    var productUnits = await _context.ProductUnits
+                        .Include(pu => pu.Product)
+                        .Include(pu => pu.Unit)
+                        .Where(pu => pu.Product.Name.ToLower().Contains(searchLower) ||
+                                    pu.Product.Code.ToLower().Contains(searchLower) ||
+                                    (pu.Unit.Name != null && pu.Unit.Name.ToLower().Contains(searchLower)))
+                        .Take(maxResults)
+                        .Select(pu => new StockAdjustmentSearchItemDto
+                        {
+                            Id = pu.Id,
+                            Name = pu.Product.Name,
+                            DisplayName = $"{pu.Product.Name} - {pu.Unit.Name} ({pu.QtyInUnit})",
+                            Mode = StockAdjustmentMode.ProductUnit,
+                            CurrentQuantity = pu.QtyInUnit,
+                            ProductId = pu.ProductId,
+                            ProductUnitId = pu.Id,
+                            UnitId = pu.UnitId,
+                            ConversionFactor = pu.Unit.ConversionFactor,
+                            QtyInUnit = pu.QtyInUnit,
+                            ImagePath = pu.Product.ImagePath,
+                            UnitName = pu.Unit.Name,
+                            UnitAbbreviation = pu.Unit.Abbreviation
+                        })
+                        .ToListAsync();
+
+                    results.AddRange(productUnits);
+                }
+
+                FileLogger.LogInfo($"[StockAdjustmentService] Search returned {results.Count} results for mode: {mode}, term: '{searchTerm}'");
+            }
+            catch (Exception ex)
+            {
+                FileLogger.LogError($"[StockAdjustmentService] Error in SearchForStockAdjustmentAsync: {ex.Message}", ex);
+            }
+
+            return results;
         }
     }
 }

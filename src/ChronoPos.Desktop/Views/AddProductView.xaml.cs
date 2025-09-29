@@ -44,6 +44,7 @@ namespace ChronoPos.Desktop.Views
             PicturesSection.Visibility = Visibility.Collapsed;
             AttributesSection.Visibility = Visibility.Collapsed;
             UnitPricesSection.Visibility = Visibility.Collapsed;
+            ProductBatchesSection.Visibility = Visibility.Collapsed;
 
             // Show the selected section
             switch (sectionName)
@@ -66,6 +67,9 @@ namespace ChronoPos.Desktop.Views
                 case "UnitPrices":
                     UnitPricesSection.Visibility = Visibility.Visible;
                     break;
+                case "ProductBatches":
+                    ProductBatchesSection.Visibility = Visibility.Visible;
+                    break;
             }
         }
 
@@ -78,6 +82,7 @@ namespace ChronoPos.Desktop.Views
             PicturesButton.SetValue(IsSelectedProperty, false);
             AttributesButton.SetValue(IsSelectedProperty, false);
             UnitPricesButton.SetValue(IsSelectedProperty, false);
+            ProductBatchesButton.SetValue(IsSelectedProperty, false);
 
             // Set the clicked button as selected
             selectedButton.SetValue(IsSelectedProperty, true);

@@ -159,6 +159,12 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IProductUnitService, ProductUnitService>();
                     LogMessage("ProductUnitService registered as Transient");
 
+                    // Register ProductBatch service and repository
+                    services.AddTransient<IProductBatchRepository, ProductBatchRepository>();
+                    LogMessage("ProductBatchRepository registered as Transient");
+                    services.AddTransient<IProductBatchService, ProductBatchService>();
+                    LogMessage("ProductBatchService registered as Transient");
+
                     // Register SKU Generation service
                     services.AddTransient<ISkuGenerationService, SkuGenerationService>();
                     LogMessage("SkuGenerationService registered as Transient");

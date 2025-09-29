@@ -27,6 +27,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.ProductComment> ProductComments { get; set; }
     public DbSet<Domain.Entities.ProductTax> ProductTaxes { get; set; }
     public DbSet<Domain.Entities.ProductUnit> ProductUnits { get; set; }
+    public DbSet<Domain.Entities.ProductBatch> ProductBatches { get; set; }
     public DbSet<Domain.Entities.TaxType> TaxTypes { get; set; }
     public DbSet<Domain.Entities.Brand> Brands { get; set; }
     public DbSet<Domain.Entities.ProductImage> ProductImages { get; set; }
@@ -359,6 +360,39 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasIndex(e => new { e.ProductId, e.IsBase });
         });
 
+        // Configure ProductBatch entity
+        modelBuilder.Entity<Domain.Entities.ProductBatch>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ProductId).IsRequired();
+            entity.Property(e => e.BatchNo).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.ManufactureDate);
+            entity.Property(e => e.ExpiryDate);
+            entity.Property(e => e.Quantity).IsRequired().HasPrecision(12, 4);
+            entity.Property(e => e.UomId).IsRequired();
+            entity.Property(e => e.CostPrice).HasPrecision(12, 2);
+            entity.Property(e => e.LandedCost).HasPrecision(12, 2);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            // Foreign key relationships
+            entity.HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.Uom)
+                .WithMany()
+                .HasForeignKey(d => d.UomId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.ProductId);
+            entity.HasIndex(e => new { e.ProductId, e.BatchNo }).IsUnique();
+            entity.HasIndex(e => e.ExpiryDate);
+            entity.HasIndex(e => e.Status);
+        });
+
         // Configure Customer entity
         modelBuilder.Entity<Domain.Entities.Customer>(entity =>
         {
@@ -656,6 +690,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.Property(e => e.QuantityBefore).HasPrecision(10, 3);
             entity.Property(e => e.QuantityAfter).HasPrecision(10, 3);
             entity.Property(e => e.DifferenceQty).HasPrecision(10, 3);
+            entity.Property(e => e.ConversionFactor).HasPrecision(10, 4).HasDefaultValue(1);
             entity.Property(e => e.ReasonLine).HasMaxLength(100);
 
             // Foreign key relationships
