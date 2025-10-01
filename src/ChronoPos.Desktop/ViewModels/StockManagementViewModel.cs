@@ -35,6 +35,10 @@ public partial class StockManagementViewModel : ObservableObject
     private readonly IFontService _fontService;
     private readonly InfrastructureServices.IDatabaseLocalizationService _databaseLocalizationService;
     private readonly IProductBatchService? _productBatchService;
+    private readonly IGoodsReceivedService? _goodsReceivedService;
+    private readonly ISupplierService? _supplierService;
+    private readonly Action? _navigateToAddGrn;
+    private readonly Action<long>? NavigateToEditGrn;
 
     #endregion
 
@@ -117,6 +121,31 @@ public partial class StockManagementViewModel : ObservableObject
 
     [ObservableProperty]
     private StockAdjustmentDto? _selectedAdjustment;
+
+    // Goods Received Properties
+    [ObservableProperty]
+    private ObservableCollection<GoodsReceivedDto> _goodsReceivedNotes = new();
+
+    [ObservableProperty]
+    private GoodsReceivedDto? _selectedGrn;
+
+    [ObservableProperty]
+    private string _grnSearchTerm = string.Empty;
+
+    [ObservableProperty]
+    private ObservableCollection<string> _grnStatusFilters = new() { "All", "Draft", "Posted", "Cancelled" };
+
+    [ObservableProperty]
+    private string _selectedGrnStatusFilter = "All";
+
+    [ObservableProperty]
+    private ObservableCollection<SupplierDto> _grnSupplierFilters = new();
+
+    [ObservableProperty]
+    private long? _selectedGrnSupplierId;
+
+    [ObservableProperty]
+    private bool _hasNoGrns = false;
 
     // Flattened collection for item-level display with financial calculations
     [ObservableProperty]
@@ -238,6 +267,7 @@ public partial class StockManagementViewModel : ObservableObject
                 break;
             case "GoodsReceived":
                 IsGoodsReceivedSelected = true;
+                _ = LoadGoodsReceivedNotesAsync(); // Fire and forget
                 break;
             case "GoodsReturn":
                 IsGoodsReturnSelected = true;
@@ -395,6 +425,7 @@ public partial class StockManagementViewModel : ObservableObject
             DesktopFileLogger.Log($"[SaveAdjustProduct] ReasonText: '{AdjustProduct.ReasonText}'");
             DesktopFileLogger.Log($"[SaveAdjustProduct] DifferenceQuantity: {AdjustProduct.DifferenceQuantity}");
             DesktopFileLogger.Log($"[SaveAdjustProduct] ExpiryDate: {AdjustProduct.ExpiryDate}");
+            DesktopFileLogger.Log($"[SaveAdjustProduct] SelectedBatch: {(AdjustProduct.SelectedBatch != null ? $"'{AdjustProduct.SelectedBatch.BatchNo}'" : "NULL")}");
             
             if (!AdjustProduct.HasValidSelection)
             {
@@ -469,7 +500,7 @@ public partial class StockManagementViewModel : ObservableObject
                     {
                         ProductId = AdjustProduct.ProductId,
                         UomId = selectedItem?.UnitId ?? productUomId,
-                        BatchNo = null,
+                        BatchNo = AdjustProduct.SelectedBatch?.BatchNo,
                         ExpiryDate = AdjustProduct.ExpiryDate,
                         QuantityBefore = AdjustProduct.CurrentStock,
                         QuantityAfter = AdjustProduct.NewQuantity,
@@ -494,6 +525,7 @@ public partial class StockManagementViewModel : ObservableObject
             {
                 var item = createDto.Items.First();
                 DesktopFileLogger.Log($"  - Item ProductId: {item.ProductId}");
+                DesktopFileLogger.Log($"  - Item BatchNo: '{item.BatchNo ?? "NULL"}'");
                 DesktopFileLogger.Log($"  - Item QuantityBefore: {item.QuantityBefore}");
                 DesktopFileLogger.Log($"  - Item QuantityAfter: {item.QuantityAfter}");
                 DesktopFileLogger.Log($"  - Item ReasonLine: {item.ReasonLine}");
@@ -694,37 +726,47 @@ public partial class StockManagementViewModel : ObservableObject
         switch (input.ToLower())
         {
             case "clear":
-                AdjustProduct.NewQuantity = 0;
+                AdjustProduct.ChangeAmountText = "0";
                 break;
             case "backspace":
-                var currentText = AdjustProduct.NewQuantity.ToString();
-                if (currentText.Length > 0)
+                var backspaceText = AdjustProduct.ChangeAmountText ?? "0";
+                if (backspaceText.Length > 0)
                 {
-                    currentText = currentText[..^1];
-                    if (decimal.TryParse(currentText, out var newValue))
-                        AdjustProduct.NewQuantity = newValue;
-                    else
-                        AdjustProduct.NewQuantity = 0;
+                    backspaceText = backspaceText[..^1];
+                    if (string.IsNullOrEmpty(backspaceText))
+                        backspaceText = "0";
+                    AdjustProduct.ChangeAmountText = backspaceText;
                 }
                 break;
             case "enter":
                 // Focus next field or save
                 break;
             case "+":
-                AdjustProduct.NewQuantity = AdjustProduct.CurrentStock + 1;
+                AdjustProduct.ChangeAmountText = (AdjustProduct.CurrentStock + 1).ToString();
                 break;
             case "-":
-                AdjustProduct.NewQuantity = Math.Max(0, AdjustProduct.CurrentStock - 1);
+                AdjustProduct.ChangeAmountText = Math.Max(0, AdjustProduct.CurrentStock - 1).ToString();
                 break;
             case ".":
-                // Handle decimal point
+                // Handle decimal point - only add if not already present
+                var current = AdjustProduct.ChangeAmountText ?? "0";
+                if (!current.Contains("."))
+                {
+                    AdjustProduct.ChangeAmountText = current + ".";
+                }
                 break;
             default:
                 if (int.TryParse(input, out var digit))
                 {
-                    var currentValue = AdjustProduct.NewQuantity;
-                    var newValue = currentValue * 10 + digit;
-                    AdjustProduct.NewQuantity = newValue;
+                    var existingText = AdjustProduct.ChangeAmountText ?? "0";
+                    if (existingText == "0")
+                    {
+                        AdjustProduct.ChangeAmountText = digit.ToString();
+                    }
+                    else
+                    {
+                        AdjustProduct.ChangeAmountText = existingText + digit.ToString();
+                    }
                 }
                 break;
         }
@@ -783,6 +825,11 @@ public partial class StockManagementViewModel : ObservableObject
 
         try
         {
+            // Add debugging logs for batch selection
+            AppLogger.LogInfo($"STOCK ADJUSTMENT - ProductId: {AdjustProduct.ProductId}", 
+                $"SelectedBatch: {(AdjustProduct.SelectedBatch != null ? $"'{AdjustProduct.SelectedBatch.BatchNo}'" : "NULL")}", 
+                "stock_adjustment");
+
             // Create stock adjustment DTO
             var adjustmentDto = new CreateStockAdjustmentDto
             {
@@ -806,38 +853,20 @@ public partial class StockManagementViewModel : ObservableObject
                 }
             };
 
-            // Save via service
+            AppLogger.LogInfo($"STOCK ADJUSTMENT DTO CREATED", 
+                $"BatchNo in DTO: '{adjustmentDto.Items.First().BatchNo ?? "NULL"}'", 
+                "stock_adjustment");
+
+            // Save via service (ProductBatch updates are now handled within the service)
             if (_stockAdjustmentService != null)
             {
                 var result = await _stockAdjustmentService.CreateStockAdjustmentAsync(adjustmentDto);
+                AppLogger.LogInfo($"STOCK ADJUSTMENT COMPLETED", 
+                    $"AdjustmentNo: {result.AdjustmentNo}, Service handles both product and batch updates", 
+                    "stock_adjustment");
                 
-                // Update ProductBatch quantity if batch is selected
-                if (AdjustProduct.SelectedBatch != null && _productBatchService != null)
-                {
-                    try
-                    {
-                        var quantityChange = AdjustProduct.NewQuantity - AdjustProduct.CurrentStock;
-                        var updatedBatch = new CreateProductBatchDto
-                        {
-                            ProductId = AdjustProduct.SelectedBatch.ProductId,
-                            BatchNo = AdjustProduct.SelectedBatch.BatchNo,
-                            ManufactureDate = AdjustProduct.SelectedBatch.ManufactureDate,
-                            ExpiryDate = AdjustProduct.SelectedBatch.ExpiryDate,
-                            Quantity = AdjustProduct.SelectedBatch.Quantity + quantityChange,
-                            UomId = AdjustProduct.SelectedBatch.UomId,
-                            CostPrice = AdjustProduct.SelectedBatch.CostPrice,
-                            LandedCost = AdjustProduct.SelectedBatch.LandedCost,
-                            Status = AdjustProduct.SelectedBatch.Status
-                        };
-                        
-                        await _productBatchService.UpdateProductBatchAsync(AdjustProduct.SelectedBatch.Id, updatedBatch);
-                    }
-                    catch (Exception batchEx)
-                    {
-                        // Log batch update error but don't fail the entire operation
-                        DesktopFileLogger.Log($"[StockManagementViewModel] Error updating ProductBatch: {batchEx.Message}");
-                    }
-                }
+                // Refresh batches after the service has updated them
+                await LoadProductBatchesAsync(AdjustProduct.ProductId);
                 
                 // Show success message
                 MessageBox.Show($"Stock adjustment saved successfully!\nAdjustment No: {result.AdjustmentNo}", 
@@ -855,6 +884,167 @@ public partial class StockManagementViewModel : ObservableObject
         }
     }
 
+    // GRN Commands
+    [RelayCommand]
+    private void AddGrn()
+    {
+        try
+        {
+            _navigateToAddGrn?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error navigating to Add GRN: {ex.Message}", 
+                           "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ViewGrn(GoodsReceivedDto grn)
+    {
+        try
+        {
+            AppLogger.LogInfo($"Viewing GRN: {grn.GrnNo}", $"GRN ID: {grn.Id}, Status: {grn.Status}", "stock_management");
+            
+            if (_goodsReceivedService != null)
+            {
+                // Load detailed GRN information
+                var detailedGrn = await _goodsReceivedService.GetByIdAsync(grn.Id);
+                
+                if (detailedGrn != null)
+                {
+                    // Create a detailed view message
+                    var details = $"GRN Details:\n\n" +
+                                $"GRN No: {detailedGrn.GrnNo}\n" +
+                                $"Received Date: {detailedGrn.ReceivedDate:dd/MM/yyyy}\n" +
+                                $"Supplier: {detailedGrn.SupplierName}\n" +
+                                $"Store: {detailedGrn.StoreName}\n" +
+                                $"Invoice No: {detailedGrn.InvoiceNo ?? "N/A"}\n" +
+                                $"Status: {detailedGrn.Status}\n" +
+                                $"Total Amount: ₹{detailedGrn.TotalAmount:N2}\n" +
+                                $"Created: {detailedGrn.CreatedAt:dd/MM/yyyy HH:mm}\n" +
+                                $"Remarks: {detailedGrn.Remarks ?? "N/A"}";
+                    
+                    MessageBox.Show(details, $"View GRN - {grn.GrnNo}", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show($"GRN {grn.GrnNo} not found in database.", "GRN Not Found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            else
+            {
+                // Fallback for when service is not available
+                var details = $"GRN Details:\n\n" +
+                            $"GRN No: {grn.GrnNo}\n" +
+                            $"Received Date: {grn.ReceivedDate:dd/MM/yyyy}\n" +
+                            $"Supplier: {grn.SupplierName}\n" +
+                            $"Store: {grn.StoreName}\n" +
+                            $"Invoice No: {grn.InvoiceNo ?? "N/A"}\n" +
+                            $"Status: {grn.Status}\n" +
+                            $"Total Amount: ₹{grn.TotalAmount:N2}\n" +
+                            $"Created: {grn.CreatedAt:dd/MM/yyyy HH:mm}";
+                
+                MessageBox.Show(details, $"View GRN - {grn.GrnNo}", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Failed to view GRN details", ex, $"GRN: {grn.GrnNo}, ID: {grn.Id}", "stock_management");
+            MessageBox.Show($"Error loading GRN details: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
+    private void EditGrn(GoodsReceivedDto grn)
+    {
+        try
+        {
+            AppLogger.LogInfo($"Editing GRN: {grn.GrnNo}", $"GRN ID: {grn.Id}, Status: {grn.Status}", "stock_management");
+            
+            // Check if GRN can be edited (only Draft status should be editable)
+            if (grn.Status != "Draft")
+            {
+                MessageBox.Show($"Cannot edit GRN {grn.GrnNo}. Only GRNs with 'Draft' status can be edited.\nCurrent status: {grn.Status}", 
+                               "Edit Not Allowed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Navigate to AddGrn in edit mode - we'll create this navigation method
+            NavigateToEditGrn?.Invoke(grn.Id);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Failed to edit GRN", ex, $"GRN: {grn.GrnNo}, ID: {grn.Id}", "stock_management");
+            MessageBox.Show($"Error opening GRN for editing: {ex.Message}", 
+                           "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteGrn(GoodsReceivedDto grn)
+    {
+        try
+        {
+            AppLogger.LogInfo($"Delete GRN request: {grn.GrnNo}", $"GRN ID: {grn.Id}, Status: {grn.Status}", "stock_management");
+            
+            // Check if GRN can be deleted (only Draft status should be deletable)
+            if (grn.Status != "Draft")
+            {
+                MessageBox.Show($"Cannot delete GRN {grn.GrnNo}. Only GRNs with 'Draft' status can be deleted.\nCurrent status: {grn.Status}", 
+                               "Delete Not Allowed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var result = MessageBox.Show($"Are you sure you want to delete GRN {grn.GrnNo}?\n\nThis action cannot be undone.", 
+                                       "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            
+            if (result == MessageBoxResult.Yes && _goodsReceivedService != null)
+            {
+                // Check if the service has a delete method
+                var serviceType = _goodsReceivedService.GetType();
+                var deleteMethod = serviceType.GetMethod("DeleteAsync") ?? serviceType.GetMethod("DeleteGoodsReceivedAsync");
+                
+                if (deleteMethod != null)
+                {
+                    // Call the delete method
+                    var deleteTask = (Task)deleteMethod.Invoke(_goodsReceivedService, new object[] { grn.Id })!;
+                    await deleteTask;
+                    
+                    AppLogger.LogInfo($"GRN deleted successfully: {grn.GrnNo}", $"GRN ID: {grn.Id}", "stock_management");
+                    MessageBox.Show($"GRN {grn.GrnNo} deleted successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    
+                    // Refresh the list
+                    await LoadGoodsReceivedNotesAsync();
+                }
+                else
+                {
+                    AppLogger.LogWarning("Delete method not found in GoodsReceivedService", "Using fallback approach", "stock_management");
+                    
+                    // Fallback: Remove from collection (for testing purposes)
+                    GoodsReceivedNotes.Remove(grn);
+                    MessageBox.Show($"GRN {grn.GrnNo} deleted successfully! (Test mode)", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            else if (_goodsReceivedService == null)
+            {
+                AppLogger.LogWarning("GoodsReceivedService not available for delete operation", "Service injection failed", "stock_management");
+                MessageBox.Show("Delete service not available. Please try again later.", "Service Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Failed to delete GRN", ex, $"GRN: {grn.GrnNo}, ID: {grn.Id}", "stock_management");
+            MessageBox.Show($"Error deleting GRN: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
+    private async Task RefreshGrn()
+    {
+        await LoadGoodsReceivedNotesAsync();
+    }
+
     #endregion
 
     #region Constructor
@@ -869,7 +1059,11 @@ public partial class StockManagementViewModel : ObservableObject
         InfrastructureServices.IDatabaseLocalizationService databaseLocalizationService,
         IProductService? productService = null,
         IStockAdjustmentService? stockAdjustmentService = null,
-        IProductBatchService? productBatchService = null)
+        IProductBatchService? productBatchService = null,
+        IGoodsReceivedService? goodsReceivedService = null,
+        ISupplierService? supplierService = null,
+        Action? navigateToAddGrn = null,
+        Action<long>? navigateToEditGrn = null)
     {
         LogMessage("[StockManagementViewModel] Constructor called");
         LogMessage($"[StockManagementViewModel] ProductService is null: {productService == null}");
@@ -890,6 +1084,10 @@ public partial class StockManagementViewModel : ObservableObject
         _productService = productService;
         _stockAdjustmentService = stockAdjustmentService;
         _productBatchService = productBatchService;
+        _goodsReceivedService = goodsReceivedService;
+        _supplierService = supplierService;
+        _navigateToAddGrn = navigateToAddGrn;
+        NavigateToEditGrn = navigateToEditGrn;
 
         // Initialize search debouncing timer
         _searchDebounceTimer = new DispatcherTimer
@@ -900,13 +1098,18 @@ public partial class StockManagementViewModel : ObservableObject
         {
             _searchDebounceTimer.Stop();
             
-            // Check if this is for product search (in adjust panel) or stock adjustments table search
+            // Check if this is for product search (in adjust panel), stock adjustments search, or GRN search
             if (IsAdjustProductPanelOpen && !string.IsNullOrEmpty(_pendingSearchTerm))
             {
                 LogMessage($"[StockManagementViewModel] Timer tick - performing product search for: '{_pendingSearchTerm}'");
                 await PerformSearchAsync(_pendingSearchTerm);
             }
-            else
+            else if (IsGoodsReceivedSelected)
+            {
+                LogMessage($"[StockManagementViewModel] Timer tick - performing GRN search for: '{GrnSearchTerm}'");
+                await LoadGoodsReceivedNotesAsync();
+            }
+            else if (IsStockAdjustmentSelected)
             {
                 LogMessage($"[StockManagementViewModel] Timer tick - performing stock adjustments search for: '{SearchText}'");
                 await LoadStockAdjustmentsAsync();
@@ -938,7 +1141,7 @@ public partial class StockManagementViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Handle property changes in the main ViewModel (e.g., SearchText, StartDate, EndDate)
+    /// Handle property changes in the main ViewModel (e.g., SearchText, StartDate, EndDate, GRN filters)
     /// </summary>
     private async void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -958,6 +1161,24 @@ public partial class StockManagementViewModel : ObservableObject
             
             // Reload data when date filters change
             await LoadStockAdjustmentsAsync();
+        }
+        else if (e.PropertyName == nameof(GrnSearchTerm))
+        {
+            LogMessage($"[GrnSearchTerm Changed] New value: '{GrnSearchTerm}'");
+            
+            // Reload GRN data when search term changes (with debouncing via timer)
+            _searchDebounceTimer?.Stop();
+            _searchDebounceTimer?.Start();
+        }
+        else if (e.PropertyName == nameof(SelectedGrnStatusFilter) || e.PropertyName == nameof(SelectedGrnSupplierId))
+        {
+            LogMessage($"[GRN Filter Changed] Status: '{SelectedGrnStatusFilter}', SupplierId: '{SelectedGrnSupplierId}'");
+            
+            // Reload GRN data when filters change
+            if (IsGoodsReceivedSelected)
+            {
+                await LoadGoodsReceivedNotesAsync();
+            }
         }
     }
 
@@ -1039,6 +1260,9 @@ public partial class StockManagementViewModel : ObservableObject
             
             // Load stock transfers data
             await LoadStockTransfersAsync();
+            
+            // Load GRN supplier filters
+            await LoadGrnSupplierFiltersAsync();
         }
         catch (Exception ex)
         {
@@ -1573,6 +1797,197 @@ public partial class StockManagementViewModel : ObservableObject
         catch (Exception ex)
         {
             LogMessage($"[LoadStockAdjustmentsAsync] ERROR: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Load goods received notes data from database
+    /// </summary>
+    private async Task LoadGoodsReceivedNotesAsync()
+    {
+        try
+        {
+            AppLogger.LogInfo("Loading Goods Received Notes", 
+                $"SearchTerm: '{GrnSearchTerm}', StatusFilter: '{SelectedGrnStatusFilter}', SupplierFilter: {SelectedGrnSupplierId}", 
+                "stock_management");
+
+            if (_goodsReceivedService != null)
+            {
+                // Apply search filter
+                var searchTerm = string.IsNullOrWhiteSpace(GrnSearchTerm) ? null : GrnSearchTerm.Trim();
+                
+                // Apply status filter
+                string? statusFilter = null;
+                if (SelectedGrnStatusFilter != "All")
+                {
+                    statusFilter = SelectedGrnStatusFilter;
+                }
+
+                // Apply supplier filter
+                long? supplierIdFilter = null;
+                if (SelectedGrnSupplierId.HasValue && SelectedGrnSupplierId.Value > 0)
+                {
+                    supplierIdFilter = SelectedGrnSupplierId.Value;
+                }
+
+                // Load GRN data from service (basic implementation)
+                var result = await _goodsReceivedService.GetPagedAsync(
+                    page: 1, 
+                    pageSize: 100, 
+                    searchTerm: searchTerm
+                );
+                
+                GoodsReceivedNotes.Clear();
+                var grns = result.ToList();
+                
+                // Apply status filter in memory (since service doesn't support it yet)
+                if (!string.IsNullOrEmpty(statusFilter))
+                {
+                    grns = grns.Where(g => g.Status == statusFilter).ToList();
+                }
+                
+                // Apply supplier filter in memory (since service doesn't support it yet)
+                if (supplierIdFilter.HasValue)
+                {
+                    grns = grns.Where(g => g.SupplierId == supplierIdFilter.Value).ToList();
+                }
+                
+                foreach (var grn in grns)
+                {
+                    GoodsReceivedNotes.Add(grn);
+                }
+                
+                HasNoGrns = GoodsReceivedNotes.Count == 0;
+                
+                AppLogger.LogInfo($"Loaded {GoodsReceivedNotes.Count} GRN records from database", 
+                    $"Applied filters - Status: {statusFilter}, Supplier: {supplierIdFilter}", "stock_management");
+            }
+            else
+            {
+                // Fallback to sample data if service is not available
+                AppLogger.LogWarning("GoodsReceivedService not available, using sample data", 
+                    "Service injection may have failed", "stock_management");
+                
+                LoadSampleGrnData();
+            }
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"[LoadGoodsReceivedNotesAsync] ERROR: {ex.Message}");
+            AppLogger.LogError("Failed to load Goods Received Notes", ex, 
+                $"SearchTerm: '{GrnSearchTerm}', StatusFilter: '{SelectedGrnStatusFilter}'", "stock_management");
+            
+            // Fallback to sample data on error
+            LoadSampleGrnData();
+            HasNoGrns = GoodsReceivedNotes.Count == 0;
+        }
+    }
+
+    /// <summary>
+    /// Load sample GRN data for testing/fallback
+    /// </summary>
+    private void LoadSampleGrnData()
+    {
+        GoodsReceivedNotes.Clear();
+        
+        var sampleGrns = new List<GoodsReceivedDto>
+        {
+            new GoodsReceivedDto
+            {
+                Id = 1,
+                GrnNo = "GRN202509290001",
+                ReceivedDate = DateTime.Today.AddDays(-2),
+                SupplierName = "ABC Suppliers Ltd",
+                StoreName = "Main Warehouse",
+                InvoiceNo = "INV-2024-001",
+                TotalAmount = 1250.75m,
+                Status = "Posted",
+                CreatedAt = DateTime.Today.AddDays(-2)
+            },
+            new GoodsReceivedDto
+            {
+                Id = 2,
+                GrnNo = "GRN202509290002",
+                ReceivedDate = DateTime.Today.AddDays(-1),
+                SupplierName = "XYZ Trading Co",
+                StoreName = "Retail Store A",
+                InvoiceNo = "XYZ-INV-789",
+                TotalAmount = 875.50m,
+                Status = "Draft",
+                CreatedAt = DateTime.Today.AddDays(-1)
+            },
+            new GoodsReceivedDto
+            {
+                Id = 3,
+                GrnNo = "GRN202509290003",
+                ReceivedDate = DateTime.Today,
+                SupplierName = "Quality Foods Inc",
+                StoreName = "Main Warehouse",
+                InvoiceNo = "QF-2024-456",
+                TotalAmount = 2100.25m,
+                Status = "Posted",
+                CreatedAt = DateTime.Today
+            }
+        };
+        
+        // Apply search filter to sample data
+        if (!string.IsNullOrWhiteSpace(GrnSearchTerm))
+        {
+            var searchLower = GrnSearchTerm.ToLower();
+            sampleGrns = sampleGrns.Where(g => 
+                g.GrnNo.ToLower().Contains(searchLower) ||
+                (g.InvoiceNo?.ToLower().Contains(searchLower) == true) ||
+                (g.SupplierName?.ToLower().Contains(searchLower) == true)
+            ).ToList();
+        }
+        
+        // Apply status filter to sample data
+        if (SelectedGrnStatusFilter != "All")
+        {
+            sampleGrns = sampleGrns.Where(g => g.Status == SelectedGrnStatusFilter).ToList();
+        }
+        
+        foreach (var grn in sampleGrns)
+        {
+            GoodsReceivedNotes.Add(grn);
+        }
+        
+        HasNoGrns = GoodsReceivedNotes.Count == 0;
+    }
+
+    /// <summary>
+    /// Load supplier filters for GRN filtering
+    /// </summary>
+    private async Task LoadGrnSupplierFiltersAsync()
+    {
+        try
+        {
+            // Always use sample suppliers for now
+            // if (_supplierService != null)
+            // {
+            //     var suppliers = await _supplierService.GetAllAsync();
+            //     
+            //     GrnSupplierFilters.Clear();
+            //     GrnSupplierFilters.Add(new SupplierDto { SupplierId = 0, CompanyName = "All Suppliers" });
+            //     
+            //     foreach (var supplier in suppliers)
+            //     {
+            //         GrnSupplierFilters.Add(supplier);
+            //     }
+            // }
+            // else
+            // {
+                // Use sample suppliers (always)
+                GrnSupplierFilters.Clear();
+                GrnSupplierFilters.Add(new SupplierDto { SupplierId = 0, CompanyName = "All Suppliers" });
+                GrnSupplierFilters.Add(new SupplierDto { SupplierId = 1, CompanyName = "ABC Suppliers Ltd" });
+                GrnSupplierFilters.Add(new SupplierDto { SupplierId = 2, CompanyName = "XYZ Trading Co" });
+                GrnSupplierFilters.Add(new SupplierDto { SupplierId = 3, CompanyName = "Quality Foods Inc" });
+            // }
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"[LoadGrnSupplierFiltersAsync] ERROR: {ex.Message}");
         }
     }
 

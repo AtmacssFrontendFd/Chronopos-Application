@@ -792,11 +792,321 @@
                                 </Style.Triggers>
                             </Style>
                         </Grid.Style>
-                        <TextBlock Text="Goods Received - Coming Soon" 
-                                   HorizontalAlignment="Center" 
-                                   VerticalAlignment="Center"
-                                   FontSize="18" FontStyle="Italic"
-                                   Foreground="{DynamicResource MutedForegroundBrush}"/>
+                        
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Header with New GRN Button -->
+                        <Grid Grid.Row="0" Margin="0,0,0,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" 
+                                       Text="Goods Received Notes (GRN)" 
+                                       FontSize="20" 
+                                       FontWeight="SemiBold" 
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Foreground="{DynamicResource ForegroundBrush}" 
+                                       VerticalAlignment="Center"/>
+                            
+                            <Button Grid.Column="1"
+                                    Content="+ New GRN"
+                                    Command="{Binding AddGrnCommand}"
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    Padding="15,8"/>
+                        </Grid>
+
+                        <!-- Filters -->
+                        <Grid Grid.Row="1" Margin="0,0,0,15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="Search:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{DynamicResource ForegroundBrush}"/>
+                            <TextBox Grid.Column="1" Text="{Binding GrnSearchTerm, UpdateSourceTrigger=PropertyChanged}" 
+                                     Margin="0,0,15,0"
+                                     FontFamily="{DynamicResource PoppinsFontFallback}"
+                                     FontSize="{DynamicResource FontSizeSmall}"/>
+
+                            <TextBlock Grid.Column="2" Text="Status:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{DynamicResource ForegroundBrush}"/>
+                            <ComboBox Grid.Column="3" 
+                                      ItemsSource="{Binding GrnStatusFilters}"
+                                      SelectedItem="{Binding SelectedGrnStatusFilter, Mode=TwoWay}" 
+                                      Margin="0,0,15,0"
+                                      FontFamily="{DynamicResource PoppinsFontFallback}"
+                                      FontSize="{DynamicResource FontSizeSmall}"/>
+
+                            <TextBlock Grid.Column="4" Text="Supplier:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{DynamicResource ForegroundBrush}"/>
+                            <ComboBox Grid.Column="5"
+                                      ItemsSource="{Binding GrnSupplierFilters}"
+                                      SelectedValue="{Binding SelectedGrnSupplierId, Mode=TwoWay}"
+                                      SelectedValuePath="SupplierId"
+                                      DisplayMemberPath="CompanyName"
+                                      Margin="0,0,15,0"
+                                      FontFamily="{DynamicResource PoppinsFontFallback}"
+                                      FontSize="{DynamicResource FontSizeSmall}"/>
+
+                            <Button Grid.Column="7" Content="Clear Filters" Command="{Binding ClearFiltersCommand}" 
+                                    Style="{StaticResource SmallActionButtonStyle}"/>
+                        </Grid>
+
+                        <!-- Data Grid with Modern Styling -->
+                        <Border Grid.Row="2" Style="{StaticResource StockCardStyle}" Padding="0">
+                            <Grid>
+                                <!-- No GRNs Message -->
+                                <TextBlock Text="No Goods Received Notes found" 
+                                           HorizontalAlignment="Center" 
+                                           VerticalAlignment="Center"
+                                           FontSize="16" 
+                                           FontStyle="Italic"
+                                           Foreground="{DynamicResource MutedForegroundBrush}"
+                                           Visibility="{Binding HasNoGrns, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                                <!-- GRN Table -->
+                                <DataGrid ItemsSource="{Binding GoodsReceivedNotes}"
+                                          SelectedItem="{Binding SelectedGrn, Mode=TwoWay}"
+                                          AutoGenerateColumns="False"
+                                          GridLinesVisibility="None"
+                                          HeadersVisibility="Column"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          CanUserAddRows="False"
+                                          CanUserDeleteRows="False"
+                                          IsReadOnly="True"
+                                          FontFamily="{DynamicResource PoppinsFontFallback}"
+                                          FontSize="{DynamicResource FontSizeSmall}"
+                                          FlowDirection="{Binding CurrentFlowDirection}"
+                                          HorizontalGridLinesBrush="{DynamicResource BorderLight}"
+                                          VerticalGridLinesBrush="Transparent"
+                                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                          ScrollViewer.CanContentScroll="True"
+                                          MinHeight="400"
+                                          Visibility="{Binding HasNoGrns, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                
+                                    <DataGrid.ColumnHeaderStyle>
+                                        <Style TargetType="DataGridColumnHeader">
+                                            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                                            <Setter Property="Padding" Value="15,12"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+                                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                        </Style>
+                                    </DataGrid.ColumnHeaderStyle>
+                                
+                                    <DataGrid.RowStyle>
+                                        <Style TargetType="DataGridRow">
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="BorderThickness" Value="0"/>
+                                            <Setter Property="Margin" Value="0"/>
+                                            <Setter Property="Padding" Value="0"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource HoverBackground}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource PrimaryLightBackground}"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGrid.RowStyle>
+
+                                    <DataGrid.CellStyle>
+                                        <Style TargetType="DataGridCell">
+                                            <Setter Property="BorderThickness" Value="0"/>
+                                            <Setter Property="Padding" Value="15,12"/>
+                                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGrid.CellStyle>
+                                
+                                <DataGrid.Columns>
+                                        <!-- GRN Number Column -->
+                                        <DataGridTextColumn Header="GRN No" 
+                                                            Binding="{Binding GrnNo}" 
+                                                            Width="140"
+                                                            MinWidth="120">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                    
+                                        <!-- Date Column -->
+                                        <DataGridTextColumn Header="Date" 
+                                                            Binding="{Binding ReceivedDate, StringFormat='dd/MM/yyyy'}" 
+                                                            Width="100"
+                                                            MinWidth="90">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                    
+                                        <!-- Supplier Column -->
+                                        <DataGridTextColumn Header="Supplier" 
+                                                            Binding="{Binding SupplierName}" 
+                                                            Width="150"
+                                                            MinWidth="120">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                    
+                                        <!-- Store Column -->
+                                        <DataGridTextColumn Header="Store" 
+                                                            Binding="{Binding StoreName}" 
+                                                            Width="150"
+                                                            MinWidth="120">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                    
+                                        <!-- Invoice No Column -->
+                                        <DataGridTextColumn Header="Invoice No" 
+                                                            Binding="{Binding InvoiceNo}" 
+                                                            Width="120"
+                                                            MinWidth="100">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                    
+                                        <!-- Total Amount Column -->
+                                        <DataGridTextColumn Header="Total Amount" 
+                                                            Binding="{Binding TotalAmount, StringFormat='{}{0:C2}'}" 
+                                                            Width="120"
+                                                            MinWidth="100">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                    
+                                        <!-- Status Column with Color Coding -->
+                                        <DataGridTemplateColumn Header="Status" Width="120">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Border CornerRadius="12"
+                                                            Padding="8,4"
+                                                            HorizontalAlignment="Center">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="{DynamicResource BorderBrush}"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Status}" Value="Draft">
+                                                                        <Setter Property="Background" Value="#FF9800"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Status}" Value="Pending">
+                                                                        <Setter Property="Background" Value="#2196F3"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Status}" Value="Posted">
+                                                                        <Setter Property="Background" Value="#4CAF50"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Status}" Value="Cancelled">
+                                                                        <Setter Property="Background" Value="#F44336"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <TextBlock Text="{Binding Status}"
+                                                                   Foreground="White"
+                                                                   FontSize="12"
+                                                                   FontWeight="SemiBold"
+                                                                   HorizontalAlignment="Center"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    
+                                        <!-- Actions Column -->
+                                        <DataGridTemplateColumn Header="Actions" Width="180">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                        <Button Content="View" 
+                                                                Style="{StaticResource SmallActionButtonStyle}"
+                                                                Command="{Binding DataContext.ViewGrnCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                Background="{DynamicResource AccentBrush}" 
+                                                                Foreground="White"
+                                                                Margin="2"/>
+                                                        <Button Content="Edit" 
+                                                                Command="{Binding DataContext.EditGrnCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                Margin="2">
+                                                            <Button.Style>
+                                                                <Style TargetType="Button" BasedOn="{StaticResource SmallActionButtonStyle}">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Status}" Value="Posted">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Status}" Value="Cancelled">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Button.Style>
+                                                        </Button>
+                                                        <Button Content="Delete" 
+                                                                Command="{Binding DataContext.DeleteGrnCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                Margin="2">
+                                                            <Button.Style>
+                                                                <Style TargetType="Button" BasedOn="{StaticResource SmallActionButtonStyle}">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Status}" Value="Posted">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Button.Style>
+                                                        </Button>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            </Grid>
+                        </Border>
                     </Grid>
 
                     <Grid Name="GoodsReturnContent">

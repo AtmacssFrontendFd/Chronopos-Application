@@ -1,5 +1,6 @@
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.Logging;
 using ChronoPos.Domain.Entities;
 using ChronoPos.Domain.Enums;
 using ChronoPos.Infrastructure.Services;
@@ -161,29 +162,29 @@ namespace ChronoPos.Infrastructure.Services
         /// </summary>
         public async Task<StockAdjustmentDto> CreateStockAdjustmentAsync(CreateStockAdjustmentDto createDto)
         {
-            FileLogger.LogSeparator("STARTING CreateStockAdjustmentAsync");
-            FileLogger.LogInfo($"Input DTO - AdjustmentDate: {createDto.AdjustmentDate}");
-            FileLogger.LogInfo($"Input DTO - StoreLocationId: {createDto.StoreLocationId}");
-            FileLogger.LogInfo($"Input DTO - ReasonId: {createDto.ReasonId}");
-            FileLogger.LogInfo($"Input DTO - Remarks: {createDto.Remarks}");
-            FileLogger.LogInfo($"Input DTO - Items Count: {createDto.Items?.Count ?? 0}");
+            AppLogger.LogSeparator("STARTING CreateStockAdjustmentAsync", "stock_adjustment");
+            AppLogger.LogInfo($"Input DTO - AdjustmentDate: {createDto.AdjustmentDate}", null, "stock_adjustment");
+            AppLogger.LogInfo($"Input DTO - StoreLocationId: {createDto.StoreLocationId}", null, "stock_adjustment");
+            AppLogger.LogInfo($"Input DTO - ReasonId: {createDto.ReasonId}", null, "stock_adjustment");
+            AppLogger.LogInfo($"Input DTO - Remarks: {createDto.Remarks}", null, "stock_adjustment");
+            AppLogger.LogInfo($"Input DTO - Items Count: {createDto.Items?.Count ?? 0}", null, "stock_adjustment");
             
             using var transaction = await _context.Database.BeginTransactionAsync();
-            FileLogger.LogInfo("Database transaction started");
+            AppLogger.LogInfo("Database transaction started", null, "stock_adjustment");
             
             try
             {
                 // Validate and ensure required foreign key records exist
-                FileLogger.LogInfo("Validating foreign key constraints...");
+                AppLogger.LogInfo("Validating foreign key constraints...", null, "stock_adjustment");
                 await EnsureRequiredDataExistsAsync(createDto);
                 
                 // Generate adjustment number
-                FileLogger.LogInfo("Generating adjustment number...");
+                AppLogger.LogInfo("Generating adjustment number...", null, "stock_adjustment");
                 var adjustmentNo = await GenerateAdjustmentNumberAsync();
-                FileLogger.LogInfo($"Generated adjustment number: {adjustmentNo}");
+                AppLogger.LogInfo($"Generated adjustment number: {adjustmentNo}", null, "stock_adjustment");
 
                 // Create the main adjustment record
-                FileLogger.LogInfo("Creating main adjustment record...");
+                AppLogger.LogInfo("Creating main adjustment record...", null, "stock_adjustment");
                 var adjustment = new StockAdjustment
                 {
                     AdjustmentNo = adjustmentNo,
@@ -196,28 +197,28 @@ namespace ChronoPos.Infrastructure.Services
                     CreatedAt = DateTime.Now
                 };
 
-                FileLogger.LogInfo("Adding adjustment to context...");
+                AppLogger.LogInfo("Adding adjustment to context...", null, "stock_adjustment");
                 _context.StockAdjustments.Add(adjustment);
                 
-                FileLogger.LogInfo("Saving main adjustment record...");
+                AppLogger.LogInfo("Saving main adjustment record...", null, "stock_adjustment");
                 await _context.SaveChangesAsync();
-                FileLogger.LogInfo($"Main adjustment saved with ID: {adjustment.AdjustmentId}");
+                AppLogger.LogInfo($"Main adjustment saved with ID: {adjustment.AdjustmentId}", null, "stock_adjustment");
 
                 // Add adjustment items
-                FileLogger.LogInfo($"Processing {createDto.Items?.Count ?? 0} adjustment items...");
+                AppLogger.LogInfo($"Processing {createDto.Items?.Count ?? 0} adjustment items...", null, "stock_adjustment");
                 if (createDto.Items != null)
                 {
                     foreach (var itemDto in createDto.Items)
                     {
-                        FileLogger.LogInfo($"Creating item for ProductId: {itemDto.ProductId}");
-                        FileLogger.LogInfo($"Item - QuantityBefore: {itemDto.QuantityBefore}, QuantityAfter: {itemDto.QuantityAfter}");
+                        AppLogger.LogInfo($"Creating item for ProductId: {itemDto.ProductId}", $"BatchNo: '{itemDto.BatchNo ?? "None"}'", "stock_adjustment");
+                        AppLogger.LogInfo($"Item - QuantityBefore: {itemDto.QuantityBefore}, QuantityAfter: {itemDto.QuantityAfter}", null, "stock_adjustment");
                         
                         var item = new StockAdjustmentItem
                         {
                             AdjustmentId = adjustment.AdjustmentId,
                             ProductId = itemDto.ProductId,
                             UomId = itemDto.UomId,
-                            BatchNo = null, // Not provided in create DTO
+                            BatchNo = itemDto.BatchNo, // Use provided batch number from DTO
                             QuantityBefore = itemDto.QuantityBefore,
                             QuantityAfter = itemDto.QuantityAfter,
                             DifferenceQty = itemDto.QuantityAfter - itemDto.QuantityBefore,
@@ -226,24 +227,24 @@ namespace ChronoPos.Infrastructure.Services
                             RemarksLine = itemDto.RemarksLine
                         };
 
-                        FileLogger.LogInfo($"Adding item to context - DifferenceQty: {item.DifferenceQty}");
+                        AppLogger.LogInfo($"Adding item to context - DifferenceQty: {item.DifferenceQty}", $"BatchNo: '{item.BatchNo ?? "None"}'", "stock_adjustment");
                         _context.StockAdjustmentItems.Add(item);
                     }
                 }
 
-                FileLogger.LogInfo("Saving adjustment items...");
+                AppLogger.LogInfo("Saving adjustment items...", null, "stock_adjustment");
                 await _context.SaveChangesAsync();
-                FileLogger.LogInfo("All items saved successfully");
+                AppLogger.LogInfo("All items saved successfully", null, "stock_adjustment");
                 
                 // Update actual product stock levels for each adjustment item
-                FileLogger.LogSeparator("Updating Product Stock Levels");
+                AppLogger.LogSeparator("Updating Product Stock Levels", "stock_adjustment");
                 if (createDto.Items != null)
                 {
                     foreach (var itemDto in createDto.Items)
                     {
-                        FileLogger.LogInfo($"Processing adjustment for ProductId: {itemDto.ProductId}");
-                        FileLogger.LogInfo($"Adjustment mode: {itemDto.AdjustmentMode}");
-                        FileLogger.LogInfo($"New quantity: {itemDto.QuantityAfter}");
+                        AppLogger.LogInfo($"Processing adjustment for ProductId: {itemDto.ProductId}", $"BatchNo: '{itemDto.BatchNo ?? "None"}', Mode: {itemDto.AdjustmentMode}", "stock_adjustment");
+                        AppLogger.LogInfo($"Adjustment mode: {itemDto.AdjustmentMode}", null, "stock_adjustment");
+                        AppLogger.LogInfo($"New quantity: {itemDto.QuantityAfter}", null, "stock_adjustment");
                         
                         // Update the actual product stock quantity and initial stock using increment/decrement logic
                         var product = await _context.Products.FindAsync(itemDto.ProductId);
@@ -260,7 +261,7 @@ namespace ChronoPos.Infrastructure.Services
                                 var conversionFactor = itemDto.ConversionFactor;
                                 changeAmountInBaseUnit = itemDto.ChangeAmount * conversionFactor;
                                 
-                                FileLogger.LogInfo($"ProductUnit mode: Change {itemDto.ChangeAmount} × Conversion Factor {conversionFactor} = {changeAmountInBaseUnit}");
+                                AppLogger.LogInfo($"ProductUnit mode: Change {itemDto.ChangeAmount} × Conversion Factor {conversionFactor} = {changeAmountInBaseUnit}", null, "stock_adjustment");
                                 
                                 // Also update the ProductUnit table
                                 var productUnit = await _context.ProductUnits.FindAsync(itemDto.ProductUnitId);
@@ -277,14 +278,14 @@ namespace ChronoPos.Infrastructure.Services
                                     }
                                     productUnit.UpdatedAt = DateTime.Now;
                                     
-                                    FileLogger.LogInfo($"ProductUnit updated: {previousUnitQty} → {productUnit.QtyInUnit}");
+                                    AppLogger.LogInfo($"ProductUnit updated: {previousUnitQty} → {productUnit.QtyInUnit}", null, "stock_adjustment");
                                 }
                             }
                             else
                             {
                                 // For Product mode, use change amount directly
                                 changeAmountInBaseUnit = itemDto.ChangeAmount;
-                                FileLogger.LogInfo($"Product mode: Using change amount directly = {changeAmountInBaseUnit}");
+                                AppLogger.LogInfo($"Product mode: Using change amount directly = {changeAmountInBaseUnit}", null, "stock_adjustment");
                             }
                             
                             // Apply increment or decrement to Product
@@ -292,58 +293,100 @@ namespace ChronoPos.Infrastructure.Services
                             {
                                 product.InitialStock = previousInitialStock + changeAmountInBaseUnit;
                                 product.StockQuantity = (int)Math.Round(previousStock + changeAmountInBaseUnit);
-                                FileLogger.LogInfo($"INCREMENT: Adding {changeAmountInBaseUnit} to stock");
+                                AppLogger.LogInfo($"INCREMENT: Adding {changeAmountInBaseUnit} to stock", null, "stock_adjustment");
                             }
                             else
                             {
                                 product.InitialStock = previousInitialStock - changeAmountInBaseUnit;
                                 product.StockQuantity = (int)Math.Round(Math.Max(0, previousStock - changeAmountInBaseUnit)); // Prevent negative stock
-                                FileLogger.LogInfo($"DECREMENT: Subtracting {changeAmountInBaseUnit} from stock");
+                                AppLogger.LogInfo($"DECREMENT: Subtracting {changeAmountInBaseUnit} from stock", null, "stock_adjustment");
                             }
                             
                             product.UpdatedAt = DateTime.Now;
                             
-                            FileLogger.LogInfo($"Product stock updated: {previousStock} → {product.StockQuantity}");
-                            FileLogger.LogInfo($"Product initial stock updated: {previousInitialStock} → {product.InitialStock}");
+                            AppLogger.LogInfo($"Product stock updated: {previousStock} → {product.StockQuantity}", null, "stock_adjustment");
+                            AppLogger.LogInfo($"Product initial stock updated: {previousInitialStock} → {product.InitialStock}", null, "stock_adjustment");
+                            
+                            // Update ProductBatch quantity if BatchNo is specified
+                            if (!string.IsNullOrEmpty(itemDto.BatchNo))
+                            {
+                                AppLogger.LogInfo($"BATCH UPDATE: Processing BatchNo: {itemDto.BatchNo} for ProductId: {itemDto.ProductId}", $"ChangeAmount: {changeAmountInBaseUnit}, IsIncrement: {itemDto.IsIncrement}", "stock_adjustment");
+                                
+                                var productBatch = await _context.ProductBatches
+                                    .FirstOrDefaultAsync(pb => pb.ProductId == itemDto.ProductId && pb.BatchNo == itemDto.BatchNo);
+                                
+                                if (productBatch != null)
+                                {
+                                    var previousBatchQty = productBatch.Quantity;
+                                    
+                                    // Apply the same change amount to the batch
+                                    if (itemDto.IsIncrement)
+                                    {
+                                        productBatch.Quantity += changeAmountInBaseUnit;
+                                        AppLogger.LogInfo($"BATCH INCREMENT: Adding {changeAmountInBaseUnit} to batch quantity", null, "stock_adjustment");
+                                    }
+                                    else
+                                    {
+                                        productBatch.Quantity = Math.Max(0, productBatch.Quantity - changeAmountInBaseUnit);
+                                        AppLogger.LogInfo($"BATCH DECREMENT: Subtracting {changeAmountInBaseUnit} from batch quantity (prevent negative)", null, "stock_adjustment");
+                                    }
+                                    
+                                    AppLogger.LogInfo($"BATCH SUCCESS: ProductBatch '{itemDto.BatchNo}' quantity updated: {previousBatchQty} → {productBatch.Quantity}", null, "stock_adjustment");
+                                }
+                                else
+                                {
+                                    AppLogger.LogError($"BATCH ERROR: ProductBatch not found for ProductId: {itemDto.ProductId}, BatchNo: '{itemDto.BatchNo}'", null, null, "stock_adjustment");
+                                    // Log available batches for debugging
+                                    var availableBatches = await _context.ProductBatches
+                                        .Where(pb => pb.ProductId == itemDto.ProductId)
+                                        .Select(pb => new { pb.BatchNo, pb.Quantity })
+                                        .ToListAsync();
+                                    AppLogger.LogInfo($"Available batches for ProductId {itemDto.ProductId}: {string.Join(", ", availableBatches.Select(b => $"'{b.BatchNo}'({b.Quantity})"))}", null, "stock_adjustment");
+                                }
+                            }
+                            else
+                            {
+                                AppLogger.LogInfo($"BATCH SKIP: No BatchNo provided for ProductId: {itemDto.ProductId}, skipping batch update", null, "stock_adjustment");
+                            }
                         }
                         else
                         {
-                            FileLogger.LogWarning($"Product not found for ID: {itemDto.ProductId}");
+                            AppLogger.LogWarning($"Product not found for ID: {itemDto.ProductId}", null, "stock_adjustment");
                         }
                     }
                     
-                    FileLogger.LogInfo("Saving product stock updates...");
+                    AppLogger.LogInfo("Saving product stock updates...", null, "stock_adjustment");
                     await _context.SaveChangesAsync();
-                    FileLogger.LogInfo("Product stock levels updated successfully");
+                    AppLogger.LogInfo("Product stock levels updated successfully", null, "stock_adjustment");
                 }
                 
-                FileLogger.LogInfo("Committing transaction...");
+                AppLogger.LogInfo("Committing transaction...", null, "stock_adjustment");
                 await transaction.CommitAsync();
-                FileLogger.LogInfo("Transaction committed successfully");
+                AppLogger.LogInfo("Transaction committed successfully", null, "stock_adjustment");
 
                 // Return the created adjustment as DTO
-                FileLogger.LogInfo($"Retrieving created adjustment with ID: {adjustment.AdjustmentId}");
+                AppLogger.LogInfo($"Retrieving created adjustment with ID: {adjustment.AdjustmentId}", null, "stock_adjustment");
                 var result = await GetStockAdjustmentByIdAsync(adjustment.AdjustmentId);
                 
                 if (result == null)
                 {
-                    FileLogger.LogError("Failed to retrieve created adjustment");
+                    AppLogger.LogError("Failed to retrieve created adjustment", null, null, "stock_adjustment");
                     throw new InvalidOperationException("Failed to retrieve created adjustment");
                 }
                 
-                FileLogger.LogInfo($"SUCCESS: Returning adjustment DTO with number: {result.AdjustmentNo}");
-                FileLogger.LogSeparator("CreateStockAdjustmentAsync COMPLETED");
+                AppLogger.LogInfo($"SUCCESS: Returning adjustment DTO with number: {result.AdjustmentNo}", null, "stock_adjustment");
+                AppLogger.LogSeparator("CreateStockAdjustmentAsync COMPLETED", "stock_adjustment");
                 return result;
             }
             catch (Exception ex)
             {
-                FileLogger.LogError($"ERROR in CreateStockAdjustmentAsync: {ex.Message}", ex);
-                FileLogger.LogError($"Exception type: {ex.GetType().Name}");
-                FileLogger.LogError($"Stack trace: {ex.StackTrace}");
+                AppLogger.LogError($"ERROR in CreateStockAdjustmentAsync: {ex.Message}", ex, null, "stock_adjustment");
+                AppLogger.LogError($"Exception type: {ex.GetType().Name}", null, null, "stock_adjustment");
+                AppLogger.LogError($"Stack trace: {ex.StackTrace}", null, null, "stock_adjustment");
                 
-                FileLogger.LogWarning("Rolling back transaction...");
+                AppLogger.LogWarning("Rolling back transaction...", null, "stock_adjustment");
                 await transaction.RollbackAsync();
-                FileLogger.LogWarning("Transaction rolled back");
+                AppLogger.LogWarning("Transaction rolled back", null, "stock_adjustment");
                 throw;
             }
         }
@@ -382,7 +425,7 @@ namespace ChronoPos.Infrastructure.Services
                         AdjustmentId = adjustment.AdjustmentId,
                         ProductId = itemDto.ProductId,
                         UomId = itemDto.UomId,
-                        BatchNo = null, // Not provided in update DTO
+                        BatchNo = itemDto.BatchNo, // Use provided batch number from DTO
                         QuantityBefore = itemDto.QuantityBefore,
                         QuantityAfter = itemDto.QuantityAfter,
                         DifferenceQty = itemDto.QuantityAfter - itemDto.QuantityBefore,

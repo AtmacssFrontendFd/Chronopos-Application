@@ -1556,23 +1556,8 @@
                 <Border Name="ProductBatchesSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
                     <StackPanel>
                         <Grid Margin="0,0,0,15">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <TextBlock Grid.Column="0" 
-                                       Text="Product Batches" 
+                            <TextBlock Text="Product Batches" 
                                        Style="{StaticResource SectionHeaderStyle}"/>
-                            
-                            <Button Grid.Column="1"
-                                    Content="Add Batch"
-                                    Command="{Binding ShowProductBatchesCommand}"
-                                    Style="{StaticResource FormButtonStyle}"
-                                    Background="{DynamicResource Primary}"
-                                    Foreground="White"
-                                    Padding="15,8"
-                                    FontSize="12"/>
                         </Grid>
                         
                         <!-- Product Batches DataGrid -->
@@ -1654,7 +1639,7 @@
                                 <DataGrid.Columns>
                                     <!-- Batch Number -->
                                     <DataGridTextColumn Header="Batch No" 
-                                                        Binding="{Binding BatchNo}" 
+                                                        Binding="{Binding BatchNo, TargetNullValue='N/A'}" 
                                                         Width="120"
                                                         MinWidth="100">
                                         <DataGridTextColumn.ElementStyle>
@@ -1667,7 +1652,7 @@
                                     
                                     <!-- Manufacture Date -->
                                     <DataGridTextColumn Header="Mfg Date" 
-                                                        Binding="{Binding ManufactureDate, StringFormat='{}{0:dd/MM/yyyy}'}" 
+                                                        Binding="{Binding ManufactureDate, StringFormat='{}{0:dd/MM/yyyy}', TargetNullValue='N/A'}" 
                                                         Width="100">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock">
@@ -1678,7 +1663,7 @@
                                     
                                     <!-- Expiry Date -->
                                     <DataGridTextColumn Header="Expiry Date" 
-                                                        Binding="{Binding ExpiryDate, StringFormat='{}{0:dd/MM/yyyy}'}" 
+                                                        Binding="{Binding ExpiryDate, StringFormat='{}{0:dd/MM/yyyy}', TargetNullValue='N/A'}" 
                                                         Width="100">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock">
@@ -1731,7 +1716,7 @@
                                     
                                     <!-- UOM -->
                                     <DataGridTextColumn Header="UOM" 
-                                                        Binding="{Binding UomName}" 
+                                                        Binding="{Binding UomName, TargetNullValue='N/A'}" 
                                                         Width="60">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock">
@@ -1742,7 +1727,7 @@
                                     
                                     <!-- Cost Price -->
                                     <DataGridTextColumn Header="Cost Price" 
-                                                        Binding="{Binding CostPrice, StringFormat='{}{0:C2}'}" 
+                                                        Binding="{Binding CostPrice, StringFormat='{}{0:N2}', TargetNullValue='0.00'}" 
                                                         Width="90">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock">
@@ -1754,7 +1739,7 @@
                                     
                                     <!-- Total Value -->
                                     <DataGridTextColumn Header="Total Value" 
-                                                        Binding="{Binding TotalValue, StringFormat='{}{0:C2}'}" 
+                                                        Binding="{Binding TotalValue, StringFormat='{}{0:N2}', TargetNullValue='0.00'}" 
                                                         Width="100">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock">
@@ -1782,7 +1767,7 @@
                                                             </Style.Triggers>
                                                         </Style>
                                                     </Border.Style>
-                                                    <TextBlock Text="{Binding Status}" 
+                                                    <TextBlock Text="{Binding Status, TargetNullValue='Active'}" 
                                                                FontSize="10" 
                                                                FontWeight="Medium"
                                                                VerticalAlignment="Center">
@@ -1803,22 +1788,18 @@
                                     </DataGridTemplateColumn>
                                     
                                     <!-- Actions -->
-                                    <DataGridTemplateColumn Header="Actions" Width="100">
+                                    <DataGridTemplateColumn Header="Actions" Width="50">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                    <Button Content="✏️" 
-                                                            Command="{Binding DataContext.EditProductBatchCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                            CommandParameter="{Binding}"
-                                                            ToolTip="Edit Batch"
-                                                            Style="{StaticResource SmallIconButtonStyle}"
-                                                            Margin="2,0"/>
                                                     <Button Content="🗑️" 
                                                             Command="{Binding DataContext.DeleteProductBatchCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                             CommandParameter="{Binding}"
                                                             ToolTip="Delete Batch"
-                                                            Style="{StaticResource SmallIconButtonStyle}"
-                                                            Foreground="#C62828"
+                                                            Style="{StaticResource CompactButtonStyle}"
+                                                            Background="#C62828"
+                                                            Foreground="White"
+                                                            Width="24" Height="24"
                                                             Margin="2,0"/>
                                                 </StackPanel>
                                             </DataTemplate>

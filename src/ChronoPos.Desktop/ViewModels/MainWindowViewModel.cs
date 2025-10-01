@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ChronoPos.Infrastructure.Services;
 using System.Windows;
+using ChronoPos.Application.Logging;
 using System.Collections.ObjectModel;
 using ChronoPos.Domain.Entities;
 
@@ -1147,7 +1148,7 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task ShowStockManagement()
+    private async Task ShowStockManagement(string? selectedSection = null)
     {
         // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
         CurrentPageTitle = "Stock Management";
@@ -1164,8 +1165,23 @@ public partial class MainWindowViewModel : ObservableObject
             var fontService = _serviceProvider.GetService<IFontService>();
             var databaseLocalizationService = _serviceProvider.GetService<IDatabaseLocalizationService>();
 
-            // Get the StockManagementViewModel from DI container to ensure proper scoping
-            var stockManagementViewModel = _serviceProvider.GetRequiredService<StockManagementViewModel>();
+            // Create StockManagementViewModel manually with navigation callback
+            var stockManagementViewModel = new StockManagementViewModel(
+                themeService ?? throw new InvalidOperationException("ThemeService is required"),
+                zoomService ?? throw new InvalidOperationException("ZoomService is required"),
+                localizationService ?? throw new InvalidOperationException("LocalizationService is required"),
+                colorSchemeService ?? throw new InvalidOperationException("ColorSchemeService is required"),
+                layoutDirectionService ?? throw new InvalidOperationException("LayoutDirectionService is required"),
+                fontService ?? throw new InvalidOperationException("FontService is required"),
+                databaseLocalizationService ?? throw new InvalidOperationException("DatabaseLocalizationService is required"),
+                _serviceProvider.GetService<IProductService>(),
+                _serviceProvider.GetService<IStockAdjustmentService>(),
+                _serviceProvider.GetService<IProductBatchService>(),
+                _serviceProvider.GetService<IGoodsReceivedService>(),
+                _serviceProvider.GetService<ISupplierService>(),
+                navigateToAddGrn: ShowAddGrn, // Pass navigation callback
+                navigateToEditGrn: ShowEditGrn // Pass edit navigation callback
+            );
             
             // Create the view and set the ViewModel from DI
             var stockManagementView = new StockManagementView();
@@ -1180,6 +1196,12 @@ public partial class MainWindowViewModel : ObservableObject
             // Set the DataContext to the proper ViewModel
             stockManagementView.DataContext = stockManagementViewModel;
 
+            // If a specific section is requested, navigate to it
+            if (!string.IsNullOrEmpty(selectedSection))
+            {
+                stockManagementViewModel.SelectModuleCommand.Execute(selectedSection);
+            }
+
             CurrentView = stockManagementView;
             StatusMessage = "Stock management loaded successfully";
             await Task.CompletedTask; // satisfy analyzer
@@ -1190,6 +1212,135 @@ public partial class MainWindowViewModel : ObservableObject
             var errorContent = new System.Windows.Controls.TextBlock
             {
                 Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    private void ShowAddGrn()
+    {
+        CurrentPageTitle = "Add Goods Received Note";
+        StatusMessage = "Loading add GRN form...";
+        
+        try
+        {
+            // Create the AddGrnView and manually create ViewModel with navigation callback
+            var addGrnView = new AddGrnView();
+            
+            // Get services from DI container
+            var goodsReceivedService = _serviceProvider.GetRequiredService<IGoodsReceivedService>();
+            var supplierService = _serviceProvider.GetRequiredService<ISupplierService>();
+            var storeService = _serviceProvider.GetRequiredService<IStoreService>();
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var uomService = _serviceProvider.GetRequiredService<IUomService>();
+            var productBatchService = _serviceProvider.GetRequiredService<IProductBatchService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback
+            var addGrnViewModel = new AddGrnViewModel(
+                goodsReceivedService,
+                supplierService,
+                storeService,
+                productService,
+                uomService,
+                productBatchService,
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                navigateBack: () => _ = ShowStockManagement("GoodsReceived") // Navigate back to stock management Goods Received section
+            );
+            
+            addGrnView.DataContext = addGrnViewModel;
+            CurrentView = addGrnView;
+            StatusMessage = "Add GRN form loaded successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading add GRN form: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+    
+    private async void ShowEditGrn(long grnId)
+    {
+        CurrentPageTitle = "Edit Goods Received Note";
+        StatusMessage = "Loading GRN for editing...";
+        
+        try
+        {
+            AppLogger.LogInfo($"Opening GRN for editing", $"GRN ID: {grnId}", "navigation");
+            
+            // Create the AddGrnView (same view used for add/edit)
+            var addGrnView = new AddGrnView();
+            
+            // Get services from DI container
+            var goodsReceivedService = _serviceProvider.GetRequiredService<IGoodsReceivedService>();
+            var supplierService = _serviceProvider.GetRequiredService<ISupplierService>();
+            var storeService = _serviceProvider.GetRequiredService<IStoreService>();
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var uomService = _serviceProvider.GetRequiredService<IUomService>();
+            var productBatchService = _serviceProvider.GetRequiredService<IProductBatchService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback
+            var addGrnViewModel = new AddGrnViewModel(
+                goodsReceivedService,
+                supplierService,
+                storeService,
+                productService,
+                uomService,
+                productBatchService,
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                navigateBack: () => _ = ShowStockManagement("GoodsReceived") // Navigate back to stock management Goods Received section
+            );
+            
+            // Load the GRN data for editing
+            await addGrnViewModel.LoadForEditAsync(grnId);
+            
+            addGrnView.DataContext = addGrnViewModel;
+            CurrentView = addGrnView;
+            StatusMessage = "GRN loaded for editing successfully";
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Failed to load GRN for editing", ex, $"GRN ID: {grnId}", "navigation");
+            StatusMessage = $"Error loading GRN for editing: {ex.Message}";
+            
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error loading GRN {grnId}: {ex.Message}",
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
                 VerticalAlignment = System.Windows.VerticalAlignment.Center,
                 FontSize = 16

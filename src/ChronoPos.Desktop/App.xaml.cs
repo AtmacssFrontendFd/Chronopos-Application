@@ -165,6 +165,18 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IProductBatchService, ProductBatchService>();
                     LogMessage("ProductBatchService registered as Transient");
 
+                    // Register GoodsReceived service and repository
+                    services.AddTransient<IGoodsReceivedRepository, GoodsReceivedRepository>();
+                    LogMessage("GoodsReceivedRepository registered as Transient");
+                    services.AddTransient<IGoodsReceivedService, GoodsReceivedService>();
+                    LogMessage("GoodsReceivedService registered as Transient");
+
+                    // Register GoodsReceivedItem service and repository
+                    services.AddTransient<IGoodsReceivedItemRepository, GoodsReceivedItemRepository>();
+                    LogMessage("GoodsReceivedItemRepository registered as Transient");
+                    services.AddTransient<IGoodsReceivedItemService, GoodsReceivedItemService>();
+                    LogMessage("GoodsReceivedItemService registered as Transient");
+
                     // Register SKU Generation service
                     services.AddTransient<ISkuGenerationService, SkuGenerationService>();
                     LogMessage("SkuGenerationService registered as Transient");

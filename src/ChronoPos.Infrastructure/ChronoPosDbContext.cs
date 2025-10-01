@@ -50,6 +50,10 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.StockMovement> StockMovements { get; set; }
     public DbSet<Domain.Entities.StockTransfer> StockTransfers { get; set; }
     public DbSet<Domain.Entities.StockTransferItem> StockTransferItems { get; set; }
+    
+    // Goods Received entities
+    public DbSet<Domain.Entities.GoodsReceived> GoodsReceived { get; set; }
+    public DbSet<Domain.Entities.GoodsReceivedItem> GoodsReceivedItems { get; set; }
     public DbSet<Domain.Entities.User> Users { get; set; }
     public DbSet<Domain.Entities.ShopLocation> ShopLocations { get; set; }
     public DbSet<Domain.Entities.UnitOfMeasurement> UnitsOfMeasurement { get; set; }
@@ -1618,5 +1622,155 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             }
         );
         */
+
+        // Configure GoodsReceived entity
+        modelBuilder.Entity<Domain.Entities.GoodsReceived>(entity =>
+        {
+            entity.HasKey(gr => gr.Id);
+            entity.ToTable("goods_received");
+            
+            entity.Property(gr => gr.Id)
+                .HasColumnName("id")
+                .ValueGeneratedOnAdd();
+                
+            entity.Property(gr => gr.GrnNo)
+                .HasColumnName("grn_no")
+                .HasMaxLength(50)
+                .IsRequired();
+                
+            entity.Property(gr => gr.SupplierId)
+                .HasColumnName("supplier_id")
+                .IsRequired();
+                
+            entity.Property(gr => gr.StoreId)
+                .HasColumnName("store_id")
+                .IsRequired();
+                
+            entity.Property(gr => gr.InvoiceNo)
+                .HasColumnName("invoice_no")
+                .HasMaxLength(50);
+                
+            entity.Property(gr => gr.InvoiceDate)
+                .HasColumnName("invoice_date");
+                
+            entity.Property(gr => gr.ReceivedDate)
+                .HasColumnName("received_date")
+                .IsRequired()
+                .HasDefaultValueSql("CURRENT_DATE");
+                
+            entity.Property(gr => gr.TotalAmount)
+                .HasColumnName("total_amount")
+                .HasColumnType("decimal(12,2)")
+                .HasDefaultValue(0);
+                
+            entity.Property(gr => gr.Remarks)
+                .HasColumnName("remarks")
+                .HasMaxLength(255);
+                
+            entity.Property(gr => gr.Status)
+                .HasColumnName("status")
+                .HasMaxLength(20)
+                .HasDefaultValue("Pending");
+                
+            entity.Property(gr => gr.CreatedAt)
+                .HasColumnName("created_at")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+            
+            // Configure relationships
+            entity.HasOne(gr => gr.Supplier)
+                .WithMany()
+                .HasForeignKey(gr => gr.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+                
+            entity.HasOne(gr => gr.Store)
+                .WithMany()
+                .HasForeignKey(gr => gr.StoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+                
+            entity.HasMany(gr => gr.Items)
+                .WithOne(gri => gri.GoodsReceived)
+                .HasForeignKey(gri => gri.GrnId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configure GoodsReceivedItem entity
+        modelBuilder.Entity<Domain.Entities.GoodsReceivedItem>(entity =>
+        {
+            entity.HasKey(gri => gri.Id);
+            entity.ToTable("goods_received_items");
+            
+            entity.Property(gri => gri.Id)
+                .HasColumnName("id")
+                .ValueGeneratedOnAdd();
+                
+            entity.Property(gri => gri.GrnId)
+                .HasColumnName("grn_id")
+                .IsRequired();
+                
+            entity.Property(gri => gri.ProductId)
+                .HasColumnName("product_id")
+                .IsRequired();
+                
+            entity.Property(gri => gri.BatchId)
+                .HasColumnName("batch_id");
+                
+            entity.Property(gri => gri.BatchNo)
+                .HasColumnName("batch_no")
+                .HasMaxLength(50);
+                
+            entity.Property(gri => gri.ManufactureDate)
+                .HasColumnName("manufacture_date");
+                
+            entity.Property(gri => gri.ExpiryDate)
+                .HasColumnName("expiry_date");
+                
+            entity.Property(gri => gri.Quantity)
+                .HasColumnName("quantity")
+                .HasColumnType("decimal(12,4)")
+                .IsRequired();
+                
+            entity.Property(gri => gri.UomId)
+                .HasColumnName("uom_id")
+                .IsRequired();
+                
+            entity.Property(gri => gri.CostPrice)
+                .HasColumnName("cost_price")
+                .HasColumnType("decimal(12,2)")
+                .IsRequired();
+                
+            entity.Property(gri => gri.LandedCost)
+                .HasColumnName("landed_cost")
+                .HasColumnType("decimal(12,2)");
+                
+            entity.Property(gri => gri.LineTotal)
+                .HasColumnName("line_total")
+                .HasColumnType("decimal(12,2)")
+                .HasComputedColumnSql("quantity * cost_price", stored: true);
+                
+            entity.Property(gri => gri.CreatedAt)
+                .HasColumnName("created_at")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+            
+            // Configure relationships
+            entity.HasOne(gri => gri.GoodsReceived)
+                .WithMany(gr => gr.Items)
+                .HasForeignKey(gri => gri.GrnId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            entity.HasOne(gri => gri.Product)
+                .WithMany()
+                .HasForeignKey(gri => gri.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+                
+            entity.HasOne(gri => gri.ProductBatch)
+                .WithMany()
+                .HasForeignKey(gri => gri.BatchId)
+                .OnDelete(DeleteBehavior.SetNull);
+                
+            entity.HasOne(gri => gri.UnitOfMeasurement)
+                .WithMany()
+                .HasForeignKey(gri => gri.UomId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }
