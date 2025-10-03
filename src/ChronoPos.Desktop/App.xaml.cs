@@ -70,6 +70,9 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IStoreRepository, StoreRepository>();
                     LogMessage("StoreRepository registered as Transient");
                     
+                    services.AddTransient<ISupplierRepository, SupplierRepository>();
+                    LogMessage("SupplierRepository registered as Transient");
+                    
                     services.AddTransient<IProductImageRepository, ProductImageRepository>();
                     LogMessage("ProductImageRepository registered as Transient");
 
@@ -177,6 +180,36 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IGoodsReceivedItemService, GoodsReceivedItemService>();
                     LogMessage("GoodsReceivedItemService registered as Transient");
 
+                    // Register StockTransfer service and repository
+                    services.AddTransient<IStockTransferRepository, StockTransferRepository>();
+                    LogMessage("StockTransferRepository registered as Transient");
+                    services.AddTransient<IStockTransferService, StockTransferService>();
+                    LogMessage("StockTransferService registered as Transient");
+
+                    // Register StockTransferItem service and repository
+                    services.AddTransient<IStockTransferItemRepository, StockTransferItemRepository>();
+                    LogMessage("StockTransferItemRepository registered as Transient");
+                    services.AddTransient<IStockTransferItemService, StockTransferItemService>();
+                    LogMessage("StockTransferItemService registered as Transient");
+
+                    // Register GoodsReturn service and repository
+                    services.AddTransient<IGoodsReturnRepository, GoodsReturnRepository>();
+                    LogMessage("GoodsReturnRepository registered as Transient");
+                    services.AddTransient<IGoodsReturnService, GoodsReturnService>();
+                    LogMessage("GoodsReturnService registered as Transient");
+
+                    // Register GoodsReturnItem service and repository
+                    services.AddTransient<IGoodsReturnItemRepository, GoodsReturnItemRepository>();
+                    LogMessage("GoodsReturnItemRepository registered as Transient");
+                    services.AddTransient<IGoodsReturnItemService, GoodsReturnItemService>();
+                    LogMessage("GoodsReturnItemService registered as Transient");
+
+                    // Register ShopLocation service and repository
+                    services.AddTransient<IShopLocationRepository, ShopLocationRepository>();
+                    LogMessage("ShopLocationRepository registered as Transient");
+                    services.AddTransient<IShopLocationService, ShopLocationService>();
+                    LogMessage("ShopLocationService registered as Transient");
+
                     // Register SKU Generation service
                     services.AddTransient<ISkuGenerationService, SkuGenerationService>();
                     LogMessage("SkuGenerationService registered as Transient");
@@ -233,6 +266,12 @@ public partial class App : System.Windows.Application
                     LogMessage("ProductManagementViewModel registered as Transient");
                     services.AddTransient<StockManagementViewModel>();
                     LogMessage("StockManagementViewModel registered as Transient");
+                    services.AddTransient<AddStockTransferViewModel>();
+                    LogMessage("AddStockTransferViewModel registered as Transient");
+                    services.AddTransient<AddGoodsReturnViewModel>();
+                    LogMessage("AddGoodsReturnViewModel registered as Transient");
+                    services.AddTransient<AddGrnViewModel>();
+                    LogMessage("AddGrnViewModel registered as Transient");
                     services.AddTransient<AddOptionsViewModel>();
                     LogMessage("AddOptionsViewModel registered as Transient");
                     services.AddTransient<AddProductViewModel>();

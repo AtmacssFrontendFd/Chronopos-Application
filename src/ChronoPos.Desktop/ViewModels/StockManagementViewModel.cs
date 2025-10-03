@@ -39,6 +39,10 @@ public partial class StockManagementViewModel : ObservableObject
     private readonly ISupplierService? _supplierService;
     private readonly Action? _navigateToAddGrn;
     private readonly Action<long>? NavigateToEditGrn;
+    private readonly Action? _navigateToAddStockTransfer;
+    private readonly Action<int>? _navigateToEditStockTransfer;
+    private readonly Action? _navigateToAddGoodsReturn;
+    private readonly Action<int>? _navigateToEditGoodsReturn;
 
     #endregion
 
@@ -115,6 +119,15 @@ public partial class StockManagementViewModel : ObservableObject
     [ObservableProperty]
     private StockTransferDto? _selectedTransfer;
 
+    // Goods Return Properties
+    [ObservableProperty]
+    private ObservableCollection<GoodsReturnDto> _goodsReturns = new();
+
+    [ObservableProperty]
+    private GoodsReturnDto? _selectedGoodsReturn;
+
+
+
     // Stock Adjustment Properties
     [ObservableProperty]
     private ObservableCollection<StockAdjustmentDto> _stockAdjustments = new();
@@ -137,6 +150,13 @@ public partial class StockManagementViewModel : ObservableObject
 
     [ObservableProperty]
     private string _selectedGrnStatusFilter = "All";
+
+    // Stock Transfer Status Filter
+    [ObservableProperty]
+    private ObservableCollection<string> _statusFilters = new() { "All", "Draft", "Pending", "In-Transit", "Completed", "Cancelled" };
+
+    [ObservableProperty]
+    private string _selectedStatus = "All";
 
     [ObservableProperty]
     private ObservableCollection<SupplierDto> _grnSupplierFilters = new();
@@ -182,6 +202,8 @@ public partial class StockManagementViewModel : ObservableObject
     // Services for data access
     private readonly IProductService? _productService;
     private readonly IStockAdjustmentService? _stockAdjustmentService;
+    private readonly IStockTransferService? _stockTransferService;
+    private readonly IGoodsReturnService? _goodsReturnService;
 
     // Debouncing timer for search
     private readonly DispatcherTimer _searchDebounceTimer;
@@ -263,7 +285,7 @@ public partial class StockManagementViewModel : ObservableObject
                 break;
             case "StockTransfer":
                 IsStockTransferSelected = true;
-                LoadStockTransfersAsync();
+                _ = LoadStockTransfersAsync();
                 break;
             case "GoodsReceived":
                 IsGoodsReceivedSelected = true;
@@ -271,6 +293,7 @@ public partial class StockManagementViewModel : ObservableObject
                 break;
             case "GoodsReturn":
                 IsGoodsReturnSelected = true;
+                _ = LoadGoodsReturnsAsync();
                 break;
             default:
                 NoModuleSelected = true;
@@ -311,10 +334,8 @@ public partial class StockManagementViewModel : ObservableObject
         // Close adjust panel if open
         IsAdjustProductPanelOpen = false;
         
-        IsTransferFormPanelOpen = true;
-        TransferProduct = new TransferProductModel();
-        
-        System.Diagnostics.Debug.WriteLine($"IsTransferFormPanelOpen set to: {IsTransferFormPanelOpen}");
+        // Navigate to AddStockTransfer screen instead of opening side panel
+        _navigateToAddStockTransfer?.Invoke();
     }
 
     [RelayCommand]
@@ -343,13 +364,94 @@ public partial class StockManagementViewModel : ObservableObject
     [RelayCommand]
     private void EditTransfer(StockTransferDto transfer)
     {
-        // TODO: Implement edit transfer logic
+        try
+        {
+            AppLogger.LogInfo($"Editing Stock Transfer: {transfer.TransferNo}", $"Transfer ID: {transfer.TransferId}, Status: {transfer.Status}", "stock_management");
+            
+            // Check if transfer can be edited (only Pending status should be editable)
+            if (transfer.Status != "Pending")
+            {
+                MessageBox.Show($"Cannot edit Stock Transfer {transfer.TransferNo}. Only transfers with 'Pending' status can be edited.\nCurrent status: {transfer.Status}", 
+                               "Edit Not Allowed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Navigate to AddStockTransfer in edit mode
+            _navigateToEditStockTransfer?.Invoke(transfer.TransferId);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Failed to edit Stock Transfer", ex, $"Transfer: {transfer.TransferNo}, ID: {transfer.TransferId}", "stock_management");
+            MessageBox.Show($"Failed to edit stock transfer: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     [RelayCommand]
-    private void DeleteTransfer(StockTransferDto transfer)
+    private async Task DeleteTransfer(StockTransferDto transfer)
     {
-        // TODO: Implement delete transfer logic
+        try
+        {
+            AppLogger.LogInfo($"Delete Stock Transfer request: {transfer.TransferNo}", $"Transfer ID: {transfer.TransferId}, Status: {transfer.Status}", "stock_management");
+            
+            // Check if transfer can be deleted (only Pending status should be deletable)
+            if (transfer.Status != "Pending")
+            {
+                MessageBox.Show($"Cannot delete Stock Transfer {transfer.TransferNo}. Only transfers with 'Pending' status can be deleted.\nCurrent status: {transfer.Status}", 
+                               "Delete Not Allowed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var result = MessageBox.Show($"Are you sure you want to delete Stock Transfer {transfer.TransferNo}?\n\nThis action cannot be undone and will restore the stock quantities.", 
+                                       "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            
+            if (result == MessageBoxResult.Yes && _stockTransferService != null)
+            {
+                await _stockTransferService.DeleteStockTransferAsync(transfer.TransferId);
+                    
+                AppLogger.LogInfo($"Stock Transfer deleted successfully: {transfer.TransferNo}", $"Transfer ID: {transfer.TransferId}", "stock_management");
+                MessageBox.Show($"Stock Transfer {transfer.TransferNo} deleted successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                // Refresh the list
+                await LoadStockTransfersAsync();
+            }
+            else if (_stockTransferService == null)
+            {
+                AppLogger.LogWarning("StockTransferService not available for delete operation", "Service injection failed", "stock_management");
+                MessageBox.Show("Delete service not available. Please try again later.", "Service Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Failed to delete Stock Transfer", ex, $"Transfer: {transfer.TransferNo}, ID: {transfer.TransferId}", "stock_management");
+            MessageBox.Show($"Failed to delete stock transfer: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
+    private void ViewTransfer(StockTransferDto transfer)
+    {
+        try
+        {
+            AppLogger.LogInfo($"Viewing Stock Transfer: {transfer.TransferNo}", $"Transfer ID: {transfer.TransferId}, Status: {transfer.Status}", "stock_management");
+            
+            // Show transfer details in a dialog or navigate to view page
+            var message = $"Stock Transfer Details:\n\n" +
+                         $"Transfer No: {transfer.TransferNo}\n" +
+                         $"From Store: {transfer.FromStoreName}\n" +
+                         $"To Store: {transfer.ToStoreName}\n" +
+                         $"Status: {transfer.Status}\n" +
+                         $"Total Items: {transfer.TotalItems}\n" +
+                         $"Created By: {transfer.CreatedByName}\n" +
+                         $"Created Date: {transfer.CreatedAt:yyyy-MM-dd HH:mm}\n" +
+                         $"Remarks: {transfer.Remarks ?? "N/A"}";
+            
+            MessageBox.Show(message, $"View Stock Transfer - {transfer.TransferNo}", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Failed to view Stock Transfer", ex, $"Transfer: {transfer.TransferNo}, ID: {transfer.TransferId}", "stock_management");
+            MessageBox.Show($"Failed to view stock transfer: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     [RelayCommand]
@@ -358,10 +460,135 @@ public partial class StockManagementViewModel : ObservableObject
         SearchText = string.Empty;
         StartDate = null;
         EndDate = null;
+        SelectedStatus = "All";
+        SelectedGrnStatusFilter = "All";
+        SelectedGrnSupplierId = null;
+        GrnSearchTerm = string.Empty;
         
         // Refresh data after clearing filters
         await LoadStockAdjustmentsAsync();
+        await LoadStockTransfersAsync();
+        await LoadGoodsReceivedNotesAsync();
+        await LoadGoodsReturnsAsync();
     }
+
+    #endregion
+
+    #region Goods Return Commands
+
+    [RelayCommand]
+    private void CreateNewGoodsReturn()
+    {
+        System.Diagnostics.Debug.WriteLine("CreateNewGoodsReturn command executed!");
+        
+        // Close adjust panel if open
+        IsAdjustProductPanelOpen = false;
+        
+        // Navigate to AddGoodsReturn screen
+        _navigateToAddGoodsReturn?.Invoke();
+    }
+
+    [RelayCommand]
+    private void EditGoodsReturn(GoodsReturnDto goodsReturn)
+    {
+        if (goodsReturn == null)
+        {
+            AppLogger.LogWarning("Edit Goods Return attempted with null object", "", "stock_management");
+            MessageBox.Show("No goods return selected for editing.", "Selection Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            AppLogger.LogInfo($"Editing Goods Return: {goodsReturn.ReturnNo}", $"Return ID: {goodsReturn.Id}, Status: {goodsReturn.Status}", "stock_management");
+            
+            // Check if goods return can be edited (only Pending status should be editable)
+            if (goodsReturn.Status != "Pending")
+            {
+                MessageBox.Show($"Cannot edit Goods Return {goodsReturn.ReturnNo}. Only returns with 'Pending' status can be edited.\nCurrent status: {goodsReturn.Status}", 
+                               "Edit Not Allowed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            
+            // Navigate to AddGoodsReturn in edit mode
+            _navigateToEditGoodsReturn?.Invoke(goodsReturn.Id);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Failed to edit Goods Return", ex, $"Return: {goodsReturn.ReturnNo}, ID: {goodsReturn.Id}", "stock_management");
+            MessageBox.Show($"Failed to edit goods return: {ex.Message}", "Edit Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteGoodsReturn(GoodsReturnDto goodsReturn)
+    {
+        if (goodsReturn == null)
+        {
+            AppLogger.LogWarning("Delete Goods Return attempted with null object", "", "stock_management");
+            MessageBox.Show("No goods return selected for deletion.", "Selection Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var result = MessageBox.Show($"Are you sure you want to delete Goods Return {goodsReturn.ReturnNo}?\n\nThis action cannot be undone.", 
+                                   "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        
+        if (result == MessageBoxResult.Yes && _goodsReturnService != null)
+        {
+            try
+            {
+                await _goodsReturnService.DeleteGoodsReturnAsync(goodsReturn.Id);
+                
+                AppLogger.LogInfo($"Goods Return deleted successfully: {goodsReturn.ReturnNo}", $"Return ID: {goodsReturn.Id}", "stock_management");
+                MessageBox.Show($"Goods Return {goodsReturn.ReturnNo} deleted successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                // Refresh the list
+                await LoadGoodsReturnsAsync();
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogError("Failed to delete Goods Return", ex, $"Return: {goodsReturn.ReturnNo}, ID: {goodsReturn.Id}", "stock_management");
+                MessageBox.Show($"Failed to delete goods return: {ex.Message}", "Delete Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        else if (_goodsReturnService == null)
+        {
+            AppLogger.LogWarning("GoodsReturnService not available for delete operation", "Service injection failed", "stock_management");
+            MessageBox.Show("Delete service not available. Please try again later.", "Service Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ViewGoodsReturn(GoodsReturnDto goodsReturn)
+    {
+        try
+        {
+            AppLogger.LogInfo($"Viewing Goods Return: {goodsReturn.ReturnNo}", $"Return ID: {goodsReturn.Id}, Status: {goodsReturn.Status}", "stock_management");
+            
+            // Show goods return details in a dialog or navigate to view page
+            var message = $"Goods Return Details:\n\n" +
+                         $"Return No: {goodsReturn.ReturnNo}\n" +
+                         $"Supplier: {goodsReturn.SupplierName}\n" +
+                         $"Store: {goodsReturn.StoreName}\n" +
+                         $"Status: {goodsReturn.Status}\n" +
+                         $"Total Items: {goodsReturn.TotalItems}\n" +
+                         $"Total Amount: {goodsReturn.TotalAmount:C}\n" +
+                         $"Created By: {goodsReturn.CreatedByName}\n" +
+                         $"Return Date: {goodsReturn.ReturnDate:yyyy-MM-dd}\n" +
+                         $"Remarks: {goodsReturn.Remarks ?? "N/A"}";
+            
+            MessageBox.Show(message, $"View Goods Return - {goodsReturn.ReturnNo}", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Failed to view Goods Return", ex, $"Return: {goodsReturn.ReturnNo}, ID: {goodsReturn.Id}", "stock_management");
+            MessageBox.Show($"Failed to view goods return: {ex.Message}", "View Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+
+
+    #endregion
 
     // Stock Adjustment Commands
     [RelayCommand]
@@ -884,7 +1111,7 @@ public partial class StockManagementViewModel : ObservableObject
         }
     }
 
-    // GRN Commands
+    #region GRN Commands
     [RelayCommand]
     private void AddGrn()
     {
@@ -1062,8 +1289,14 @@ public partial class StockManagementViewModel : ObservableObject
         IProductBatchService? productBatchService = null,
         IGoodsReceivedService? goodsReceivedService = null,
         ISupplierService? supplierService = null,
+        IStockTransferService? stockTransferService = null,
+        IGoodsReturnService? goodsReturnService = null,
         Action? navigateToAddGrn = null,
-        Action<long>? navigateToEditGrn = null)
+        Action<long>? navigateToEditGrn = null,
+        Action? navigateToAddStockTransfer = null,
+        Action<int>? navigateToEditStockTransfer = null,
+        Action? navigateToAddGoodsReturn = null,
+        Action<int>? navigateToEditGoodsReturn = null)
     {
         LogMessage("[StockManagementViewModel] Constructor called");
         LogMessage($"[StockManagementViewModel] ProductService is null: {productService == null}");
@@ -1086,8 +1319,19 @@ public partial class StockManagementViewModel : ObservableObject
         _productBatchService = productBatchService;
         _goodsReceivedService = goodsReceivedService;
         _supplierService = supplierService;
+        _stockTransferService = stockTransferService;
+        _goodsReturnService = goodsReturnService;
         _navigateToAddGrn = navigateToAddGrn;
         NavigateToEditGrn = navigateToEditGrn;
+        _navigateToAddStockTransfer = navigateToAddStockTransfer;
+        _navigateToEditStockTransfer = navigateToEditStockTransfer;
+        _navigateToAddGoodsReturn = navigateToAddGoodsReturn;
+        _navigateToEditGoodsReturn = navigateToEditGoodsReturn;
+
+        // Log service availability
+        AppLogger.LogInfo("StockManagementViewModel Services", 
+            $"GoodsReturnService: {(goodsReturnService != null ? "Available" : "NULL")}", 
+            "viewmodel");
 
         // Initialize search debouncing timer
         _searchDebounceTimer = new DispatcherTimer
@@ -1113,6 +1357,16 @@ public partial class StockManagementViewModel : ObservableObject
             {
                 LogMessage($"[StockManagementViewModel] Timer tick - performing stock adjustments search for: '{SearchText}'");
                 await LoadStockAdjustmentsAsync();
+            }
+            else if (IsStockTransferSelected)
+            {
+                LogMessage($"[StockManagementViewModel] Timer tick - performing stock transfers search for: '{SearchText}'");
+                await LoadStockTransfersAsync();
+            }
+            else if (IsGoodsReturnSelected)
+            {
+                LogMessage($"[StockManagementViewModel] Timer tick - performing goods returns search for: '{SearchText}'");
+                await LoadGoodsReturnsAsync();
             }
         };
 
@@ -1159,8 +1413,19 @@ public partial class StockManagementViewModel : ObservableObject
         {
             LogMessage($"[Date Filter Changed] StartDate: '{StartDate}', EndDate: '{EndDate}'");
             
-            // Reload data when date filters change
-            await LoadStockAdjustmentsAsync();
+            // Reload data when date filters change based on current selection
+            if (IsStockAdjustmentSelected)
+            {
+                await LoadStockAdjustmentsAsync();
+            }
+            else if (IsStockTransferSelected)
+            {
+                await LoadStockTransfersAsync();
+            }
+            else if (IsGoodsReturnSelected)
+            {
+                await LoadGoodsReturnsAsync();
+            }
         }
         else if (e.PropertyName == nameof(GrnSearchTerm))
         {
@@ -1169,6 +1434,26 @@ public partial class StockManagementViewModel : ObservableObject
             // Reload GRN data when search term changes (with debouncing via timer)
             _searchDebounceTimer?.Stop();
             _searchDebounceTimer?.Start();
+        }
+        else if (e.PropertyName == nameof(SelectedStatus))
+        {
+            LogMessage($"[Status Filter Changed] Status: '{SelectedStatus}' - IsStockTransferSelected: {IsStockTransferSelected}, IsGoodsReturnSelected: {IsGoodsReturnSelected}");
+            
+            // Reload data based on current selection
+            if (IsStockTransferSelected)
+            {
+                LogMessage($"[Status Filter] Reloading Stock Transfers with Status: '{SelectedStatus}'");
+                await LoadStockTransfersAsync();
+            }
+            else if (IsGoodsReturnSelected)
+            {
+                LogMessage($"[Status Filter] Reloading Goods Returns with Status: '{SelectedStatus}'");
+                await LoadGoodsReturnsAsync();
+            }
+            else
+            {
+                LogMessage($"[Status Filter] No section selected for reload");
+            }
         }
         else if (e.PropertyName == nameof(SelectedGrnStatusFilter) || e.PropertyName == nameof(SelectedGrnSupplierId))
         {
@@ -1656,56 +1941,211 @@ public partial class StockManagementViewModel : ObservableObject
     /// </summary>
     private async Task LoadStockTransfersAsync()
     {
-        // Removed artificial delay for immediate UI loading
-        
-        // TODO: Replace with actual data loading from service
-        var transfers = new List<StockTransferDto>
+        try
         {
-            new StockTransferDto
+            AppLogger.LogInfo("LoadStockTransfersAsync", 
+                $"Starting to load stock transfers. Service is null: {_stockTransferService == null}. Current collection count: {StockTransfers.Count}", 
+                "stock_transfer");
+                
+            StockTransfers.Clear();
+            
+            AppLogger.LogInfo("StockTransfersCleared", 
+                $"Collection cleared. Current count: {StockTransfers.Count}", 
+                "stock_transfer");
+            
+            if (_stockTransferService != null)
             {
-                TransferId = 1,
-                TransferNo = "ST00001",
-                TransferDate = DateTime.Today.AddDays(-5),
-                FromStoreName = "Main Warehouse",
-                ToStoreName = "Retail Store A",
-                Status = "Completed",
-                TotalItems = 5,
-                CreatedByName = "John Doe",
-                CreatedAt = DateTime.Today.AddDays(-5),
-                Remarks = "Weekly stock replenishment"
-            },
-            new StockTransferDto
-            {
-                TransferId = 2,
-                TransferNo = "ST00002",
-                TransferDate = DateTime.Today.AddDays(-3),
-                FromStoreName = "Retail Store A",
-                ToStoreName = "Retail Store B",
-                Status = "Pending",
-                TotalItems = 3,
-                CreatedByName = "Jane Smith",
-                CreatedAt = DateTime.Today.AddDays(-3),
-                Remarks = "Product redistribution"
-            },
-            new StockTransferDto
-            {
-                TransferId = 3,
-                TransferNo = "ST00003",
-                TransferDate = DateTime.Today.AddDays(-1),
-                FromStoreName = "Main Warehouse",
-                ToStoreName = "Retail Store C",
-                Status = "In-Transit",
-                TotalItems = 8,
-                CreatedByName = "Mike Johnson",
-                CreatedAt = DateTime.Today.AddDays(-1),
-                Remarks = "New product launch stock"
+                // Load actual data from service with search filter, status filter, and date range
+                var searchTerm = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim();
+                var statusFilter = SelectedStatus == "All" ? null : SelectedStatus;
+                var result = await _stockTransferService.GetStockTransfersAsync(
+                    page: 1, 
+                    pageSize: 100, 
+                    searchTerm: searchTerm,
+                    status: statusFilter,
+                    fromDate: StartDate,
+                    toDate: EndDate);
+                
+                AppLogger.LogInfo("StockTransfersLoaded", 
+                    $"Loaded {result.Items.Count()} stock transfers, Total: {result.TotalCount} (Status Filter: '{statusFilter ?? "None"}', Search: '{searchTerm ?? "None"}')", 
+                    "stock_transfer");
+                
+                foreach (var transfer in result.Items)
+                {
+                    AppLogger.LogInfo("AddingStockTransfer", 
+                        $"Adding transfer: {transfer.TransferNo} - {transfer.FromStoreName} to {transfer.ToStoreName}", 
+                        "stock_transfer");
+                    StockTransfers.Add(transfer);
+                }
+                
+                AppLogger.LogInfo("StockTransfersCollection", 
+                    $"Final collection count: {StockTransfers.Count}", 
+                    "stock_transfer");
             }
-        };
+            else
+            {
+                // Fallback to dummy data if service is not available
+                AppLogger.LogWarning("StockTransferService unavailable", "Using dummy data for stock transfers", "stock_transfer");
+                
+                var dummyTransfers = new List<StockTransferDto>
+                {
+                    new StockTransferDto
+                    {
+                        TransferId = 1,
+                        TransferNo = "ST00001",
+                        TransferDate = DateTime.Today.AddDays(-5),
+                        FromStoreName = "Main Warehouse",
+                        ToStoreName = "Retail Store A",
+                        Status = "Completed",
+                        TotalItems = 5,
+                        CreatedByName = "John Doe",
+                        CreatedAt = DateTime.Today.AddDays(-5),
+                        Remarks = "Weekly stock replenishment"
+                    },
+                    new StockTransferDto
+                    {
+                        TransferId = 2,
+                        TransferNo = "ST00002",
+                        TransferDate = DateTime.Today.AddDays(-3),
+                        FromStoreName = "Retail Store A",
+                        ToStoreName = "Retail Store B",
+                        Status = "Pending",
+                        TotalItems = 3,
+                        CreatedByName = "Jane Smith",
+                        CreatedAt = DateTime.Today.AddDays(-3),
+                        Remarks = "Product redistribution"
+                    }
+                };
 
-        StockTransfers.Clear();
-        foreach (var transfer in transfers)
+                foreach (var transfer in dummyTransfers)
+                {
+                    StockTransfers.Add(transfer);
+                }
+            }
+        }
+        catch (Exception ex)
         {
-            StockTransfers.Add(transfer);
+            AppLogger.LogError("LoadStockTransfersAsync", 
+                ex, 
+                $"Error loading stock transfers: {ex.Message}", 
+                "stock_transfer");
+        }
+    }
+
+    /// <summary>
+    /// Load goods returns data
+    /// </summary>
+    private async Task LoadGoodsReturnsAsync()
+    {
+        try
+        {
+            var searchTerm = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim();
+            var statusFilter = SelectedStatus == "All" ? null : SelectedStatus;
+            var startDate = StartDate;
+            var endDate = EndDate;
+            
+            AppLogger.LogInfo("LoadGoodsReturnsAsync", 
+                $"Starting to load goods returns with filters - SearchTerm: '{searchTerm}', StatusFilter: '{statusFilter}', StartDate: {startDate}, EndDate: {endDate}. Service is null: {_goodsReturnService == null}. Current collection count: {GoodsReturns.Count}", 
+                "goods_return");
+                
+            GoodsReturns.Clear();
+            
+            AppLogger.LogInfo("GoodsReturnsCleared", 
+                $"Collection cleared. Current count: {GoodsReturns.Count}", 
+                "goods_return");
+            
+            if (_goodsReturnService != null)
+            {
+                // Load actual data from service with search filter, status filter, and date range
+                var result = await _goodsReturnService.GetGoodsReturnsAsync(
+                    searchTerm: searchTerm,
+                    status: statusFilter,
+                    startDate: startDate,
+                    endDate: endDate,
+                    supplierId: null);
+                
+                var goodsReturnsList = result.ToList();
+                AppLogger.LogInfo("GoodsReturnsLoaded", 
+                    $"Loaded {goodsReturnsList.Count} goods returns (Status Filter: '{statusFilter ?? "None"}', Search: '{searchTerm ?? "None"}')", 
+                    "goods_return");
+                
+                foreach (var goodsReturn in goodsReturnsList)
+                {
+                    AppLogger.LogInfo("AddingGoodsReturn", 
+                        $"Adding return: {goodsReturn.ReturnNo} - {goodsReturn.SupplierName} (Store: {goodsReturn.StoreName})", 
+                        "goods_return");
+                    GoodsReturns.Add(goodsReturn);
+                }
+                
+                AppLogger.LogInfo("GoodsReturnsCollection", 
+                    $"Final collection count: {GoodsReturns.Count}", 
+                    "goods_return");
+            }
+            else
+            {
+                // Add dummy data for testing when service is not available
+                AppLogger.LogWarning("GoodsReturnServiceNull", 
+                    "GoodsReturnService is null, adding dummy data", 
+                    "goods_return");
+
+                var dummyReturns = new List<GoodsReturnDto>
+                {
+                    new GoodsReturnDto
+                    {
+                        Id = 1,
+                        ReturnNo = "GR-2025-0001",
+                        SupplierName = "ABC Suppliers Ltd.",
+                        StoreName = "Main Store",
+                        ReturnDate = DateTime.Today.AddDays(-1),
+                        Status = "Posted",
+                        TotalAmount = 1250.50m,
+                        TotalItems = 5,
+                        CreatedByName = "John Doe",
+                        CreatedAt = DateTime.Today.AddDays(-1),
+                        Remarks = "Damaged products return"
+                    },
+                    new GoodsReturnDto
+                    {
+                        Id = 2,
+                        ReturnNo = "GR-2025-0002",
+                        SupplierName = "XYZ Trading Co.",
+                        StoreName = "Branch Store",
+                        ReturnDate = DateTime.Today.AddDays(-2),
+                        Status = "Pending",
+                        TotalAmount = 850.75m,
+                        TotalItems = 3,
+                        CreatedByName = "Jane Smith",
+                        CreatedAt = DateTime.Today.AddDays(-2),
+                        Remarks = "Wrong product delivered"
+                    },
+                    new GoodsReturnDto
+                    {
+                        Id = 3,
+                        ReturnNo = "GR-2025-0003",
+                        SupplierName = "PQR Enterprises",
+                        StoreName = "Main Store",
+                        ReturnDate = DateTime.Today.AddDays(-5),
+                        Status = "Cancelled",
+                        TotalAmount = 2100.00m,
+                        TotalItems = 8,
+                        CreatedByName = "Mike Johnson",
+                        CreatedAt = DateTime.Today.AddDays(-5),
+                        Remarks = "Supplier refused return"
+                    }
+                };
+
+                foreach (var goodsReturn in dummyReturns)
+                {
+                    GoodsReturns.Add(goodsReturn);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("LoadGoodsReturnsAsync", 
+                ex, 
+                $"Error loading goods returns: {ex.Message}", 
+                "goods_return");
         }
     }
 
@@ -1962,28 +2402,41 @@ public partial class StockManagementViewModel : ObservableObject
     {
         try
         {
-            // Always use sample suppliers for now
-            // if (_supplierService != null)
-            // {
-            //     var suppliers = await _supplierService.GetAllAsync();
-            //     
-            //     GrnSupplierFilters.Clear();
-            //     GrnSupplierFilters.Add(new SupplierDto { SupplierId = 0, CompanyName = "All Suppliers" });
-            //     
-            //     foreach (var supplier in suppliers)
-            //     {
-            //         GrnSupplierFilters.Add(supplier);
-            //     }
-            // }
-            // else
-            // {
-                // Use sample suppliers (always)
-                GrnSupplierFilters.Clear();
-                GrnSupplierFilters.Add(new SupplierDto { SupplierId = 0, CompanyName = "All Suppliers" });
+            AppLogger.LogInfo("Loading GRN supplier filters", filename: "stock_management");
+            
+            GrnSupplierFilters.Clear();
+            GrnSupplierFilters.Add(new SupplierDto { SupplierId = 0, CompanyName = "All Suppliers" });
+            
+            if (_supplierService != null)
+            {
+                AppLogger.LogInfo("Supplier service available, loading real suppliers", filename: "stock_management");
+                
+                var suppliers = await _supplierService.GetAllAsync();
+                AppLogger.LogInfo($"Loaded {suppliers?.Count() ?? 0} suppliers from database", filename: "stock_management");
+                
+                if (suppliers != null && suppliers.Any())
+                {
+                    foreach (var supplier in suppliers.OrderBy(s => s.CompanyName))
+                    {
+                        GrnSupplierFilters.Add(supplier);
+                        AppLogger.LogInfo($"Added supplier: {supplier.CompanyName} (ID: {supplier.SupplierId})", filename: "stock_management");
+                    }
+                }
+                else
+                {
+                    AppLogger.LogWarning("No suppliers found in database", filename: "stock_management");
+                }
+            }
+            else
+            {
+                AppLogger.LogWarning("Supplier service not available, using fallback suppliers", filename: "stock_management");
+                // Use fallback suppliers only when service is not available
                 GrnSupplierFilters.Add(new SupplierDto { SupplierId = 1, CompanyName = "ABC Suppliers Ltd" });
                 GrnSupplierFilters.Add(new SupplierDto { SupplierId = 2, CompanyName = "XYZ Trading Co" });
                 GrnSupplierFilters.Add(new SupplierDto { SupplierId = 3, CompanyName = "Quality Foods Inc" });
-            // }
+            }
+            
+            AppLogger.LogInfo($"GRN supplier filters loaded successfully. Total count: {GrnSupplierFilters.Count}", filename: "stock_management");
         }
         catch (Exception ex)
         {

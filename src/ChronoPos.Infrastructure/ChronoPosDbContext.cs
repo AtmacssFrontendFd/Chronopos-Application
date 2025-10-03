@@ -50,6 +50,8 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.StockMovement> StockMovements { get; set; }
     public DbSet<Domain.Entities.StockTransfer> StockTransfers { get; set; }
     public DbSet<Domain.Entities.StockTransferItem> StockTransferItems { get; set; }
+    public DbSet<Domain.Entities.GoodsReturn> GoodsReturns { get; set; }
+    public DbSet<Domain.Entities.GoodsReturnItem> GoodsReturnItems { get; set; }
     
     // Goods Received entities
     public DbSet<Domain.Entities.GoodsReceived> GoodsReceived { get; set; }
@@ -785,12 +787,12 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.Property(e => e.CreatedAt).IsRequired();
 
             // Foreign key relationships
-            entity.HasOne(d => d.FromStore)
+            entity.HasOne<Domain.Entities.Store>(d => d.FromStore)
                 .WithMany()
                 .HasForeignKey(d => d.FromStoreId)
                 .OnDelete(DeleteBehavior.Restrict);
                 
-            entity.HasOne(d => d.ToStore)
+            entity.HasOne<Domain.Entities.Store>(d => d.ToStore)
                 .WithMany()
                 .HasForeignKey(d => d.ToStoreId)
                 .OnDelete(DeleteBehavior.Restrict);
@@ -831,6 +833,85 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasOne(d => d.Product)
                 .WithMany()
                 .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Uom)
+                .WithMany()
+                .HasForeignKey(d => d.UomId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Configure GoodsReturn entity
+        modelBuilder.Entity<Domain.Entities.GoodsReturn>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ReturnNo).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.SupplierId).IsRequired();
+            entity.Property(e => e.StoreId).IsRequired();
+            entity.Property(e => e.ReferenceGrnId);
+            entity.Property(e => e.ReturnDate).IsRequired();
+            entity.Property(e => e.TotalAmount).HasPrecision(12, 2).HasDefaultValue(0);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Pending");
+            entity.Property(e => e.Remarks).HasMaxLength(255);
+            entity.Property(e => e.CreatedBy).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(d => d.Supplier)
+                .WithMany()
+                .HasForeignKey(d => d.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Store)
+                .WithMany()
+                .HasForeignKey(d => d.StoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.ReferenceGrn)
+                .WithMany()
+                .HasForeignKey(d => d.ReferenceGrnId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(d => d.Creator)
+                .WithMany()
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Index on return number for quick lookup
+            entity.HasIndex(e => e.ReturnNo).IsUnique();
+        });
+
+        // Configure GoodsReturnItem entity
+        modelBuilder.Entity<Domain.Entities.GoodsReturnItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ReturnId).IsRequired();
+            entity.Property(e => e.ProductId).IsRequired();
+            entity.Property(e => e.BatchId);
+            entity.Property(e => e.BatchNo).HasMaxLength(50);
+            entity.Property(e => e.ExpiryDate);
+            entity.Property(e => e.Quantity).HasPrecision(12, 4).IsRequired();
+            entity.Property(e => e.UomId).IsRequired();
+            entity.Property(e => e.CostPrice).HasPrecision(12, 2).IsRequired();
+            entity.Property(e => e.LineTotal).HasPrecision(12, 2);
+            entity.Property(e => e.Reason).HasMaxLength(255);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(d => d.Return)
+                .WithMany(p => p.Items)
+                .HasForeignKey(d => d.ReturnId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            entity.HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Batch)
+                .WithMany()
+                .HasForeignKey(d => d.BatchId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(d => d.Uom)

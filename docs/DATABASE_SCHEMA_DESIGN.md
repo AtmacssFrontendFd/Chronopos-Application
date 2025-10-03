@@ -998,6 +998,36 @@ CREATE TABLE `stock_transfer` (
   `created_at` timestamp NOT NULL DEFAULT (now()),
   `updated_at` timestamp NOT NULL DEFAULT (now())
 );
+CREATE TABLE `goods_return` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `return_no` VARCHAR(50) UNIQUE NOT NULL,       -- e.g., GR-2025-0001
+    `supplier_id` INT NOT NULL,                    -- FK to suppliers
+    `store_id` INT NOT NULL,                       -- FK to stores
+    `reference_grn_id` INT,                        -- Optional: link to original GRN
+    `return_date` DATE NOT NULL,
+    `total_amount` DECIMAL(12,2) DEFAULT 0,
+    `status` VARCHAR(20) DEFAULT 'Pending',        -- Pending / Posted / Cancelled
+    `remarks` VARCHAR(255),
+    `created_by` INT NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE goods_return_items (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    return_id INT NOT NULL,                       -- FK to goods_return.id
+    product_id INT NOT NULL,                      -- FK to products.id
+    batch_id INT,                                 -- FK to product_batches.id (optional)
+    batch_no VARCHAR(50),                         -- For reference / manual entry
+    expiry_date DATE,                             -- Optional, auto-filled from batch
+    quantity DECIMAL(12,4) NOT NULL,
+    uom_id INT NOT NULL,                          -- Unit of Measure
+    cost_price DECIMAL(12,2) NOT NULL,           -- Per unit
+    line_total DECIMAL(12,2) GENERATED ALWAYS AS (quantity * cost_price) STORED,
+    reason VARCHAR(255),                          -- Damaged, expired, etc.
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (return_id) REFERENCES goods_return(id)
+);
 
 CREATE TABLE `stock_transfer_item` (
   `id` int PRIMARY KEY AUTO_INCREMENT,

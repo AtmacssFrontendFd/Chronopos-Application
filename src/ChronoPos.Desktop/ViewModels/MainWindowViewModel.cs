@@ -1179,8 +1179,14 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetService<IProductBatchService>(),
                 _serviceProvider.GetService<IGoodsReceivedService>(),
                 _serviceProvider.GetService<ISupplierService>(),
+                _serviceProvider.GetService<IStockTransferService>(),
+                _serviceProvider.GetService<IGoodsReturnService>(), // Add GoodsReturnService
                 navigateToAddGrn: ShowAddGrn, // Pass navigation callback
-                navigateToEditGrn: ShowEditGrn // Pass edit navigation callback
+                navigateToEditGrn: ShowEditGrn, // Pass edit navigation callback
+                navigateToAddStockTransfer: ShowAddStockTransfer, // Pass stock transfer navigation callback
+                navigateToEditStockTransfer: ShowEditStockTransfer, // Pass edit stock transfer navigation callback
+                navigateToAddGoodsReturn: ShowAddGoodsReturn, // Pass goods return navigation callback
+                navigateToEditGoodsReturn: ShowEditGoodsReturn // Pass edit goods return navigation callback
             );
             
             // Create the view and set the ViewModel from DI
@@ -1346,6 +1352,250 @@ public partial class MainWindowViewModel : ObservableObject
                 FontSize = 16
             };
             CurrentView = errorContent;
+        }
+    }
+    
+    private void ShowAddStockTransfer()
+    {
+        CurrentPageTitle = "Add Stock Transfer";
+        StatusMessage = "Loading add stock transfer form...";
+        
+        try
+        {
+            // Create the AddStockTransferView
+            var addStockTransferView = new AddStockTransferView();
+            
+            // Get services from DI container
+            var stockTransferService = _serviceProvider.GetRequiredService<IStockTransferService>();
+            var stockTransferItemService = _serviceProvider.GetRequiredService<IStockTransferItemService>();
+            var storeService = _serviceProvider.GetRequiredService<IStoreService>();
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var uomService = _serviceProvider.GetRequiredService<IUomService>();
+            var productBatchService = _serviceProvider.GetRequiredService<IProductBatchService>();
+            var stockService = _serviceProvider.GetRequiredService<IStockService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback
+            var addStockTransferViewModel = new AddStockTransferViewModel(
+                stockTransferService,
+                stockTransferItemService,
+                storeService,
+                productService,
+                uomService,
+                productBatchService,
+                stockService,
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                navigateBack: () => _ = ShowStockManagement("StockTransfer") // Navigate back to stock management Stock Transfer section
+            );
+            
+            addStockTransferView.DataContext = addStockTransferViewModel;
+            CurrentView = addStockTransferView;
+            StatusMessage = "Add stock transfer form loaded successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading add stock transfer form: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    private void ShowEditStockTransfer(int transferId)
+    {
+        CurrentPageTitle = "Edit Stock Transfer";
+        StatusMessage = "Loading edit stock transfer form...";
+        
+        try
+        {
+            // Create the AddStockTransferView (same view, different mode)
+            var addStockTransferView = new AddStockTransferView();
+            
+            // Get services from DI container
+            var stockTransferService = _serviceProvider.GetRequiredService<IStockTransferService>();
+            var stockTransferItemService = _serviceProvider.GetRequiredService<IStockTransferItemService>();
+            var storeService = _serviceProvider.GetRequiredService<IStoreService>();
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var uomService = _serviceProvider.GetRequiredService<IUomService>();
+            var productBatchService = _serviceProvider.GetRequiredService<IProductBatchService>();
+            var stockService = _serviceProvider.GetRequiredService<IStockService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback and transfer ID for editing
+            var addStockTransferViewModel = new AddStockTransferViewModel(
+                stockTransferService,
+                stockTransferItemService,
+                storeService,
+                productService,
+                uomService,
+                productBatchService,
+                stockService,
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                navigateBack: () => _ = ShowStockManagement("StockTransfer"), // Navigate back to stock management Stock Transfer section
+                transferId: transferId // Pass the transfer ID for editing
+            );
+            
+            addStockTransferView.DataContext = addStockTransferViewModel;
+            CurrentView = addStockTransferView;
+            StatusMessage = "Edit stock transfer form loaded successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading edit stock transfer form: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    private void ShowAddGoodsReturn()
+    {
+        CurrentPageTitle = "Add Goods Return";
+        StatusMessage = "Loading add goods return form...";
+        
+        try
+        {
+            // Create the AddGoodsReturnView
+            var addGoodsReturnView = new AddGoodsReturnView();
+            
+            // Get services from DI container
+            var goodsReturnService = _serviceProvider.GetRequiredService<IGoodsReturnService>();
+            var goodsReturnItemService = _serviceProvider.GetRequiredService<IGoodsReturnItemService>();
+            var goodsReceivedService = _serviceProvider.GetRequiredService<IGoodsReceivedService>();
+            var storeService = _serviceProvider.GetRequiredService<IStoreService>();
+            var supplierService = _serviceProvider.GetRequiredService<ISupplierService>();
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var uomService = _serviceProvider.GetRequiredService<IUomService>();
+            var productBatchService = _serviceProvider.GetRequiredService<IProductBatchService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback
+            var addGoodsReturnViewModel = new AddGoodsReturnViewModel(
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                goodsReturnService,
+                goodsReturnItemService,
+                goodsReceivedService,
+                storeService,
+                supplierService,
+                productService,
+                uomService,
+                productBatchService,
+                navigateBack: () => _ = ShowStockManagement("GoodsReturn") // Navigate back to stock management Goods Return section
+            );
+            
+            addGoodsReturnView.DataContext = addGoodsReturnViewModel;
+            CurrentView = addGoodsReturnView;
+            StatusMessage = "Add goods return form loaded successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Failed to load add goods return form";
+            MessageBox.Show($"Error loading add goods return form: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void ShowEditGoodsReturn(int returnId)
+    {
+        CurrentPageTitle = "Edit Goods Return";
+        StatusMessage = "Loading goods return for editing...";
+        
+        try
+        {
+            // Create the AddGoodsReturnView (same view used for both add and edit)
+            var addGoodsReturnView = new AddGoodsReturnView();
+            
+            // Get services from DI container
+            var goodsReturnService = _serviceProvider.GetRequiredService<IGoodsReturnService>();
+            var goodsReturnItemService = _serviceProvider.GetRequiredService<IGoodsReturnItemService>();
+            var goodsReceivedService = _serviceProvider.GetRequiredService<IGoodsReceivedService>();
+            var storeService = _serviceProvider.GetRequiredService<IStoreService>();
+            var supplierService = _serviceProvider.GetRequiredService<ISupplierService>();
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var uomService = _serviceProvider.GetRequiredService<IUomService>();
+            var productBatchService = _serviceProvider.GetRequiredService<IProductBatchService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback and return ID for editing
+            var addGoodsReturnViewModel = new AddGoodsReturnViewModel(
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                goodsReturnService,
+                goodsReturnItemService,
+                goodsReceivedService,
+                storeService,
+                supplierService,
+                productService,
+                uomService,
+                productBatchService,
+                navigateBack: () => _ = ShowStockManagement("GoodsReturn"), // Navigate back to stock management Goods Return section
+                returnId: returnId // This puts it in edit mode
+            );
+            
+            addGoodsReturnView.DataContext = addGoodsReturnViewModel;
+            CurrentView = addGoodsReturnView;
+            StatusMessage = "Goods return loaded for editing successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Failed to load goods return for editing";
+            MessageBox.Show($"Error loading goods return for editing: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
     
