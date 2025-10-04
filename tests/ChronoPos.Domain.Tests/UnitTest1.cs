@@ -79,19 +79,32 @@ public class SaleItemTests
 public class CustomerTests
 {
     [Fact]
-    public void Customer_FullName_ShouldReturnConcatenatedName()
+    public void Customer_DisplayName_ShouldReturnCorrectName()
     {
-        // Arrange
-        var customer = new Customer
+        // Arrange - Individual Customer
+        var individualCustomer = new Customer
         {
-            FirstName = "John",
-            LastName = "Doe"
+            CustomerFullName = "John Doe",
+            IsBusiness = false
         };
 
         // Act
-        var fullName = customer.FullName;
+        var displayName = individualCustomer.DisplayName;
 
         // Assert
-        Assert.Equal("John Doe", fullName);
+        Assert.Equal("John Doe", displayName);
+
+        // Arrange - Business Customer
+        var businessCustomer = new Customer
+        {
+            BusinessFullName = "Acme Corporation",
+            IsBusiness = true
+        };
+
+        // Act
+        var businessDisplayName = businessCustomer.DisplayName;
+
+        // Assert
+        Assert.Equal("Acme Corporation", businessDisplayName);
     }
 }

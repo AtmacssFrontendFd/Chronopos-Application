@@ -431,8 +431,26 @@ public partial class App : System.Windows.Application
             // Initialize database if it doesn't exist, but preserve existing data
             LogMessage("Ensuring database exists...");
             
-            // Only create database if it doesn't exist - preserve existing data
-            await dbContext.Database.EnsureCreatedAsync();
+            // Create database and apply all configuration including seed data
+            var created = await dbContext.Database.EnsureCreatedAsync();
+            
+            if (created)
+            {
+                LogMessage("New database created with seed data");
+            }
+            else
+            {
+                LogMessage("Database already exists");
+                
+                // Check if we have customers, if not, ensure seed data is applied
+                var customerCount = await dbContext.Customers.CountAsync();
+                LogMessage($"Found {customerCount} customers in database");
+                
+                if (customerCount == 0)
+                {
+                    LogMessage("No customers found, database may need recreation for seed data");
+                }
+            }
             
             LogMessage("Database initialized successfully");
         }

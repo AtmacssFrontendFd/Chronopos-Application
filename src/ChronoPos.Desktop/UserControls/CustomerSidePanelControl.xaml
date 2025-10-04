@@ -17,33 +17,16 @@
 
         <!-- Input Field Style -->
         <Style x:Key="InputFieldStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="{DynamicResource BorderCornerRadius}">
-                            <ScrollViewer x:Name="PART_ContentHost" 
-                                        Margin="{TemplateBinding Padding}"
-                                        VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
         </Style>
 
         <!-- Label Style -->
@@ -116,6 +99,28 @@
             <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
+
+        <!-- RadioButton Style -->
+        <Style x:Key="RadioButtonStyle" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- ComboBox Style -->
+        <Style x:Key="ComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        </Style>
     </UserControl.Resources>
 
     <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
@@ -164,65 +169,240 @@
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
                       Padding="{DynamicResource DefaultPaddingThickness}">
-            <StackPanel Margin="0,20,0,20">
-                <TextBlock Text="Customer Information" Style="{StaticResource SectionHeaderStyle}"/>
+            <StackPanel Margin="0,15,0,15">
+
+                <!-- Customer Type Selection -->
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <RadioButton Grid.Column="0"
+                                Name="IndividualRadio"
+                                Content="Individual Customer"
+                                IsChecked="{Binding IsIndividualCustomer}"
+                                GroupName="CustomerType"
+                                Style="{StaticResource RadioButtonStyle}"
+                                Margin="0,0,10,0"/>
+                    
+                    <RadioButton Grid.Column="1"
+                                Name="BusinessRadio"
+                                Content="Business Customer"
+                                IsChecked="{Binding EditingCustomer.IsBusiness}"
+                                GroupName="CustomerType"
+                                Style="{StaticResource RadioButtonStyle}"/>
+                </Grid>
+
+                <!-- Basic Information Section -->
+                <TextBlock Text="Basic Information" Style="{StaticResource SectionHeaderStyle}"/>
+
+                <!-- Individual Customer Name -->
+                <StackPanel Visibility="{Binding EditingCustomer.IsBusiness, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                           Margin="0,0,0,15">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                        <TextBlock Text="Full Name" Style="{StaticResource LabelStyle}"/>
+                        <TextBlock Text="*" Foreground="{DynamicResource ErrorColor}" FontWeight="Bold" Margin="2,0,0,0"/>
+                    </StackPanel>
+                    <TextBox Text="{Binding EditingCustomer.CustomerFullName, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter customer's full name"/>
+                </StackPanel>
+
+                <!-- Business Customer Name -->
+                <StackPanel Visibility="{Binding EditingCustomer.IsBusiness, Converter={StaticResource BoolToVisibilityConverter}}"
+                           Margin="0,0,0,15">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                        <TextBlock Text="Business Name" Style="{StaticResource LabelStyle}"/>
+                        <TextBlock Text="*" Foreground="{DynamicResource ErrorColor}" FontWeight="Bold" Margin="2,0,0,0"/>
+                    </StackPanel>
+                    <TextBox Text="{Binding EditingCustomer.BusinessFullName, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter business name"/>
+                </StackPanel>
+
+                <!-- Business Type (only for business customers) -->
+                <StackPanel Visibility="{Binding EditingCustomer.IsBusiness, Converter={StaticResource BoolToVisibilityConverter}}"
+                           Margin="0,0,0,15">
+                    <TextBlock Text="Business Type" Style="{StaticResource LabelStyle}"/>
+                    <ComboBox SelectedValue="{Binding EditingCustomer.BusinessTypeId}"
+                              DisplayMemberPath="BusinessTypeName"
+                              SelectedValuePath="Id"
+                              ItemsSource="{Binding BusinessTypes}"
+                              Style="{StaticResource ComboBoxStyle}"/>
+                </StackPanel>
+
+                <!-- Contact Information Section -->
+                <TextBlock Text="Contact Information" Style="{StaticResource SectionHeaderStyle}"/>
+
+                <!-- Mobile Number (Required) -->
+                <StackPanel Margin="0,0,0,15">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                        <TextBlock Text="Mobile Number" Style="{StaticResource LabelStyle}"/>
+                        <TextBlock Text="*" Foreground="{DynamicResource ErrorColor}" FontWeight="Bold" Margin="2,0,0,0"/>
+                    </StackPanel>
+                    <TextBox Text="{Binding EditingCustomer.MobileNo, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter mobile number"/>
+                </StackPanel>
+
+                <!-- Home Phone -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Home Phone" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.HomePhone, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter home phone"/>
+                </StackPanel>
+
+                <!-- Office Phone -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Office Phone" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.OfficePhone, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter office phone"/>
+                </StackPanel>
+
+                <!-- Official Email -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Official Email" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.OfficialEmail, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter official email"/>
+                </StackPanel>
+
+                <!-- Business Information Section (for business customers only) -->
+                <StackPanel Visibility="{Binding EditingCustomer.IsBusiness, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="Business Information" Style="{StaticResource SectionHeaderStyle}"/>
+
+                    <!-- License Number -->
+                    <StackPanel Margin="0,0,0,15">
+                        <TextBlock Text="License Number" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingCustomer.LicenseNo, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter license number"/>
+                    </StackPanel>
+
+                    <!-- TRN Number -->
+                    <StackPanel Margin="0,0,0,15">
+                        <TextBlock Text="TRN Number" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingCustomer.TrnNo, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter TRN number"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Credit Management Section -->
+                <TextBlock Text="Credit Management" Style="{StaticResource SectionHeaderStyle}"/>
+
+                <!-- Allow Credit -->
+                <CheckBox Content="Allow Credit"
+                          IsChecked="{Binding EditingCustomer.CreditAllowed}"
+                          Style="{StaticResource CheckBoxStyle}"
+                          Margin="0,0,0,15"/>
+
+                <!-- Credit Details (visible when credit is allowed) -->
+                <StackPanel Visibility="{Binding EditingCustomer.CreditAllowed, Converter={StaticResource BoolToVisibilityConverter}}">
+                    
+                    <!-- Credit Amount Max -->
+                    <StackPanel Margin="0,0,0,15">
+                        <TextBlock Text="Maximum Credit Amount" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingCustomer.CreditAmountMax, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter maximum credit amount"/>
+                    </StackPanel>
+
+                    <!-- Credit Days -->
+                    <StackPanel Margin="0,0,0,15">
+                        <TextBlock Text="Credit Days" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingCustomer.CreditDays, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter credit days"/>
+                    </StackPanel>
+
+                    <!-- Credit References -->
+                    <StackPanel Margin="0,0,0,15">
+                        <TextBlock Text="Credit Reference 1" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingCustomer.CreditReference1Name, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter first credit reference"/>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,0,15">
+                        <TextBlock Text="Credit Reference 2" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingCustomer.CreditReference2Name, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter second credit reference"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Contact Persons Section -->
+                <TextBlock Text="Contact Persons" Style="{StaticResource SectionHeaderStyle}"/>
+
+                <!-- Key Contact -->
+                <TextBlock Text="Key Contact Person" Style="{StaticResource LabelStyle}" FontWeight="SemiBold"/>
                 
-                <!-- First Name -->
-                <StackPanel Margin="0,0,0,20">
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                        <TextBlock Text="First Name" Style="{StaticResource LabelStyle}"/>
-                        <TextBlock Text="*" Foreground="{DynamicResource ErrorColor}" FontWeight="Bold" Margin="2,0,0,0"/>
-                    </StackPanel>
-                    <TextBox Text="{Binding EditingCustomer.FirstName, UpdateSourceTrigger=PropertyChanged}"
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Key Contact Name" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.KeyContactName, UpdateSourceTrigger=PropertyChanged}"
                              Style="{StaticResource InputFieldStyle}"
-                             ToolTip="Enter customer's first name"/>
+                             ToolTip="Enter key contact name"/>
                 </StackPanel>
 
-                <!-- Last Name -->
-                <StackPanel Margin="0,0,0,20">
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                        <TextBlock Text="Last Name" Style="{StaticResource LabelStyle}"/>
-                        <TextBlock Text="*" Foreground="{DynamicResource ErrorColor}" FontWeight="Bold" Margin="2,0,0,0"/>
-                    </StackPanel>
-                    <TextBox Text="{Binding EditingCustomer.LastName, UpdateSourceTrigger=PropertyChanged}"
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Key Contact Mobile" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.KeyContactMobile, UpdateSourceTrigger=PropertyChanged}"
                              Style="{StaticResource InputFieldStyle}"
-                             ToolTip="Enter customer's last name"/>
+                             ToolTip="Enter key contact mobile"/>
                 </StackPanel>
 
-                <!-- Email -->
-                <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Email" Style="{StaticResource LabelStyle}"/>
-                    <TextBox Text="{Binding EditingCustomer.Email, UpdateSourceTrigger=PropertyChanged}"
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Key Contact Email" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.KeyContactEmail, UpdateSourceTrigger=PropertyChanged}"
                              Style="{StaticResource InputFieldStyle}"
-                             ToolTip="Enter customer's email address"/>
+                             ToolTip="Enter key contact email"/>
                 </StackPanel>
 
-                <!-- Phone Number -->
-                <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Phone Number" Style="{StaticResource LabelStyle}"/>
-                    <TextBox Text="{Binding EditingCustomer.PhoneNumber, UpdateSourceTrigger=PropertyChanged}"
+                <!-- Finance Contact -->
+                <TextBlock Text="Finance Contact Person" Style="{StaticResource LabelStyle}" FontWeight="SemiBold" Margin="0,15,0,5"/>
+                
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Finance Person Name" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.FinancePersonName, UpdateSourceTrigger=PropertyChanged}"
                              Style="{StaticResource InputFieldStyle}"
-                             ToolTip="Enter customer's phone number"/>
+                             ToolTip="Enter finance person name"/>
                 </StackPanel>
 
-                <!-- Address -->
-                <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Address" Style="{StaticResource LabelStyle}"/>
-                    <TextBox Text="{Binding EditingCustomer.Address, UpdateSourceTrigger=PropertyChanged}"
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Finance Person Mobile" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.FinancePersonMobile, UpdateSourceTrigger=PropertyChanged}"
                              Style="{StaticResource InputFieldStyle}"
-                             TextWrapping="Wrap"
-                             AcceptsReturn="True"
-                             Height="80"
-                             VerticalScrollBarVisibility="Auto"
-                             ToolTip="Enter customer's address"/>
+                             ToolTip="Enter finance person mobile"/>
                 </StackPanel>
 
-                <!-- Status -->
-                <StackPanel Margin="0,0,0,20">
-                    <CheckBox Content="Is Active"
-                             IsChecked="{Binding EditingCustomer.IsActive}"
-                             Style="{StaticResource CheckBoxStyle}"/>
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Finance Person Email" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.FinancePersonEmail, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter finance person email"/>
                 </StackPanel>
+
+                <!-- Payment Options Section -->
+                <TextBlock Text="Payment Options" Style="{StaticResource SectionHeaderStyle}"/>
+
+                <!-- Post-Dated Cheques -->
+                <CheckBox Content="Allow Post-Dated Cheques"
+                          IsChecked="{Binding EditingCustomer.PostDatedChequesAllowed}"
+                          Style="{StaticResource CheckBoxStyle}"
+                          Margin="0,0,0,15"/>
+
+                <!-- Customer Balance -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Current Balance" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.CustomerBalanceAmount, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter current customer balance"/>
+                </StackPanel>
+
             </StackPanel>
         </ScrollViewer>
 

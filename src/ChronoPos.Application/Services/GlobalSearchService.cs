@@ -187,10 +187,10 @@ public class GlobalSearchService : IGlobalSearchService
         try
         {
             var customers = await _context.Customers
-                .Where(c => c.FirstName.Contains(query) || 
-                           c.LastName.Contains(query) ||
-                           c.Email.Contains(query) ||
-                           c.PhoneNumber.Contains(query))
+                .Where(c => c.CustomerFullName.Contains(query) || 
+                           c.BusinessFullName.Contains(query) ||
+                           c.OfficialEmail.Contains(query) ||
+                           c.MobileNo.Contains(query))
                 .Take(maxResults)
                 .ToListAsync();
 
@@ -199,8 +199,8 @@ public class GlobalSearchService : IGlobalSearchService
                 results.Add(new GlobalSearchResultDto
                 {
                     Id = customer.Id,
-                    Title = $"{customer.FirstName} {customer.LastName}",
-                    Description = $"Email: {customer.Email} | Phone: {customer.PhoneNumber}",
+                    Title = customer.DisplayName,
+                    Description = $"Email: {customer.OfficialEmail} | Phone: {customer.MobileNo}",
                     Category = "Customer",
                     Module = "Customers",
                     SearchType = "Customer",
@@ -227,14 +227,14 @@ public class GlobalSearchService : IGlobalSearchService
                 .Include(s => s.Customer)
                 .Where(s => s.TransactionNumber.Contains(query) ||
                            (s.Customer != null && 
-                            (s.Customer.FirstName.Contains(query) || s.Customer.LastName.Contains(query))))
+                            (s.Customer.CustomerFullName.Contains(query) || s.Customer.BusinessFullName.Contains(query))))
                 .Take(maxResults)
                 .ToListAsync();
 
             foreach (var sale in sales)
             {
                 var customerName = sale.Customer != null 
-                    ? $"{sale.Customer.FirstName} {sale.Customer.LastName}" 
+                    ? sale.Customer.DisplayName 
                     : "Walk-in";
                     
                 results.Add(new GlobalSearchResultDto

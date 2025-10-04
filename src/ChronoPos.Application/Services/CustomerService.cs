@@ -24,7 +24,7 @@ public class CustomerService : ICustomerService
     public async Task<IEnumerable<CustomerDto>> GetAllCustomersAsync()
     {
         var customers = await _unitOfWork.Customers.GetAllAsync();
-        return customers.Where(c => c.IsActive).Select(Map);
+        return customers.Where(c => c.Status == "Active").Select(Map);
     }
 
     public async Task<CustomerDto?> GetByIdAsync(int id)
@@ -37,12 +37,32 @@ public class CustomerService : ICustomerService
     {
         var customer = new Customer
         {
-            FirstName = customerDto.FirstName,
-            LastName = customerDto.LastName,
-            Email = customerDto.Email,
-            PhoneNumber = customerDto.PhoneNumber,
-            Address = customerDto.Address,
-            IsActive = customerDto.IsActive,
+            CustomerFullName = customerDto.CustomerFullName,
+            BusinessFullName = customerDto.BusinessFullName,
+            IsBusiness = customerDto.IsBusiness,
+            BusinessTypeId = customerDto.BusinessTypeId,
+            CustomerBalanceAmount = customerDto.CustomerBalanceAmount,
+            LicenseNo = customerDto.LicenseNo,
+            TrnNo = customerDto.TrnNo,
+            MobileNo = customerDto.MobileNo,
+            HomePhone = customerDto.HomePhone,
+            OfficePhone = customerDto.OfficePhone,
+            ContactMobileNo = customerDto.ContactMobileNo,
+            OfficialEmail = customerDto.OfficialEmail,
+            CreditAllowed = customerDto.CreditAllowed,
+            CreditAmountMax = customerDto.CreditAmountMax,
+            CreditDays = customerDto.CreditDays,
+            CreditReference1Name = customerDto.CreditReference1Name,
+            CreditReference2Name = customerDto.CreditReference2Name,
+            KeyContactName = customerDto.KeyContactName,
+            KeyContactMobile = customerDto.KeyContactMobile,
+            KeyContactEmail = customerDto.KeyContactEmail,
+            FinancePersonName = customerDto.FinancePersonName,
+            FinancePersonMobile = customerDto.FinancePersonMobile,
+            FinancePersonEmail = customerDto.FinancePersonEmail,
+            PostDatedChequesAllowed = customerDto.PostDatedChequesAllowed,
+            ShopId = customerDto.ShopId,
+            Status = customerDto.Status,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -61,12 +81,32 @@ public class CustomerService : ICustomerService
             throw new ArgumentException($"Customer with ID {customerDto.Id} not found.");
         }
 
-        existingCustomer.FirstName = customerDto.FirstName;
-        existingCustomer.LastName = customerDto.LastName;
-        existingCustomer.Email = customerDto.Email;
-        existingCustomer.PhoneNumber = customerDto.PhoneNumber;
-        existingCustomer.Address = customerDto.Address;
-        existingCustomer.IsActive = customerDto.IsActive;
+        existingCustomer.CustomerFullName = customerDto.CustomerFullName;
+        existingCustomer.BusinessFullName = customerDto.BusinessFullName;
+        existingCustomer.IsBusiness = customerDto.IsBusiness;
+        existingCustomer.BusinessTypeId = customerDto.BusinessTypeId;
+        existingCustomer.CustomerBalanceAmount = customerDto.CustomerBalanceAmount;
+        existingCustomer.LicenseNo = customerDto.LicenseNo;
+        existingCustomer.TrnNo = customerDto.TrnNo;
+        existingCustomer.MobileNo = customerDto.MobileNo;
+        existingCustomer.HomePhone = customerDto.HomePhone;
+        existingCustomer.OfficePhone = customerDto.OfficePhone;
+        existingCustomer.ContactMobileNo = customerDto.ContactMobileNo;
+        existingCustomer.OfficialEmail = customerDto.OfficialEmail;
+        existingCustomer.CreditAllowed = customerDto.CreditAllowed;
+        existingCustomer.CreditAmountMax = customerDto.CreditAmountMax;
+        existingCustomer.CreditDays = customerDto.CreditDays;
+        existingCustomer.CreditReference1Name = customerDto.CreditReference1Name;
+        existingCustomer.CreditReference2Name = customerDto.CreditReference2Name;
+        existingCustomer.KeyContactName = customerDto.KeyContactName;
+        existingCustomer.KeyContactMobile = customerDto.KeyContactMobile;
+        existingCustomer.KeyContactEmail = customerDto.KeyContactEmail;
+        existingCustomer.FinancePersonName = customerDto.FinancePersonName;
+        existingCustomer.FinancePersonMobile = customerDto.FinancePersonMobile;
+        existingCustomer.FinancePersonEmail = customerDto.FinancePersonEmail;
+        existingCustomer.PostDatedChequesAllowed = customerDto.PostDatedChequesAllowed;
+        existingCustomer.ShopId = customerDto.ShopId;
+        existingCustomer.Status = customerDto.Status;
         existingCustomer.UpdatedAt = DateTime.UtcNow;
 
         await _unitOfWork.Customers.UpdateAsync(existingCustomer);
@@ -83,7 +123,9 @@ public class CustomerService : ICustomerService
             throw new ArgumentException($"Customer with ID {id} not found.");
         }
 
-        await _unitOfWork.Customers.DeleteAsync(id);
+        customer.Status = "Deleted";
+        customer.DeletedAt = DateTime.UtcNow;
+        await _unitOfWork.Customers.UpdateAsync(customer);
         await _unitOfWork.SaveChangesAsync();
     }
 
@@ -93,18 +135,19 @@ public class CustomerService : ICustomerService
         
         if (string.IsNullOrEmpty(searchTerm))
         {
-            return allCustomers.Where(c => c.IsActive).Select(Map);
+            return allCustomers.Where(c => c.Status == "Active").Select(Map);
         }
 
         var searchTermLower = searchTerm.ToLower();
         var filteredCustomers = allCustomers.Where(c => 
-            c.IsActive && 
-            (c.FirstName.ToLower().Contains(searchTermLower) ||
-             c.LastName.ToLower().Contains(searchTermLower) ||
-             c.Email.ToLower().Contains(searchTermLower) ||
-             c.PhoneNumber.Contains(searchTerm) ||
-             c.Address.ToLower().Contains(searchTermLower) ||
-             c.FullName.ToLower().Contains(searchTermLower))
+            c.Status == "Active" && 
+            ((!string.IsNullOrEmpty(c.CustomerFullName) && c.CustomerFullName.ToLower().Contains(searchTermLower)) ||
+             (!string.IsNullOrEmpty(c.BusinessFullName) && c.BusinessFullName.ToLower().Contains(searchTermLower)) ||
+             (!string.IsNullOrEmpty(c.OfficialEmail) && c.OfficialEmail.ToLower().Contains(searchTermLower)) ||
+             (!string.IsNullOrEmpty(c.MobileNo) && c.MobileNo.Contains(searchTerm)) ||
+             (!string.IsNullOrEmpty(c.ContactMobileNo) && c.ContactMobileNo.Contains(searchTerm)) ||
+             (!string.IsNullOrEmpty(c.KeyContactName) && c.KeyContactName.ToLower().Contains(searchTermLower)) ||
+             c.DisplayName.ToLower().Contains(searchTermLower))
         );
 
         return filteredCustomers.Select(Map);
@@ -113,12 +156,33 @@ public class CustomerService : ICustomerService
     private static CustomerDto Map(Customer c) => new()
     {
         Id = c.Id,
-        FirstName = c.FirstName,
-        LastName = c.LastName,
-        Email = c.Email,
-        PhoneNumber = c.PhoneNumber,
-        Address = c.Address,
-        IsActive = c.IsActive,
-        FullName = c.FullName
+        CustomerFullName = c.CustomerFullName,
+        BusinessFullName = c.BusinessFullName,
+        IsBusiness = c.IsBusiness,
+        BusinessTypeId = c.BusinessTypeId,
+        CustomerBalanceAmount = c.CustomerBalanceAmount,
+        LicenseNo = c.LicenseNo,
+        TrnNo = c.TrnNo,
+        MobileNo = c.MobileNo,
+        HomePhone = c.HomePhone,
+        OfficePhone = c.OfficePhone,
+        ContactMobileNo = c.ContactMobileNo,
+        OfficialEmail = c.OfficialEmail,
+        CreditAllowed = c.CreditAllowed,
+        CreditAmountMax = c.CreditAmountMax,
+        CreditDays = c.CreditDays,
+        CreditReference1Name = c.CreditReference1Name,
+        CreditReference2Name = c.CreditReference2Name,
+        KeyContactName = c.KeyContactName,
+        KeyContactMobile = c.KeyContactMobile,
+        KeyContactEmail = c.KeyContactEmail,
+        FinancePersonName = c.FinancePersonName,
+        FinancePersonMobile = c.FinancePersonMobile,
+        FinancePersonEmail = c.FinancePersonEmail,
+        PostDatedChequesAllowed = c.PostDatedChequesAllowed,
+        ShopId = c.ShopId,
+        Status = c.Status,
+        CreatedAt = c.CreatedAt,
+        UpdatedAt = c.UpdatedAt
     };
 }

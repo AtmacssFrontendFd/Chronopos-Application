@@ -82,18 +82,18 @@ public partial class CustomersViewModel : ObservableObject
 
         if (ShowActiveOnly)
         {
-            filtered = filtered.Where(c => c.IsActive);
+            filtered = filtered.Where(c => c.Status == "Active");
         }
 
         if (!string.IsNullOrWhiteSpace(SearchText))
         {
             filtered = filtered.Where(c => 
-                c.FirstName.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-                c.LastName.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-                c.Email.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-                c.PhoneNumber.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-                (c.Address?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                c.FullName.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
+                (!string.IsNullOrEmpty(c.CustomerFullName) && c.CustomerFullName.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(c.BusinessFullName) && c.BusinessFullName.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(c.OfficialEmail) && c.OfficialEmail.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(c.MobileNo) && c.MobileNo.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(c.KeyContactName) && c.KeyContactName.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
+                c.DisplayName.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
         }
         
         FilteredCustomers = new ObservableCollection<CustomerDto>(filtered);
@@ -148,7 +148,7 @@ public partial class CustomersViewModel : ObservableObject
         if (targetCustomer?.Id > 0)
         {
             var result = MessageBox.Show(
-                $"Are you sure you want to delete the customer '{targetCustomer.FullName}'?",
+                $"Are you sure you want to delete the customer '{targetCustomer.DisplayName}'?",
                 "Confirm Deletion",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
@@ -202,7 +202,7 @@ public partial class CustomersViewModel : ObservableObject
             try
             {
                 // Toggle the active status
-                targetCustomer.IsActive = !targetCustomer.IsActive;
+                targetCustomer.Status = targetCustomer.Status == "Active" ? "Inactive" : "Active";
                 
                 // Update the customer in the database
                 await _customerService.UpdateCustomerAsync(targetCustomer);
@@ -213,7 +213,7 @@ public partial class CustomersViewModel : ObservableObject
             catch (Exception ex)
             {
                 // Revert the change if update failed
-                targetCustomer.IsActive = !targetCustomer.IsActive;
+                targetCustomer.Status = targetCustomer.Status == "Active" ? "Inactive" : "Active";
                 MessageBox.Show($"Error updating customer status: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
