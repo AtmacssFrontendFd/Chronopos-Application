@@ -206,6 +206,16 @@ public partial class App : System.Windows.Application
                     services.AddSingleton<IIconService, IconService>();
                     LogMessage("IconService registered");
 
+                    // Register licensing services
+                    services.AddSingleton<ILicensingService, LicensingService>();
+                    LogMessage("LicensingService registered");
+
+                    services.AddSingleton<IHostDiscoveryService, HostDiscoveryService>();
+                    LogMessage("HostDiscoveryService registered");
+
+                    services.AddSingleton<ICameraService, CameraService>();
+                    LogMessage("CameraService registered");
+
                     // Register MainWindowViewModel as Singleton for stable event subscriptions
                     services.AddSingleton<MainWindowViewModel>();
                     LogMessage("MainWindowViewModel registered as Singleton");
@@ -245,10 +255,17 @@ public partial class App : System.Windows.Application
                     LogMessage("ProductCombinationSidePanelViewModel registered as Transient");
                     services.AddTransient<CategorySidePanelViewModel>();
                     LogMessage("CategorySidePanelViewModel registered as Transient");
+
+                    // Register onboarding view model
+                    services.AddTransient<OnboardingViewModel>();
+                    LogMessage("OnboardingViewModel registered as Transient");
         
                     // Register Views - MainWindow as Singleton to match ViewModel
                     services.AddSingleton<MainWindow>();
                     LogMessage("MainWindow registered as Singleton");
+
+                    services.AddTransient<OnboardingWindow>();
+                    LogMessage("OnboardingWindow registered as Transient");
                     
                     LogMessage("All services configured successfully");
                 })
@@ -401,6 +418,30 @@ public partial class App : System.Windows.Application
             LogMessage("Seeding language translations...");
             await SeedLanguageTranslationsAsync();
             LogMessage("Language translations seeded successfully");
+
+            // Check for valid license before showing main window
+            LogMessage("Checking license status...");
+            var licensingService = _host.Services.GetRequiredService<ILicensingService>();
+            
+            if (!licensingService.IsLicenseValid())
+            {
+                LogMessage("No valid license found, showing onboarding...");
+                var onboardingWindow = _host.Services.GetRequiredService<OnboardingWindow>();
+                var result = onboardingWindow.ShowDialog();
+                
+                if (result != true)
+                {
+                    LogMessage("Onboarding cancelled or failed, shutting down...");
+                    this.Shutdown();
+                    return;
+                }
+                
+                LogMessage("Onboarding completed successfully");
+            }
+            else
+            {
+                LogMessage("Valid license found");
+            }
 
             LogMessage("Getting MainWindow...");
             var mainWindow = _host.Services.GetRequiredService<MainWindow>();

@@ -107,4 +107,41 @@ namespace ChronoPos.Desktop.Converters
             throw new NotImplementedException();
         }
     }
+
+    public class StepVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is int currentStep && parameter is string targetStepStr)
+            {
+                if (int.TryParse(targetStepStr, out int targetStep))
+                {
+                    return currentStep == targetStep ? Visibility.Visible : Visibility.Collapsed;
+                }
+            }
+            return Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class StepGreaterThanZeroConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is int currentStep)
+            {
+                return currentStep > 0 && currentStep < 10 ? Visibility.Visible : Visibility.Collapsed;
+            }
+            return Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }

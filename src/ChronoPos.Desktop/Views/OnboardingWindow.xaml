@@ -1,0 +1,1008 @@
+<Window x:Class="ChronoPos.Desktop.Views.OnboardingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:ChronoPos.Desktop.Views.Controls"
+        xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+        Title="ChronoPOS - Setup Wizard" 
+        Height="700" 
+        Width="1000"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource MainBackground}"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:StepVisibilityConverter x:Key="StepVisConverter"/>
+        <converters:StringToVisibilityConverter x:Key="StrToVis"/>
+        <converters:StepGreaterThanZeroConverter x:Key="StepGtZeroConverter"/>
+        
+        <!-- Step indicator style -->
+        <Style x:Key="StepIndicator" TargetType="Border">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="CornerRadius" Value="20"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Margin" Value="5"/>
+        </Style>
+
+        <Style x:Key="ActiveStepIndicator" TargetType="Border" BasedOn="{StaticResource StepIndicator}">
+            <Setter Property="Background" Value="{DynamicResource PrimaryColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}"/>
+        </Style>
+
+        <Style x:Key="CompletedStepIndicator" TargetType="Border" BasedOn="{StaticResource StepIndicator}">
+            <Setter Property="Background" Value="{DynamicResource SuccessColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource SuccessColor}"/>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{DynamicResource MainBackground}" 
+            CornerRadius="10"
+            BorderThickness="1"
+            BorderBrush="{DynamicResource BorderLight}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" 
+                    Background="{DynamicResource SurfaceBackground}" 
+                    BorderThickness="0,0,0,1" 
+                    BorderBrush="{DynamicResource BorderLight}"
+                    CornerRadius="10,10,0,0"
+                    Padding="30,20">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="ChronoPos" 
+                                   FontSize="24" 
+                                   FontWeight="Bold" 
+                                   Foreground="{DynamicResource PrimaryColor}"/>
+                        <TextBlock Text="Setup Wizard" 
+                                   FontSize="24" 
+                                   FontWeight="Light" 
+                                   Foreground="{DynamicResource TextPrimary}" 
+                                   Margin="10,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- Close Button -->
+                    <Button HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Width="30"
+                            Height="30"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Click="CloseButton_Click">
+                        <TextBlock Text="✕" 
+                                   FontSize="20" 
+                                   Foreground="{DynamicResource TextSecondary}"/>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Content -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <Grid Margin="40">
+                    <!-- Step 0: Welcome Screen -->
+                    <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=0}">
+                        <TextBlock Text="Welcome to ChronoPOS" 
+                                   FontSize="32" 
+                                   FontWeight="Bold" 
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,20,0,10"/>
+                        
+                        <TextBlock Text="Choose how you want to set up your POS system" 
+                                   FontSize="16" 
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,40"/>
+
+                        <Grid MaxWidth="600">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Start New Setup -->
+                            <Border Grid.Column="0"
+                                    Background="{DynamicResource CardBackground}"
+                                    BorderBrush="{DynamicResource BorderLight}"
+                                    BorderThickness="2"
+                                    CornerRadius="10"
+                                    Padding="30"
+                                    Cursor="Hand"
+                                    MouseLeftButtonDown="StartStandalone_Click">
+                                <StackPanel>
+                                    <TextBlock Text="📋" 
+                                               FontSize="48" 
+                                               HorizontalAlignment="Center"
+                                               Margin="0,0,0,15"/>
+                                    <TextBlock Text="Start New Setup" 
+                                               FontSize="18" 
+                                               FontWeight="Bold" 
+                                               Foreground="{DynamicResource TextPrimary}"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,0,0,10"/>
+                                    <TextBlock Text="Activate using a scratch card" 
+                                               FontSize="14" 
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               HorizontalAlignment="Center"
+                                               TextAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Connect to Host -->
+                            <Border Grid.Column="2"
+                                    Background="{DynamicResource CardBackground}"
+                                    BorderBrush="{DynamicResource BorderLight}"
+                                    BorderThickness="2"
+                                    CornerRadius="10"
+                                    Padding="30"
+                                    Cursor="Hand"
+                                    MouseLeftButtonDown="StartHostConnection_Click">
+                                <StackPanel>
+                                    <TextBlock Text="🌐" 
+                                               FontSize="48" 
+                                               HorizontalAlignment="Center"
+                                               Margin="0,0,0,15"/>
+                                    <TextBlock Text="Connect to Host" 
+                                               FontSize="18" 
+                                               FontWeight="Bold" 
+                                               Foreground="{DynamicResource TextPrimary}"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,0,0,10"/>
+                                    <TextBlock Text="Join an existing license on your network" 
+                                               FontSize="14" 
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               HorizontalAlignment="Center"
+                                               TextAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Step 1: Scratch Card Entry -->
+                    <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=1}">
+                        <TextBlock Text="Step 1 of 6: Enter Activation Card" 
+                                   FontSize="24" 
+                                   FontWeight="Bold" 
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Margin="0,0,0,30"/>
+
+                        <Grid MaxWidth="600">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="20"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- QR Code Scanning Section -->
+                            <Border Grid.Row="0"
+                                    Background="{DynamicResource CardBackground}"
+                                    BorderBrush="{DynamicResource BorderLight}"
+                                    BorderThickness="2"
+                                    CornerRadius="10"
+                                    Padding="30">
+                                <StackPanel>
+                                    <TextBlock Text="📷 Scan QR Code" 
+                                               FontSize="18" 
+                                               FontWeight="Bold" 
+                                               Foreground="{DynamicResource TextPrimary}"
+                                               Margin="0,0,0,15"/>
+
+                                    <Border Height="300"
+                                            Background="{DynamicResource MainBackground}"
+                                            BorderBrush="{DynamicResource BorderLight}"
+                                            BorderThickness="2"
+                                            CornerRadius="8"
+                                            Margin="0,0,0,15">
+                                        <controls:CameraPreviewControl x:Name="CameraPreview" Stretch="Uniform"/>
+                                    </Border>
+
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,0">
+                                        <Button Content="Start Camera"
+                                                x:Name="StartCameraButton"
+                                                Height="45"
+                                                Width="120"
+                                                Background="{DynamicResource PrimaryColor}"
+                                                Foreground="White"
+                                                BorderThickness="0"
+                                                FontSize="14"
+                                                FontWeight="Medium"
+                                                Cursor="Hand"
+                                                Click="StartCameraButton_Click"/>
+                                        <Button Content="Stop Camera"
+                                                x:Name="StopCameraButton"
+                        Height="45"
+                        Width="120"
+                        Background="{DynamicResource ErrorColor}"
+                        Foreground="White"
+                        BorderThickness="0"
+                        FontSize="14"
+                        FontWeight="Medium"
+                        Cursor="Hand"
+                        Margin="10,0,0,0"
+                        Click="StopCameraButton_Click"/>
+                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- OR Divider -->
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Border Width="200" Height="1" Background="{DynamicResource BorderLight}" VerticalAlignment="Center"/>
+                                <TextBlock Text=" OR " Foreground="{DynamicResource TextSecondary}" Margin="10,0"/>
+                                <Border Width="200" Height="1" Background="{DynamicResource BorderLight}" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Manual Entry Section -->
+                            <Border Grid.Row="2"
+                                    Background="{DynamicResource CardBackground}"
+                                    BorderBrush="{DynamicResource BorderLight}"
+                                    BorderThickness="2"
+                                    CornerRadius="10"
+                                    Padding="30">
+                                <StackPanel>
+                                    <TextBlock Text="⌨️ Enter Encrypted Data Manually" 
+                                               FontSize="18" 
+                                               FontWeight="Bold" 
+                                               Foreground="{DynamicResource TextPrimary}"
+                                               Margin="0,0,0,15"/>
+
+                                    <TextBlock Text="If camera is not available, paste the encrypted scratch card data:" 
+                                               FontSize="14" 
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               Margin="0,0,0,10"/>
+
+                    <TextBox Text="{Binding QrCodeData, UpdateSourceTrigger=PropertyChanged}"
+                         Height="120"
+                         TextWrapping="Wrap"
+                         AcceptsReturn="True"
+                         VerticalScrollBarVisibility="Auto"
+                         Background="{DynamicResource MainBackground}"
+                         Foreground="{DynamicResource TextPrimary}"
+                         BorderBrush="{DynamicResource BorderLight}"
+                         BorderThickness="2"
+                         Padding="10"
+                         FontFamily="Consolas"
+                         FontSize="12"/>
+                    <Button Content="Submit"
+                        Height="40"
+                        Width="120"
+                        Margin="0,10,0,0"
+                        Background="{DynamicResource PrimaryColor}"
+                        Foreground="White"
+                        BorderThickness="0"
+                        FontSize="14"
+                        FontWeight="Medium"
+                        Cursor="Hand"
+                        Click="SubmitManualEntry_Click"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Error Message -->
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   Foreground="{DynamicResource ErrorColor}"
+                                   FontSize="14"
+                                   Margin="0,15,0,0"
+                                   Visibility="{Binding ErrorMessage, Converter={StaticResource StrToVis}}"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <!-- Step 2: Salesperson Confirmation -->
+                    <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=2}">
+                        <TextBlock Text="Step 2 of 6: Confirm Salesperson &amp; Plan" 
+                                   FontSize="24" 
+                                   FontWeight="Bold" 
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Margin="0,0,0,30"/>
+
+                        <Border Background="{DynamicResource CardBackground}"
+                                BorderBrush="{DynamicResource BorderLight}"
+                                BorderThickness="2"
+                                CornerRadius="10"
+                                Padding="30"
+                                MaxWidth="600">
+                            <StackPanel>
+                                <TextBlock Text="Salesperson Information" 
+                                           FontSize="18" 
+                                           FontWeight="Bold" 
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           Margin="0,0,0,20"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="150"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="10"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="10"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Name:" Foreground="{DynamicResource TextSecondary}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ScratchCardInfo.SalespersonName}" Foreground="{DynamicResource TextPrimary}" FontWeight="Medium"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Email:" Foreground="{DynamicResource TextSecondary}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ScratchCardInfo.SalespersonEmail}" Foreground="{DynamicResource TextPrimary}" FontWeight="Medium"/>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Employee ID:" Foreground="{DynamicResource TextSecondary}"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding ScratchCardInfo.SalespersonId}" Foreground="{DynamicResource TextPrimary}" FontWeight="Medium"/>
+                                </Grid>
+
+                                <Border Height="1" Background="{DynamicResource BorderLight}" Margin="0,25"/>
+
+                                <TextBlock Text="Plan Details" 
+                                           FontSize="18" 
+                                           FontWeight="Bold" 
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           Margin="0,0,0,20"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="150"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="10"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="10"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="10"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Plan:" Foreground="{DynamicResource TextSecondary}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ScratchCardInfo.PlanName}" Foreground="{DynamicResource TextPrimary}" FontWeight="Medium"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Price:" Foreground="{DynamicResource TextSecondary}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ScratchCardInfo.PlanPrice, StringFormat='${0:F2}'}" Foreground="{DynamicResource TextPrimary}" FontWeight="Medium"/>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Duration:" Foreground="{DynamicResource TextSecondary}"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="1" Foreground="{DynamicResource TextPrimary}" FontWeight="Medium">
+                                        <Run Text="{Binding ScratchCardInfo.DurationInDays}"/>
+                                        <Run Text=" days"/>
+                                    </TextBlock>
+
+                                    <TextBlock Grid.Row="6" Grid.Column="0" Text="Valid Until:" Foreground="{DynamicResource TextSecondary}"/>
+                                    <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding ScratchCardInfo.ExpiryDate, StringFormat='MMMM dd, yyyy'}" Foreground="{DynamicResource TextPrimary}" FontWeight="Medium"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Step 3: Business Information (Dubai Compliance) -->
+                    <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=3}">
+                        <TextBlock Text="Step 3 of 6: Business Information" 
+                                   FontSize="24" 
+                                   FontWeight="Bold" 
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Margin="0,0,0,10"/>
+                        
+                        <TextBlock Text="Please provide your business details for Dubai compliance" 
+                                   FontSize="14" 
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   Margin="0,0,0,30"/>
+
+                        <Border Background="{DynamicResource CardBackground}"
+                                BorderBrush="{DynamicResource BorderLight}"
+                                BorderThickness="2"
+                                CornerRadius="10"
+                                Padding="30"
+                                MaxWidth="700">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="20"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0">
+                                        <!-- Business Name -->
+                                        <TextBlock Text="Legal Business Name *" 
+                                                   Foreground="{DynamicResource TextSecondary}"
+                                                   Margin="0,0,0,5"/>
+                                        <TextBox Text="{Binding BusinessName, UpdateSourceTrigger=PropertyChanged}"
+                                                 Height="40"
+                                                 Padding="10"
+                                                 Background="{DynamicResource MainBackground}"
+                                                 Foreground="{DynamicResource TextPrimary}"
+                                                 BorderBrush="{DynamicResource BorderLight}"
+                                                 Margin="0,0,0,15"/>
+
+                                        <!-- Contact Person -->
+                                        <TextBlock Text="Contact Person *" 
+                                                   Foreground="{DynamicResource TextSecondary}"
+                                                   Margin="0,0,0,5"/>
+                                        <TextBox Text="{Binding ContactPerson, UpdateSourceTrigger=PropertyChanged}"
+                                                 Height="40"
+                                                 Padding="10"
+                                                 Background="{DynamicResource MainBackground}"
+                                                 Foreground="{DynamicResource TextPrimary}"
+                                                 BorderBrush="{DynamicResource BorderLight}"
+                                                 Margin="0,0,0,15"/>
+
+                                        <!-- Email -->
+                                        <TextBlock Text="Email *" 
+                                                   Foreground="{DynamicResource TextSecondary}"
+                                                   Margin="0,0,0,5"/>
+                                        <TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"
+                                                 Height="40"
+                                                 Padding="10"
+                                                 Background="{DynamicResource MainBackground}"
+                                                 Foreground="{DynamicResource TextPrimary}"
+                                                 BorderBrush="{DynamicResource BorderLight}"
+                                                 Margin="0,0,0,15"/>
+
+                                        <!-- Phone -->
+                                        <TextBlock Text="Phone (UAE Format: +971XXXXXXXXX) *" 
+                                                   Foreground="{DynamicResource TextSecondary}"
+                                                   Margin="0,0,0,5"/>
+                                        <TextBox Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}"
+                                                 Height="40"
+                                                 Padding="10"
+                                                 Background="{DynamicResource MainBackground}"
+                                                 Foreground="{DynamicResource TextPrimary}"
+                                                 BorderBrush="{DynamicResource BorderLight}"
+                                                 Margin="0,0,0,15"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2">
+                                        <!-- Trade License Number -->
+                                        <TextBlock Text="Trade License Number *" 
+                                                   Foreground="{DynamicResource TextSecondary}"
+                                                   Margin="0,0,0,5"/>
+                                        <TextBox Text="{Binding TradeLicenseNumber, UpdateSourceTrigger=PropertyChanged}"
+                                                 Height="40"
+                                                 Padding="10"
+                                                 Background="{DynamicResource MainBackground}"
+                                                 Foreground="{DynamicResource TextPrimary}"
+                                                 BorderBrush="{DynamicResource BorderLight}"
+                                                 Margin="0,0,0,15"/>
+
+                                        <!-- VAT Number -->
+                                        <TextBlock Text="VAT Number (100XXXXXXXXX) *" 
+                                                   Foreground="{DynamicResource TextSecondary}"
+                                                   Margin="0,0,0,5"/>
+                                        <TextBox Text="{Binding VatNumber, UpdateSourceTrigger=PropertyChanged}"
+                                                 Height="40"
+                                                 Padding="10"
+                                                 Background="{DynamicResource MainBackground}"
+                                                 Foreground="{DynamicResource TextPrimary}"
+                                                 BorderBrush="{DynamicResource BorderLight}"
+                                                 Margin="0,0,0,15"/>
+
+                                        <!-- Emirates ID -->
+                                        <TextBlock Text="Emirates ID / Passport *" 
+                                                   Foreground="{DynamicResource TextSecondary}"
+                                                   Margin="0,0,0,5"/>
+                                        <TextBox Text="{Binding EmiratesID, UpdateSourceTrigger=PropertyChanged}"
+                                                 Height="40"
+                                                 Padding="10"
+                                                 Background="{DynamicResource MainBackground}"
+                                                 Foreground="{DynamicResource TextPrimary}"
+                                                 BorderBrush="{DynamicResource BorderLight}"
+                                                 Margin="0,0,0,15"/>
+
+                                        <!-- Industry Category -->
+                                        <TextBlock Text="Industry Category *" 
+                                                   Foreground="{DynamicResource TextSecondary}"
+                                                   Margin="0,0,0,5"/>
+                                        <ComboBox SelectedItem="{Binding IndustryCategory}"
+                                                  Height="40"
+                                                  Padding="10"
+                                                  Background="{DynamicResource MainBackground}"
+                                                  Foreground="{DynamicResource TextPrimary}"
+                                                  BorderBrush="{DynamicResource BorderLight}"
+                                                  Margin="0,0,0,15">
+                                            <ComboBoxItem Content="Retail"/>
+                                            <ComboBoxItem Content="Food &amp; Beverage"/>
+                                            <ComboBoxItem Content="Hospitality"/>
+                                            <ComboBoxItem Content="Healthcare"/>
+                                            <ComboBoxItem Content="Services"/>
+                                            <ComboBoxItem Content="Other"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Address -->
+                                <TextBlock Text="Registered Address *" 
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,5"/>
+                                <TextBox Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}"
+                                         Height="80"
+                                         Padding="10"
+                                         TextWrapping="Wrap"
+                                         AcceptsReturn="True"
+                                         Background="{DynamicResource MainBackground}"
+                                         Foreground="{DynamicResource TextPrimary}"
+                                         BorderBrush="{DynamicResource BorderLight}"
+                                         Margin="0,0,0,15"/>
+
+                                <!-- Number of Outlets -->
+                                <TextBlock Text="Number of Outlets" 
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,5"/>
+                                <TextBox Text="{Binding NumberOfOutlets, UpdateSourceTrigger=PropertyChanged}"
+                                         Height="40"
+                                         Padding="10"
+                                         Background="{DynamicResource MainBackground}"
+                                         Foreground="{DynamicResource TextPrimary}"
+                                         BorderBrush="{DynamicResource BorderLight}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Error Message -->
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   Foreground="{DynamicResource ErrorColor}"
+                                   FontSize="14"
+                                   Margin="0,15,0,0"
+                                   Visibility="{Binding ErrorMessage, Converter={StaticResource StrToVis}}"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <!-- Step 4: Sales Key Display -->
+                    <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=4}">
+                        <TextBlock Text="Step 4 of 6: Sales Key Generated" 
+                                   FontSize="24" 
+                                   FontWeight="Bold" 
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Margin="0,0,0,30"/>
+
+                        <Border Background="{DynamicResource CardBackground}"
+                                BorderBrush="{DynamicResource BorderLight}"
+                                BorderThickness="2"
+                                CornerRadius="10"
+                                Padding="30"
+                                MaxWidth="700">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                                    <TextBlock Text="✅" FontSize="24" Margin="0,0,10,0"/>
+                                    <TextBlock Text="System fingerprint created" 
+                                               Foreground="{DynamicResource SuccessColor}"
+                                               FontSize="14"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                                    <TextBlock Text="✅" FontSize="24" Margin="0,0,10,0"/>
+                                    <TextBlock Text="Business information validated" 
+                                               Foreground="{DynamicResource SuccessColor}"
+                                               FontSize="14"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,30">
+                                    <TextBlock Text="✅" FontSize="24" Margin="0,0,10,0"/>
+                                    <TextBlock Text="Sales key generated" 
+                                               Foreground="{DynamicResource SuccessColor}"
+                                               FontSize="14"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <TextBlock Text="Your Sales Key:" 
+                                           FontSize="18" 
+                                           FontWeight="Bold" 
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           Margin="0,0,0,10"/>
+
+                                <Border Background="{DynamicResource MainBackground}"
+                                        BorderBrush="{DynamicResource BorderLight}"
+                                        BorderThickness="2"
+                                        CornerRadius="8"
+                                        Padding="15"
+                                        Margin="0,0,0,20">
+                                    <TextBlock Text="{Binding GeneratedSalesKey}"
+                                               FontFamily="Consolas"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource TextPrimary}"
+                                               TextWrapping="Wrap"/>
+                                </Border>
+
+                                <Button Content="📋 Copy Sales Key"
+                                        Command="{Binding CopySalesKeyCommand}"
+                                        Height="45"
+                                        Background="{DynamicResource PrimaryColor}"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        FontSize="14"
+                                        FontWeight="Medium"
+                                        Cursor="Hand"
+                                        Margin="0,0,0,30"/>
+
+                                <Border Background="{DynamicResource WarningColorLight}"
+                                        BorderBrush="{DynamicResource WarningColor}"
+                                        BorderThickness="2"
+                                        CornerRadius="8"
+                                        Padding="15">
+                                    <StackPanel>
+                                        <TextBlock Text="⚠️ Important" 
+                                                   FontWeight="Bold" 
+                                                   Foreground="{DynamicResource WarningColor}"
+                                                   Margin="0,0,0,10"/>
+                                        <TextBlock TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource TextPrimary}">
+                                            Send this sales key to your admin to receive your license activation file. 
+                                            Keep this key secure - it is bound to this specific machine.
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Status Message -->
+                                <TextBlock Text="{Binding StatusMessage}"
+                                           Foreground="{DynamicResource SuccessColor}"
+                                           FontSize="14"
+                                           FontWeight="Medium"
+                                           Margin="0,15,0,0"
+                                           Visibility="{Binding StatusMessage, Converter={StaticResource StrToVis}}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Step 5: License Activation -->
+                    <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=5}">
+                        <TextBlock Text="Step 5 of 6: License Activation" 
+                                   FontSize="24" 
+                                   FontWeight="Bold" 
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Margin="0,0,0,30"/>
+
+                        <Border Background="{DynamicResource CardBackground}"
+                                BorderBrush="{DynamicResource BorderLight}"
+                                BorderThickness="2"
+                                CornerRadius="10"
+                                Padding="30"
+                                MaxWidth="700">
+                            <StackPanel>
+                                <TextBlock Text="Paste or load your license file:" 
+                                           FontSize="16" 
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,15"/>
+
+                                <TextBox Text="{Binding LicenseKeyInput, UpdateSourceTrigger=PropertyChanged}"
+                                         Height="200"
+                                         TextWrapping="Wrap"
+                                         AcceptsReturn="True"
+                                         VerticalScrollBarVisibility="Auto"
+                                         Background="{DynamicResource MainBackground}"
+                                         Foreground="{DynamicResource TextPrimary}"
+                                         BorderBrush="{DynamicResource BorderLight}"
+                                         BorderThickness="2"
+                                         Padding="10"
+                                         FontFamily="Consolas"
+                                         FontSize="12"
+                                         Margin="0,0,0,20"/>
+
+                                <Button Content="📂 Load License File"
+                                        Click="LoadLicenseFile_Click"
+                                        Height="45"
+                                        Background="{DynamicResource CardBackground}"
+                                        Foreground="{DynamicResource TextPrimary}"
+                                        BorderBrush="{DynamicResource BorderLight}"
+                                        BorderThickness="2"
+                                        FontSize="14"
+                                        FontWeight="Medium"
+                                        Cursor="Hand"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Error Message -->
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   Foreground="{DynamicResource ErrorColor}"
+                                   FontSize="14"
+                                   Margin="0,15,0,0"
+                                   Visibility="{Binding ErrorMessage, Converter={StaticResource StrToVis}}"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <!-- Step 6: Success -->
+                    <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=6}"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Center">
+                        <Border Background="{DynamicResource CardBackground}"
+                                BorderBrush="{DynamicResource BorderLight}"
+                                BorderThickness="2"
+                                CornerRadius="10"
+                                Padding="40"
+                                MaxWidth="600">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="🎉" 
+                                           FontSize="64" 
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,15"/>
+
+                                <TextBlock Text="ChronoPOS Activated Successfully!" 
+                                           FontSize="24" 
+                                           FontWeight="Bold" 
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,20"/>
+
+                                <TextBlock Text="Welcome to ChronoPOS! Your point of sale system is now ready to use." 
+                                           FontSize="14" 
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           TextWrapping="Wrap"
+                                           TextAlignment="Center"
+                                           Margin="0,0,0,30"/>
+
+                                <Button Content="Get Started →"
+                                        Command="{Binding CompleteOnboardingCommand}"
+                                        Height="50"
+                                        Padding="40,0"
+                                        Background="{DynamicResource PrimaryColor}"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        FontSize="16"
+                                        FontWeight="Medium"
+                                        Cursor="Hand"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Step 10: Host Discovery -->
+                    <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=10}">
+                        <TextBlock Text="Connect to Host Device" 
+                                   FontSize="24" 
+                                   FontWeight="Bold" 
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Margin="0,0,0,10"/>
+                        
+                        <TextBlock Text="Find and connect to an existing ChronoPOS host on your network" 
+                                   FontSize="14" 
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   Margin="0,0,0,30"/>
+
+                        <Border Background="{DynamicResource CardBackground}"
+                                BorderBrush="{DynamicResource BorderLight}"
+                                BorderThickness="2"
+                                CornerRadius="10"
+                                Padding="30"
+                                MaxWidth="800">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,20">
+                                    <Button Content="🔍 Search for Hosts"
+                                            Command="{Binding DiscoverHostsCommand}"
+                                            Height="45"
+                                            HorizontalAlignment="Left"
+                                            Padding="30,0"
+                                            Background="{DynamicResource PrimaryColor}"
+                                            Foreground="White"
+                                            BorderThickness="0"
+                                            FontSize="14"
+                                            FontWeight="Medium"
+                                            Cursor="Hand"/>
+
+                                    <TextBlock Text="{Binding StatusMessage}"
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               FontSize="13"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,0"/>
+                                </Grid>
+
+                                <!-- Hosts List -->
+                                <Border Background="{DynamicResource MainBackground}"
+                                        BorderBrush="{DynamicResource BorderLight}"
+                                        BorderThickness="2"
+                                        CornerRadius="8"
+                                        MinHeight="300"
+                                        MaxHeight="400">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <ItemsControl ItemsSource="{Binding DiscoveredHosts}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{DynamicResource CardBackground}"
+                                                            BorderBrush="{DynamicResource BorderLight}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="8"
+                                                            Padding="20"
+                                                            Margin="10">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+
+                                                            <StackPanel Grid.Column="0">
+                                                                <TextBlock Text="{Binding HostName}" 
+                                                                           FontSize="18" 
+                                                                           FontWeight="Bold" 
+                                                                           Foreground="{DynamicResource TextPrimary}"
+                                                                           Margin="0,0,0,5"/>
+                                                                
+                                                                <TextBlock FontSize="13" Foreground="{DynamicResource TextSecondary}">
+                                                                    <Run Text="IP:"/>
+                                                                    <Run Text="{Binding HostIp}" FontWeight="Medium"/>
+                                                                </TextBlock>
+
+                                                                <TextBlock FontSize="13" Foreground="{DynamicResource TextSecondary}" Margin="0,5,0,0">
+                                                                    <Run Text="Plan ID:"/>
+                                                                    <Run Text="{Binding PlanId}" FontWeight="Medium"/>
+                                                                    <Run Text=" • "/>
+                                                                    <Run Text="Devices:"/>
+                                                                    <Run Text="{Binding CurrentClientCount}" FontWeight="Medium"/>
+                                                                    <Run Text="/"/>
+                                                                    <Run Text="{Binding MaxPosDevices}" FontWeight="Medium"/>
+                                                                </TextBlock>
+
+                                                                <TextBlock FontSize="13" Foreground="{DynamicResource TextSecondary}" Margin="0,5,0,0">
+                                                                    <Run Text="License Expires:"/>
+                                                                    <Run Text="{Binding LicenseExpiry, StringFormat='MMMM dd, yyyy'}" FontWeight="Medium"/>
+                                                                </TextBlock>
+                                                            </StackPanel>
+
+                                                            <Button Grid.Column="1"
+                                                                    Content="Connect →"
+                                                                    Command="{Binding DataContext.SelectHostCommand, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"
+                                                                    CommandParameter="{Binding}"
+                                                                    Width="120"
+                                                                    Height="40"
+                                                                    Background="{DynamicResource PrimaryColor}"
+                                                                    Foreground="White"
+                                                                    BorderThickness="0"
+                                                                    FontSize="14"
+                                                                    FontWeight="Medium"
+                                                                    Cursor="Hand"
+                                                                    VerticalAlignment="Center"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Border>
+
+                                <!-- Empty state -->
+                                <StackPanel Visibility="{Binding DiscoveredHosts.Count, Converter={StaticResource BoolToVis}}"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Margin="0,80,0,0">
+                                    <TextBlock Text="🔍" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,15" Foreground="{DynamicResource TextHint}"/>
+                                    <TextBlock Text="No hosts found yet" 
+                                               FontSize="16" 
+                                               Foreground="{DynamicResource TextHint}"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,0,0,5"/>
+                                    <TextBlock Text="Click 'Search for Hosts' to discover devices on your network" 
+                                               FontSize="13" 
+                                               Foreground="{DynamicResource TextHint}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Error Message -->
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   Foreground="{DynamicResource ErrorColor}"
+                                   FontSize="14"
+                                   Margin="0,15,0,0"
+                                   Visibility="{Binding ErrorMessage, Converter={StaticResource StrToVis}}"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+
+            <!-- Footer Navigation -->
+            <Border Grid.Row="2" 
+                    Background="{DynamicResource SurfaceBackground}" 
+                    BorderThickness="0,1,0,0" 
+                    BorderBrush="{DynamicResource BorderLight}"
+                    CornerRadius="0,0,10,10"
+                    Padding="30,15">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                        <Button Content="← Back"
+                                Command="{Binding GoBackCommand}"
+                                Width="100"
+                                Height="40"
+                                Background="Transparent"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource BorderLight}"
+                                BorderThickness="2"
+                                FontSize="14"
+                                Cursor="Hand"
+                                Visibility="{Binding CurrentStep, Converter={StaticResource StepGtZeroConverter}}"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <!-- Step 1 Next Button -->
+                        <Button Content="Next →"
+                                Command="{Binding ProcessScratchCardCommand}"
+                                Width="120"
+                                Height="40"
+                                Background="{DynamicResource PrimaryColor}"
+                                Foreground="White"
+                                BorderThickness="0"
+                                FontSize="14"
+                                FontWeight="Medium"
+                                Cursor="Hand"
+                                Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=1}"/>
+
+                        <!-- Step 2 Confirm Button -->
+                        <Button Content="Confirm →"
+                                Command="{Binding ConfirmSalespersonCommand}"
+                                Width="120"
+                                Height="40"
+                                Background="{DynamicResource PrimaryColor}"
+                                Foreground="White"
+                                BorderThickness="0"
+                                FontSize="14"
+                                FontWeight="Medium"
+                                Cursor="Hand"
+                                Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=2}"/>
+
+                        <!-- Step 3 Generate Sales Key Button -->
+                        <Button Content="Generate Sales Key →"
+                                Command="{Binding GenerateSalesKeyCommand}"
+                                Width="180"
+                                Height="40"
+                                Background="{DynamicResource PrimaryColor}"
+                                Foreground="White"
+                                BorderThickness="0"
+                                FontSize="14"
+                                FontWeight="Medium"
+                                Cursor="Hand"
+                                Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=3}"/>
+
+                        <!-- Step 4 Continue Button -->
+                        <Button Content="Continue to License →"
+                                Command="{Binding ProceedToLicenseActivationCommand}"
+                                Width="180"
+                                Height="40"
+                                Background="{DynamicResource PrimaryColor}"
+                                Foreground="White"
+                                BorderThickness="0"
+                                FontSize="14"
+                                FontWeight="Medium"
+                                Cursor="Hand"
+                                Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=4}"/>
+
+                        <!-- Step 5 Activate Button -->
+                        <Button Content="Activate License →"
+                                Command="{Binding ActivateLicenseCommand}"
+                                Width="160"
+                                Height="40"
+                                Background="{DynamicResource SuccessColor}"
+                                Foreground="White"
+                                BorderThickness="0"
+                                FontSize="14"
+                                FontWeight="Medium"
+                                Cursor="Hand"
+                                Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=5}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Loading Overlay -->
+            <Border Grid.RowSpan="3"
+                    Background="#AA000000"
+                    Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="⏳" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+                    <TextBlock Text="Processing..."
+                               Foreground="White"
+                               FontSize="18"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>
