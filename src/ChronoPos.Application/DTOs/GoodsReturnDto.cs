@@ -19,6 +19,7 @@ public class GoodsReturnDto
     public decimal TotalAmount { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? Remarks { get; set; }
+    public bool IsTotallyReplaced { get; set; } = false; // True when all items are fully replaced
     public string CreatedByName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public int TotalItems { get; set; }
@@ -44,6 +45,8 @@ public class GoodsReturnItemDto
     public decimal CostPrice { get; set; }
     public decimal LineTotal { get; set; }
     public string? Reason { get; set; }
+    public decimal AlreadyReplacedQuantity { get; set; } = 0; // Tracks how much has been replaced
+    public bool IsTotallyReplaced { get; set; } = false; // True when AlreadyReplacedQuantity >= Quantity
     public DateTime CreatedAt { get; set; }
 }
 

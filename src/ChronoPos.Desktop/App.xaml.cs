@@ -204,6 +204,18 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IGoodsReturnItemService, GoodsReturnItemService>();
                     LogMessage("GoodsReturnItemService registered as Transient");
 
+                    // Register GoodsReplace service and repository
+                    services.AddTransient<IGoodsReplaceRepository, GoodsReplaceRepository>();
+                    LogMessage("GoodsReplaceRepository registered as Transient");
+                    services.AddTransient<IGoodsReplaceService, GoodsReplaceService>();
+                    LogMessage("GoodsReplaceService registered as Transient");
+
+                    // Register GoodsReplaceItem service and repository
+                    services.AddTransient<IGoodsReplaceItemRepository, GoodsReplaceItemRepository>();
+                    LogMessage("GoodsReplaceItemRepository registered as Transient");
+                    services.AddTransient<IGoodsReplaceItemService, GoodsReplaceItemService>();
+                    LogMessage("GoodsReplaceItemService registered as Transient");
+
                     // Register ShopLocation service and repository
                     services.AddTransient<IShopLocationRepository, ShopLocationRepository>();
                     LogMessage("ShopLocationRepository registered as Transient");
@@ -270,6 +282,8 @@ public partial class App : System.Windows.Application
                     LogMessage("AddStockTransferViewModel registered as Transient");
                     services.AddTransient<AddGoodsReturnViewModel>();
                     LogMessage("AddGoodsReturnViewModel registered as Transient");
+                    services.AddTransient<AddGoodsReplaceViewModel>();
+                    LogMessage("AddGoodsReplaceViewModel registered as Transient");
                     services.AddTransient<AddGrnViewModel>();
                     LogMessage("AddGrnViewModel registered as Transient");
                     services.AddTransient<AddOptionsViewModel>();

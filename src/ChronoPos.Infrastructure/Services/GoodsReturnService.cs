@@ -408,6 +408,7 @@ public class GoodsReturnService : IGoodsReturnService
             TotalAmount = goodsReturn.TotalAmount,
             Status = goodsReturn.Status,
             Remarks = goodsReturn.Remarks,
+            IsTotallyReplaced = goodsReturn.IsTotallyReplaced,
             CreatedByName = goodsReturn.Creator?.FullName ?? "System",
             CreatedAt = goodsReturn.CreatedAt,
             TotalItems = goodsReturn.Items?.Count ?? 0,
@@ -433,6 +434,8 @@ public class GoodsReturnService : IGoodsReturnService
             CostPrice = item.CostPrice,
             LineTotal = item.LineTotal,
             Reason = item.Reason,
+            AlreadyReplacedQuantity = item.AlreadyReplacedQuantity,
+            IsTotallyReplaced = item.IsTotallyReplaced,
             CreatedAt = item.CreatedAt
         };
     }

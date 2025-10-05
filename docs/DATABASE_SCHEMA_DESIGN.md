@@ -1042,6 +1042,35 @@ CREATE TABLE `stock_transfer_item` (
   `status` varchar(20) DEFAULT 'Pending',
   `remarks_line` text
 );
+CREATE TABLE GoodsReplace (
+  Id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ReplaceNo VARCHAR(30) UNIQUE NOT NULL,
+  SupplierId INT NOT NULL,
+  StoreId INT NOT NULL,
+  ReferenceReturnId INT,         -- links to GoodsReturns.Id if replacement is against a return
+  ReplaceDate DATETIME NOT NULL,
+  TotalAmount DECIMAL(12,2) DEFAULT 0,
+  Status VARCHAR(20) DEFAULT 'Pending',   -- Pending / Posted / Cancelled
+  Remarks TEXT,
+  CreatedBy INT NOT NULL,
+  CreatedAt DATETIME DEFAULT (datetime('now')),
+  UpdatedAt DATETIME DEFAULT (datetime('now'))
+);
+
+CREATE TABLE GoodsReplaceItems (
+  Id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ReplaceId INT NOT NULL,               -- FK → GoodsReplace.Id
+  ProductId INT NOT NULL,
+  UomId BIGINT NOT NULL,                -- Changed to long
+  BatchNo VARCHAR(50),
+  ExpiryDate DATE,
+  Quantity DECIMAL(10,3) NOT NULL,      -- replaced quantity
+  Rate DECIMAL(10,2) NOT NULL,
+  Amount DECIMAL(12,2) GENERATED ALWAYS AS (Quantity * Rate) STORED,
+  ReferenceReturnItemId INT,            -- link to GoodsRetproducturnItems.Id (optional)
+  RemarksLine TEXT,
+  CreatedAt DATETIME DEFAULT (datetime('now'))
+);
 
 CREATE TABLE `stock_adjustment` (
   `adjustment_id` int PRIMARY KEY AUTO_INCREMENT,

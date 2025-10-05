@@ -36,6 +36,11 @@ public class GoodsReturnItem
     [StringLength(255)]
     public string? Reason { get; set; } // Damaged, expired, etc.
     
+    // Replacement tracking fields
+    public decimal AlreadyReplacedQuantity { get; set; } = 0; // Tracks how much has been replaced
+    
+    public bool IsTotallyReplaced { get; set; } = false; // True when AlreadyReplacedQuantity == Quantity
+    
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     // Navigation Properties

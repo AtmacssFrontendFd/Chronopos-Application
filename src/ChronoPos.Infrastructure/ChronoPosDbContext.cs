@@ -52,6 +52,8 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.StockTransferItem> StockTransferItems { get; set; }
     public DbSet<Domain.Entities.GoodsReturn> GoodsReturns { get; set; }
     public DbSet<Domain.Entities.GoodsReturnItem> GoodsReturnItems { get; set; }
+    public DbSet<Domain.Entities.GoodsReplace> GoodsReplaces { get; set; }
+    public DbSet<Domain.Entities.GoodsReplaceItem> GoodsReplaceItems { get; set; }
     
     // Goods Received entities
     public DbSet<Domain.Entities.GoodsReceived> GoodsReceived { get; set; }
@@ -853,6 +855,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.Property(e => e.TotalAmount).HasPrecision(12, 2).HasDefaultValue(0);
             entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Pending");
             entity.Property(e => e.Remarks).HasMaxLength(255);
+            entity.Property(e => e.IsTotallyReplaced).HasDefaultValue(false);
             entity.Property(e => e.CreatedBy).IsRequired();
             entity.Property(e => e.CreatedAt).IsRequired();
             entity.Property(e => e.UpdatedAt).IsRequired();
@@ -896,6 +899,8 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.Property(e => e.CostPrice).HasPrecision(12, 2).IsRequired();
             entity.Property(e => e.LineTotal).HasPrecision(12, 2);
             entity.Property(e => e.Reason).HasMaxLength(255);
+            entity.Property(e => e.AlreadyReplacedQuantity).HasPrecision(12, 4).HasDefaultValue(0);
+            entity.Property(e => e.IsTotallyReplaced).HasDefaultValue(false);
             entity.Property(e => e.CreatedAt).IsRequired();
 
             // Foreign key relationships

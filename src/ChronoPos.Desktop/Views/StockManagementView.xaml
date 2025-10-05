@@ -15,6 +15,7 @@
         <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
         <converters:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
+        <converters:StatusToColorConverter x:Key="StatusColorConverter"/>
         
         <!-- Keypad Button Style for Touch Screen -->
         <Style x:Key="KeypadButtonStyle" TargetType="Button">
@@ -1365,6 +1366,31 @@
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
+
+                                        <!-- Replaced Column -->
+                                        <DataGridTemplateColumn Header="Replaced" Width="90">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Border CornerRadius="12"
+                                                            Padding="8,4"
+                                                            HorizontalAlignment="Center"
+                                                            Visibility="{Binding IsTotallyReplaced, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <TextBlock Text="R"
+                                                                   Foreground="White"
+                                                                   FontSize="14"
+                                                                   FontWeight="Bold"
+                                                                   HorizontalAlignment="Center"
+                                                                   ToolTip="Fully Replaced"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
                                         <!-- Total Items Column -->
                                         <DataGridTextColumn Header="Items" 
                                                             Binding="{Binding TotalItems}" 
@@ -1438,6 +1464,280 @@
                                                         <Button Content="Delete" 
                                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                                 Command="{Binding DataContext.DeleteGoodsReturnCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                Background="{DynamicResource Error}"
+                                                                Foreground="White"
+                                                                Margin="2"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+
+                    <!-- Goods Replace Content -->
+                    <Grid Name="GoodsReplaceContent">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsGoodsReplaceSelected}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Header with New Goods Replace Button -->
+                        <Grid Grid.Row="0" Margin="0,0,0,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" 
+                                       Text="Goods Replacements" 
+                                       FontSize="20" 
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource ForegroundBrush}"/>
+                            
+                            <Button Grid.Column="1" 
+                                    Content="New Goods Replace" 
+                                    Command="{Binding CreateNewGoodsReplaceCommand}"
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    ToolTip="Click to create a new goods replacement"/>
+                        </Grid>
+
+                        <!-- Filters -->
+                        <Grid Grid.Row="1" Margin="0,0,0,15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="Search:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{DynamicResource ForegroundBrush}"/>
+                            <TextBox Grid.Column="1" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,15,0"/>
+
+                            <TextBlock Grid.Column="2" Text="Status:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{DynamicResource ForegroundBrush}"/>
+                            <ComboBox Grid.Column="3" 
+                                      ItemsSource="{Binding StatusFilters}"
+                                      SelectedItem="{Binding SelectedStatus, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                      Margin="0,0,15,0"
+                                      FontFamily="{DynamicResource PoppinsFontFallback}"
+                                      FontSize="{DynamicResource FontSizeSmall}"/>
+
+                            <Button Grid.Column="5" Content="Clear Filters" Command="{Binding ClearFiltersCommand}" 
+                                    Style="{StaticResource SmallActionButtonStyle}"/>
+                        </Grid>
+
+                        <!-- Data Grid with Modern Styling -->
+                        <Border Grid.Row="2" Style="{StaticResource StockCardStyle}" Padding="0">
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto" 
+                                          VerticalScrollBarVisibility="Auto"
+                                          CanContentScroll="True">
+                                <DataGrid 
+                                          ItemsSource="{Binding GoodsReplaces}"
+                                          SelectedItem="{Binding SelectedGoodsReplace}"
+                                          AutoGenerateColumns="False"
+                                          GridLinesVisibility="None"
+                                          HeadersVisibility="Column"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          CanUserAddRows="False"
+                                          CanUserDeleteRows="False"
+                                          IsReadOnly="True"
+                                          FontFamily="{DynamicResource PoppinsFontFallback}"
+                                          FontSize="{DynamicResource FontSizeSmall}"
+                                          FlowDirection="{Binding CurrentFlowDirection}"
+                                          HorizontalGridLinesBrush="{DynamicResource BorderLight}"
+                                          VerticalGridLinesBrush="Transparent"
+                                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                          ScrollViewer.CanContentScroll="False"
+                                          MinHeight="400"
+                                          MaxHeight="500">
+
+                                    <DataGrid.ColumnHeaderStyle>
+                                        <Style TargetType="DataGridColumnHeader">
+                                            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+                                            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+                                            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+                                            <Setter Property="HorizontalContentAlignment" Value="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"/>
+                                        </Style>
+                                    </DataGrid.ColumnHeaderStyle>
+
+                                    <DataGrid.RowStyle>
+                                        <Style TargetType="DataGridRow">
+                                            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                                            <Setter Property="BorderThickness" Value="0"/>
+                                            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGrid.RowStyle>
+
+                                    <DataGrid.CellStyle>
+                                        <Style TargetType="DataGridCell">
+                                            <Setter Property="BorderThickness" Value="0"/>
+                                            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                                            <Setter Property="HorizontalContentAlignment" Value="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGrid.CellStyle>
+
+                                    <DataGrid.Columns>
+                                        <!-- Replace No Column -->
+                                        <DataGridTextColumn Header="Replace No" 
+                                                            Binding="{Binding ReplaceNo}" 
+                                                            Width="140"
+                                                            MinWidth="120">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                    <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource Primary}"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+
+                                        <!-- Supplier Column -->
+                                        <DataGridTextColumn Header="Supplier" 
+                                                            Binding="{Binding SupplierName}" 
+                                                            Width="*"
+                                                            MinWidth="150">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+
+                                        <!-- Store Column -->
+                                        <DataGridTextColumn Header="Store" 
+                                                            Binding="{Binding StoreName}" 
+                                                            Width="*"
+                                                            MinWidth="120">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+
+                                        <!-- Replace Date Column -->
+                                        <DataGridTextColumn Header="Replace Date" 
+                                                            Binding="{Binding ReplaceDate, StringFormat=dd/MM/yyyy}" 
+                                                            Width="130"
+                                                            MinWidth="110">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+
+                                        <!-- Status Column with Color Indicator -->
+                                        <DataGridTemplateColumn Header="Status" Width="100" MinWidth="90">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{Binding Status, Converter={StaticResource StatusColorConverter}}"
+                                                            CornerRadius="3"
+                                                            Padding="6,2">
+                                                        <TextBlock Text="{Binding Status}" 
+                                                                   Foreground="White" 
+                                                                   FontWeight="SemiBold"
+                                                                   FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                                   HorizontalAlignment="Center"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <!-- Total Amount Column -->
+                                        <DataGridTextColumn Header="Total Amount" 
+                                                            Binding="{Binding TotalAmount, StringFormat=C2}" 
+                                                            Width="130"
+                                                            MinWidth="110">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                    <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource Success}"/>
+                                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+
+                                        <!-- Items Column -->
+                                        <DataGridTextColumn Header="Items" 
+                                                            Binding="{Binding TotalItems}" 
+                                                            Width="70"
+                                                            MinWidth="60">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+
+                                        <!-- Actions Column -->
+                                        <DataGridTemplateColumn Header="Actions" Width="240" MinWidth="220">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                        <Button Content="View" 
+                                                                Style="{StaticResource SmallActionButtonStyle}"
+                                                                Command="{Binding DataContext.ViewGoodsReplaceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                Background="{DynamicResource Info}" 
+                                                                Foreground="White"
+                                                                Margin="2"/>
+                                                        <Button Content="Edit" 
+                                                                Style="{StaticResource SmallActionButtonStyle}"
+                                                                Command="{Binding DataContext.EditGoodsReplaceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                Background="{DynamicResource PrimaryAlt}"
+                                                                Foreground="White"
+                                                                Margin="2"/>
+                                                        <Button Content="Delete" 
+                                                                Style="{StaticResource SmallActionButtonStyle}"
+                                                                Command="{Binding DataContext.DeleteGoodsReplaceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                 CommandParameter="{Binding}"
                                                                 Background="{DynamicResource Error}"
                                                                 Foreground="White"

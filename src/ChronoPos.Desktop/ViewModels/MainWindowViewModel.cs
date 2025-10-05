@@ -1181,12 +1181,15 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetService<ISupplierService>(),
                 _serviceProvider.GetService<IStockTransferService>(),
                 _serviceProvider.GetService<IGoodsReturnService>(), // Add GoodsReturnService
+                _serviceProvider.GetService<IGoodsReplaceService>(), // Add GoodsReplaceService
                 navigateToAddGrn: ShowAddGrn, // Pass navigation callback
                 navigateToEditGrn: ShowEditGrn, // Pass edit navigation callback
                 navigateToAddStockTransfer: ShowAddStockTransfer, // Pass stock transfer navigation callback
                 navigateToEditStockTransfer: ShowEditStockTransfer, // Pass edit stock transfer navigation callback
                 navigateToAddGoodsReturn: ShowAddGoodsReturn, // Pass goods return navigation callback
-                navigateToEditGoodsReturn: ShowEditGoodsReturn // Pass edit goods return navigation callback
+                navigateToEditGoodsReturn: ShowEditGoodsReturn, // Pass edit goods return navigation callback
+                navigateToAddGoodsReplace: ShowAddGoodsReplace, // Pass goods replace navigation callback
+                navigateToEditGoodsReplace: ShowEditGoodsReplace // Pass edit goods replace navigation callback
             );
             
             // Create the view and set the ViewModel from DI
@@ -1596,6 +1599,123 @@ public partial class MainWindowViewModel : ObservableObject
         {
             StatusMessage = "Failed to load goods return for editing";
             MessageBox.Show($"Error loading goods return for editing: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void ShowAddGoodsReplace()
+    {
+        CurrentPageTitle = "Add Goods Replace";
+        StatusMessage = "Loading add goods replace form...";
+        
+        try
+        {
+            // Create the AddGoodsReplaceView
+            var addGoodsReplaceView = new AddGoodsReplaceView();
+            
+            // Get services from DI container
+            var goodsReplaceService = _serviceProvider.GetRequiredService<IGoodsReplaceService>();
+            var goodsReplaceItemService = _serviceProvider.GetRequiredService<IGoodsReplaceItemService>();
+            var goodsReturnService = _serviceProvider.GetRequiredService<IGoodsReturnService>();
+            var storeService = _serviceProvider.GetRequiredService<IStoreService>();
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var uomService = _serviceProvider.GetRequiredService<IUomService>();
+            var productBatchService = _serviceProvider.GetRequiredService<IProductBatchService>();
+            var stockService = _serviceProvider.GetRequiredService<IStockService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback
+            var addGoodsReplaceViewModel = new AddGoodsReplaceViewModel(
+                goodsReplaceService,
+                goodsReplaceItemService,
+                goodsReturnService,
+                storeService,
+                productService,
+                uomService,
+                productBatchService,
+                stockService,
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                navigateBack: () => _ = ShowStockManagement("GoodsReplace") // Navigate back to stock management Goods Replace section
+            );
+            
+            addGoodsReplaceView.DataContext = addGoodsReplaceViewModel;
+            CurrentView = addGoodsReplaceView;
+            StatusMessage = "Add goods replace form loaded successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Failed to load add goods replace form";
+            MessageBox.Show($"Error loading add goods replace form: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void ShowEditGoodsReplace(int replaceId)
+    {
+        CurrentPageTitle = "Edit Goods Replace";
+        StatusMessage = "Loading goods replace for editing...";
+        
+        try
+        {
+            // Create the AddGoodsReplaceView (same view used for both add and edit)
+            var addGoodsReplaceView = new AddGoodsReplaceView();
+            
+            // Get services from DI container
+            var goodsReplaceService = _serviceProvider.GetRequiredService<IGoodsReplaceService>();
+            var goodsReplaceItemService = _serviceProvider.GetRequiredService<IGoodsReplaceItemService>();
+            var goodsReturnService = _serviceProvider.GetRequiredService<IGoodsReturnService>();
+            var storeService = _serviceProvider.GetRequiredService<IStoreService>();
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var uomService = _serviceProvider.GetRequiredService<IUomService>();
+            var productBatchService = _serviceProvider.GetRequiredService<IProductBatchService>();
+            var stockService = _serviceProvider.GetRequiredService<IStockService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback and replace ID for editing
+            var addGoodsReplaceViewModel = new AddGoodsReplaceViewModel(
+                goodsReplaceService,
+                goodsReplaceItemService,
+                goodsReturnService,
+                storeService,
+                productService,
+                uomService,
+                productBatchService,
+                stockService,
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                navigateBack: () => _ = ShowStockManagement("GoodsReplace"), // Navigate back to stock management Goods Replace section
+                replaceId: replaceId // This puts it in edit mode
+            );
+            
+            addGoodsReplaceView.DataContext = addGoodsReplaceViewModel;
+            CurrentView = addGoodsReplaceView;
+            StatusMessage = "Goods replace loaded for editing successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Failed to load goods replace for editing";
+            MessageBox.Show($"Error loading goods replace for editing: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
     

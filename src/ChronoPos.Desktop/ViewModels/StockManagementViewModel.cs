@@ -43,6 +43,8 @@ public partial class StockManagementViewModel : ObservableObject
     private readonly Action<int>? _navigateToEditStockTransfer;
     private readonly Action? _navigateToAddGoodsReturn;
     private readonly Action<int>? _navigateToEditGoodsReturn;
+    private readonly Action? _navigateToAddGoodsReplace;
+    private readonly Action<int>? _navigateToEditGoodsReplace;
 
     #endregion
 
@@ -110,6 +112,9 @@ public partial class StockManagementViewModel : ObservableObject
     private bool _isGoodsReturnSelected = false;
 
     [ObservableProperty]
+    private bool _isGoodsReplaceSelected = false;
+
+    [ObservableProperty]
     private bool _noModuleSelected = false;
 
     // Stock Transfer Properties
@@ -125,6 +130,13 @@ public partial class StockManagementViewModel : ObservableObject
 
     [ObservableProperty]
     private GoodsReturnDto? _selectedGoodsReturn;
+
+    // Goods Replace Properties
+    [ObservableProperty]
+    private ObservableCollection<GoodsReplaceDto> _goodsReplaces = new();
+
+    [ObservableProperty]
+    private GoodsReplaceDto? _selectedGoodsReplace;
 
 
 
@@ -204,6 +216,7 @@ public partial class StockManagementViewModel : ObservableObject
     private readonly IStockAdjustmentService? _stockAdjustmentService;
     private readonly IStockTransferService? _stockTransferService;
     private readonly IGoodsReturnService? _goodsReturnService;
+    private readonly IGoodsReplaceService? _goodsReplaceService;
 
     // Debouncing timer for search
     private readonly DispatcherTimer _searchDebounceTimer;
@@ -269,6 +282,7 @@ public partial class StockManagementViewModel : ObservableObject
         IsStockTransferSelected = false;
         IsGoodsReceivedSelected = false;
         IsGoodsReturnSelected = false;
+        IsGoodsReplaceSelected = false;
         NoModuleSelected = false;
 
         // Update module selections
@@ -294,6 +308,10 @@ public partial class StockManagementViewModel : ObservableObject
             case "GoodsReturn":
                 IsGoodsReturnSelected = true;
                 _ = LoadGoodsReturnsAsync();
+                break;
+            case "GoodsReplace":
+                IsGoodsReplaceSelected = true;
+                _ = LoadGoodsReplacesAsync();
                 break;
             default:
                 NoModuleSelected = true;
@@ -587,6 +605,121 @@ public partial class StockManagementViewModel : ObservableObject
     }
 
 
+
+    #endregion
+
+    #region Goods Replace Commands
+
+    [RelayCommand]
+    private void CreateNewGoodsReplace()
+    {
+        System.Diagnostics.Debug.WriteLine("CreateNewGoodsReplace command executed!");
+        
+        // Close adjust panel if open
+        IsAdjustProductPanelOpen = false;
+        
+        // Navigate to AddGoodsReplace screen
+        _navigateToAddGoodsReplace?.Invoke();
+    }
+
+    [RelayCommand]
+    private void EditGoodsReplace(GoodsReplaceDto goodsReplace)
+    {
+        if (goodsReplace == null)
+        {
+            AppLogger.LogWarning("Edit Goods Replace attempted with null object", "", "stock_management");
+            MessageBox.Show("No goods replace selected for editing.", "Selection Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            AppLogger.LogInfo($"Editing Goods Replace: {goodsReplace.ReplaceNo}", $"Replace ID: {goodsReplace.Id}, Status: {goodsReplace.Status}", "stock_management");
+            
+            // Check if goods replace can be edited (only Pending status should be editable)
+            if (goodsReplace.Status != "Pending")
+            {
+                AppLogger.LogWarning($"Cannot edit Goods Replace with status: {goodsReplace.Status}", $"Replace: {goodsReplace.ReplaceNo}", "stock_management");
+                MessageBox.Show($"Goods Replace with status '{goodsReplace.Status}' cannot be edited.\nOnly 'Pending' replacements can be edited.", 
+                    "Edit Not Allowed", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // Navigate to edit screen
+            _navigateToEditGoodsReplace?.Invoke(goodsReplace.Id);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Failed to edit Goods Replace", ex, $"Replace: {goodsReplace.ReplaceNo}, ID: {goodsReplace.Id}", "stock_management");
+            MessageBox.Show($"Failed to open goods replace for editing: {ex.Message}", "Edit Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteGoodsReplace(GoodsReplaceDto goodsReplace)
+    {
+        if (goodsReplace == null)
+        {
+            AppLogger.LogWarning("Delete Goods Replace attempted with null object", "", "stock_management");
+            MessageBox.Show("No goods replace selected for deletion.", "Selection Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var result = MessageBox.Show($"Are you sure you want to delete Goods Replace {goodsReplace.ReplaceNo}?\n\nThis action cannot be undone.", 
+                                   "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        
+        if (result == MessageBoxResult.Yes && _goodsReplaceService != null)
+        {
+            try
+            {
+                await _goodsReplaceService.DeleteGoodsReplaceAsync(goodsReplace.Id);
+                
+                AppLogger.LogInfo($"Goods Replace deleted successfully: {goodsReplace.ReplaceNo}", $"Replace ID: {goodsReplace.Id}", "stock_management");
+                MessageBox.Show($"Goods Replace {goodsReplace.ReplaceNo} deleted successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                // Refresh the list
+                await LoadGoodsReplacesAsync();
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogError("Failed to delete Goods Replace", ex, $"Replace: {goodsReplace.ReplaceNo}, ID: {goodsReplace.Id}", "stock_management");
+                MessageBox.Show($"Failed to delete goods replace: {ex.Message}", "Delete Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        else if (_goodsReplaceService == null)
+        {
+            AppLogger.LogWarning("GoodsReplaceService not available for delete operation", "Service injection failed", "stock_management");
+            MessageBox.Show("Delete service not available. Please try again later.", "Service Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ViewGoodsReplace(GoodsReplaceDto goodsReplace)
+    {
+        try
+        {
+            AppLogger.LogInfo($"Viewing Goods Replace: {goodsReplace.ReplaceNo}", $"Replace ID: {goodsReplace.Id}, Status: {goodsReplace.Status}", "stock_management");
+            
+            // Show goods replace details in a dialog or navigate to view page
+            var message = $"Goods Replace Details:\n\n" +
+                         $"Replace No: {goodsReplace.ReplaceNo}\n" +
+                         $"Supplier: {goodsReplace.SupplierName}\n" +
+                         $"Store: {goodsReplace.StoreName}\n" +
+                         $"Replace Date: {goodsReplace.ReplaceDate:dd/MM/yyyy}\n" +
+                         $"Status: {goodsReplace.Status}\n" +
+                         $"Total Amount: {goodsReplace.TotalAmount:C2}\n" +
+                         $"Total Items: {goodsReplace.TotalItems}\n" +
+                         $"Created By: {goodsReplace.CreatedByName}\n" +
+                         $"Remarks: {goodsReplace.Remarks ?? "N/A"}";
+            
+            MessageBox.Show(message, "Goods Replace Details", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Failed to view Goods Replace details", ex, $"Replace: {goodsReplace.ReplaceNo}", "stock_management");
+            MessageBox.Show($"Failed to load goods replace details: {ex.Message}", "View Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
 
     #endregion
 
@@ -1291,12 +1424,15 @@ public partial class StockManagementViewModel : ObservableObject
         ISupplierService? supplierService = null,
         IStockTransferService? stockTransferService = null,
         IGoodsReturnService? goodsReturnService = null,
+        IGoodsReplaceService? goodsReplaceService = null,
         Action? navigateToAddGrn = null,
         Action<long>? navigateToEditGrn = null,
         Action? navigateToAddStockTransfer = null,
         Action<int>? navigateToEditStockTransfer = null,
         Action? navigateToAddGoodsReturn = null,
-        Action<int>? navigateToEditGoodsReturn = null)
+        Action<int>? navigateToEditGoodsReturn = null,
+        Action? navigateToAddGoodsReplace = null,
+        Action<int>? navigateToEditGoodsReplace = null)
     {
         LogMessage("[StockManagementViewModel] Constructor called");
         LogMessage($"[StockManagementViewModel] ProductService is null: {productService == null}");
@@ -1321,16 +1457,19 @@ public partial class StockManagementViewModel : ObservableObject
         _supplierService = supplierService;
         _stockTransferService = stockTransferService;
         _goodsReturnService = goodsReturnService;
+        _goodsReplaceService = goodsReplaceService;
         _navigateToAddGrn = navigateToAddGrn;
         NavigateToEditGrn = navigateToEditGrn;
         _navigateToAddStockTransfer = navigateToAddStockTransfer;
         _navigateToEditStockTransfer = navigateToEditStockTransfer;
         _navigateToAddGoodsReturn = navigateToAddGoodsReturn;
         _navigateToEditGoodsReturn = navigateToEditGoodsReturn;
+        _navigateToAddGoodsReplace = navigateToAddGoodsReplace;
+        _navigateToEditGoodsReplace = navigateToEditGoodsReplace;
 
         // Log service availability
         AppLogger.LogInfo("StockManagementViewModel Services", 
-            $"GoodsReturnService: {(goodsReturnService != null ? "Available" : "NULL")}", 
+            $"GoodsReturnService: {(goodsReturnService != null ? "Available" : "NULL")}, GoodsReplaceService: {(goodsReplaceService != null ? "Available" : "NULL")}", 
             "viewmodel");
 
         // Initialize search debouncing timer
@@ -1367,6 +1506,11 @@ public partial class StockManagementViewModel : ObservableObject
             {
                 LogMessage($"[StockManagementViewModel] Timer tick - performing goods returns search for: '{SearchText}'");
                 await LoadGoodsReturnsAsync();
+            }
+            else if (IsGoodsReplaceSelected)
+            {
+                LogMessage($"[StockManagementViewModel] Timer tick - performing goods replaces search for: '{SearchText}'");
+                await LoadGoodsReplacesAsync();
             }
         };
 
@@ -1517,6 +1661,16 @@ public partial class StockManagementViewModel : ObservableObject
                 IconBackground = GetPrimaryColorBrush(),
                 ButtonBackground = GetButtonBackgroundBrush(),
                 IsSelected = IsGoodsReturnSelected
+            },
+            new StockModuleInfo
+            {
+                Title = "Goods Replace", // Default text, will be updated by async localization
+                ModuleType = "GoodsReplace",
+                ItemCount = 8,
+                ItemCountLabel = "Replacements",
+                IconBackground = GetPrimaryColorBrush(),
+                ButtonBackground = GetButtonBackgroundBrush(),
+                IsSelected = IsGoodsReplaceSelected
             }
         };
 
@@ -2146,6 +2300,72 @@ public partial class StockManagementViewModel : ObservableObject
                 ex, 
                 $"Error loading goods returns: {ex.Message}", 
                 "goods_return");
+        }
+    }
+
+    /// <summary>
+    /// Load goods replaces data
+    /// </summary>
+    private async Task LoadGoodsReplacesAsync()
+    {
+        try
+        {
+            var searchTerm = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim();
+            var statusFilter = SelectedStatus == "All" ? null : SelectedStatus;
+            var startDate = StartDate;
+            var endDate = EndDate;
+            
+            AppLogger.LogInfo("LoadGoodsReplacesAsync", 
+                $"Starting to load goods replaces with filters - SearchTerm: '{searchTerm}', StatusFilter: '{statusFilter}', StartDate: {startDate}, EndDate: {endDate}. Service is null: {_goodsReplaceService == null}. Current collection count: {GoodsReplaces.Count}", 
+                "goods_replace");
+                
+            GoodsReplaces.Clear();
+            
+            AppLogger.LogInfo("GoodsReplacesCleared", 
+                $"Collection cleared. Current count: {GoodsReplaces.Count}", 
+                "goods_replace");
+            
+            if (_goodsReplaceService != null)
+            {
+                // Load actual data from service with search filter, status filter, and date range
+                var result = await _goodsReplaceService.GetGoodsReplacesAsync(
+                    page: 1,
+                    pageSize: 1000,
+                    searchTerm: searchTerm,
+                    status: statusFilter,
+                    fromDate: startDate,
+                    toDate: endDate);
+                
+                var goodsReplacesList = result.Items.ToList();
+                AppLogger.LogInfo("GoodsReplacesLoaded", 
+                    $"Loaded {goodsReplacesList.Count} goods replaces (Status Filter: '{statusFilter ?? "None"}', Search: '{searchTerm ?? "None"}')", 
+                    "goods_replace");
+                
+                foreach (var goodsReplace in goodsReplacesList)
+                {
+                    AppLogger.LogInfo("AddingGoodsReplace", 
+                        $"Adding replace: {goodsReplace.ReplaceNo} - {goodsReplace.SupplierName} (Store: {goodsReplace.StoreName})", 
+                        "goods_replace");
+                    GoodsReplaces.Add(goodsReplace);
+                }
+                
+                AppLogger.LogInfo("GoodsReplacesCollection", 
+                    $"Final collection count: {GoodsReplaces.Count}", 
+                    "goods_replace");
+            }
+            else
+            {
+                AppLogger.LogWarning("GoodsReplaceServiceNull", 
+                    "GoodsReplaceService is null, no data loaded", 
+                    "goods_replace");
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("LoadGoodsReplacesAsync", 
+                ex, 
+                $"Error loading goods replaces: {ex.Message}", 
+                "goods_replace");
         }
     }
 
