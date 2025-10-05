@@ -4,21 +4,26 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             d:DesignHeight="600" d:DesignWidth="400"
+             d:DesignHeight="800" d:DesignWidth="600"
              Background="{DynamicResource CardBackground}"
              FlowDirection="{Binding CurrentFlowDirection}"
-             FontFamily="{DynamicResource PoppinsFontFallback}">
+             FontFamily="{DynamicResource PoppinsFontFallback}"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters">
+    
     <UserControl.Resources>
+        <!-- Converters -->
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        
         <!-- Input Field Style -->
         <Style x:Key="InputFieldStyle" TargetType="TextBox">
             <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+            <Setter Property="Padding" Value="10,8"/>
             <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
             <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+            <Setter Property="Height" Value="36"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
@@ -102,7 +107,28 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
         </Style>
+        
+        <!-- CheckBox Style -->
+        <Style x:Key="CheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- ComboBox Style -->
+        <Style x:Key="ComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Height" Value="36"/>
+        </Style>
     </UserControl.Resources>
+    
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -111,74 +137,143 @@
         </Grid.RowDefinitions>
         <!-- Header -->
         <Border Grid.Row="0"
-                Background="{DynamicResource SurfaceBackground}"
-                BorderThickness="0,0,0,1"
-                BorderBrush="{DynamicResource BorderLight}"
-                Padding="{DynamicResource DefaultPaddingThickness}">
+                Background="{DynamicResource Primary}"
+                Padding="30,20">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
+                
                 <TextBlock Grid.Column="0"
                            Text="{Binding FormTitle}"
-                           FontSize="{DynamicResource FontSizeLarge}"
+                           FontSize="20"
                            FontWeight="Bold"
-                           Foreground="{DynamicResource TextPrimary}"
+                           Foreground="White"
                            VerticalAlignment="Center"/>
+                
                 <Button Grid.Column="1"
                         Content="✕"
                         Command="{Binding CloseCommand}"
                         Background="Transparent"
                         BorderThickness="0"
-                        FontSize="16"
+                        FontSize="20"
                         FontWeight="Bold"
-                        Foreground="{DynamicResource TextSecondary}"
+                        Foreground="White"
                         Cursor="Hand"
-                        Padding="8"
-                        ToolTip="Close"/>
+                        Padding="10"
+                        Width="40"
+                        Height="40"
+                        ToolTip="Close">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="20">
+                                            <ContentPresenter HorizontalAlignment="Center" 
+                                                            VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#33FFFFFF"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
             </Grid>
         </Border>
+        
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{DynamicResource DefaultPaddingThickness}">
+        <ScrollViewer Grid.Row="1" 
+                      VerticalScrollBarVisibility="Auto" 
+                      Padding="30,20">
             <StackPanel>
-                <TextBlock Text="Price Type Information" Style="{StaticResource SectionHeaderStyle}"/>
-                <!-- Type Name -->
-                <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Type Name *" Style="{StaticResource LabelStyle}"/>
-                    <TextBox Text="{Binding TypeName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" ToolTip="Enter price type name"/>
-                </StackPanel>
-                <!-- Arabic Name -->
-                <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Arabic Name *" Style="{StaticResource LabelStyle}"/>
-                    <TextBox Text="{Binding ArabicName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" FlowDirection="RightToLeft" ToolTip="Enter price type name in Arabic"/>
-                </StackPanel>
+                <!-- Basic Information Section -->
+                <TextBlock Text="Basic Information" 
+                           Style="{StaticResource SectionHeaderStyle}"/>
+                
+                <!-- Type Name (English) -->
+                <TextBlock Text="Type Name (English) *" 
+                           Style="{StaticResource LabelStyle}"/>
+                <TextBox Text="{Binding TypeName, UpdateSourceTrigger=PropertyChanged}" 
+                         Style="{StaticResource InputFieldStyle}" 
+                         ToolTip="Enter price type name in English"
+                         Margin="0,0,0,15"/>
+                
+                <!-- Type Name (Arabic) -->
+                <TextBlock Text="Type Name (Arabic)" 
+                           Style="{StaticResource LabelStyle}"/>
+                <TextBox Text="{Binding ArabicName, UpdateSourceTrigger=PropertyChanged}" 
+                         Style="{StaticResource InputFieldStyle}" 
+                         FlowDirection="RightToLeft" 
+                         ToolTip="Enter price type name in Arabic"
+                         Margin="0,0,0,15"/>
+                
                 <!-- Description -->
-                <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Description" Style="{StaticResource LabelStyle}"/>
-                    <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" Height="80" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" ToolTip="Enter description"/>
-                </StackPanel>
-                <!-- Is Active -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                    <CheckBox Content="Active" IsChecked="{Binding Status}" FontSize="{DynamicResource FontSizeMedium}" FontWeight="SemiBold" FontFamily="{DynamicResource PoppinsFontFallback}" ToolTip="Enable or disable this price type"/>
-                </StackPanel>
+                <TextBlock Text="Description" 
+                           Style="{StaticResource LabelStyle}"/>
+                <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" 
+                         Style="{StaticResource InputFieldStyle}" 
+                         Height="100" 
+                         TextWrapping="Wrap" 
+                         AcceptsReturn="True" 
+                         VerticalScrollBarVisibility="Auto" 
+                         ToolTip="Enter description for this price type"
+                         Margin="0,0,0,20"/>
+                
+                <!-- Status Section -->
+                <TextBlock Text="Status" 
+                           Style="{StaticResource SectionHeaderStyle}"/>
+                
+                <!-- Active Status -->
+                <CheckBox Content="Active Status" 
+                          IsChecked="{Binding Status}"
+                          Style="{StaticResource CheckBoxStyle}"
+                          Margin="0,0,0,20"/>
+                
+                <!-- Validation Message -->
+                <TextBlock Text="{Binding ValidationMessage}" 
+                           Foreground="#E74C3C" 
+                           FontSize="{DynamicResource FontSizeSmall}" 
+                           TextWrapping="Wrap"
+                           Margin="0,10,0,0"
+                           Visibility="{Binding HasValidationErrors, Converter={StaticResource BoolToVisibilityConverter}}"/>
             </StackPanel>
         </ScrollViewer>
+        
         <!-- Action Buttons -->
         <Border Grid.Row="2"
                 Background="{DynamicResource SurfaceBackground}"
                 BorderThickness="0,1,0,0"
                 BorderBrush="{DynamicResource BorderLight}"
-                Padding="{DynamicResource DefaultPaddingThickness}">
+                Padding="30,20">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="{Binding ValidationMessage}" Foreground="Red" FontSize="{DynamicResource FontSizeSmall}" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                <Button Grid.Column="1" Content="Cancel" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,10,0"/>
-                <Button Grid.Column="2" Content="{Binding SaveButtonText}" Command="{Binding SaveCommand}" Style="{StaticResource ActionButtonStyle}" IsDefault="True"/>
+                
+                <Button Grid.Column="0" 
+                        Content="Cancel" 
+                        Command="{Binding CancelCommand}" 
+                        Style="{StaticResource SecondaryButtonStyle}" 
+                        HorizontalAlignment="Left"
+                        MinWidth="120"
+                        Margin="0,0,15,0"/>
+                
+                <Button Grid.Column="1" 
+                        Content="{Binding SaveButtonText}" 
+                        Command="{Binding SaveCommand}" 
+                        Style="{StaticResource ActionButtonStyle}" 
+                        HorizontalAlignment="Right"
+                        MinWidth="120"
+                        IsDefault="True"/>
             </Grid>
         </Border>
     </Grid>

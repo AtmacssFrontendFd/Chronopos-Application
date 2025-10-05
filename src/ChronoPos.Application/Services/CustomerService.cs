@@ -41,6 +41,7 @@ public class CustomerService : ICustomerService
             BusinessFullName = customerDto.BusinessFullName,
             IsBusiness = customerDto.IsBusiness,
             BusinessTypeId = customerDto.BusinessTypeId,
+            CustomerGroupId = customerDto.CustomerGroupId,
             CustomerBalanceAmount = customerDto.CustomerBalanceAmount,
             LicenseNo = customerDto.LicenseNo,
             TrnNo = customerDto.TrnNo,
@@ -85,6 +86,7 @@ public class CustomerService : ICustomerService
         existingCustomer.BusinessFullName = customerDto.BusinessFullName;
         existingCustomer.IsBusiness = customerDto.IsBusiness;
         existingCustomer.BusinessTypeId = customerDto.BusinessTypeId;
+        existingCustomer.CustomerGroupId = customerDto.CustomerGroupId;
         existingCustomer.CustomerBalanceAmount = customerDto.CustomerBalanceAmount;
         existingCustomer.LicenseNo = customerDto.LicenseNo;
         existingCustomer.TrnNo = customerDto.TrnNo;
@@ -160,6 +162,7 @@ public class CustomerService : ICustomerService
         BusinessFullName = c.BusinessFullName,
         IsBusiness = c.IsBusiness,
         BusinessTypeId = c.BusinessTypeId,
+        CustomerGroupId = c.CustomerGroupId,
         CustomerBalanceAmount = c.CustomerBalanceAmount,
         LicenseNo = c.LicenseNo,
         TrnNo = c.TrnNo,

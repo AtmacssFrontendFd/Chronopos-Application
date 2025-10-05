@@ -1231,6 +1231,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IDatabaseLocalizationService>(),
                 _serviceProvider.GetRequiredService<ITaxTypeService>(),
                 _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ICustomerGroupService>(),
                 _serviceProvider.GetRequiredService<ISupplierService>()
             );
 
@@ -1268,6 +1269,9 @@ public partial class MainWindowViewModel : ObservableObject
                         break;
                     case "Customers":
                         _ = ShowCustomers();
+                        break;
+                    case "CustomerGroups":
+                        _ = ShowCustomerGroups();
                         break;
                     case "Suppliers":
                         _ = ShowSuppliers();
@@ -1694,7 +1698,8 @@ public partial class MainWindowViewModel : ObservableObject
         {
             // Create the CustomersViewModel with all required services
             var customersViewModel = new CustomersViewModel(
-                _serviceProvider.GetRequiredService<ICustomerService>()
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ICustomerGroupService>()
             );
 
             // Set up back navigation to return to Add Options
@@ -1716,6 +1721,51 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error loading customer management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowCustomerGroups()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Customer Groups Management";
+        StatusMessage = "Loading customer groups...";
+        
+        try
+        {
+            // Create the CustomerGroupsViewModel with all required services
+            var customerGroupsViewModel = new CustomerGroupsViewModel(
+                _serviceProvider.GetRequiredService<ICustomerGroupService>(),
+                _serviceProvider.GetRequiredService<ISellingPriceTypeService>(),
+                _serviceProvider.GetRequiredService<IDiscountService>()
+            );
+
+            // Set up back navigation to return to Add Options
+            customerGroupsViewModel.GoBackAction = () =>
+            {
+                ShowAddOptionsCommand.Execute(null);
+            };
+
+            // Create the CustomerGroupsView and set its DataContext
+            var customerGroupsView = new CustomerGroupsView
+            {
+                DataContext = customerGroupsViewModel
+            };
+
+            CurrentView = customerGroupsView;
+            StatusMessage = "Customer groups loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading customer groups: {ex.Message}";
             var errorContent = new System.Windows.Controls.TextBlock
             {
                 Text = $"Error: {ex.Message}",

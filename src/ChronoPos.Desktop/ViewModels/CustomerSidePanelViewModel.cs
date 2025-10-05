@@ -10,6 +10,7 @@ namespace ChronoPos.Desktop.ViewModels;
 public partial class CustomerSidePanelViewModel : ObservableObject
 {
     private readonly ICustomerService _customerService;
+    private readonly ICustomerGroupService _customerGroupService;
     private readonly Action _closeSidePanel;
     private readonly Func<Task> _refreshParent;
 
@@ -27,6 +28,12 @@ public partial class CustomerSidePanelViewModel : ObservableObject
 
     [ObservableProperty]
     private List<BusinessTypeDto> _businessTypes = new();
+
+    [ObservableProperty]
+    private List<CustomerGroupDto> _customerGroups = new();
+
+    [ObservableProperty]
+    private CustomerGroupDto? _selectedCustomerGroup;
 
     /// <summary>
     /// Title for the side panel form
@@ -60,10 +67,12 @@ public partial class CustomerSidePanelViewModel : ObservableObject
 
     public CustomerSidePanelViewModel(
         ICustomerService customerService,
+        ICustomerGroupService customerGroupService,
         Action closeSidePanel,
         Func<Task> refreshParent)
     {
         _customerService = customerService;
+        _customerGroupService = customerGroupService;
         _closeSidePanel = closeSidePanel;
         _refreshParent = refreshParent;
 
@@ -72,6 +81,9 @@ public partial class CustomerSidePanelViewModel : ObservableObject
         
         // Initialize business types (for now, add some sample data)
         InitializeBusinessTypes();
+        
+        // Load customer groups
+        _ = LoadCustomerGroupsAsync();
     }
 
     /// <summary>
@@ -87,6 +99,34 @@ public partial class CustomerSidePanelViewModel : ObservableObject
             new BusinessTypeDto { Id = 4, BusinessTypeName = "LLC", BusinessTypeNameAr = "ذات مسؤولية محدودة" },
             new BusinessTypeDto { Id = 5, BusinessTypeName = "Non-Profit", BusinessTypeNameAr = "غير ربحية" }
         };
+    }
+
+    /// <summary>
+    /// Load customer groups from the service
+    /// </summary>
+    private async Task LoadCustomerGroupsAsync()
+    {
+        try
+        {
+            var groups = await _customerGroupService.GetActiveAsync();
+            CustomerGroups = groups.ToList();
+            
+            // Add a "None" option at the beginning
+            CustomerGroups.Insert(0, new CustomerGroupDto 
+            { 
+                Id = 0, 
+                Name = "None",
+                NameAr = "لا يوجد"
+            });
+        }
+        catch (Exception ex)
+        {
+            // Log error or handle gracefully
+            CustomerGroups = new List<CustomerGroupDto>
+            {
+                new CustomerGroupDto { Id = 0, Name = "None", NameAr = "لا يوجد" }
+            };
+        }
     }
 
     /// <summary>
@@ -133,8 +173,20 @@ public partial class CustomerSidePanelViewModel : ObservableObject
             FinancePersonEmail = customer.FinancePersonEmail,
             PostDatedChequesAllowed = customer.PostDatedChequesAllowed,
             ShopId = customer.ShopId,
-            Status = customer.Status
+            Status = customer.Status,
+            CustomerGroupId = customer.CustomerGroupId
         };
+        
+        // Set the selected customer group
+        if (customer.CustomerGroupId.HasValue && customer.CustomerGroupId.Value > 0)
+        {
+            SelectedCustomerGroup = CustomerGroups.FirstOrDefault(g => g.Id == customer.CustomerGroupId.Value);
+        }
+        else
+        {
+            SelectedCustomerGroup = CustomerGroups.FirstOrDefault(g => g.Id == 0);
+        }
+        
         ClearValidation();
     }
 
@@ -290,6 +342,16 @@ public partial class CustomerSidePanelViewModel : ObservableObject
 
         try
         {
+            // Set CustomerGroupId from SelectedCustomerGroup
+            if (SelectedCustomerGroup != null && SelectedCustomerGroup.Id > 0)
+            {
+                EditingCustomer.CustomerGroupId = SelectedCustomerGroup.Id;
+            }
+            else
+            {
+                EditingCustomer.CustomerGroupId = null;
+            }
+            
             if (IsEditMode)
             {
                 await _customerService.UpdateCustomerAsync(EditingCustomer);

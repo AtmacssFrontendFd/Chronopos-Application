@@ -17,7 +17,7 @@ public class CustomerGroup
     [StringLength(100)]
     public string? NameAr { get; set; }
     
-    public int? SellingPriceTypeId { get; set; }
+    public long? SellingPriceTypeId { get; set; }
     
     public int? DiscountId { get; set; }
     

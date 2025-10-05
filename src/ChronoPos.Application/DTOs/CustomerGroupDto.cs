@@ -16,7 +16,7 @@ public class CustomerGroupDto
     [StringLength(100)]
     public string? NameAr { get; set; }
     
-    public int? SellingPriceTypeId { get; set; }
+    public long? SellingPriceTypeId { get; set; }
     
     public string? SellingPriceTypeName { get; set; }
     
@@ -74,7 +74,7 @@ public class CreateCustomerGroupDto
     [StringLength(100)]
     public string? NameAr { get; set; }
     
-    public int? SellingPriceTypeId { get; set; }
+    public long? SellingPriceTypeId { get; set; }
     
     public int? DiscountId { get; set; }
     
@@ -102,7 +102,7 @@ public class UpdateCustomerGroupDto
     [StringLength(100)]
     public string? NameAr { get; set; }
     
-    public int? SellingPriceTypeId { get; set; }
+    public long? SellingPriceTypeId { get; set; }
     
     public int? DiscountId { get; set; }
     

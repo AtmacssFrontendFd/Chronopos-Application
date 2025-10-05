@@ -232,6 +232,16 @@
                               Style="{StaticResource ComboBoxStyle}"/>
                 </StackPanel>
 
+                <!-- Customer Group -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Customer Group" Style="{StaticResource LabelStyle}"/>
+                    <ComboBox SelectedItem="{Binding SelectedCustomerGroup}"
+                              DisplayMemberPath="Name"
+                              ItemsSource="{Binding CustomerGroups}"
+                              Style="{StaticResource ComboBoxStyle}"
+                              ToolTip="Select a customer group for pricing and discounts"/>
+                </StackPanel>
+
                 <!-- Contact Information Section -->
                 <TextBlock Text="Contact Information" Style="{StaticResource SectionHeaderStyle}"/>
 

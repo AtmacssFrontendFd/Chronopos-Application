@@ -90,6 +90,12 @@ public class CustomerDto
     // System Fields
     public int? ShopId { get; set; }
     
+    public int? CustomerGroupId { get; set; }
+    
+    public string? CustomerGroupName { get; set; }
+    
+    public string? CustomerGroupNameAr { get; set; }
+    
     public string Status { get; set; } = "Active";
     
     public DateTime CreatedAt { get; set; }
