@@ -120,6 +120,10 @@ public partial class App : System.Windows.Application
                     services.AddTransient<ICustomerGroupService, CustomerGroupService>();
                     LogMessage("CustomerGroupService registered as Transient");
                     
+                    // Register ProductGroup service
+                    services.AddTransient<IProductGroupService, ProductGroupService>();
+                    LogMessage("ProductGroupService registered as Transient");
+                    
                     // Register Supplier service
                     services.AddTransient<ISupplierService, SupplierService>();
                     LogMessage("SupplierService registered as Transient");

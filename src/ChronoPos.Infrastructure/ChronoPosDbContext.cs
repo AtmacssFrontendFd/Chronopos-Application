@@ -72,6 +72,10 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<ProductAttributeValue> ProductAttributeValues { get; set; }
     public DbSet<ProductCombinationItem> ProductCombinationItems { get; set; }
 
+    // Product Grouping system entities
+    public DbSet<Domain.Entities.ProductGroup> ProductGroups { get; set; }
+    public DbSet<Domain.Entities.ProductGroupItem> ProductGroupItems { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -445,6 +449,86 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
 
             // Index on name for quick lookup
             entity.HasIndex(e => e.Name);
+        });
+
+        // Configure ProductGroup entity
+        modelBuilder.Entity<Domain.Entities.ProductGroup>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.NameAr).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.DescriptionAr).HasMaxLength(500);
+            entity.Property(e => e.SkuPrefix).HasMaxLength(20);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedDate).IsRequired();
+
+            // Relationships
+            entity.HasOne(e => e.Discount)
+                  .WithMany()
+                  .HasForeignKey(e => e.DiscountId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.TaxType)
+                  .WithMany()
+                  .HasForeignKey(e => e.TaxTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.PriceType)
+                  .WithMany()
+                  .HasForeignKey(e => e.PriceTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.CreatedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.CreatedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.ModifiedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.ModifiedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.DeletedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.DeletedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.IsDeleted);
+        });
+
+        // Configure ProductGroupItem entity
+        modelBuilder.Entity<Domain.Entities.ProductGroupItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Quantity).HasPrecision(18, 3).IsRequired();
+            entity.Property(e => e.PriceAdjustment).HasPrecision(18, 2);
+            entity.Property(e => e.DisplayOrder).HasDefaultValue(0);
+            entity.Property(e => e.IsRequired).HasDefaultValue(true);
+            entity.Property(e => e.CreatedDate).IsRequired();
+
+            // Relationships
+            entity.HasOne(e => e.ProductGroup)
+                  .WithMany(g => g.ProductGroupItems)
+                  .HasForeignKey(e => e.ProductGroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Product)
+                  .WithMany()
+                  .HasForeignKey(e => e.ProductId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Discount)
+                  .WithMany()
+                  .HasForeignKey(e => e.DiscountId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            entity.HasIndex(e => e.ProductGroupId);
+            entity.HasIndex(e => e.ProductId);
         });
 
         // Configure CustomerAddress entity

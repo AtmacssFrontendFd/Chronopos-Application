@@ -1258,6 +1258,10 @@ public partial class MainWindowViewModel : ObservableObject
                     case "ProductCombinations":
                         _ = ShowProductCombinations();
                         break;
+                    case "ProductGrouping":
+                    case "ProductGroups":
+                        _ = ShowProductGroups();
+                        break;
                     case "PriceTypes":
                         _ = ShowPriceTypes();
                         break;
@@ -1766,6 +1770,53 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error loading customer groups: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowProductGroups()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Product Groups Management";
+        StatusMessage = "Loading product groups...";
+        
+        try
+        {
+            // Create the ProductGroupsViewModel with all required services
+            var productGroupsViewModel = new ProductGroupsViewModel(
+                _serviceProvider.GetRequiredService<IProductGroupService>(),
+                _serviceProvider.GetRequiredService<IDiscountService>(),
+                _serviceProvider.GetRequiredService<ITaxTypeService>(),
+                _serviceProvider.GetRequiredService<ISellingPriceTypeService>(),
+                _serviceProvider.GetRequiredService<IProductService>()
+            );
+
+            // Set up back navigation to return to Add Options
+            productGroupsViewModel.GoBackAction = () =>
+            {
+                ShowAddOptionsCommand.Execute(null);
+            };
+
+            // Create the ProductGroupsView and set its DataContext
+            var productGroupsView = new ProductGroupsView
+            {
+                DataContext = productGroupsViewModel
+            };
+
+            CurrentView = productGroupsView;
+            StatusMessage = "Product groups loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading product groups: {ex.Message}";
             var errorContent = new System.Windows.Controls.TextBlock
             {
                 Text = $"Error: {ex.Message}",
