@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using System.Windows;
 using System.IO;
+using System.Threading.Tasks;
 using ChronoPos.Infrastructure;
 using ChronoPos.Infrastructure.Repositories;
 using ChronoPos.Infrastructure.Services;
@@ -32,6 +33,21 @@ public partial class App : System.Windows.Application
         _logFilePath = Path.Combine(chronoPosPath, "app.log");
         
         LogMessage("=== Application Starting ===");
+        
+        // Add global exception handlers
+        AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+        {
+            var ex = e.ExceptionObject as Exception;
+            LogMessage($"UNHANDLED EXCEPTION: {ex?.Message}");
+            LogMessage($"UNHANDLED STACK TRACE: {ex?.StackTrace}");
+        };
+        
+        DispatcherUnhandledException += (s, e) =>
+        {
+            LogMessage($"DISPATCHER EXCEPTION: {e.Exception.Message}");
+            LogMessage($"DISPATCHER STACK TRACE: {e.Exception.StackTrace}");
+            e.Handled = true; // Prevent app crash
+        };
         
         try
         {
@@ -266,6 +282,12 @@ public partial class App : System.Windows.Application
 
                     services.AddTransient<OnboardingWindow>();
                     LogMessage("OnboardingWindow registered as Transient");
+
+                    services.AddTransient<CreateAdminWindow>();
+                    LogMessage("CreateAdminWindow registered as Transient");
+
+                    services.AddTransient<LoginWindow>();
+                    LogMessage("LoginWindow registered as Transient");
                     
                     LogMessage("All services configured successfully");
                 })
@@ -443,6 +465,71 @@ public partial class App : System.Windows.Application
                 LogMessage("Valid license found");
             }
 
+            // After onboarding (or if already licensed), check if admin user exists
+            LogMessage("Checking for admin user...");
+            if (!await AdminUserExistsAsync())
+            {
+                LogMessage("No admin user found, showing create admin window...");
+                try
+                {
+                    LogMessage("Getting CreateAdminWindow from DI container...");
+                    var createAdminWindow = _host.Services.GetRequiredService<CreateAdminWindow>();
+                    LogMessage("CreateAdminWindow instance created successfully");
+                    
+                    // Set up a completion source to wait for the window
+                    var tcs = new System.Threading.Tasks.TaskCompletionSource<bool>();
+                    
+                    createAdminWindow.Closed += (s, args) =>
+                    {
+                        LogMessage($"CreateAdminWindow Closed event fired, AdminCreated: {createAdminWindow.AdminCreated}");
+                        tcs.SetResult(createAdminWindow.AdminCreated);
+                    };
+                    
+                    LogMessage("Calling ShowDialog on CreateAdminWindow...");
+                    createAdminWindow.ShowDialog();
+                    LogMessage("CreateAdminWindow.ShowDialog() returned");
+                    
+                    // Wait for the window to close
+                    LogMessage("Waiting for CreateAdminWindow to close...");
+                    var adminResult = await tcs.Task;
+                    LogMessage($"CreateAdminWindow completed with result: {adminResult}");
+                    
+                    if (!adminResult)
+                    {
+                        LogMessage("Admin creation cancelled, shutting down...");
+                        this.Shutdown();
+                        return;
+                    }
+                    
+                    LogMessage("Admin user created successfully");
+                }
+                catch (Exception ex)
+                {
+                    LogMessage($"Error showing CreateAdminWindow: {ex.Message}");
+                    LogMessage($"CreateAdminWindow error stack trace: {ex.StackTrace}");
+                    if (ex.InnerException != null)
+                    {
+                        LogMessage($"Inner exception: {ex.InnerException.Message}");
+                        LogMessage($"Inner exception stack trace: {ex.InnerException.StackTrace}");
+                    }
+                    throw;
+                }
+            }
+
+            // Always require login
+            LogMessage("Showing login window...");
+            var loginWindow = _host.Services.GetRequiredService<LoginWindow>();
+            var loginResult = loginWindow.ShowDialog();
+            
+            if (loginResult != true)
+            {
+                LogMessage("Login cancelled or failed, shutting down...");
+                this.Shutdown();
+                return;
+            }
+            
+            LogMessage($"User logged in successfully (User ID: {loginWindow.LoggedInUserId})");
+
             LogMessage("Getting MainWindow...");
             var mainWindow = _host.Services.GetRequiredService<MainWindow>();
             LogMessage("MainWindow retrieved, showing...");
@@ -506,6 +593,47 @@ public partial class App : System.Windows.Application
             LogMessage($"Language seeding stack trace: {ex.StackTrace}");
             // Don't crash the application, just log the error
             Console.WriteLine($"Warning: Language seeding failed: {ex.Message}");
+        }
+    }
+
+    private async Task<bool> AdminUserExistsAsync()
+    {
+        try
+        {
+            using var scope = _host.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
+            
+            // Check if Users table exists
+            var tableExists = await dbContext.Database.CanConnectAsync();
+            LogMessage($"Database connection status: {tableExists}");
+            
+            // Count users
+            var userCount = await dbContext.Users.CountAsync(u => !u.Deleted);
+            LogMessage($"Found {userCount} non-deleted users in database");
+            
+            var userExists = userCount > 0;
+            
+            if (userExists)
+            {
+                // Log the users for debugging
+                var users = await dbContext.Users.Where(u => !u.Deleted).Select(u => new { u.Id, u.Email, u.FullName }).ToListAsync();
+                foreach (var user in users)
+                {
+                    LogMessage($"Existing user found: ID={user.Id}, Email={user.Email}, Name={user.FullName}");
+                }
+            }
+            else
+            {
+                LogMessage("No admin users found in database");
+            }
+            
+            return userExists;
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"Error checking for admin user: {ex.Message}");
+            LogMessage($"Stack trace: {ex.StackTrace}");
+            return false;
         }
     }
 
