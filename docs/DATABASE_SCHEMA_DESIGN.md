@@ -930,7 +930,7 @@ CREATE TABLE `product_modifier_groups` (
 CREATE TABLE `product_modifier_group_items` (
   `id` int PRIMARY KEY AUTO_INCREMENT,
   `group_id` int NOT NULL,
-  `modifier_id` int NOT NULL,
+  `product_unit_id` int NOT NULL,
   `price_adjustment` decimal(10,2) DEFAULT 0,
   `sort_order` int DEFAULT 0,
   `default_selection` boolean DEFAULT false,

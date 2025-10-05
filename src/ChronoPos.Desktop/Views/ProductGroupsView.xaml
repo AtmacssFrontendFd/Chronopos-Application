@@ -1,0 +1,352 @@
+<UserControl x:Class="ChronoPos.Desktop.Views.ProductGroupsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ChronoPos.Desktop.Views.Controls"
+             xmlns:userControls="clr-namespace:ChronoPos.Desktop.UserControls"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1200"
+             Background="{DynamicResource ApplicationBackground}"
+             FlowDirection="{Binding CurrentFlowDirection}"
+             FontFamily="{DynamicResource PoppinsFontFallback}">
+
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:BoolToGridLengthConverter x:Key="BoolToGridLengthConverter"/>
+        <converters:StringToBooleanConverter x:Key="StringToBooleanConverter"/>
+    </UserControl.Resources>
+    
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="{Binding IsSidePanelVisible, Converter={StaticResource BoolToGridLengthConverter}, ConverterParameter='500'}"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Main Content -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header Section -->
+            <Grid Grid.Row="0" Margin="20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Back Button and Title -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <controls:CircularBackButton 
+                        VerticalAlignment="Center"
+                        Command="{Binding GoBackCommand}"
+                        ButtonSize="30"
+                        ButtonBackground="{DynamicResource SurfaceBackground}"
+                        ButtonForeground="{DynamicResource TextSecondary}"
+                        ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                        ButtonHoverForeground="{DynamicResource TextSecondary}"
+                        Margin="0,0,10,0"/>
+
+                    <TextBlock Text="Product Groups" 
+                               FontSize="24" 
+                               FontWeight="Bold" 
+                               Foreground="{DynamicResource TextPrimary}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Add Button -->
+                <Button Grid.Column="2"
+                        Content="+ Add Product Group"
+                        Command="{Binding AddProductGroupCommand}"
+                        Background="{DynamicResource Primary}"
+                        Foreground="White"
+                        Padding="15,8"
+                        FontSize="14"
+                        BorderThickness="0"
+                        Cursor="Hand">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="4"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center" 
+                                                            VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Opacity" Value="0.8"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
+
+            <!-- Search and Filter Section -->
+            <Grid Grid.Row="1" Margin="20,0,20,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Search Box -->
+                <Border Grid.Column="0" 
+                        Background="{DynamicResource SurfaceBackground}"
+                        CornerRadius="4"
+                        Padding="10"
+                        Margin="0,0,10,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" 
+                                   Text="🔍" 
+                                   FontSize="16" 
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0"
+                                   Foreground="{DynamicResource TextSecondary}"/>
+
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 FontSize="14"
+                                 Foreground="{DynamicResource TextPrimary}"
+                                 VerticalAlignment="Center">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="TextBox">
+                                                <Border Background="{TemplateBinding Background}"
+                                                        BorderThickness="{TemplateBinding BorderThickness}">
+                                                    <ScrollViewer x:Name="PART_ContentHost" 
+                                                                Margin="0"
+                                                                VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+                    </Grid>
+                </Border>
+
+                <!-- Filter and Refresh Buttons -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="{Binding ActiveFilterButtonText}"
+                            Command="{Binding ToggleActiveFilterCommand}"
+                            Background="{DynamicResource SurfaceBackground}"
+                            Foreground="{DynamicResource TextPrimary}"
+                            Padding="15,8"
+                            FontSize="14"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Margin="0,0,10,0">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    CornerRadius="4"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center" 
+                                                                VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Button Content="↻ Refresh"
+                            Command="{Binding LoadProductGroupsCommand}"
+                            Background="{DynamicResource SurfaceBackground}"
+                            Foreground="{DynamicResource TextPrimary}"
+                            Padding="15,8"
+                            FontSize="14"
+                            BorderThickness="0"
+                            Cursor="Hand">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    CornerRadius="4"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center" 
+                                                                VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- DataGrid Section -->
+            <Border Grid.Row="2" 
+                    Background="{DynamicResource SurfaceBackground}"
+                    CornerRadius="8"
+                    Margin="20,0,20,20"
+                    Padding="10">
+                <Grid>
+                    <!-- Empty State -->
+                    <TextBlock Text="No product groups found. Click '+ Add Product Group' to create one."
+                               FontSize="14"
+                               Foreground="{DynamicResource TextSecondary}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap"
+                               Visibility="{Binding HasProductGroups, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverted}"/>
+
+                    <!-- DataGrid -->
+                    <DataGrid ItemsSource="{Binding FilteredProductGroups}"
+                              SelectedItem="{Binding SelectedProductGroup, Mode=TwoWay}"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              GridLinesVisibility="None"
+                              HeadersVisibility="Column"
+                              Background="Transparent"
+                              BorderThickness="0"
+                              RowBackground="Transparent"
+                              AlternatingRowBackground="{DynamicResource OverlayBackground}"
+                              Foreground="{DynamicResource TextPrimary}"
+                              FontSize="13"
+                              Visibility="{Binding HasProductGroups, Converter={StaticResource BoolToVisibilityConverter}}">
+                        
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="FontSize" Value="13"/>
+                                <Setter Property="Padding" Value="10,8"/>
+                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+
+                        <DataGrid.CellStyle>
+                            <Style TargetType="DataGridCell">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Padding" Value="10,8"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="DataGridCell">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.CellStyle>
+
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" MinWidth="150"/>
+                            <DataGridTextColumn Header="Name (AR)" Binding="{Binding NameAr}" Width="*" MinWidth="150"/>
+                            <DataGridTextColumn Header="SKU Prefix" Binding="{Binding SkuPrefix}" Width="120"/>
+                            <DataGridTextColumn Header="Items" Binding="{Binding ItemCount}" Width="80"/>
+                            <DataGridTextColumn Header="Tax Type" Binding="{Binding TaxTypeName}" Width="120"/>
+                            <DataGridTextColumn Header="Price Type" Binding="{Binding PriceTypeName}" Width="120"/>
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100"/>
+                            
+                            <!-- Actions Column -->
+                            <DataGridTemplateColumn Header="Actions" Width="150">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <Button Content="✏️ Edit"
+                                                    Command="{Binding DataContext.EditProductGroupCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                    Background="Transparent"
+                                                    Foreground="{DynamicResource Primary}"
+                                                    BorderThickness="0"
+                                                    Padding="8,4"
+                                                    Cursor="Hand"
+                                                    FontSize="12"
+                                                    Margin="0,0,5,0"/>
+                                            
+                                            <Button Content="🗑️ Delete"
+                                                    Command="{Binding DataContext.DeleteProductGroupCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                    Background="Transparent"
+                                                    Foreground="{DynamicResource Error}"
+                                                    BorderThickness="0"
+                                                    Padding="8,4"
+                                                    Cursor="Hand"
+                                                    FontSize="12"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Side Panel -->
+        <Border Grid.Column="1"
+                Background="{DynamicResource SurfaceBackground}"
+                BorderBrush="{DynamicResource BorderColor}"
+                BorderThickness="1,0,0,0"
+                Visibility="{Binding IsSidePanelVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+            <userControls:ProductGroupSidePanelControl DataContext="{Binding SidePanelViewModel}"/>
+        </Border>
+    </Grid>
+</UserControl>

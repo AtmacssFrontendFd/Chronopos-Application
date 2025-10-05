@@ -20,6 +20,7 @@
         <converters:FlowDirectionToHorizontalAlignmentConverter x:Key="FlowDirectionToHorizontalAlignmentConverter"/>
         <converters:BoolToGridLengthConverter x:Key="BoolToGridLengthConverter"/>
         <converters:BooleanToStringConverter x:Key="BooleanToStringConverter"/>
+        <converters:StringToBooleanConverter x:Key="StringToBooleanConverter" TrueValue="Active" FalseValue="Inactive"/>
     </UserControl.Resources>
 
     <Grid>
@@ -276,7 +277,7 @@
                     <DataGrid.Columns>
                         <!-- Full Name Column -->
                         <DataGridTextColumn Header="Name" 
-                                          Binding="{Binding FullName}" 
+                                          Binding="{Binding DisplayName}" 
                                           Width="200"
                                           MinWidth="150">
                             <DataGridTextColumn.ElementStyle>
@@ -290,7 +291,7 @@
 
                         <!-- Email Column -->
                         <DataGridTextColumn Header="Email" 
-                                          Binding="{Binding Email}" 
+                                          Binding="{Binding OfficialEmail}" 
                                           Width="250"
                                           MinWidth="200">
                             <DataGridTextColumn.ElementStyle>
@@ -303,7 +304,7 @@
 
                         <!-- Phone Column -->
                         <DataGridTextColumn Header="Phone" 
-                                          Binding="{Binding PhoneNumber}" 
+                                          Binding="{Binding MobileNo}" 
                                           Width="150"
                                           MinWidth="120">
                             <DataGridTextColumn.ElementStyle>
@@ -314,15 +315,21 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
-                        <!-- Address Column -->
-                        <DataGridTextColumn Header="Address" 
-                                          Binding="{Binding Address}" 
-                                          Width="*"
-                                          MinWidth="200">
+                        <!-- Customer Type Column -->
+                        <DataGridTextColumn Header="Type" 
+                                          Width="100"
+                                          MinWidth="80">
+                            <DataGridTextColumn.Binding>
+                                <Binding Path="IsBusiness">
+                                    <Binding.Converter>
+                                        <converters:BoolToStringConverter TrueValue="Business" FalseValue="Individual"/>
+                                    </Binding.Converter>
+                                </Binding>
+                            </DataGridTextColumn.Binding>
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="FontWeight" Value="Medium"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
@@ -338,7 +345,7 @@
                                             <Style TargetType="Border">
                                                 <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                    <DataTrigger Binding="{Binding Status}" Value="Active">
                                                         <Setter Property="Background" Value="{DynamicResource Primary}"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
@@ -347,11 +354,8 @@
                                         <TextBlock Foreground="White"
                                                    FontSize="{DynamicResource FontSizeExtraSmall}"
                                                    FontWeight="SemiBold"
-                                                   HorizontalAlignment="Center">
-                                            <TextBlock.Text>
-                                                <Binding Path="IsActive" Converter="{StaticResource BooleanToStringConverter}" ConverterParameter="Active;Inactive"/>
-                                            </TextBlock.Text>
-                                        </TextBlock>
+                                                   HorizontalAlignment="Center"
+                                                   Text="{Binding Status}"/>
                                     </Border>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -361,7 +365,7 @@
                         <DataGridTemplateColumn Header="Active" Width="80">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <ToggleButton IsChecked="{Binding IsActive, Mode=OneWay}"
+                                    <ToggleButton IsChecked="{Binding Status, Converter={StaticResource StringToBooleanConverter}, Mode=TwoWay}"
                                                   Command="{Binding DataContext.ToggleActiveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                   CommandParameter="{Binding}"
                                                   Width="50"

@@ -10,6 +10,7 @@ namespace ChronoPos.Desktop.ViewModels;
 public partial class CustomerSidePanelViewModel : ObservableObject
 {
     private readonly ICustomerService _customerService;
+    private readonly ICustomerGroupService _customerGroupService;
     private readonly Action _closeSidePanel;
     private readonly Func<Task> _refreshParent;
 
@@ -25,22 +26,107 @@ public partial class CustomerSidePanelViewModel : ObservableObject
     [ObservableProperty]
     private string _validationMessage = string.Empty;
 
+    [ObservableProperty]
+    private List<BusinessTypeDto> _businessTypes = new();
+
+    [ObservableProperty]
+    private List<CustomerGroupDto> _customerGroups = new();
+
+    [ObservableProperty]
+    private CustomerGroupDto? _selectedCustomerGroup;
+
     /// <summary>
     /// Title for the side panel form
     /// </summary>
     public string FormTitle => IsEditMode ? "Edit Customer" : "Add Customer";
 
+    /// <summary>
+    /// Property for individual customer radio button binding
+    /// </summary>
+    public bool IsIndividualCustomer
+    {
+        get => !EditingCustomer.IsBusiness;
+        set
+        {
+            if (value && EditingCustomer.IsBusiness)
+            {
+                EditingCustomer.IsBusiness = false;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(EditingCustomer));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handle when editing customer IsBusiness property changes
+    /// </summary>
+    partial void OnEditingCustomerChanged(CustomerDto value)
+    {
+        OnPropertyChanged(nameof(IsIndividualCustomer));
+    }
+
     public CustomerSidePanelViewModel(
         ICustomerService customerService,
+        ICustomerGroupService customerGroupService,
         Action closeSidePanel,
         Func<Task> refreshParent)
     {
         _customerService = customerService;
+        _customerGroupService = customerGroupService;
         _closeSidePanel = closeSidePanel;
         _refreshParent = refreshParent;
 
         // Initialize new customer
         ResetForm();
+        
+        // Initialize business types (for now, add some sample data)
+        InitializeBusinessTypes();
+        
+        // Load customer groups
+        _ = LoadCustomerGroupsAsync();
+    }
+
+    /// <summary>
+    /// Initialize business types for the dropdown
+    /// </summary>
+    private void InitializeBusinessTypes()
+    {
+        BusinessTypes = new List<BusinessTypeDto>
+        {
+            new BusinessTypeDto { Id = 1, BusinessTypeName = "Corporation", BusinessTypeNameAr = "شركة" },
+            new BusinessTypeDto { Id = 2, BusinessTypeName = "Partnership", BusinessTypeNameAr = "شراكة" },
+            new BusinessTypeDto { Id = 3, BusinessTypeName = "Sole Proprietorship", BusinessTypeNameAr = "ملكية فردية" },
+            new BusinessTypeDto { Id = 4, BusinessTypeName = "LLC", BusinessTypeNameAr = "ذات مسؤولية محدودة" },
+            new BusinessTypeDto { Id = 5, BusinessTypeName = "Non-Profit", BusinessTypeNameAr = "غير ربحية" }
+        };
+    }
+
+    /// <summary>
+    /// Load customer groups from the service
+    /// </summary>
+    private async Task LoadCustomerGroupsAsync()
+    {
+        try
+        {
+            var groups = await _customerGroupService.GetActiveAsync();
+            CustomerGroups = groups.ToList();
+            
+            // Add a "None" option at the beginning
+            CustomerGroups.Insert(0, new CustomerGroupDto 
+            { 
+                Id = 0, 
+                Name = "None",
+                NameAr = "لا يوجد"
+            });
+        }
+        catch (Exception ex)
+        {
+            // Log error or handle gracefully
+            CustomerGroups = new List<CustomerGroupDto>
+            {
+                new CustomerGroupDto { Id = 0, Name = "None", NameAr = "لا يوجد" }
+            };
+        }
     }
 
     /// <summary>
@@ -62,13 +148,45 @@ public partial class CustomerSidePanelViewModel : ObservableObject
         EditingCustomer = new CustomerDto
         {
             Id = customer.Id,
-            FirstName = customer.FirstName,
-            LastName = customer.LastName,
-            Email = customer.Email,
-            PhoneNumber = customer.PhoneNumber,
-            Address = customer.Address,
-            IsActive = customer.IsActive
+            CustomerFullName = customer.CustomerFullName,
+            BusinessFullName = customer.BusinessFullName,
+            IsBusiness = customer.IsBusiness,
+            BusinessTypeId = customer.BusinessTypeId,
+            CustomerBalanceAmount = customer.CustomerBalanceAmount,
+            LicenseNo = customer.LicenseNo,
+            TrnNo = customer.TrnNo,
+            MobileNo = customer.MobileNo,
+            HomePhone = customer.HomePhone,
+            OfficePhone = customer.OfficePhone,
+            ContactMobileNo = customer.ContactMobileNo,
+            OfficialEmail = customer.OfficialEmail,
+            CreditAllowed = customer.CreditAllowed,
+            CreditAmountMax = customer.CreditAmountMax,
+            CreditDays = customer.CreditDays,
+            CreditReference1Name = customer.CreditReference1Name,
+            CreditReference2Name = customer.CreditReference2Name,
+            KeyContactName = customer.KeyContactName,
+            KeyContactMobile = customer.KeyContactMobile,
+            KeyContactEmail = customer.KeyContactEmail,
+            FinancePersonName = customer.FinancePersonName,
+            FinancePersonMobile = customer.FinancePersonMobile,
+            FinancePersonEmail = customer.FinancePersonEmail,
+            PostDatedChequesAllowed = customer.PostDatedChequesAllowed,
+            ShopId = customer.ShopId,
+            Status = customer.Status,
+            CustomerGroupId = customer.CustomerGroupId
         };
+        
+        // Set the selected customer group
+        if (customer.CustomerGroupId.HasValue && customer.CustomerGroupId.Value > 0)
+        {
+            SelectedCustomerGroup = CustomerGroups.FirstOrDefault(g => g.Id == customer.CustomerGroupId.Value);
+        }
+        else
+        {
+            SelectedCustomerGroup = CustomerGroups.FirstOrDefault(g => g.Id == 0);
+        }
+        
         ClearValidation();
     }
 
@@ -79,12 +197,29 @@ public partial class CustomerSidePanelViewModel : ObservableObject
     {
         EditingCustomer = new CustomerDto
         {
-            FirstName = string.Empty,
-            LastName = string.Empty,
-            Email = string.Empty,
-            PhoneNumber = string.Empty,
-            Address = string.Empty,
-            IsActive = true
+            CustomerFullName = string.Empty,
+            BusinessFullName = string.Empty,
+            IsBusiness = false,
+            MobileNo = string.Empty,
+            HomePhone = string.Empty,
+            OfficePhone = string.Empty,
+            ContactMobileNo = string.Empty,
+            OfficialEmail = string.Empty,
+            CreditAllowed = false,
+            CreditAmountMax = null,
+            CreditDays = null,
+            CreditReference1Name = string.Empty,
+            CreditReference2Name = string.Empty,
+            KeyContactName = string.Empty,
+            KeyContactMobile = string.Empty,
+            KeyContactEmail = string.Empty,
+            FinancePersonName = string.Empty,
+            FinancePersonMobile = string.Empty,
+            FinancePersonEmail = string.Empty,
+            LicenseNo = string.Empty,
+            TrnNo = string.Empty,
+            PostDatedChequesAllowed = false,
+            Status = "Active"
         };
     }
 
@@ -104,24 +239,73 @@ public partial class CustomerSidePanelViewModel : ObservableObject
     {
         ClearValidation();
 
-        if (string.IsNullOrWhiteSpace(EditingCustomer.FirstName))
+        // Validate customer type and name
+        if (EditingCustomer.IsBusiness)
         {
-            SetValidationError("First name is required.");
+            if (string.IsNullOrWhiteSpace(EditingCustomer.BusinessFullName))
+            {
+                SetValidationError("Business name is required for business customers.");
+                return false;
+            }
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(EditingCustomer.CustomerFullName))
+            {
+                SetValidationError("Customer name is required for individual customers.");
+                return false;
+            }
+        }
+
+        // Validate mobile number (required)
+        if (string.IsNullOrWhiteSpace(EditingCustomer.MobileNo))
+        {
+            SetValidationError("Mobile number is required.");
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(EditingCustomer.LastName))
+        // Validate email if provided
+        if (!string.IsNullOrWhiteSpace(EditingCustomer.OfficialEmail))
         {
-            SetValidationError("Last name is required.");
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(EditingCustomer.Email))
-        {
-            // Basic email validation
-            if (!EditingCustomer.Email.Contains("@") || !EditingCustomer.Email.Contains("."))
+            if (!EditingCustomer.OfficialEmail.Contains("@") || !EditingCustomer.OfficialEmail.Contains("."))
             {
                 SetValidationError("Please enter a valid email address.");
+                return false;
+            }
+        }
+
+        // Validate key contact email if provided
+        if (!string.IsNullOrWhiteSpace(EditingCustomer.KeyContactEmail))
+        {
+            if (!EditingCustomer.KeyContactEmail.Contains("@") || !EditingCustomer.KeyContactEmail.Contains("."))
+            {
+                SetValidationError("Please enter a valid key contact email address.");
+                return false;
+            }
+        }
+
+        // Validate finance person email if provided
+        if (!string.IsNullOrWhiteSpace(EditingCustomer.FinancePersonEmail))
+        {
+            if (!EditingCustomer.FinancePersonEmail.Contains("@") || !EditingCustomer.FinancePersonEmail.Contains("."))
+            {
+                SetValidationError("Please enter a valid finance person email address.");
+                return false;
+            }
+        }
+
+        // Validate credit settings
+        if (EditingCustomer.CreditAllowed)
+        {
+            if (!EditingCustomer.CreditAmountMax.HasValue || EditingCustomer.CreditAmountMax <= 0)
+            {
+                SetValidationError("Credit amount must be greater than zero when credit is allowed.");
+                return false;
+            }
+            
+            if (!EditingCustomer.CreditDays.HasValue || EditingCustomer.CreditDays <= 0)
+            {
+                SetValidationError("Credit days must be greater than zero when credit is allowed.");
                 return false;
             }
         }
@@ -158,6 +342,16 @@ public partial class CustomerSidePanelViewModel : ObservableObject
 
         try
         {
+            // Set CustomerGroupId from SelectedCustomerGroup
+            if (SelectedCustomerGroup != null && SelectedCustomerGroup.Id > 0)
+            {
+                EditingCustomer.CustomerGroupId = SelectedCustomerGroup.Id;
+            }
+            else
+            {
+                EditingCustomer.CustomerGroupId = null;
+            }
+            
             if (IsEditMode)
             {
                 await _customerService.UpdateCustomerAsync(EditingCustomer);

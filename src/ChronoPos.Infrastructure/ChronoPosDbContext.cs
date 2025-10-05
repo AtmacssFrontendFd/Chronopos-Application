@@ -18,6 +18,9 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.Product> Products { get; set; }
     public DbSet<Domain.Entities.Category> Categories { get; set; }
     public DbSet<Domain.Entities.Customer> Customers { get; set; }
+    public DbSet<Domain.Entities.CustomerGroup> CustomerGroups { get; set; }
+    public DbSet<Domain.Entities.BusinessType> BusinessTypes { get; set; }
+    public DbSet<Domain.Entities.CustomerAddress> CustomerAddresses { get; set; }
     public DbSet<Domain.Entities.Supplier> Suppliers { get; set; }
     public DbSet<Domain.Entities.Sale> Sales { get; set; }
     public DbSet<Domain.Entities.SaleItem> SaleItems { get; set; }
@@ -77,6 +80,10 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<ProductAttribute> ProductAttributes { get; set; }
     public DbSet<ProductAttributeValue> ProductAttributeValues { get; set; }
     public DbSet<ProductCombinationItem> ProductCombinationItems { get; set; }
+
+    // Product Grouping system entities
+    public DbSet<Domain.Entities.ProductGroup> ProductGroups { get; set; }
+    public DbSet<Domain.Entities.ProductGroupItem> ProductGroupItems { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -405,16 +412,180 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
         modelBuilder.Entity<Domain.Entities.Customer>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.FirstName).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.LastName).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.Email).HasMaxLength(200);
-            entity.Property(e => e.PhoneNumber).HasMaxLength(20);
-            entity.Property(e => e.Address).HasMaxLength(500);
+            entity.Property(e => e.CustomerFullName).HasMaxLength(150);
+            entity.Property(e => e.BusinessFullName).HasMaxLength(150);
+            entity.Property(e => e.IsBusiness).IsRequired();
+            entity.Property(e => e.LicenseNo).HasMaxLength(50);
+            entity.Property(e => e.TrnNo).HasMaxLength(50);
+            entity.Property(e => e.MobileNo).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.HomePhone).HasMaxLength(20);
+            entity.Property(e => e.OfficePhone).HasMaxLength(20);
+            entity.Property(e => e.ContactMobileNo).HasMaxLength(20);
+            entity.Property(e => e.OfficialEmail).HasMaxLength(100);
+            entity.Property(e => e.KeyContactName).HasMaxLength(150);
+            entity.Property(e => e.KeyContactMobile).HasMaxLength(20);
+            entity.Property(e => e.KeyContactEmail).HasMaxLength(100);
+            entity.Property(e => e.FinancePersonName).HasMaxLength(150);
+            entity.Property(e => e.FinancePersonMobile).HasMaxLength(20);
+            entity.Property(e => e.FinancePersonEmail).HasMaxLength(100);
+            entity.Property(e => e.CreditReference1Name).HasMaxLength(150);
+            entity.Property(e => e.CreditReference2Name).HasMaxLength(150);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
             entity.Property(e => e.CreatedAt).IsRequired();
             entity.Property(e => e.UpdatedAt).IsRequired();
 
-            // Index on email for quick lookup
-            entity.HasIndex(e => e.Email).IsUnique();
+            // Relationships
+            entity.HasOne(e => e.BusinessType)
+                  .WithMany(bt => bt.Customers)
+                  .HasForeignKey(e => e.BusinessTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.CustomerGroup)
+                  .WithMany(cg => cg.Customers)
+                  .HasForeignKey(e => e.CustomerGroupId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasMany(e => e.Addresses)
+                  .WithOne(a => a.Customer)
+                  .HasForeignKey(a => a.CustomerId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Index on mobile for quick lookup
+            entity.HasIndex(e => e.MobileNo);
+            entity.HasIndex(e => e.OfficialEmail);
+        });
+
+        // Configure BusinessType entity
+        modelBuilder.Entity<Domain.Entities.BusinessType>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.BusinessTypeName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.BusinessTypeNameAr).HasMaxLength(100);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+        });
+
+        // Configure CustomerGroup entity
+        modelBuilder.Entity<Domain.Entities.CustomerGroup>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.NameAr).HasMaxLength(100);
+            entity.Property(e => e.DiscountValue).HasPrecision(18, 2);
+            entity.Property(e => e.DiscountMaxValue).HasPrecision(18, 2);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Relationships
+            entity.HasOne(e => e.SellingPriceType)
+                  .WithMany()
+                  .HasForeignKey(e => e.SellingPriceTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.Discount)
+                  .WithMany()
+                  .HasForeignKey(e => e.DiscountId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Index on name for quick lookup
+            entity.HasIndex(e => e.Name);
+        });
+
+        // Configure ProductGroup entity
+        modelBuilder.Entity<Domain.Entities.ProductGroup>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.NameAr).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.DescriptionAr).HasMaxLength(500);
+            entity.Property(e => e.SkuPrefix).HasMaxLength(20);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedDate).IsRequired();
+
+            // Relationships
+            entity.HasOne(e => e.Discount)
+                  .WithMany()
+                  .HasForeignKey(e => e.DiscountId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.TaxType)
+                  .WithMany()
+                  .HasForeignKey(e => e.TaxTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.PriceType)
+                  .WithMany()
+                  .HasForeignKey(e => e.PriceTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.CreatedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.CreatedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.ModifiedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.ModifiedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.DeletedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.DeletedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.IsDeleted);
+        });
+
+        // Configure ProductGroupItem entity
+        modelBuilder.Entity<Domain.Entities.ProductGroupItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Quantity).HasPrecision(18, 3).IsRequired();
+            entity.Property(e => e.PriceAdjustment).HasPrecision(18, 2);
+            entity.Property(e => e.DisplayOrder).HasDefaultValue(0);
+            entity.Property(e => e.IsRequired).HasDefaultValue(true);
+            entity.Property(e => e.CreatedDate).IsRequired();
+
+            // Relationships
+            entity.HasOne(e => e.ProductGroup)
+                  .WithMany(g => g.ProductGroupItems)
+                  .HasForeignKey(e => e.ProductGroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Product)
+                  .WithMany()
+                  .HasForeignKey(e => e.ProductId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Discount)
+                  .WithMany()
+                  .HasForeignKey(e => e.DiscountId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            entity.HasIndex(e => e.ProductGroupId);
+            entity.HasIndex(e => e.ProductId);
+        });
+
+        // Configure CustomerAddress entity
+        modelBuilder.Entity<Domain.Entities.CustomerAddress>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AddressLine1).HasMaxLength(255);
+            entity.Property(e => e.AddressLine2).HasMaxLength(255);
+            entity.Property(e => e.PoBox).HasMaxLength(50);
+            entity.Property(e => e.Area).HasMaxLength(100);
+            entity.Property(e => e.City).HasMaxLength(100);
+            entity.Property(e => e.Landmark).HasMaxLength(255);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
         });
 
         // Configure Supplier entity
@@ -1320,10 +1491,41 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             new Domain.Entities.PaymentType { Id = 6, Name = "Check", PaymentCode = "CHK", NameAr = "شيك", Status = true, CreatedBy = 1, CreatedAt = baseDate }
         );
 
+        // Seed Business Types
+        modelBuilder.Entity<Domain.Entities.BusinessType>().HasData(
+            new Domain.Entities.BusinessType { Id = 1, BusinessTypeName = "Corporation", BusinessTypeNameAr = "شركة", Status = "Active", CreatedAt = baseDate, UpdatedAt = baseDate },
+            new Domain.Entities.BusinessType { Id = 2, BusinessTypeName = "Partnership", BusinessTypeNameAr = "شراكة", Status = "Active", CreatedAt = baseDate, UpdatedAt = baseDate },
+            new Domain.Entities.BusinessType { Id = 3, BusinessTypeName = "Sole Proprietorship", BusinessTypeNameAr = "ملكية فردية", Status = "Active", CreatedAt = baseDate, UpdatedAt = baseDate },
+            new Domain.Entities.BusinessType { Id = 4, BusinessTypeName = "LLC", BusinessTypeNameAr = "ذات مسؤولية محدودة", Status = "Active", CreatedAt = baseDate, UpdatedAt = baseDate },
+            new Domain.Entities.BusinessType { Id = 5, BusinessTypeName = "Non-Profit", BusinessTypeNameAr = "غير ربحية", Status = "Active", CreatedAt = baseDate, UpdatedAt = baseDate }
+        );
+
         // Seed Customers
         modelBuilder.Entity<Domain.Entities.Customer>().HasData(
-            new Domain.Entities.Customer { Id = 1, FirstName = "John", LastName = "Doe", Email = "john.doe@email.com", PhoneNumber = "555-0101", Address = "123 Main St, City, State", CreatedAt = baseDate, UpdatedAt = baseDate },
-            new Domain.Entities.Customer { Id = 2, FirstName = "Jane", LastName = "Smith", Email = "jane.smith@email.com", PhoneNumber = "555-0102", Address = "456 Oak Ave, City, State", CreatedAt = baseDate, UpdatedAt = baseDate }
+            new Domain.Entities.Customer 
+            { 
+                Id = 1, 
+                CustomerFullName = "John Doe", 
+                IsBusiness = false,
+                MobileNo = "555-0101", 
+                OfficialEmail = "john.doe@email.com",
+                Status = "Active",
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Customer 
+            { 
+                Id = 2, 
+                BusinessFullName = "Smith Corporation", 
+                IsBusiness = true,
+                MobileNo = "555-0102", 
+                OfficialEmail = "info@smithcorp.com",
+                LicenseNo = "BL123456",
+                TrnNo = "TRN789012",
+                Status = "Active",
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            }
         );
 
         // Seed Languages
