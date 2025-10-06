@@ -18,10 +18,40 @@ namespace ChronoPos.Desktop.Views
 
         public LoginWindow(IServiceProvider serviceProvider)
         {
-            InitializeComponent();
-            _serviceProvider = serviceProvider;
-            LoadSavedUsername();
-            UsernameTextBox.Focus();
+            LogMessage("LoginWindow constructor called");
+            try
+            {
+                InitializeComponent();
+                LogMessage("LoginWindow InitializeComponent completed");
+                
+                _serviceProvider = serviceProvider;
+                
+                // Add window closing handler
+                Closing += LoginWindow_Closing;
+                
+                LoadSavedUsername();
+                UsernameTextBox.Focus();
+                
+                LogMessage("LoginWindow constructor completed successfully");
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"LoginWindow constructor error: {ex.Message}");
+                LogMessage($"LoginWindow constructor stack trace: {ex.StackTrace}");
+                throw;
+            }
+        }
+
+        private void LoginWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            LogMessage($"LoginWindow is closing. DialogResult: {DialogResult}");
+            
+            // If closing without successful login, set DialogResult to false
+            if (DialogResult != true)
+            {
+                DialogResult = false;
+                LogMessage("LoginWindow DialogResult set to false (no successful login)");
+            }
         }
 
         private void LoadSavedUsername()
@@ -114,9 +144,14 @@ namespace ChronoPos.Desktop.Views
                         ClearSavedUsername();
                     }
 
+                    LogMessage($">>> Login successful for user: {user.Email} (ID: {user.Id})");
                     LoggedInUserId = user.Id;
+                    LogMessage($">>> Setting DialogResult = true");
                     DialogResult = true;
+                    LogMessage($">>> DialogResult set successfully");
+                    LogMessage($">>> Calling Close()");
                     Close();
+                    LogMessage($">>> Close() completed");
                 }
             }
             catch (Exception ex)
@@ -148,6 +183,22 @@ namespace ChronoPos.Desktop.Views
         {
             ErrorTextBlock.Text = message;
             ErrorBorder.Visibility = Visibility.Visible;
+        }
+
+        private void LogMessage(string message)
+        {
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var logPath = System.IO.Path.Combine(appDataPath, "ChronoPos", "app.log");
+            var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}";
+            Console.WriteLine(logEntry);
+            try
+            {
+                System.IO.File.AppendAllText(logPath, logEntry + Environment.NewLine);
+            }
+            catch
+            {
+                // Ignore file write errors
+            }
         }
 
         private string HashPassword(string password)

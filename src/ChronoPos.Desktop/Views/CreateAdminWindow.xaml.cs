@@ -23,6 +23,10 @@ namespace ChronoPos.Desktop.Views
                 InitializeComponent();
                 LogMessage("CreateAdminWindow InitializeComponent completed");
                 _serviceProvider = serviceProvider;
+                
+                // Add window closing handler
+                Closing += CreateAdminWindow_Closing;
+                
                 LogMessage("CreateAdminWindow constructor completed successfully");
             }
             catch (Exception ex)
@@ -30,6 +34,31 @@ namespace ChronoPos.Desktop.Views
                 LogMessage($"CreateAdminWindow constructor error: {ex.Message}");
                 LogMessage($"CreateAdminWindow constructor stack trace: {ex.StackTrace}");
                 throw;
+            }
+        }
+
+        private void CreateAdminWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            LogMessage($"CreateAdminWindow is closing. AdminCreated: {AdminCreated}");
+            
+            // If window is closing without admin created, confirm with user
+            if (!AdminCreated)
+            {
+                var result = MessageBox.Show(
+                    "Admin account is required to use ChronoPos. Are you sure you want to exit?",
+                    "Exit Application",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+                
+                if (result == MessageBoxResult.No)
+                {
+                    e.Cancel = true;
+                    LogMessage("Window close cancelled by user");
+                }
+                else
+                {
+                    LogMessage("User confirmed exit without creating admin");
+                }
             }
         }
 
@@ -159,12 +188,33 @@ namespace ChronoPos.Desktop.Views
                     await Task.Delay(1500);
 
                     // Set a flag that admin was created successfully
+                    LogMessage(">>> BEFORE setting AdminCreated = true");
                     AdminCreated = true;
+                    LogMessage($">>> AFTER setting AdminCreated = true, value is: {AdminCreated}");
+                    
+                    // Set DialogResult to true to indicate success
+                    try
+                    {
+                        LogMessage(">>> BEFORE setting DialogResult = true");
+                        DialogResult = true;
+                        LogMessage(">>> AFTER setting DialogResult = true");
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        // If DialogResult can't be set, just close the window
+                        LogMessage($">>> Could not set DialogResult: {ex.Message}");
+                        LogMessage(">>> Closing window normally instead");
+                    }
+                    
+                    LogMessage(">>> BEFORE calling Close()");
                     Close();
+                    LogMessage(">>> AFTER calling Close()");
                 }
             }
             catch (Exception ex)
             {
+                LogMessage($"Error creating admin user: {ex.Message}");
+                LogMessage($"Stack trace: {ex.StackTrace}");
                 ShowError($"Failed to create admin user: {ex.Message}");
             }
             finally
