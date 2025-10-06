@@ -505,13 +505,6 @@
                                                 CommandParameter="{Binding}"
                                                 Foreground="Red"
                                                 Margin="2"/>
-                                        <Button Content="🖨️" 
-                                                Style="{StaticResource SmallActionButtonStyle}"
-                                                Command="{Binding DataContext.ViewCustomerGroupDetailsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}"
-                                                ToolTip="View Details"
-                                                FontSize="12"
-                                                Margin="2"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

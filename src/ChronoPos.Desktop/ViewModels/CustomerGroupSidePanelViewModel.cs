@@ -7,8 +7,24 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
+using System.Collections.ObjectModel;
 
 namespace ChronoPos.Desktop.ViewModels;
+
+/// <summary>
+/// Wrapper class for customer with selection state
+/// </summary>
+public partial class SelectableCustomer : ObservableObject
+{
+    public CustomerDto Customer { get; set; } = new();
+    
+    [ObservableProperty]
+    private bool _isSelected;
+
+    public int Id => Customer.Id;
+    public string DisplayName => Customer.DisplayName;
+    public string MobileNo => Customer.MobileNo ?? "-";
+}
 
 /// <summary>
 /// ViewModel for Customer Group side panel (Add/Edit)
@@ -16,6 +32,8 @@ namespace ChronoPos.Desktop.ViewModels;
 public partial class CustomerGroupSidePanelViewModel : ObservableObject
 {
     private readonly ICustomerGroupService _customerGroupService;
+    private readonly ICustomerGroupRelationService _customerGroupRelationService;
+    private readonly ICustomerService _customerService;
     private readonly ISellingPriceTypeService _sellingPriceTypeService;
     private readonly IDiscountService _discountService;
     private readonly Action _closeSidePanel;
@@ -51,6 +69,21 @@ public partial class CustomerGroupSidePanelViewModel : ObservableObject
     [ObservableProperty]
     private bool _isActive = true;
 
+    [ObservableProperty]
+    private int _selectedTabIndex = 0;
+
+    [ObservableProperty]
+    private ObservableCollection<SelectableCustomer> _allCustomers = new();
+
+    [ObservableProperty]
+    private ObservableCollection<SelectableCustomer> _filteredCustomers = new();
+
+    [ObservableProperty]
+    private string _customerSearchText = string.Empty;
+
+    [ObservableProperty]
+    private int _selectedCustomersCount = 0;
+
     /// <summary>
     /// Title for the side panel form
     /// </summary>
@@ -63,12 +96,16 @@ public partial class CustomerGroupSidePanelViewModel : ObservableObject
 
     public CustomerGroupSidePanelViewModel(
         ICustomerGroupService customerGroupService,
+        ICustomerGroupRelationService customerGroupRelationService,
+        ICustomerService customerService,
         ISellingPriceTypeService sellingPriceTypeService,
         IDiscountService discountService,
         Action closeSidePanel,
         Func<Task> refreshParent)
     {
         _customerGroupService = customerGroupService;
+        _customerGroupRelationService = customerGroupRelationService;
+        _customerService = customerService;
         _sellingPriceTypeService = sellingPriceTypeService;
         _discountService = discountService;
         _closeSidePanel = closeSidePanel;
@@ -80,6 +117,101 @@ public partial class CustomerGroupSidePanelViewModel : ObservableObject
         // Load dropdowns
         _ = LoadSellingPriceTypesAsync();
         _ = LoadDiscountsAsync();
+        _ = LoadCustomersAsync();
+    }
+
+    /// <summary>
+    /// Load all customers
+    /// </summary>
+    private async Task LoadCustomersAsync()
+    {
+        try
+        {
+            var customers = await _customerService.GetAllAsync();
+            AllCustomers = new ObservableCollection<SelectableCustomer>(
+                customers.Select(c => new SelectableCustomer { Customer = c })
+            );
+            FilterCustomers();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading customers: {ex.Message}");
+            AllCustomers = new ObservableCollection<SelectableCustomer>();
+        }
+    }
+
+    /// <summary>
+    /// Filter customers based on search text
+    /// </summary>
+    private void FilterCustomers()
+    {
+        if (string.IsNullOrWhiteSpace(CustomerSearchText))
+        {
+            FilteredCustomers = new ObservableCollection<SelectableCustomer>(AllCustomers);
+        }
+        else
+        {
+            var searchTerm = CustomerSearchText.ToLower();
+            FilteredCustomers = new ObservableCollection<SelectableCustomer>(
+                AllCustomers.Where(c => 
+                    c.DisplayName.ToLower().Contains(searchTerm) ||
+                    (c.MobileNo?.ToLower().Contains(searchTerm) ?? false)
+                )
+            );
+        }
+        UpdateSelectedCount();
+    }
+
+    /// <summary>
+    /// Handle search text change
+    /// </summary>
+    partial void OnCustomerSearchTextChanged(string value)
+    {
+        FilterCustomers();
+    }
+
+    /// <summary>
+    /// Toggle customer selection
+    /// </summary>
+    [RelayCommand]
+    private void ToggleCustomerSelection(SelectableCustomer customer)
+    {
+        customer.IsSelected = !customer.IsSelected;
+        UpdateSelectedCount();
+    }
+
+    /// <summary>
+    /// Select all customers
+    /// </summary>
+    [RelayCommand]
+    private void SelectAllCustomers()
+    {
+        foreach (var customer in FilteredCustomers)
+        {
+            customer.IsSelected = true;
+        }
+        UpdateSelectedCount();
+    }
+
+    /// <summary>
+    /// Clear all customer selections
+    /// </summary>
+    [RelayCommand]
+    private void ClearAllCustomers()
+    {
+        foreach (var customer in AllCustomers)
+        {
+            customer.IsSelected = false;
+        }
+        UpdateSelectedCount();
+    }
+
+    /// <summary>
+    /// Update selected customers count
+    /// </summary>
+    private void UpdateSelectedCount()
+    {
+        SelectedCustomersCount = AllCustomers.Count(c => c.IsSelected);
     }
 
     /// <summary>
@@ -130,7 +262,7 @@ public partial class CustomerGroupSidePanelViewModel : ObservableObject
     /// <summary>
     /// Open side panel for editing existing customer group
     /// </summary>
-    public void OpenForEdit(CustomerGroupDto customerGroup)
+    public async void OpenForEdit(CustomerGroupDto customerGroup)
     {
         IsEditMode = true;
         EditingCustomerGroup = new CustomerGroupDto
@@ -153,9 +285,35 @@ public partial class CustomerGroupSidePanelViewModel : ObservableObject
         IsPercentageDiscount = customerGroup.IsPercentage;
         IsActive = customerGroup.Status == "Active";
 
+        // Load existing customer relations
+        await LoadExistingCustomerRelationsAsync(customerGroup.Id);
+
         ClearValidation();
         OnPropertyChanged(nameof(FormTitle));
         OnPropertyChanged(nameof(SaveButtonText));
+    }
+
+    /// <summary>
+    /// Load existing customer relations for editing
+    /// </summary>
+    private async Task LoadExistingCustomerRelationsAsync(int customerGroupId)
+    {
+        try
+        {
+            var relations = await _customerGroupRelationService.GetByCustomerGroupIdAsync(customerGroupId);
+            var relatedCustomerIds = relations.Select(r => r.CustomerId ?? 0).ToHashSet();
+
+            // Mark customers as selected if they're in the group
+            foreach (var customer in AllCustomers)
+            {
+                customer.IsSelected = relatedCustomerIds.Contains(customer.Id);
+            }
+            UpdateSelectedCount();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading customer relations: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -297,6 +455,8 @@ public partial class CustomerGroupSidePanelViewModel : ObservableObject
 
         try
         {
+            int customerGroupId;
+
             if (IsEditMode)
             {
                 // Update existing customer group
@@ -314,6 +474,11 @@ public partial class CustomerGroupSidePanelViewModel : ObservableObject
                 };
 
                 await _customerGroupService.UpdateAsync(updateDto);
+                customerGroupId = EditingCustomerGroup.Id;
+
+                // Update customer relations
+                await UpdateCustomerRelationsAsync(customerGroupId);
+
                 MessageBox.Show("Customer group updated successfully!", "Success", 
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -332,7 +497,12 @@ public partial class CustomerGroupSidePanelViewModel : ObservableObject
                     Status = EditingCustomerGroup.Status
                 };
 
-                await _customerGroupService.CreateAsync(createDto);
+                var created = await _customerGroupService.CreateAsync(createDto);
+                customerGroupId = created.Id;
+
+                // Create customer relations
+                await CreateCustomerRelationsAsync(customerGroupId);
+
                 MessageBox.Show("Customer group created successfully!", "Success", 
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -347,6 +517,77 @@ public partial class CustomerGroupSidePanelViewModel : ObservableObject
         {
             MessageBox.Show($"Error saving customer group: {ex.Message}", "Error", 
                 MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// Create customer relations for new customer group
+    /// </summary>
+    private async Task CreateCustomerRelationsAsync(int customerGroupId)
+    {
+        var selectedCustomers = AllCustomers.Where(c => c.IsSelected).ToList();
+        
+        foreach (var customer in selectedCustomers)
+        {
+            try
+            {
+                var relationDto = new CreateCustomerGroupRelationDto
+                {
+                    CustomerId = customer.Id,
+                    CustomerGroupId = customerGroupId,
+                    Status = "Active"
+                };
+
+                await _customerGroupRelationService.CreateAsync(relationDto);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating relation for customer {customer.Id}: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Update customer relations for existing customer group
+    /// </summary>
+    private async Task UpdateCustomerRelationsAsync(int customerGroupId)
+    {
+        try
+        {
+            // Get existing relations
+            var existingRelations = await _customerGroupRelationService.GetByCustomerGroupIdAsync(customerGroupId);
+            var existingCustomerIds = existingRelations.Select(r => r.CustomerId ?? 0).ToHashSet();
+            var selectedCustomerIds = AllCustomers.Where(c => c.IsSelected).Select(c => c.Id).ToHashSet();
+
+            // Remove unselected customers
+            foreach (var relation in existingRelations)
+            {
+                if (relation.CustomerId.HasValue && !selectedCustomerIds.Contains(relation.CustomerId.Value))
+                {
+                    await _customerGroupRelationService.DeleteAsync(relation.Id);
+                }
+            }
+
+            // Add newly selected customers
+            foreach (var customerId in selectedCustomerIds)
+            {
+                if (!existingCustomerIds.Contains(customerId))
+                {
+                    var relationDto = new CreateCustomerGroupRelationDto
+                    {
+                        CustomerId = customerId,
+                        CustomerGroupId = customerGroupId,
+                        Status = "Active"
+                    };
+
+                    await _customerGroupRelationService.CreateAsync(relationDto);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error updating customer relations: {ex.Message}");
+            throw;
         }
     }
 

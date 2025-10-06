@@ -83,15 +83,88 @@
     </UserControl.Resources>
 
     <Grid>
-        <ScrollViewer VerticalScrollBarVisibility="Auto" 
-                      HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="30,20">
-                <!-- Header -->
-                <TextBlock Text="{Binding FormTitle}" 
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource SurfaceBackground}"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource BorderLight}"
+                Padding="30,20">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Column="0"
+                           Text="{Binding FormTitle}" 
                            FontSize="24" 
                            FontWeight="Bold" 
                            Foreground="{DynamicResource TextPrimary}"
-                           Margin="0,0,0,30"/>
+                           VerticalAlignment="Center"/>
+                
+                <Button Grid.Column="1"
+                        Content="✕"
+                        Command="{Binding CancelCommand}"
+                        Background="Transparent"
+                        Foreground="{DynamicResource TextSecondary}"
+                        BorderThickness="0"
+                        FontSize="20"
+                        Width="30"
+                        Height="30"
+                        Cursor="Hand"/>
+            </Grid>
+        </Border>
+
+        <!-- Tab Control -->
+        <TabControl Grid.Row="1"
+                    SelectedIndex="{Binding SelectedTabIndex}"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Margin="0">
+            
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Border Name="Border" 
+                                        Background="Transparent"
+                                        BorderThickness="0,0,0,2"
+                                        BorderBrush="Transparent"
+                                        Padding="20,12">
+                                    <ContentPresenter ContentSource="Header" 
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource Primary}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="False">
+                                        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Setter Property="FontSize" Value="14"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                </Style>
+            </TabControl.Resources>
+
+            <!-- Tab 1: Group Details -->
+            <TabItem Header="Group Details">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="30,20">
 
                 <!-- Validation Error Message -->
                 <Border Background="#FFEBEE" 
@@ -176,7 +249,125 @@
                          Style="{StaticResource InputFieldStyle}"
                          Margin="0,0,0,30"/>
 
-                <!-- Action Buttons -->
+            </StackPanel>
+        </ScrollViewer>
+            </TabItem>
+
+            <!-- Tab 2: Customers -->
+            <TabItem Header="Customers">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="30,20">
+
+                        <!-- Info Message -->
+                        <Border Background="{DynamicResource SurfaceBackground}" 
+                                BorderBrush="{DynamicResource BorderLight}" 
+                                BorderThickness="1" 
+                                CornerRadius="4" 
+                                Padding="15,10"
+                                Margin="0,0,0,20">
+                            <TextBlock Text="Select customers to assign to this group. Customers can be added/removed at any time." 
+                                       Foreground="{DynamicResource TextSecondary}" 
+                                       FontSize="13"
+                                       TextWrapping="Wrap"/>
+                        </Border>
+
+                        <!-- Customer Search/Filter -->
+                        <TextBlock Text="Search Customer" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding CustomerSearchText, UpdateSourceTrigger=PropertyChanged}" 
+                                 Style="{StaticResource InputFieldStyle}"
+                                 Margin="0,0,0,15"/>
+
+                        <!-- Available Customers List -->
+                        <TextBlock Text="Available Customers" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Margin="0,10,0,10"/>
+
+                        <Border BorderBrush="{DynamicResource BorderLight}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                MaxHeight="300"
+                                Margin="0,0,0,20">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding FilteredCustomers}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{DynamicResource BorderLight}"
+                                                    BorderThickness="0,0,0,1"
+                                                    Padding="10"
+                                                    Background="Transparent">
+                                                <Border.InputBindings>
+                                                    <MouseBinding Gesture="LeftClick" 
+                                                                Command="{Binding DataContext.ToggleCustomerSelectionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"/>
+                                                </Border.InputBindings>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <CheckBox Grid.Column="0"
+                                                            IsChecked="{Binding IsSelected}"
+                                                            VerticalAlignment="Center"
+                                                            Margin="0,0,10,0"
+                                                            IsHitTestVisible="False"/>
+
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="{Binding DisplayName}" 
+                                                                 FontSize="14"
+                                                                 FontWeight="SemiBold"
+                                                                 Foreground="{DynamicResource TextPrimary}"/>
+                                                        <TextBlock Text="{Binding MobileNo}" 
+                                                                 FontSize="12"
+                                                                 Foreground="{DynamicResource TextSecondary}"
+                                                                 Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+
+                        <!-- Selected Count -->
+                        <TextBlock Margin="0,0,0,20">
+                            <Run Text="{Binding SelectedCustomersCount, Mode=OneWay}" 
+                                 FontWeight="SemiBold"
+                                 Foreground="{DynamicResource Primary}"/>
+                            <Run Text="customer(s) selected" 
+                                 Foreground="{DynamicResource TextSecondary}"/>
+                        </TextBlock>
+
+                        <!-- Quick Actions -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Button Content="Select All" 
+                                    Command="{Binding SelectAllCustomersCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Padding="12,8"
+                                    FontSize="12"
+                                    Margin="0,0,10,0"/>
+                            <Button Content="Clear All" 
+                                    Command="{Binding ClearAllCustomersCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Padding="12,8"
+                                    FontSize="12"/>
+                        </StackPanel>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- Action Buttons -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource SurfaceBackground}"
+                BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource BorderLight}"
+                Padding="30,20">
                 <Grid Margin="0,20,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -194,7 +385,6 @@
                             Command="{Binding CancelCommand}"
                             Style="{StaticResource SecondaryButtonStyle}"/>
                 </Grid>
-            </StackPanel>
-        </ScrollViewer>
+        </Border>
     </Grid>
 </UserControl>

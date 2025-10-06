@@ -12,22 +12,39 @@ namespace ChronoPos.Application.Services;
 public class CustomerGroupService : ICustomerGroupService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICustomerGroupRelationService _customerGroupRelationService;
+    private readonly ISellingPriceTypeService _sellingPriceTypeService;
+    private readonly IDiscountService _discountService;
 
-    public CustomerGroupService(IUnitOfWork unitOfWork)
+    public CustomerGroupService(
+        IUnitOfWork unitOfWork,
+        ICustomerGroupRelationService customerGroupRelationService,
+        ISellingPriceTypeService sellingPriceTypeService,
+        IDiscountService discountService)
     {
         _unitOfWork = unitOfWork;
+        _customerGroupRelationService = customerGroupRelationService;
+        _sellingPriceTypeService = sellingPriceTypeService;
+        _discountService = discountService;
     }
 
     public async Task<IEnumerable<CustomerGroupDto>> GetAllAsync()
     {
         var customerGroups = await _unitOfWork.CustomerGroups.GetAllAsync();
-        return customerGroups.Where(cg => cg.DeletedAt == null).Select(Map);
+        var result = new List<CustomerGroupDto>();
+        
+        foreach (var cg in customerGroups.Where(cg => cg.DeletedAt == null))
+        {
+            result.Add(await MapAsync(cg));
+        }
+        
+        return result;
     }
 
     public async Task<CustomerGroupDto?> GetByIdAsync(int id)
     {
         var customerGroup = await _unitOfWork.CustomerGroups.GetByIdAsync(id);
-        return customerGroup != null && customerGroup.DeletedAt == null ? Map(customerGroup) : null;
+        return customerGroup != null && customerGroup.DeletedAt == null ? await MapAsync(customerGroup) : null;
     }
 
     public async Task<CustomerGroupDto> CreateAsync(CreateCustomerGroupDto createDto)
@@ -49,7 +66,7 @@ public class CustomerGroupService : ICustomerGroupService
         await _unitOfWork.CustomerGroups.AddAsync(customerGroup);
         await _unitOfWork.SaveChangesAsync();
 
-        return Map(customerGroup);
+        return await MapAsync(customerGroup);
     }
 
     public async Task<CustomerGroupDto> UpdateAsync(UpdateCustomerGroupDto updateDto)
@@ -73,7 +90,7 @@ public class CustomerGroupService : ICustomerGroupService
         await _unitOfWork.CustomerGroups.UpdateAsync(customerGroup);
         await _unitOfWork.SaveChangesAsync();
 
-        return Map(customerGroup);
+        return await MapAsync(customerGroup);
     }
 
     public async Task DeleteAsync(int id)
@@ -103,19 +120,32 @@ public class CustomerGroupService : ICustomerGroupService
     public async Task<IEnumerable<CustomerGroupDto>> SearchAsync(string searchTerm)
     {
         var customerGroups = await _unitOfWork.CustomerGroups.GetAllAsync();
-        return customerGroups
+        var filtered = customerGroups
             .Where(cg => cg.DeletedAt == null && 
                         (cg.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                         (!string.IsNullOrEmpty(cg.NameAr) && cg.NameAr.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))))
-            .Select(Map);
+                         (!string.IsNullOrEmpty(cg.NameAr) && cg.NameAr.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))));
+        
+        var result = new List<CustomerGroupDto>();
+        foreach (var cg in filtered)
+        {
+            result.Add(await MapAsync(cg));
+        }
+        
+        return result;
     }
 
     public async Task<IEnumerable<CustomerGroupDto>> GetActiveAsync()
     {
         var customerGroups = await _unitOfWork.CustomerGroups.GetAllAsync();
-        return customerGroups
-            .Where(cg => cg.DeletedAt == null && cg.Status == "Active")
-            .Select(Map);
+        var active = customerGroups.Where(cg => cg.DeletedAt == null && cg.Status == "Active");
+        
+        var result = new List<CustomerGroupDto>();
+        foreach (var cg in active)
+        {
+            result.Add(await MapAsync(cg));
+        }
+        
+        return result;
     }
 
     public async Task<int> GetCountAsync()
@@ -133,19 +163,42 @@ public class CustomerGroupService : ICustomerGroupService
             (excludeId == null || cg.Id != excludeId));
     }
 
-    private static CustomerGroupDto Map(CustomerGroup customerGroup)
+    private async Task<CustomerGroupDto> MapAsync(CustomerGroup customerGroup)
     {
+        // Get customer count from relations
+        var relations = await _customerGroupRelationService.GetByCustomerGroupIdAsync(customerGroup.Id);
+        var customerCount = relations.Count();
+        
+        // Get selling price type name
+        string? sellingPriceTypeName = null;
+        if (customerGroup.SellingPriceTypeId.HasValue)
+        {
+            var priceType = await _sellingPriceTypeService.GetByIdAsync(customerGroup.SellingPriceTypeId.Value);
+            sellingPriceTypeName = priceType?.TypeName;
+        }
+        
+        // Get discount name
+        string? discountName = null;
+        if (customerGroup.DiscountId.HasValue)
+        {
+            var discount = await _discountService.GetByIdAsync(customerGroup.DiscountId.Value);
+            discountName = discount?.DiscountName;
+        }
+        
         return new CustomerGroupDto
         {
             Id = customerGroup.Id,
             Name = customerGroup.Name,
             NameAr = customerGroup.NameAr,
             SellingPriceTypeId = customerGroup.SellingPriceTypeId,
+            SellingPriceTypeName = sellingPriceTypeName,
             DiscountId = customerGroup.DiscountId,
+            DiscountName = discountName,
             DiscountValue = customerGroup.DiscountValue,
             DiscountMaxValue = customerGroup.DiscountMaxValue,
             IsPercentage = customerGroup.IsPercentage,
             Status = customerGroup.Status,
+            CustomerCount = customerCount,
             CreatedBy = customerGroup.CreatedBy,
             CreatedAt = customerGroup.CreatedAt,
             UpdatedBy = customerGroup.UpdatedBy,

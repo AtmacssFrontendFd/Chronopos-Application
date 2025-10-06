@@ -19,6 +19,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.Category> Categories { get; set; }
     public DbSet<Domain.Entities.Customer> Customers { get; set; }
     public DbSet<Domain.Entities.CustomerGroup> CustomerGroups { get; set; }
+    public DbSet<Domain.Entities.CustomerGroupRelation> CustomerGroupRelations { get; set; }
     public DbSet<Domain.Entities.BusinessType> BusinessTypes { get; set; }
     public DbSet<Domain.Entities.CustomerAddress> CustomerAddresses { get; set; }
     public DbSet<Domain.Entities.Supplier> Suppliers { get; set; }
@@ -491,6 +492,32 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
 
             // Index on name for quick lookup
             entity.HasIndex(e => e.Name);
+        });
+
+        // Configure CustomerGroupRelation entity
+        modelBuilder.Entity<Domain.Entities.CustomerGroupRelation>(entity =>
+        {
+            entity.ToTable("customers_group_relation");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Status).HasMaxLength(20);
+            entity.Property(e => e.CreatedAt).HasColumnType("timestamp");
+            entity.Property(e => e.UpdatedAt).HasColumnType("timestamp");
+            entity.Property(e => e.DeletedAt).HasColumnType("timestamp");
+
+            // Relationships
+            entity.HasOne(e => e.Customer)
+                  .WithMany()
+                  .HasForeignKey(e => e.CustomerId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.CustomerGroup)
+                  .WithMany()
+                  .HasForeignKey(e => e.CustomerGroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Index for quick lookup
+            entity.HasIndex(e => new { e.CustomerId, e.CustomerGroupId });
+            entity.HasIndex(e => e.Status);
         });
 
         // Configure ProductGroup entity

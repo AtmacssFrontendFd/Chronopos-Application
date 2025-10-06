@@ -67,6 +67,9 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IBrandRepository, BrandRepository>();
                     LogMessage("BrandRepository registered as Transient");
                     
+                    services.AddTransient<ICustomerGroupRelationRepository, CustomerGroupRelationRepository>();
+                    LogMessage("CustomerGroupRelationRepository registered as Transient");
+                    
                     services.AddTransient<IStoreRepository, StoreRepository>();
                     LogMessage("StoreRepository registered as Transient");
                     
@@ -122,6 +125,10 @@ public partial class App : System.Windows.Application
                     // Register CustomerGroup service
                     services.AddTransient<ICustomerGroupService, CustomerGroupService>();
                     LogMessage("CustomerGroupService registered as Transient");
+                    
+                    // Register CustomerGroupRelation service
+                    services.AddTransient<ICustomerGroupRelationService, CustomerGroupRelationService>();
+                    LogMessage("CustomerGroupRelationService registered as Transient");
                     
                     // Register ProductGroup service
                     services.AddTransient<IProductGroupService, ProductGroupService>();
@@ -324,6 +331,8 @@ public partial class App : System.Windows.Application
                     LogMessage("ProductCombinationSidePanelViewModel registered as Transient");
                     services.AddTransient<CategorySidePanelViewModel>();
                     LogMessage("CategorySidePanelViewModel registered as Transient");
+                    services.AddTransient<CustomerGroupSidePanelViewModel>();
+                    LogMessage("CustomerGroupSidePanelViewModel registered as Transient");
         
                     // Register Views - MainWindow as Singleton to match ViewModel
                     services.AddSingleton<MainWindow>();

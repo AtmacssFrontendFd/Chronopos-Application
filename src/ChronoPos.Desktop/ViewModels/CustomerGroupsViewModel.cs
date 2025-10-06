@@ -15,6 +15,8 @@ namespace ChronoPos.Desktop.ViewModels;
 public partial class CustomerGroupsViewModel : ObservableObject
 {
     private readonly ICustomerGroupService _customerGroupService;
+    private readonly ICustomerGroupRelationService _customerGroupRelationService;
+    private readonly ICustomerService _customerService;
     private readonly ISellingPriceTypeService _sellingPriceTypeService;
     private readonly IDiscountService _discountService;
 
@@ -70,16 +72,22 @@ public partial class CustomerGroupsViewModel : ObservableObject
 
     public CustomerGroupsViewModel(
         ICustomerGroupService customerGroupService,
+        ICustomerGroupRelationService customerGroupRelationService,
+        ICustomerService customerService,
         ISellingPriceTypeService sellingPriceTypeService,
         IDiscountService discountService)
     {
         _customerGroupService = customerGroupService;
+        _customerGroupRelationService = customerGroupRelationService;
+        _customerService = customerService;
         _sellingPriceTypeService = sellingPriceTypeService;
         _discountService = discountService;
         
         // Initialize side panel view model
         SidePanelViewModel = new CustomerGroupSidePanelViewModel(
             _customerGroupService,
+            _customerGroupRelationService,
+            _customerService,
             _sellingPriceTypeService,
             _discountService,
             CloseSidePanel,

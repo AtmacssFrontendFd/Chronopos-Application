@@ -2270,6 +2270,8 @@ public partial class MainWindowViewModel : ObservableObject
             // Create the CustomerGroupsViewModel with all required services
             var customerGroupsViewModel = new CustomerGroupsViewModel(
                 _serviceProvider.GetRequiredService<ICustomerGroupService>(),
+                _serviceProvider.GetRequiredService<ICustomerGroupRelationService>(),
+                _serviceProvider.GetRequiredService<ICustomerService>(),
                 _serviceProvider.GetRequiredService<ISellingPriceTypeService>(),
                 _serviceProvider.GetRequiredService<IDiscountService>()
             );
