@@ -91,6 +91,9 @@ public partial class App : System.Windows.Application
 
                     services.AddTransient<IProductBarcodeRepository, ProductBarcodeRepository>();
                     LogMessage("ProductBarcodeRepository registered as Transient");
+                    
+                    services.AddTransient<IProductBatchRepository, ProductBatchRepository>();
+                    LogMessage("ProductBatchRepository registered as Transient");
 
                     services.AddTransient<IDiscountRepository, DiscountRepository>();
                     LogMessage("DiscountRepository registered as Transient");
@@ -98,6 +101,43 @@ public partial class App : System.Windows.Application
                     // Register CustomerGroupRelation repository
                     services.AddTransient<ICustomerGroupRelationRepository, CustomerGroupRelationRepository>();
                     LogMessage("CustomerGroupRelationRepository registered as Transient");
+                    
+                    // Register StockTransfer repository
+                    services.AddTransient<IStockTransferRepository, StockTransferRepository>();
+                    LogMessage("StockTransferRepository registered as Transient");
+                    
+                    // Register StockTransferItem repository
+                    services.AddTransient<IStockTransferItemRepository, StockTransferItemRepository>();
+                    LogMessage("StockTransferItemRepository registered as Transient");
+                    
+                    // Register ShopLocation repository
+                    services.AddTransient<IShopLocationRepository, ShopLocationRepository>();
+                    LogMessage("ShopLocationRepository registered as Transient");
+                    
+                    // Register Supplier repository
+                    services.AddTransient<ISupplierRepository, SupplierRepository>();
+                    LogMessage("SupplierRepository registered as Transient");
+                    
+                    // Register GoodsReceived repositories
+                    services.AddTransient<IGoodsReceivedRepository, GoodsReceivedRepository>();
+                    LogMessage("GoodsReceivedRepository registered as Transient");
+                    
+                    services.AddTransient<IGoodsReceivedItemRepository, GoodsReceivedItemRepository>();
+                    LogMessage("GoodsReceivedItemRepository registered as Transient");
+                    
+                    // Register GoodsReturn repositories
+                    services.AddTransient<IGoodsReturnRepository, GoodsReturnRepository>();
+                    LogMessage("GoodsReturnRepository registered as Transient");
+                    
+                    services.AddTransient<IGoodsReturnItemRepository, GoodsReturnItemRepository>();
+                    LogMessage("GoodsReturnItemRepository registered as Transient");
+                    
+                    // Register GoodsReplace repository
+                    services.AddTransient<IGoodsReplaceRepository, GoodsReplaceRepository>();
+                    LogMessage("GoodsReplaceRepository registered as Transient");
+                    
+                    services.AddTransient<IGoodsReplaceItemRepository, GoodsReplaceItemRepository>();
+                    LogMessage("GoodsReplaceItemRepository registered as Transient");
 
                     // Register Product Attribute repositories
                     services.AddTransient<IProductAttributeRepository, ProductAttributeRepository>();
@@ -127,6 +167,9 @@ public partial class App : System.Windows.Application
 
                     services.AddTransient<IProductBarcodeService, ProductBarcodeService>();
                     LogMessage("ProductBarcodeService registered as Transient");
+                    
+                    services.AddTransient<IProductBatchService, Infrastructure.Services.ProductBatchService>();
+                    LogMessage("ProductBatchService registered as Transient");
 
                     // Register TaxType service
                     services.AddTransient<ITaxTypeService, TaxTypeService>();
@@ -173,6 +216,33 @@ public partial class App : System.Windows.Application
                     // Register stock service
                     services.AddTransient<IStockService, Infrastructure.Services.StockService>();
                     LogMessage("StockService registered as Transient");
+                    
+                    // Register stock transfer service
+                    services.AddTransient<IStockTransferService, Infrastructure.Services.StockTransferService>();
+                    LogMessage("StockTransferService registered as Transient");
+                    
+                    // Register stock transfer item service
+                    services.AddTransient<IStockTransferItemService, StockTransferItemService>();
+                    LogMessage("StockTransferItemService registered as Transient");
+                    
+                    // Register goods received service
+                    services.AddTransient<IGoodsReceivedService, GoodsReceivedService>();
+                    LogMessage("GoodsReceivedService registered as Transient");
+                    
+                    // Register goods return service
+                    services.AddTransient<IGoodsReturnService, GoodsReturnService>();
+                    LogMessage("GoodsReturnService registered as Transient");
+                    
+                    // Register goods replace service
+                    services.AddTransient<IGoodsReplaceService, GoodsReplaceService>();
+                    LogMessage("GoodsReplaceService registered as Transient");
+                    
+                    // Register goods item services
+                    services.AddTransient<IGoodsReturnItemService, GoodsReturnItemService>();
+                    LogMessage("GoodsReturnItemService registered as Transient");
+                    
+                    services.AddTransient<IGoodsReplaceItemService, GoodsReplaceItemService>();
+                    LogMessage("GoodsReplaceItemService registered as Transient");
                     
                     // Register global search service
                     services.AddTransient<IGlobalSearchService, Application.Services.GlobalSearchService>();
