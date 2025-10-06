@@ -65,7 +65,7 @@ public interface IProductGroupService
     /// <summary>
     /// Update a product group item
     /// </summary>
-    Task<ProductGroupItemDto> UpdateItemAsync(ProductGroupItemDto dto);
+    Task<ProductGroupItemDto> UpdateItemAsync(UpdateProductGroupItemDto dto);
 
     /// <summary>
     /// Get count of product groups

@@ -489,7 +489,7 @@
                         </DataGridTemplateColumn>
 
                         <!-- Actions Column -->
-                        <DataGridTemplateColumn Header="Actions" Width="150">
+                        <DataGridTemplateColumn Header="Actions" Width="120">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -503,13 +503,6 @@
                                                 Command="{Binding DataContext.DeleteProductGroupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Foreground="Red"
-                                                Margin="2"/>
-                                        <Button Content="🖨️" 
-                                                Style="{StaticResource SmallActionButtonStyle}"
-                                                Command="{Binding DataContext.ViewProductGroupDetailsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}"
-                                                ToolTip="View Details"
-                                                FontSize="12"
                                                 Margin="2"/>
                                     </StackPanel>
                                 </DataTemplate>

@@ -572,12 +572,22 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
         // Configure ProductGroupItem entity
         modelBuilder.Entity<Domain.Entities.ProductGroupItem>(entity =>
         {
+            entity.ToTable("product_group_items");
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Quantity).HasPrecision(18, 3).IsRequired();
-            entity.Property(e => e.PriceAdjustment).HasPrecision(18, 2);
-            entity.Property(e => e.DisplayOrder).HasDefaultValue(0);
-            entity.Property(e => e.IsRequired).HasDefaultValue(true);
-            entity.Property(e => e.CreatedDate).IsRequired();
+            
+            // Properties with column mapping
+            entity.Property(e => e.ProductGroupId).HasColumnName("group_id").IsRequired();
+            entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.ProductUnitId).HasColumnName("product_unit_id");
+            entity.Property(e => e.ProductCombinationId).HasColumnName("product_combination_id");
+            entity.Property(e => e.Quantity).HasPrecision(12, 4).HasDefaultValue(1).IsRequired();
+            entity.Property(e => e.PriceAdjustment).HasPrecision(10, 2).HasDefaultValue(0).IsRequired();
+            entity.Property(e => e.DiscountId).HasColumnName("discount_id");
+            entity.Property(e => e.TaxTypeId).HasColumnName("tax_type_id");
+            entity.Property(e => e.SellingPriceTypeId).HasColumnName("price_type_id");
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active").IsRequired();
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at").IsRequired();
 
             // Relationships
             entity.HasOne(e => e.ProductGroup)
@@ -593,6 +603,16 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasOne(e => e.Discount)
                   .WithMany()
                   .HasForeignKey(e => e.DiscountId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.TaxType)
+                  .WithMany()
+                  .HasForeignKey(e => e.TaxTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.SellingPriceType)
+                  .WithMany()
+                  .HasForeignKey(e => e.SellingPriceTypeId)
                   .OnDelete(DeleteBehavior.SetNull);
 
             // Indexes

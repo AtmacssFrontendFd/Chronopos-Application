@@ -21,9 +21,9 @@ public class ProductGroupItem
     public virtual ProductGroup? ProductGroup { get; set; }
 
     /// <summary>
-    /// Foreign key to Product
+    /// Foreign key to Product (nullable to match DB schema)
     /// </summary>
-    public int ProductId { get; set; }
+    public int? ProductId { get; set; }
 
     /// <summary>
     /// Navigation property to Product
@@ -36,25 +36,21 @@ public class ProductGroupItem
     public int? ProductUnitId { get; set; }
 
     /// <summary>
+    /// Optional: Specific product combination/variant (references product_combinations table)
+    /// Note: ProductCombination entity not yet implemented, storing ID only
+    /// </summary>
+    public int? ProductCombinationId { get; set; }
+
+    /// <summary>
     /// Quantity of this product in the group
     /// </summary>
     public decimal Quantity { get; set; } = 1;
 
     /// <summary>
-    /// Display order/sequence of item in the group
-    /// </summary>
-    public int DisplayOrder { get; set; } = 0;
-
-    /// <summary>
-    /// Whether this item is required in the group
-    /// </summary>
-    public bool IsRequired { get; set; } = true;
-
-    /// <summary>
     /// Price adjustment for this specific item (override)
     /// Can be positive (markup) or negative (discount)
     /// </summary>
-    public decimal? PriceAdjustment { get; set; }
+    public decimal PriceAdjustment { get; set; } = 0;
 
     /// <summary>
     /// Optional: Specific discount for this item (overrides group discount)
@@ -67,12 +63,37 @@ public class ProductGroupItem
     public virtual Discount? Discount { get; set; }
 
     /// <summary>
-    /// Date when the item was added to the group
+    /// Optional: Tax type for this item
     /// </summary>
-    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+    public int? TaxTypeId { get; set; }
 
     /// <summary>
-    /// Date when the item was last modified
+    /// Navigation property to TaxType
     /// </summary>
-    public DateTime? ModifiedDate { get; set; }
+    public virtual TaxType? TaxType { get; set; }
+
+    /// <summary>
+    /// Optional: Selling price type for this item
+    /// </summary>
+    public long? SellingPriceTypeId { get; set; }
+
+    /// <summary>
+    /// Navigation property to SellingPriceType
+    /// </summary>
+    public virtual SellingPriceType? SellingPriceType { get; set; }
+
+    /// <summary>
+    /// Status of the item in the group
+    /// </summary>
+    public string Status { get; set; } = "Active";
+
+    /// <summary>
+    /// Date when the item was created
+    /// </summary>
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Date when the item was last updated
+    /// </summary>
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

@@ -17,10 +17,12 @@ namespace ChronoPos.Desktop.ViewModels;
 public partial class ProductGroupSidePanelViewModel : ObservableObject
 {
     private readonly IProductGroupService _productGroupService;
+    private readonly IProductGroupItemService _productGroupItemService;
     private readonly IDiscountService _discountService;
     private readonly ITaxTypeService _taxTypeService;
     private readonly ISellingPriceTypeService _sellingPriceTypeService;
     private readonly IProductService _productService;
+    private readonly IProductUnitService _productUnitService;
     private readonly Action _closeSidePanel;
     private readonly Func<Task> _refreshParent;
 
@@ -78,6 +80,30 @@ public partial class ProductGroupSidePanelViewModel : ObservableObject
     [ObservableProperty]
     private string _validationMessage = string.Empty;
 
+    // Tab management
+    [ObservableProperty]
+    private int _selectedTabIndex = 0;
+
+    // Add Items tab properties
+    [ObservableProperty]
+    private List<ProductDto> _products = new();
+
+    [ObservableProperty]
+    private List<ProductUnitDto> _productUnits = new();
+
+    [ObservableProperty]
+    private ProductDto? _selectedProduct;
+
+    [ObservableProperty]
+    private ProductUnitDto? _selectedProductUnit;
+
+    // Multi-selection collections
+    [ObservableProperty]
+    private ObservableCollection<ProductDto> _selectedProducts = new();
+
+    [ObservableProperty]
+    private ObservableCollection<ProductUnitDto> _selectedProductUnits = new();
+
     /// <summary>
     /// Title for the side panel form
     /// </summary>
@@ -93,25 +119,158 @@ public partial class ProductGroupSidePanelViewModel : ObservableObject
     /// </summary>
     public string Status => IsActive ? "Active" : "Inactive";
 
+    /// <summary>
+    /// Check if Basic Info tab is selected
+    /// </summary>
+    public bool IsBasicInfoTabSelected => SelectedTabIndex == 0;
+
+    /// <summary>
+    /// Check if Add Items tab is selected
+    /// </summary>
+    public bool IsAddItemsTabSelected => SelectedTabIndex == 1;
+
+    /// <summary>
+    /// Check if user has made any selection for item creation
+    /// </summary>
+    public bool HasItemSelection => SelectedProducts.Count > 0 || SelectedProductUnits.Count > 0;
+
+    /// <summary>
+    /// Preview text for item creation
+    /// </summary>
+    public string ItemCreationPreview
+    {
+        get
+        {
+            var parts = new List<string>();
+            
+            if (SelectedProducts.Count > 0)
+            {
+                parts.Add($"{SelectedProducts.Count} product(s) selected");
+            }
+            
+            if (SelectedProductUnits.Count > 0)
+            {
+                parts.Add($"{SelectedProductUnits.Count} unit(s) selected");
+            }
+            
+            if (parts.Count == 0)
+                return string.Empty;
+                
+            return string.Join(" and ", parts);
+        }
+    }
+
     public ProductGroupSidePanelViewModel(
         IProductGroupService productGroupService,
+        IProductGroupItemService productGroupItemService,
         IDiscountService discountService,
         ITaxTypeService taxTypeService,
         ISellingPriceTypeService sellingPriceTypeService,
         IProductService productService,
+        IProductUnitService productUnitService,
         Action closeSidePanel,
         Func<Task> refreshParent)
     {
         _productGroupService = productGroupService;
+        _productGroupItemService = productGroupItemService;
         _discountService = discountService;
         _taxTypeService = taxTypeService;
         _sellingPriceTypeService = sellingPriceTypeService;
         _productService = productService;
+        _productUnitService = productUnitService;
         _closeSidePanel = closeSidePanel;
         _refreshParent = refreshParent;
 
         // Load dropdowns
         _ = LoadDropdownsAsync();
+    }
+
+    partial void OnSelectedProductChanged(ProductDto? value)
+    {
+        OnPropertyChanged(nameof(HasItemSelection));
+        OnPropertyChanged(nameof(ItemCreationPreview));
+    }
+
+    partial void OnSelectedProductUnitChanged(ProductUnitDto? value)
+    {
+        OnPropertyChanged(nameof(HasItemSelection));
+        OnPropertyChanged(nameof(ItemCreationPreview));
+    }
+
+    partial void OnSelectedProductsChanged(ObservableCollection<ProductDto> value)
+    {
+        OnPropertyChanged(nameof(HasItemSelection));
+        OnPropertyChanged(nameof(ItemCreationPreview));
+    }
+
+    partial void OnSelectedProductUnitsChanged(ObservableCollection<ProductUnitDto> value)
+    {
+        OnPropertyChanged(nameof(HasItemSelection));
+        OnPropertyChanged(nameof(ItemCreationPreview));
+    }
+
+    partial void OnSelectedTabIndexChanged(int value)
+    {
+        OnPropertyChanged(nameof(IsBasicInfoTabSelected));
+        OnPropertyChanged(nameof(IsAddItemsTabSelected));
+    }
+
+    /// <summary>
+    /// Add selected product to the list
+    /// </summary>
+    [RelayCommand]
+    private void AddProduct()
+    {
+        if (SelectedProduct != null && !SelectedProducts.Any(p => p.Id == SelectedProduct.Id))
+        {
+            SelectedProducts.Add(SelectedProduct);
+            SelectedProduct = null; // Clear selection
+            OnPropertyChanged(nameof(HasItemSelection));
+            OnPropertyChanged(nameof(ItemCreationPreview));
+        }
+    }
+
+    /// <summary>
+    /// Remove product from the list
+    /// </summary>
+    [RelayCommand]
+    private void RemoveProduct(ProductDto product)
+    {
+        if (product != null)
+        {
+            SelectedProducts.Remove(product);
+            OnPropertyChanged(nameof(HasItemSelection));
+            OnPropertyChanged(nameof(ItemCreationPreview));
+        }
+    }
+
+    /// <summary>
+    /// Add selected product unit to the list
+    /// </summary>
+    [RelayCommand]
+    private void AddProductUnit()
+    {
+        if (SelectedProductUnit != null && !SelectedProductUnits.Any(u => u.Id == SelectedProductUnit.Id))
+        {
+            SelectedProductUnits.Add(SelectedProductUnit);
+            SelectedProductUnit = null; // Clear selection
+            OnPropertyChanged(nameof(HasItemSelection));
+            OnPropertyChanged(nameof(ItemCreationPreview));
+        }
+    }
+
+    /// <summary>
+    /// Remove product unit from the list
+    /// </summary>
+    [RelayCommand]
+    private void RemoveProductUnit(ProductUnitDto unit)
+    {
+        if (unit != null)
+        {
+            SelectedProductUnits.Remove(unit);
+            OnPropertyChanged(nameof(HasItemSelection));
+            OnPropertyChanged(nameof(ItemCreationPreview));
+        }
     }
 
     /// <summary>
@@ -124,16 +283,32 @@ public partial class ProductGroupSidePanelViewModel : ObservableObject
             var discountsTask = _discountService.GetAllAsync();
             var taxTypesTask = _taxTypeService.GetAllAsync();
             var priceTypesTask = _sellingPriceTypeService.GetAllAsync();
+            var productsTask = _productService.GetAllProductsAsync();
+            var productUnitsTask = _productUnitService.GetAllAsync();
 
-            await Task.WhenAll(discountsTask, taxTypesTask, priceTypesTask);
+            await Task.WhenAll(discountsTask, taxTypesTask, priceTypesTask, productsTask, productUnitsTask);
 
             Discounts = discountsTask.Result.ToList();
             TaxTypes = taxTypesTask.Result.ToList();
             PriceTypes = priceTypesTask.Result.ToList();
+            Products = productsTask.Result.ToList();
+            ProductUnits = productUnitsTask.Result.ToList();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error loading dropdowns: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Select tab command
+    /// </summary>
+    [RelayCommand]
+    private void SelectTab(string tabIndex)
+    {
+        if (int.TryParse(tabIndex, out int index))
+        {
+            SelectedTabIndex = index;
         }
     }
 
@@ -143,6 +318,7 @@ public partial class ProductGroupSidePanelViewModel : ObservableObject
     public void PrepareForAdd()
     {
         IsEditMode = false;
+        SelectedTabIndex = 0;
         ResetForm();
         OnPropertyChanged(nameof(FormTitle));
         OnPropertyChanged(nameof(SaveButtonText));
@@ -154,6 +330,7 @@ public partial class ProductGroupSidePanelViewModel : ObservableObject
     public void PrepareForEdit(ProductGroupDetailDto details)
     {
         IsEditMode = true;
+        SelectedTabIndex = 0;
         Id = details.Id;
         Name = details.Name ?? string.Empty;
         NameAr = details.NameAr ?? string.Empty;
@@ -166,6 +343,12 @@ public partial class ProductGroupSidePanelViewModel : ObservableObject
         SelectedDiscount = Discounts.FirstOrDefault(d => d.Id == details.DiscountId);
         SelectedTaxType = TaxTypes.FirstOrDefault(t => t.Id == details.TaxTypeId);
         SelectedPriceType = PriceTypes.FirstOrDefault(p => p.Id == details.PriceTypeId);
+
+        // Clear Add Items tab selections
+        SelectedProduct = null;
+        SelectedProductUnit = null;
+        SelectedProducts.Clear();
+        SelectedProductUnits.Clear();
 
         // Load items
         GroupItems = new ObservableCollection<ProductGroupItemDto>(details.Items ?? new List<ProductGroupItemDto>());
@@ -186,6 +369,8 @@ public partial class ProductGroupSidePanelViewModel : ObservableObject
 
         try
         {
+            int groupId = Id;
+
             if (IsEditMode)
             {
                 var dto = new UpdateProductGroupDto
@@ -220,9 +405,13 @@ public partial class ProductGroupSidePanelViewModel : ObservableObject
                     Status = Status
                 };
 
-                await _productGroupService.CreateAsync(dto);
+                var createdGroup = await _productGroupService.CreateAsync(dto);
+                groupId = createdGroup.Id;
                 MessageBox.Show("Product group created successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
+
+            // Create product group items based on selection
+            await CreateProductGroupItemsAsync(groupId);
 
             await _refreshParent();
             _closeSidePanel();
@@ -230,6 +419,107 @@ public partial class ProductGroupSidePanelViewModel : ObservableObject
         catch (Exception ex)
         {
             MessageBox.Show($"Error saving product group: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// Create product group items based on user selection
+    /// </summary>
+    private async Task CreateProductGroupItemsAsync(int groupId)
+    {
+        if (SelectedProducts.Count == 0 && SelectedProductUnits.Count == 0)
+            return;
+
+        try
+        {
+            List<int> productIdsToAdd = new();
+
+            // Add selected products
+            if (SelectedProducts.Count > 0)
+            {
+                productIdsToAdd.AddRange(SelectedProducts.Select(p => p.Id));
+            }
+
+            // Add products based on selected units
+            if (SelectedProductUnits.Count > 0)
+            {
+                var allProducts = await _productService.GetAllProductsAsync();
+                var productsByUnit = allProducts
+                    .Where(p => p.ProductUnits.Any(pu => SelectedProductUnits.Any(su => su.Id == pu.Id)))
+                    .Select(p => p.Id)
+                    .ToList();
+                
+                // Add products that aren't already in the list
+                foreach (var productId in productsByUnit)
+                {
+                    if (!productIdsToAdd.Contains(productId))
+                    {
+                        productIdsToAdd.Add(productId);
+                    }
+                }
+            }
+
+            // Remove duplicates
+            productIdsToAdd = productIdsToAdd.Distinct().ToList();
+
+            // Create product group items
+            int itemsCreated = 0;
+            foreach (var productId in productIdsToAdd)
+            {
+                // If units are selected, create an item for each unit combination
+                if (SelectedProductUnits.Count > 0)
+                {
+                    foreach (var unit in SelectedProductUnits)
+                    {
+                        var itemDto = new CreateProductGroupItemDto
+                        {
+                            ProductGroupId = groupId,
+                            ProductId = productId,
+                            ProductUnitId = unit.Id,
+                            Quantity = 1,
+                            PriceAdjustment = 0,
+                            DiscountId = SelectedDiscount?.Id,
+                            TaxTypeId = SelectedTaxType?.Id,
+                            SellingPriceTypeId = SelectedPriceType?.Id,
+                            Status = "Active"
+                        };
+
+                        await _productGroupItemService.CreateAsync(itemDto);
+                        itemsCreated++;
+                    }
+                }
+                else
+                {
+                    // No units selected, create item with null unit
+                    var itemDto = new CreateProductGroupItemDto
+                    {
+                        ProductGroupId = groupId,
+                        ProductId = productId,
+                        ProductUnitId = null,
+                        Quantity = 1,
+                        PriceAdjustment = 0,
+                        DiscountId = SelectedDiscount?.Id,
+                        TaxTypeId = SelectedTaxType?.Id,
+                        SellingPriceTypeId = SelectedPriceType?.Id,
+                        Status = "Active"
+                    };
+
+                    await _productGroupItemService.CreateAsync(itemDto);
+                    itemsCreated++;
+                }
+            }
+
+            if (itemsCreated > 0)
+            {
+                MessageBox.Show($"{itemsCreated} product group item(s) created successfully.", 
+                    "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error creating product group items: {ex.Message}");
+            MessageBox.Show($"Product group created but error adding items: {ex.Message}", 
+                "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -327,6 +617,10 @@ public partial class ProductGroupSidePanelViewModel : ObservableObject
         SelectedDiscount = null;
         SelectedTaxType = null;
         SelectedPriceType = null;
+        SelectedProduct = null;
+        SelectedProductUnit = null;
+        SelectedProducts.Clear();
+        SelectedProductUnits.Clear();
         GroupItems.Clear();
         ClearValidation();
     }

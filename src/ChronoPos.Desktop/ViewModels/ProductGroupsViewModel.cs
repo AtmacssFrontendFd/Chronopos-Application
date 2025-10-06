@@ -15,10 +15,12 @@ namespace ChronoPos.Desktop.ViewModels;
 public partial class ProductGroupsViewModel : ObservableObject
 {
     private readonly IProductGroupService _productGroupService;
+    private readonly IProductGroupItemService _productGroupItemService;
     private readonly IDiscountService _discountService;
     private readonly ITaxTypeService _taxTypeService;
     private readonly ISellingPriceTypeService _sellingPriceTypeService;
     private readonly IProductService _productService;
+    private readonly IProductUnitService _productUnitService;
 
     [ObservableProperty]
     private ObservableCollection<ProductGroupDto> _productGroups = new();
@@ -72,24 +74,30 @@ public partial class ProductGroupsViewModel : ObservableObject
 
     public ProductGroupsViewModel(
         IProductGroupService productGroupService,
+        IProductGroupItemService productGroupItemService,
         IDiscountService discountService,
         ITaxTypeService taxTypeService,
         ISellingPriceTypeService sellingPriceTypeService,
-        IProductService productService)
+        IProductService productService,
+        IProductUnitService productUnitService)
     {
         _productGroupService = productGroupService;
+        _productGroupItemService = productGroupItemService;
         _discountService = discountService;
         _taxTypeService = taxTypeService;
         _sellingPriceTypeService = sellingPriceTypeService;
         _productService = productService;
+        _productUnitService = productUnitService;
         
         // Initialize side panel view model
         SidePanelViewModel = new ProductGroupSidePanelViewModel(
             _productGroupService,
+            _productGroupItemService,
             _discountService,
             _taxTypeService,
             _sellingPriceTypeService,
             _productService,
+            _productUnitService,
             CloseSidePanel,
             LoadProductGroupsAsync);
             
@@ -234,7 +242,7 @@ public partial class ProductGroupsViewModel : ObservableObject
                     TaxTypeId = details.TaxTypeId,
                     PriceTypeId = details.PriceTypeId,
                     SkuPrefix = details.SkuPrefix,
-                    Status = details.Status == "Active" ? "Inactive" : "Active"
+                    Status = details.IsActive ? "Inactive" : "Active"  // Toggle using IsActive property
                 };
                 
                 var result = await _productGroupService.UpdateAsync(updateDto);

@@ -95,6 +95,9 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IProductCombinationItemRepository, ProductCombinationItemRepository>();
                     LogMessage("ProductCombinationItemRepository registered as Transient");
 
+                    services.AddTransient<IProductGroupItemRepository, ProductGroupItemRepository>();
+                    LogMessage("ProductGroupItemRepository registered as Transient");
+
                     // Register application services as Transient to ensure fresh DbContext instances
                     services.AddTransient<IProductService, ProductService>();
                     LogMessage("ProductService registered as Transient");
@@ -247,6 +250,9 @@ public partial class App : System.Windows.Application
                     
                     services.AddTransient<IProductCombinationItemService, ProductCombinationItemService>();
                     LogMessage("ProductCombinationItemService registered as Transient");
+                    
+                    services.AddTransient<IProductGroupItemService, ProductGroupItemService>();
+                    LogMessage("ProductGroupItemService registered as Transient");
                     
                     // Register theme service
                     services.AddSingleton<IThemeService, ThemeService>();

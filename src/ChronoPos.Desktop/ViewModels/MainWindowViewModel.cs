@@ -2317,10 +2317,12 @@ public partial class MainWindowViewModel : ObservableObject
             // Create the ProductGroupsViewModel with all required services
             var productGroupsViewModel = new ProductGroupsViewModel(
                 _serviceProvider.GetRequiredService<IProductGroupService>(),
+                _serviceProvider.GetRequiredService<IProductGroupItemService>(),
                 _serviceProvider.GetRequiredService<IDiscountService>(),
                 _serviceProvider.GetRequiredService<ITaxTypeService>(),
                 _serviceProvider.GetRequiredService<ISellingPriceTypeService>(),
-                _serviceProvider.GetRequiredService<IProductService>()
+                _serviceProvider.GetRequiredService<IProductService>(),
+                _serviceProvider.GetRequiredService<IProductUnitService>()
             );
 
             // Set up back navigation to return to Add Options

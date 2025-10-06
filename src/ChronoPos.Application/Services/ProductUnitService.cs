@@ -451,7 +451,7 @@ public class ProductUnitService : IProductUnitService
     {
         try
         {
-            var productUnits = await _productUnitRepository.GetAllAsync();
+            var productUnits = await _productUnitRepository.GetAllWithNavigationAsync();
             return productUnits.Select(MapToDto);
         }
         catch (Exception ex)

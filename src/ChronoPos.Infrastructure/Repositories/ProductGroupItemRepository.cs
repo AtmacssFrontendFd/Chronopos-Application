@@ -15,6 +15,8 @@ public class ProductGroupItemRepository : Repository<ProductGroupItem>, IProduct
         return await _context.ProductGroupItems
             .Include(pgi => pgi.Product)
             .Include(pgi => pgi.Discount)
+            .Include(pgi => pgi.TaxType)
+            .Include(pgi => pgi.SellingPriceType)
             .Include(pgi => pgi.ProductGroup)
             .FirstOrDefaultAsync(pgi => pgi.Id == id);
     }
@@ -24,6 +26,8 @@ public class ProductGroupItemRepository : Repository<ProductGroupItem>, IProduct
         return await _context.ProductGroupItems
             .Include(pgi => pgi.Product)
             .Include(pgi => pgi.Discount)
+            .Include(pgi => pgi.TaxType)
+            .Include(pgi => pgi.SellingPriceType)
             .Include(pgi => pgi.ProductGroup)
             .ToListAsync();
     }

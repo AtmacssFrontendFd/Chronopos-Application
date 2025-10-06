@@ -18,6 +18,7 @@ public class ProductGroupDto
     public string? PriceTypeName { get; set; }
     public string? SkuPrefix { get; set; }
     public string Status { get; set; } = "Active";
+    public bool IsActive => Status == "Active";
     public int ItemCount { get; set; }
     public DateTime CreatedDate { get; set; }
     public DateTime? ModifiedDate { get; set; }
@@ -64,17 +65,24 @@ public class ProductGroupItemDto
 {
     public int Id { get; set; }
     public int ProductGroupId { get; set; }
-    public int ProductId { get; set; }
-    public string ProductName { get; set; } = string.Empty;
+    public int? ProductId { get; set; }
+    public string? ProductName { get; set; }
     public string? ProductCode { get; set; }
     public int? ProductUnitId { get; set; }
     public string? ProductUnitName { get; set; }
+    public int? ProductCombinationId { get; set; }
+    public string? ProductCombinationName { get; set; }
     public decimal Quantity { get; set; } = 1;
-    public int DisplayOrder { get; set; }
-    public bool IsRequired { get; set; } = true;
-    public decimal? PriceAdjustment { get; set; }
+    public decimal PriceAdjustment { get; set; } = 0;
     public int? DiscountId { get; set; }
     public string? DiscountName { get; set; }
+    public int? TaxTypeId { get; set; }
+    public string? TaxTypeName { get; set; }
+    public long? SellingPriceTypeId { get; set; }
+    public string? SellingPriceTypeName { get; set; }
+    public string Status { get; set; } = "Active";
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
     public decimal ProductPrice { get; set; }
     public decimal CalculatedPrice { get; set; }
 }
@@ -85,13 +93,33 @@ public class ProductGroupItemDto
 public class CreateProductGroupItemDto
 {
     public int ProductGroupId { get; set; }
-    public int ProductId { get; set; }
+    public int? ProductId { get; set; }
     public int? ProductUnitId { get; set; }
+    public int? ProductCombinationId { get; set; }
     public decimal Quantity { get; set; } = 1;
-    public int DisplayOrder { get; set; }
-    public bool IsRequired { get; set; } = true;
-    public decimal? PriceAdjustment { get; set; }
+    public decimal PriceAdjustment { get; set; } = 0;
     public int? DiscountId { get; set; }
+    public int? TaxTypeId { get; set; }
+    public long? SellingPriceTypeId { get; set; }
+    public string Status { get; set; } = "Active";
+}
+
+/// <summary>
+/// DTO for updating an existing product group item
+/// </summary>
+public class UpdateProductGroupItemDto
+{
+    public int Id { get; set; }
+    public int ProductGroupId { get; set; }
+    public int? ProductId { get; set; }
+    public int? ProductUnitId { get; set; }
+    public int? ProductCombinationId { get; set; }
+    public decimal Quantity { get; set; } = 1;
+    public decimal PriceAdjustment { get; set; } = 0;
+    public int? DiscountId { get; set; }
+    public int? TaxTypeId { get; set; }
+    public long? SellingPriceTypeId { get; set; }
+    public string Status { get; set; } = "Active";
 }
 
 /// <summary>
@@ -112,6 +140,7 @@ public class ProductGroupDetailDto
     public string? PriceTypeName { get; set; }
     public string? SkuPrefix { get; set; }
     public string Status { get; set; } = "Active";
+    public bool IsActive => Status == "Active";
     public DateTime CreatedDate { get; set; }
     public DateTime? ModifiedDate { get; set; }
     public List<ProductGroupItemDto> Items { get; set; } = new();

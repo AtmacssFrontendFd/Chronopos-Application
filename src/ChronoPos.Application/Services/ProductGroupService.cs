@@ -74,13 +74,16 @@ public class ProductGroupService : IProductGroupService
         // Load items if they exist
         if (productGroup.ProductGroupItems != null && productGroup.ProductGroupItems.Any())
         {
-            foreach (var item in productGroup.ProductGroupItems.OrderBy(i => i.DisplayOrder))
+            foreach (var item in productGroup.ProductGroupItems.OrderBy(i => i.Id))
             {
-                var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId);
-                if (product != null)
+                if (item.ProductId.HasValue)
                 {
-                    var itemDto = MapItem(item, product);
-                    detail.Items.Add(itemDto);
+                    var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId.Value);
+                    if (product != null)
+                    {
+                        var itemDto = MapItem(item, product);
+                        detail.Items.Add(itemDto);
+                    }
                 }
             }
         }
@@ -222,12 +225,15 @@ public class ProductGroupService : IProductGroupService
         }
 
         var items = new List<ProductGroupItemDto>();
-        foreach (var item in productGroup.ProductGroupItems.OrderBy(i => i.DisplayOrder))
+        foreach (var item in productGroup.ProductGroupItems.OrderBy(i => i.Id))
         {
-            var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId);
-            if (product != null)
+            if (item.ProductId.HasValue)
             {
-                items.Add(MapItem(item, product));
+                var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId.Value);
+                if (product != null)
+                {
+                    items.Add(MapItem(item, product));
+                }
             }
         }
 
@@ -246,11 +252,15 @@ public class ProductGroupService : IProductGroupService
             throw new InvalidOperationException("Product group not found.");
         }
 
-        // Validate product exists
-        var product = await _unitOfWork.Products.GetByIdAsync(dto.ProductId);
-        if (product == null)
+        // Validate product exists if provided
+        Product? product = null;
+        if (dto.ProductId.HasValue)
         {
-            throw new InvalidOperationException("Product not found.");
+            product = await _unitOfWork.Products.GetByIdAsync(dto.ProductId.Value);
+            if (product == null)
+            {
+                throw new InvalidOperationException("Product not found.");
+            }
         }
 
         var item = new ProductGroupItem
@@ -258,18 +268,42 @@ public class ProductGroupService : IProductGroupService
             ProductGroupId = dto.ProductGroupId,
             ProductId = dto.ProductId,
             ProductUnitId = dto.ProductUnitId,
+            ProductCombinationId = dto.ProductCombinationId,
             Quantity = dto.Quantity,
-            DisplayOrder = dto.DisplayOrder,
-            IsRequired = dto.IsRequired,
             PriceAdjustment = dto.PriceAdjustment,
             DiscountId = dto.DiscountId,
-            CreatedDate = DateTime.UtcNow
+            TaxTypeId = dto.TaxTypeId,
+            SellingPriceTypeId = dto.SellingPriceTypeId,
+            Status = dto.Status,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         await _unitOfWork.ProductGroupItems.AddAsync(item);
         await _unitOfWork.SaveChangesAsync();
 
-        return MapItem(item, product);
+        if (product != null)
+        {
+            return MapItem(item, product);
+        }
+        
+        // Return basic DTO if no product
+        return new ProductGroupItemDto
+        {
+            Id = item.Id,
+            ProductGroupId = item.ProductGroupId,
+            ProductId = item.ProductId,
+            ProductUnitId = item.ProductUnitId,
+            ProductCombinationId = item.ProductCombinationId,
+            Quantity = item.Quantity,
+            PriceAdjustment = item.PriceAdjustment,
+            DiscountId = item.DiscountId,
+            TaxTypeId = item.TaxTypeId,
+            SellingPriceTypeId = item.SellingPriceTypeId,
+            Status = item.Status,
+            CreatedAt = item.CreatedAt,
+            UpdatedAt = item.UpdatedAt
+        };
     }
 
     /// <summary>
@@ -292,7 +326,7 @@ public class ProductGroupService : IProductGroupService
     /// <summary>
     /// Update a product group item
     /// </summary>
-    public async Task<ProductGroupItemDto> UpdateItemAsync(ProductGroupItemDto dto)
+    public async Task<ProductGroupItemDto> UpdateItemAsync(UpdateProductGroupItemDto dto)
     {
         var item = await _unitOfWork.ProductGroupItems.GetByIdAsync(dto.Id);
         if (item == null)
@@ -300,25 +334,52 @@ public class ProductGroupService : IProductGroupService
             throw new InvalidOperationException("Product group item not found.");
         }
 
-        var product = await _unitOfWork.Products.GetByIdAsync(dto.ProductId);
-        if (product == null)
+        Product? product = null;
+        if (dto.ProductId.HasValue)
         {
-            throw new InvalidOperationException("Product not found.");
+            product = await _unitOfWork.Products.GetByIdAsync(dto.ProductId.Value);
+            if (product == null)
+            {
+                throw new InvalidOperationException("Product not found.");
+            }
         }
 
         item.ProductId = dto.ProductId;
         item.ProductUnitId = dto.ProductUnitId;
+        item.ProductCombinationId = dto.ProductCombinationId;
         item.Quantity = dto.Quantity;
-        item.DisplayOrder = dto.DisplayOrder;
-        item.IsRequired = dto.IsRequired;
         item.PriceAdjustment = dto.PriceAdjustment;
         item.DiscountId = dto.DiscountId;
-        item.ModifiedDate = DateTime.UtcNow;
+        item.TaxTypeId = dto.TaxTypeId;
+        item.SellingPriceTypeId = dto.SellingPriceTypeId;
+        item.Status = dto.Status;
+        item.UpdatedAt = DateTime.UtcNow;
 
         await _unitOfWork.ProductGroupItems.UpdateAsync(item);
         await _unitOfWork.SaveChangesAsync();
 
-        return MapItem(item, product);
+        if (product != null)
+        {
+            return MapItem(item, product);
+        }
+        
+        // Return basic DTO if no product
+        return new ProductGroupItemDto
+        {
+            Id = item.Id,
+            ProductGroupId = item.ProductGroupId,
+            ProductId = item.ProductId,
+            ProductUnitId = item.ProductUnitId,
+            ProductCombinationId = item.ProductCombinationId,
+            Quantity = item.Quantity,
+            PriceAdjustment = item.PriceAdjustment,
+            DiscountId = item.DiscountId,
+            TaxTypeId = item.TaxTypeId,
+            SellingPriceTypeId = item.SellingPriceTypeId,
+            Status = item.Status,
+            CreatedAt = item.CreatedAt,
+            UpdatedAt = item.UpdatedAt
+        };
     }
 
     /// <summary>
@@ -388,7 +449,7 @@ public class ProductGroupService : IProductGroupService
     private ProductGroupItemDto MapItem(ProductGroupItem item, Product product)
     {
         var basePrice = product.Price;
-        var calculatedPrice = basePrice + (item.PriceAdjustment ?? 0);
+        var calculatedPrice = basePrice + item.PriceAdjustment;
 
         return new ProductGroupItemDto
         {
@@ -398,12 +459,16 @@ public class ProductGroupService : IProductGroupService
             ProductName = product.Name,
             ProductCode = product.Code,
             ProductUnitId = item.ProductUnitId,
+            ProductCombinationId = item.ProductCombinationId,
             Quantity = item.Quantity,
-            DisplayOrder = item.DisplayOrder,
-            IsRequired = item.IsRequired,
             PriceAdjustment = item.PriceAdjustment,
             DiscountId = item.DiscountId,
             DiscountName = item.Discount?.DiscountName,
+            TaxTypeId = item.TaxTypeId,
+            SellingPriceTypeId = item.SellingPriceTypeId,
+            Status = item.Status,
+            CreatedAt = item.CreatedAt,
+            UpdatedAt = item.UpdatedAt,
             ProductPrice = basePrice,
             CalculatedPrice = calculatedPrice
         };
