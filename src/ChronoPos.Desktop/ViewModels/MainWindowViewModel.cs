@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ChronoPos.Infrastructure.Services;
 using System.Windows;
+using ChronoPos.Application.Logging;
 using System.Collections.ObjectModel;
 using ChronoPos.Domain.Entities;
 
@@ -1025,6 +1026,7 @@ public partial class MainWindowViewModel : ObservableObject
                 discountService,
                 productUnitService,
                 skuGenerationService,
+                _serviceProvider.GetRequiredService<IProductBatchService>(),
                 themeService,
                 zoomService,
                 localizationService,
@@ -1101,6 +1103,7 @@ public partial class MainWindowViewModel : ObservableObject
                 discountService,
                 productUnitService,
                 skuGenerationService,
+                _serviceProvider.GetRequiredService<IProductBatchService>(),
                 themeService,
                 zoomService,
                 localizationService,
@@ -1145,7 +1148,7 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task ShowStockManagement()
+    private async Task ShowStockManagement(string? selectedSection = null)
     {
         // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
         CurrentPageTitle = "Stock Management";
@@ -1162,8 +1165,32 @@ public partial class MainWindowViewModel : ObservableObject
             var fontService = _serviceProvider.GetService<IFontService>();
             var databaseLocalizationService = _serviceProvider.GetService<IDatabaseLocalizationService>();
 
-            // Get the StockManagementViewModel from DI container to ensure proper scoping
-            var stockManagementViewModel = _serviceProvider.GetRequiredService<StockManagementViewModel>();
+            // Create StockManagementViewModel manually with navigation callback
+            var stockManagementViewModel = new StockManagementViewModel(
+                themeService ?? throw new InvalidOperationException("ThemeService is required"),
+                zoomService ?? throw new InvalidOperationException("ZoomService is required"),
+                localizationService ?? throw new InvalidOperationException("LocalizationService is required"),
+                colorSchemeService ?? throw new InvalidOperationException("ColorSchemeService is required"),
+                layoutDirectionService ?? throw new InvalidOperationException("LayoutDirectionService is required"),
+                fontService ?? throw new InvalidOperationException("FontService is required"),
+                databaseLocalizationService ?? throw new InvalidOperationException("DatabaseLocalizationService is required"),
+                _serviceProvider.GetService<IProductService>(),
+                _serviceProvider.GetService<IStockAdjustmentService>(),
+                _serviceProvider.GetService<IProductBatchService>(),
+                _serviceProvider.GetService<IGoodsReceivedService>(),
+                _serviceProvider.GetService<ISupplierService>(),
+                _serviceProvider.GetService<IStockTransferService>(),
+                _serviceProvider.GetService<IGoodsReturnService>(), // Add GoodsReturnService
+                _serviceProvider.GetService<IGoodsReplaceService>(), // Add GoodsReplaceService
+                navigateToAddGrn: ShowAddGrn, // Pass navigation callback
+                navigateToEditGrn: ShowEditGrn, // Pass edit navigation callback
+                navigateToAddStockTransfer: ShowAddStockTransfer, // Pass stock transfer navigation callback
+                navigateToEditStockTransfer: ShowEditStockTransfer, // Pass edit stock transfer navigation callback
+                navigateToAddGoodsReturn: ShowAddGoodsReturn, // Pass goods return navigation callback
+                navigateToEditGoodsReturn: ShowEditGoodsReturn, // Pass edit goods return navigation callback
+                navigateToAddGoodsReplace: ShowAddGoodsReplace, // Pass goods replace navigation callback
+                navigateToEditGoodsReplace: ShowEditGoodsReplace // Pass edit goods replace navigation callback
+            );
             
             // Create the view and set the ViewModel from DI
             var stockManagementView = new StockManagementView();
@@ -1177,6 +1204,12 @@ public partial class MainWindowViewModel : ObservableObject
 
             // Set the DataContext to the proper ViewModel
             stockManagementView.DataContext = stockManagementViewModel;
+
+            // If a specific section is requested, navigate to it
+            if (!string.IsNullOrEmpty(selectedSection))
+            {
+                stockManagementViewModel.SelectModuleCommand.Execute(selectedSection);
+            }
 
             CurrentView = stockManagementView;
             StatusMessage = "Stock management loaded successfully";
@@ -1193,6 +1226,496 @@ public partial class MainWindowViewModel : ObservableObject
                 FontSize = 16
             };
             CurrentView = errorContent;
+        }
+    }
+
+    private void ShowAddGrn()
+    {
+        CurrentPageTitle = "Add Goods Received Note";
+        StatusMessage = "Loading add GRN form...";
+        
+        try
+        {
+            // Create the AddGrnView and manually create ViewModel with navigation callback
+            var addGrnView = new AddGrnView();
+            
+            // Get services from DI container
+            var goodsReceivedService = _serviceProvider.GetRequiredService<IGoodsReceivedService>();
+            var supplierService = _serviceProvider.GetRequiredService<ISupplierService>();
+            var storeService = _serviceProvider.GetRequiredService<IStoreService>();
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var uomService = _serviceProvider.GetRequiredService<IUomService>();
+            var productBatchService = _serviceProvider.GetRequiredService<IProductBatchService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback
+            var addGrnViewModel = new AddGrnViewModel(
+                goodsReceivedService,
+                supplierService,
+                storeService,
+                productService,
+                uomService,
+                productBatchService,
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                navigateBack: () => _ = ShowStockManagement("GoodsReceived") // Navigate back to stock management Goods Received section
+            );
+            
+            addGrnView.DataContext = addGrnViewModel;
+            CurrentView = addGrnView;
+            StatusMessage = "Add GRN form loaded successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading add GRN form: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+    
+    private async void ShowEditGrn(long grnId)
+    {
+        CurrentPageTitle = "Edit Goods Received Note";
+        StatusMessage = "Loading GRN for editing...";
+        
+        try
+        {
+            AppLogger.LogInfo($"Opening GRN for editing", $"GRN ID: {grnId}", "navigation");
+            
+            // Create the AddGrnView (same view used for add/edit)
+            var addGrnView = new AddGrnView();
+            
+            // Get services from DI container
+            var goodsReceivedService = _serviceProvider.GetRequiredService<IGoodsReceivedService>();
+            var supplierService = _serviceProvider.GetRequiredService<ISupplierService>();
+            var storeService = _serviceProvider.GetRequiredService<IStoreService>();
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var uomService = _serviceProvider.GetRequiredService<IUomService>();
+            var productBatchService = _serviceProvider.GetRequiredService<IProductBatchService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback
+            var addGrnViewModel = new AddGrnViewModel(
+                goodsReceivedService,
+                supplierService,
+                storeService,
+                productService,
+                uomService,
+                productBatchService,
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                navigateBack: () => _ = ShowStockManagement("GoodsReceived") // Navigate back to stock management Goods Received section
+            );
+            
+            // Load the GRN data for editing
+            await addGrnViewModel.LoadForEditAsync(grnId);
+            
+            addGrnView.DataContext = addGrnViewModel;
+            CurrentView = addGrnView;
+            StatusMessage = "GRN loaded for editing successfully";
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Failed to load GRN for editing", ex, $"GRN ID: {grnId}", "navigation");
+            StatusMessage = $"Error loading GRN for editing: {ex.Message}";
+            
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error loading GRN {grnId}: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+    
+    private void ShowAddStockTransfer()
+    {
+        CurrentPageTitle = "Add Stock Transfer";
+        StatusMessage = "Loading add stock transfer form...";
+        
+        try
+        {
+            // Create the AddStockTransferView
+            var addStockTransferView = new AddStockTransferView();
+            
+            // Get services from DI container
+            var stockTransferService = _serviceProvider.GetRequiredService<IStockTransferService>();
+            var stockTransferItemService = _serviceProvider.GetRequiredService<IStockTransferItemService>();
+            var storeService = _serviceProvider.GetRequiredService<IStoreService>();
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var uomService = _serviceProvider.GetRequiredService<IUomService>();
+            var productBatchService = _serviceProvider.GetRequiredService<IProductBatchService>();
+            var stockService = _serviceProvider.GetRequiredService<IStockService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback
+            var addStockTransferViewModel = new AddStockTransferViewModel(
+                stockTransferService,
+                stockTransferItemService,
+                storeService,
+                productService,
+                uomService,
+                productBatchService,
+                stockService,
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                navigateBack: () => _ = ShowStockManagement("StockTransfer") // Navigate back to stock management Stock Transfer section
+            );
+            
+            addStockTransferView.DataContext = addStockTransferViewModel;
+            CurrentView = addStockTransferView;
+            StatusMessage = "Add stock transfer form loaded successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading add stock transfer form: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    private void ShowEditStockTransfer(int transferId)
+    {
+        CurrentPageTitle = "Edit Stock Transfer";
+        StatusMessage = "Loading edit stock transfer form...";
+        
+        try
+        {
+            // Create the AddStockTransferView (same view, different mode)
+            var addStockTransferView = new AddStockTransferView();
+            
+            // Get services from DI container
+            var stockTransferService = _serviceProvider.GetRequiredService<IStockTransferService>();
+            var stockTransferItemService = _serviceProvider.GetRequiredService<IStockTransferItemService>();
+            var storeService = _serviceProvider.GetRequiredService<IStoreService>();
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var uomService = _serviceProvider.GetRequiredService<IUomService>();
+            var productBatchService = _serviceProvider.GetRequiredService<IProductBatchService>();
+            var stockService = _serviceProvider.GetRequiredService<IStockService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback and transfer ID for editing
+            var addStockTransferViewModel = new AddStockTransferViewModel(
+                stockTransferService,
+                stockTransferItemService,
+                storeService,
+                productService,
+                uomService,
+                productBatchService,
+                stockService,
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                navigateBack: () => _ = ShowStockManagement("StockTransfer"), // Navigate back to stock management Stock Transfer section
+                transferId: transferId // Pass the transfer ID for editing
+            );
+            
+            addStockTransferView.DataContext = addStockTransferViewModel;
+            CurrentView = addStockTransferView;
+            StatusMessage = "Edit stock transfer form loaded successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading edit stock transfer form: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    private void ShowAddGoodsReturn()
+    {
+        CurrentPageTitle = "Add Goods Return";
+        StatusMessage = "Loading add goods return form...";
+        
+        try
+        {
+            // Create the AddGoodsReturnView
+            var addGoodsReturnView = new AddGoodsReturnView();
+            
+            // Get services from DI container
+            var goodsReturnService = _serviceProvider.GetRequiredService<IGoodsReturnService>();
+            var goodsReturnItemService = _serviceProvider.GetRequiredService<IGoodsReturnItemService>();
+            var goodsReceivedService = _serviceProvider.GetRequiredService<IGoodsReceivedService>();
+            var storeService = _serviceProvider.GetRequiredService<IStoreService>();
+            var supplierService = _serviceProvider.GetRequiredService<ISupplierService>();
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var uomService = _serviceProvider.GetRequiredService<IUomService>();
+            var productBatchService = _serviceProvider.GetRequiredService<IProductBatchService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback
+            var addGoodsReturnViewModel = new AddGoodsReturnViewModel(
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                goodsReturnService,
+                goodsReturnItemService,
+                goodsReceivedService,
+                storeService,
+                supplierService,
+                productService,
+                uomService,
+                productBatchService,
+                navigateBack: () => _ = ShowStockManagement("GoodsReturn") // Navigate back to stock management Goods Return section
+            );
+            
+            addGoodsReturnView.DataContext = addGoodsReturnViewModel;
+            CurrentView = addGoodsReturnView;
+            StatusMessage = "Add goods return form loaded successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Failed to load add goods return form";
+            MessageBox.Show($"Error loading add goods return form: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void ShowEditGoodsReturn(int returnId)
+    {
+        CurrentPageTitle = "Edit Goods Return";
+        StatusMessage = "Loading goods return for editing...";
+        
+        try
+        {
+            // Create the AddGoodsReturnView (same view used for both add and edit)
+            var addGoodsReturnView = new AddGoodsReturnView();
+            
+            // Get services from DI container
+            var goodsReturnService = _serviceProvider.GetRequiredService<IGoodsReturnService>();
+            var goodsReturnItemService = _serviceProvider.GetRequiredService<IGoodsReturnItemService>();
+            var goodsReceivedService = _serviceProvider.GetRequiredService<IGoodsReceivedService>();
+            var storeService = _serviceProvider.GetRequiredService<IStoreService>();
+            var supplierService = _serviceProvider.GetRequiredService<ISupplierService>();
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var uomService = _serviceProvider.GetRequiredService<IUomService>();
+            var productBatchService = _serviceProvider.GetRequiredService<IProductBatchService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback and return ID for editing
+            var addGoodsReturnViewModel = new AddGoodsReturnViewModel(
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                goodsReturnService,
+                goodsReturnItemService,
+                goodsReceivedService,
+                storeService,
+                supplierService,
+                productService,
+                uomService,
+                productBatchService,
+                navigateBack: () => _ = ShowStockManagement("GoodsReturn"), // Navigate back to stock management Goods Return section
+                returnId: returnId // This puts it in edit mode
+            );
+            
+            addGoodsReturnView.DataContext = addGoodsReturnViewModel;
+            CurrentView = addGoodsReturnView;
+            StatusMessage = "Goods return loaded for editing successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Failed to load goods return for editing";
+            MessageBox.Show($"Error loading goods return for editing: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void ShowAddGoodsReplace()
+    {
+        CurrentPageTitle = "Add Goods Replace";
+        StatusMessage = "Loading add goods replace form...";
+        
+        try
+        {
+            // Create the AddGoodsReplaceView
+            var addGoodsReplaceView = new AddGoodsReplaceView();
+            
+            // Get services from DI container
+            var goodsReplaceService = _serviceProvider.GetRequiredService<IGoodsReplaceService>();
+            var goodsReplaceItemService = _serviceProvider.GetRequiredService<IGoodsReplaceItemService>();
+            var goodsReturnService = _serviceProvider.GetRequiredService<IGoodsReturnService>();
+            var storeService = _serviceProvider.GetRequiredService<IStoreService>();
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var uomService = _serviceProvider.GetRequiredService<IUomService>();
+            var productBatchService = _serviceProvider.GetRequiredService<IProductBatchService>();
+            var stockService = _serviceProvider.GetRequiredService<IStockService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback
+            var addGoodsReplaceViewModel = new AddGoodsReplaceViewModel(
+                goodsReplaceService,
+                goodsReplaceItemService,
+                goodsReturnService,
+                storeService,
+                productService,
+                uomService,
+                productBatchService,
+                stockService,
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                navigateBack: () => _ = ShowStockManagement("GoodsReplace") // Navigate back to stock management Goods Replace section
+            );
+            
+            addGoodsReplaceView.DataContext = addGoodsReplaceViewModel;
+            CurrentView = addGoodsReplaceView;
+            StatusMessage = "Add goods replace form loaded successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Failed to load add goods replace form";
+            MessageBox.Show($"Error loading add goods replace form: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void ShowEditGoodsReplace(int replaceId)
+    {
+        CurrentPageTitle = "Edit Goods Replace";
+        StatusMessage = "Loading goods replace for editing...";
+        
+        try
+        {
+            // Create the AddGoodsReplaceView (same view used for both add and edit)
+            var addGoodsReplaceView = new AddGoodsReplaceView();
+            
+            // Get services from DI container
+            var goodsReplaceService = _serviceProvider.GetRequiredService<IGoodsReplaceService>();
+            var goodsReplaceItemService = _serviceProvider.GetRequiredService<IGoodsReplaceItemService>();
+            var goodsReturnService = _serviceProvider.GetRequiredService<IGoodsReturnService>();
+            var storeService = _serviceProvider.GetRequiredService<IStoreService>();
+            var productService = _serviceProvider.GetRequiredService<IProductService>();
+            var uomService = _serviceProvider.GetRequiredService<IUomService>();
+            var productBatchService = _serviceProvider.GetRequiredService<IProductBatchService>();
+            var stockService = _serviceProvider.GetRequiredService<IStockService>();
+            var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+            var zoomService = _serviceProvider.GetRequiredService<IZoomService>();
+            var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
+            var colorSchemeService = _serviceProvider.GetRequiredService<IColorSchemeService>();
+            var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
+            var fontService = _serviceProvider.GetRequiredService<IFontService>();
+            var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            
+            // Create ViewModel with navigation callback and replace ID for editing
+            var addGoodsReplaceViewModel = new AddGoodsReplaceViewModel(
+                goodsReplaceService,
+                goodsReplaceItemService,
+                goodsReturnService,
+                storeService,
+                productService,
+                uomService,
+                productBatchService,
+                stockService,
+                themeService,
+                zoomService,
+                localizationService,
+                colorSchemeService,
+                layoutDirectionService,
+                fontService,
+                databaseLocalizationService,
+                navigateBack: () => _ = ShowStockManagement("GoodsReplace"), // Navigate back to stock management Goods Replace section
+                replaceId: replaceId // This puts it in edit mode
+            );
+            
+            addGoodsReplaceView.DataContext = addGoodsReplaceViewModel;
+            CurrentView = addGoodsReplaceView;
+            StatusMessage = "Goods replace loaded for editing successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Failed to load goods replace for editing";
+            MessageBox.Show($"Error loading goods replace for editing: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
     
@@ -1231,6 +1754,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IDatabaseLocalizationService>(),
                 _serviceProvider.GetRequiredService<ITaxTypeService>(),
                 _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ICustomerGroupService>(),
                 _serviceProvider.GetRequiredService<ISupplierService>()
             );
 
@@ -1257,6 +1781,10 @@ public partial class MainWindowViewModel : ObservableObject
                     case "ProductCombinations":
                         _ = ShowProductCombinations();
                         break;
+                    case "ProductGrouping":
+                    case "ProductGroups":
+                        _ = ShowProductGroups();
+                        break;
                     case "PriceTypes":
                         _ = ShowPriceTypes();
                         break;
@@ -1268,6 +1796,9 @@ public partial class MainWindowViewModel : ObservableObject
                         break;
                     case "Customers":
                         _ = ShowCustomers();
+                        break;
+                    case "CustomerGroups":
+                        _ = ShowCustomerGroups();
                         break;
                     case "Suppliers":
                         _ = ShowSuppliers();
@@ -1694,7 +2225,8 @@ public partial class MainWindowViewModel : ObservableObject
         {
             // Create the CustomersViewModel with all required services
             var customersViewModel = new CustomersViewModel(
-                _serviceProvider.GetRequiredService<ICustomerService>()
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ICustomerGroupService>()
             );
 
             // Set up back navigation to return to Add Options
@@ -1716,6 +2248,102 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error loading customer management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowCustomerGroups()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Customer Groups Management";
+        StatusMessage = "Loading customer groups...";
+        
+        try
+        {
+            // Create the CustomerGroupsViewModel with all required services
+            var customerGroupsViewModel = new CustomerGroupsViewModel(
+                _serviceProvider.GetRequiredService<ICustomerGroupService>(),
+                _serviceProvider.GetRequiredService<ICustomerGroupRelationService>(),
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ISellingPriceTypeService>(),
+                _serviceProvider.GetRequiredService<IDiscountService>()
+            );
+
+            // Set up back navigation to return to Add Options
+            customerGroupsViewModel.GoBackAction = () =>
+            {
+                ShowAddOptionsCommand.Execute(null);
+            };
+
+            // Create the CustomerGroupsView and set its DataContext
+            var customerGroupsView = new CustomerGroupsView
+            {
+                DataContext = customerGroupsViewModel
+            };
+
+            CurrentView = customerGroupsView;
+            StatusMessage = "Customer groups loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading customer groups: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowProductGroups()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Product Groups Management";
+        StatusMessage = "Loading product groups...";
+        
+        try
+        {
+            // Create the ProductGroupsViewModel with all required services
+            var productGroupsViewModel = new ProductGroupsViewModel(
+                _serviceProvider.GetRequiredService<IProductGroupService>(),
+                _serviceProvider.GetRequiredService<IProductGroupItemService>(),
+                _serviceProvider.GetRequiredService<IDiscountService>(),
+                _serviceProvider.GetRequiredService<ITaxTypeService>(),
+                _serviceProvider.GetRequiredService<ISellingPriceTypeService>(),
+                _serviceProvider.GetRequiredService<IProductService>(),
+                _serviceProvider.GetRequiredService<IProductUnitService>()
+            );
+
+            // Set up back navigation to return to Add Options
+            productGroupsViewModel.GoBackAction = () =>
+            {
+                ShowAddOptionsCommand.Execute(null);
+            };
+
+            // Create the ProductGroupsView and set its DataContext
+            var productGroupsView = new ProductGroupsView
+            {
+                DataContext = productGroupsViewModel
+            };
+
+            CurrentView = productGroupsView;
+            StatusMessage = "Product groups loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading product groups: {ex.Message}";
             var errorContent = new System.Windows.Controls.TextBlock
             {
                 Text = $"Error: {ex.Message}",

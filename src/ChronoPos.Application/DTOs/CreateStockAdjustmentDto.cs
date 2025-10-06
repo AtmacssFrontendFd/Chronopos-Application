@@ -1,3 +1,5 @@
+using ChronoPos.Domain.Enums;
+
 namespace ChronoPos.Application.DTOs;
 
 /// <summary>
@@ -26,4 +28,29 @@ public class CreateStockAdjustmentItemDto
     public decimal QuantityAfter { get; set; }
     public string? ReasonLine { get; set; }
     public string? RemarksLine { get; set; }
+    
+    /// <summary>
+    /// The adjustment mode (Product or ProductUnit)
+    /// </summary>
+    public StockAdjustmentMode AdjustmentMode { get; set; } = StockAdjustmentMode.Product;
+    
+    /// <summary>
+    /// For ProductUnit mode: the ProductUnit ID
+    /// </summary>
+    public int? ProductUnitId { get; set; }
+    
+    /// <summary>
+    /// The conversion factor from UOM (default: 1 for Product mode, ProductUnit conversion factor for ProductUnit mode)
+    /// </summary>
+    public decimal ConversionFactor { get; set; } = 1;
+    
+    /// <summary>
+    /// Whether the adjustment is an increment (true) or decrement (false)
+    /// </summary>
+    public bool IsIncrement { get; set; } = true;
+    
+    /// <summary>
+    /// The change amount to apply (always positive, direction determined by IsIncrement)
+    /// </summary>
+    public decimal ChangeAmount { get; set; } = 0;
 }

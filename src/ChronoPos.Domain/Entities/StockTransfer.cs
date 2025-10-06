@@ -37,8 +37,8 @@ public class StockTransfer
     public DateTime? UpdatedAt { get; set; }
     
     // Navigation Properties
-    public virtual ShopLocation? FromStore { get; set; }
-    public virtual ShopLocation? ToStore { get; set; }
+    public virtual Store? FromStore { get; set; }
+    public virtual Store? ToStore { get; set; }
     public virtual User? Creator { get; set; }
     public virtual User? Updater { get; set; }
     public virtual ICollection<StockTransferItem> Items { get; set; } = new List<StockTransferItem>();

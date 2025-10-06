@@ -1,5 +1,6 @@
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.Logging;
 using ChronoPos.Domain.Entities;
 using ChronoPos.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -91,9 +92,9 @@ namespace ChronoPos.Infrastructure.Services
                     TransferNo = st.TransferNo,
                     TransferDate = st.TransferDate,
                     FromStoreId = st.FromStoreId,
-                    FromStoreName = st.FromStore != null ? st.FromStore.LocationName : "",
+                    FromStoreName = st.FromStore != null ? st.FromStore.Name : "",
                     ToStoreId = st.ToStoreId,
-                    ToStoreName = st.ToStore != null ? st.ToStore.LocationName : "",
+                    ToStoreName = st.ToStore != null ? st.ToStore.Name : "",
                     Status = st.Status,
                     Remarks = st.Remarks,
                     CreatedByName = st.Creator != null ? st.Creator.FullName : "",
@@ -136,9 +137,9 @@ namespace ChronoPos.Infrastructure.Services
                 TransferNo = transfer.TransferNo,
                 TransferDate = transfer.TransferDate,
                 FromStoreId = transfer.FromStoreId,
-                FromStoreName = transfer.FromStore?.LocationName ?? "",
+                FromStoreName = transfer.FromStore?.Name ?? "",
                 ToStoreId = transfer.ToStoreId,
-                ToStoreName = transfer.ToStore?.LocationName ?? "",
+                ToStoreName = transfer.ToStore?.Name ?? "",
                 Status = transfer.Status,
                 Remarks = transfer.Remarks,
                 CreatedByName = transfer.Creator?.FullName ?? "",
@@ -168,48 +169,86 @@ namespace ChronoPos.Infrastructure.Services
         /// </summary>
         public async Task<StockTransferDto> CreateStockTransferAsync(CreateStockTransferDto dto)
         {
-            var transferNo = await GenerateTransferNumberAsync();
-
-            var transfer = new StockTransfer
+            try
             {
-                TransferNo = transferNo,
-                TransferDate = dto.TransferDate,
-                FromStoreId = dto.FromStoreId,
-                ToStoreId = dto.ToStoreId,
-                Status = "Pending",
-                Remarks = dto.Remarks,
-                CreatedBy = 1, // TODO: Get from current user context
-                CreatedAt = DateTime.UtcNow
-            };
+                AppLogger.LogInfo("CreateStockTransferService", $"Starting transfer creation - FromStore: {dto.FromStoreId}, ToStore: {dto.ToStoreId}");
+                
+                var transferNo = await GenerateTransferNumberAsync();
+                AppLogger.LogInfo("CreateStockTransferService", $"Generated transfer number: {transferNo}");
 
-            _context.StockTransfers.Add(transfer);
-            await _context.SaveChangesAsync();
-
-            // Add transfer items
-            foreach (var itemDto in dto.Items)
-            {
-                var item = new StockTransferItem
+                var transfer = new StockTransfer
                 {
-                    TransferId = transfer.TransferId,
-                    ProductId = itemDto.ProductId,
-                    UomId = itemDto.UomId,
-                    BatchNo = itemDto.BatchNo,
-                    ExpiryDate = itemDto.ExpiryDate,
-                    QuantitySent = itemDto.QuantitySent,
-                    QuantityReceived = 0,
-                    DamagedQty = 0,
-                    Status = "Pending",
-                    RemarksLine = itemDto.RemarksLine
+                    TransferNo = transferNo,
+                    TransferDate = dto.TransferDate,
+                    FromStoreId = dto.FromStoreId,
+                    ToStoreId = dto.ToStoreId,
+                    Status = dto.Status,
+                    Remarks = dto.Remarks,
+                    CreatedBy = 1, // TODO: Get from current user context
+                    CreatedAt = DateTime.UtcNow
                 };
 
-                _context.StockTransferItems.Add(item);
+                AppLogger.LogInfo("CreateStockTransferService", $"Adding transfer to context - TransferNo: {transfer.TransferNo}");
+                _context.StockTransfers.Add(transfer);
+                
+                AppLogger.LogInfo("CreateStockTransferService", "Calling SaveChangesAsync for transfer header");
+                await _context.SaveChangesAsync();
+                AppLogger.LogInfo("CreateStockTransferService", $"Successfully saved transfer header with ID: {transfer.TransferId}");
+
+                // Add transfer items and conditionally reduce stock quantities
+                AppLogger.LogInfo("CreateStockTransferService", $"Adding {dto.Items.Count} transfer items");
+                foreach (var itemDto in dto.Items)
+                {
+                    // Only reduce stock for completed/confirmed transfers (not for Draft or Pending)
+                    if (dto.Status == "Completed" || dto.Status == "Confirmed")
+                    {
+                        AppLogger.LogInfo("CreateStockTransferService", $"Reducing stock for status: {dto.Status}");
+                        // 1. Reduce product stock quantities BEFORE saving transfer item
+                        await ReduceProductStockAsync(itemDto.ProductId, itemDto.QuantitySent);
+                        
+                        // 2. Reduce product batch quantity BEFORE saving transfer item (if batch is specified)
+                        if (!string.IsNullOrEmpty(itemDto.BatchNo))
+                        {
+                            await ReduceProductBatchStockAsync(itemDto.ProductId, itemDto.BatchNo, itemDto.QuantitySent);
+                        }
+                    }
+                    else
+                    {
+                        AppLogger.LogInfo("CreateStockTransferService", $"Skipping stock reduction for status: {dto.Status}");
+                    }
+
+                    var item = new StockTransferItem
+                    {
+                        TransferId = transfer.TransferId,
+                        ProductId = itemDto.ProductId,
+                        UomId = itemDto.UomId,
+                        BatchNo = itemDto.BatchNo,
+                        ExpiryDate = itemDto.ExpiryDate,
+                        QuantitySent = itemDto.QuantitySent,
+                        QuantityReceived = 0,
+                        DamagedQty = 0,
+                        Status = "Pending",
+                        RemarksLine = itemDto.RemarksLine
+                    };
+
+                    _context.StockTransferItems.Add(item);
+                    AppLogger.LogInfo("CreateStockTransferService", $"Added item - ProductId: {item.ProductId}, Quantity: {item.QuantitySent}, Batch: {item.BatchNo}");
+                }
+
+                AppLogger.LogInfo("CreateStockTransferService", "Calling SaveChangesAsync for transfer items");
+                await _context.SaveChangesAsync();
+                AppLogger.LogInfo("CreateStockTransferService", "Successfully saved all transfer items");
+
+                // Return the created transfer
+                AppLogger.LogInfo("CreateStockTransferService", $"Retrieving created transfer with ID: {transfer.TransferId}");
+                return await GetStockTransferByIdAsync(transfer.TransferId) 
+                    ?? throw new InvalidOperationException("Failed to retrieve created transfer");
             }
-
-            await _context.SaveChangesAsync();
-
-            // Return the created transfer
-            return await GetStockTransferByIdAsync(transfer.TransferId) 
-                ?? throw new InvalidOperationException("Failed to retrieve created transfer");
+            catch (Exception ex)
+            {
+                AppLogger.LogError("CreateStockTransferService", ex, $"Error creating stock transfer | Exception: {ex.Message} | InnerException: {ex.InnerException?.Message ?? "None"}");
+                throw;
+            }
         }
 
         /// <summary>
@@ -444,6 +483,100 @@ namespace ChronoPos.Infrastructure.Services
         public async Task<string> GenerateTransferNumberAsync()
         {
             return await _stockTransferRepository.GetNextTransferNumberAsync();
+        }
+
+        /// <summary>
+        /// Reduce product stock quantities (both InitialStock and StockQuantity)
+        /// </summary>
+        private async Task ReduceProductStockAsync(int productId, decimal quantityToReduce)
+        {
+            AppLogger.LogInfo("ReduceProductStock", 
+                $"Starting stock reduction for Product ID: {productId}, Quantity to reduce: {quantityToReduce}", 
+                "stock_transfer");
+
+            var product = await _context.Products.FindAsync(productId);
+            if (product == null)
+            {
+                var error = $"Product with ID {productId} not found";
+                AppLogger.LogError("ReduceProductStock", new InvalidOperationException(error), error, "stock_transfer");
+                throw new InvalidOperationException(error);
+            }
+
+            var originalStockQuantity = product.StockQuantity;
+            var originalInitialStock = product.InitialStock;
+
+            AppLogger.LogInfo("ReduceProductStock", 
+                $"Product ID: {productId}, Name: '{product.Name}', Current Stock Qty: {originalStockQuantity}, Current Initial Stock: {originalInitialStock}", 
+                "stock_transfer");
+
+            // Check if we have enough stock
+            if (product.StockQuantity < quantityToReduce)
+            {
+                var error = $"Insufficient stock for product '{product.Name}'. Available: {product.StockQuantity}, Required: {quantityToReduce}";
+                AppLogger.LogError("ReduceProductStock", new InvalidOperationException(error), error, "stock_transfer");
+                throw new InvalidOperationException(error);
+            }
+
+            // Reduce both StockQuantity and InitialStock
+            product.StockQuantity -= (int)quantityToReduce;
+            product.InitialStock -= quantityToReduce;
+
+            AppLogger.LogInfo("ReduceProductStock", 
+                $"Product ID: {productId}, New Stock Qty: {product.StockQuantity} (was {originalStockQuantity}), New Initial Stock: {product.InitialStock} (was {originalInitialStock}), Reduced: {quantityToReduce}", 
+                "stock_transfer");
+
+            _context.Products.Update(product);
+
+            AppLogger.LogInfo("ReduceProductStock", 
+                $"Successfully reduced stock for Product ID: {productId}, Name: '{product.Name}', Final Stock Qty: {product.StockQuantity}, Final Initial Stock: {product.InitialStock}", 
+                "stock_transfer");
+        }
+
+        /// <summary>
+        /// Reduce product batch stock quantity
+        /// </summary>
+        private async Task ReduceProductBatchStockAsync(int productId, string batchNo, decimal quantityToReduce)
+        {
+            AppLogger.LogInfo("ReduceProductBatchStock", 
+                $"Starting batch stock reduction for Product ID: {productId}, Batch: {batchNo}, Quantity to reduce: {quantityToReduce}", 
+                "stock_transfer");
+
+            var batch = await _context.ProductBatches
+                .FirstOrDefaultAsync(pb => pb.ProductId == productId && pb.BatchNo == batchNo);
+
+            if (batch == null)
+            {
+                var error = $"Product batch not found. Product ID: {productId}, Batch: {batchNo}";
+                AppLogger.LogError("ReduceProductBatchStock", new InvalidOperationException(error), error, "stock_transfer");
+                throw new InvalidOperationException(error);
+            }
+
+            var originalBatchQuantity = batch.Quantity;
+
+            AppLogger.LogInfo("ReduceProductBatchStock", 
+                $"Product ID: {productId}, Batch: {batchNo}, Current Batch Qty: {originalBatchQuantity}", 
+                "stock_transfer");
+
+            // Check if we have enough stock in this batch
+            if (batch.Quantity < quantityToReduce)
+            {
+                var error = $"Insufficient stock in batch '{batchNo}' for product ID {productId}. Available: {batch.Quantity}, Required: {quantityToReduce}";
+                AppLogger.LogError("ReduceProductBatchStock", new InvalidOperationException(error), error, "stock_transfer");
+                throw new InvalidOperationException(error);
+            }
+
+            // Reduce batch quantity
+            batch.Quantity -= quantityToReduce;
+
+            AppLogger.LogInfo("ReduceProductBatchStock", 
+                $"Product ID: {productId}, Batch: {batchNo}, New Batch Qty: {batch.Quantity} (was {originalBatchQuantity}), Reduced: {quantityToReduce}", 
+                "stock_transfer");
+
+            _context.ProductBatches.Update(batch);
+
+            AppLogger.LogInfo("ReduceProductBatchStock", 
+                $"Successfully reduced batch stock for Product ID: {productId}, Batch: {batchNo}, Final Batch Qty: {batch.Quantity}", 
+                "stock_transfer");
         }
     }
 }

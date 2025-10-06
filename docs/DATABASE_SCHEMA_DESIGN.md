@@ -930,7 +930,7 @@ CREATE TABLE `product_modifier_groups` (
 CREATE TABLE `product_modifier_group_items` (
   `id` int PRIMARY KEY AUTO_INCREMENT,
   `group_id` int NOT NULL,
-  `modifier_id` int NOT NULL,
+  `product_unit_id` int NOT NULL,
   `price_adjustment` decimal(10,2) DEFAULT 0,
   `sort_order` int DEFAULT 0,
   `default_selection` boolean DEFAULT false,
@@ -998,6 +998,36 @@ CREATE TABLE `stock_transfer` (
   `created_at` timestamp NOT NULL DEFAULT (now()),
   `updated_at` timestamp NOT NULL DEFAULT (now())
 );
+CREATE TABLE `goods_return` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `return_no` VARCHAR(50) UNIQUE NOT NULL,       -- e.g., GR-2025-0001
+    `supplier_id` INT NOT NULL,                    -- FK to suppliers
+    `store_id` INT NOT NULL,                       -- FK to stores
+    `reference_grn_id` INT,                        -- Optional: link to original GRN
+    `return_date` DATE NOT NULL,
+    `total_amount` DECIMAL(12,2) DEFAULT 0,
+    `status` VARCHAR(20) DEFAULT 'Pending',        -- Pending / Posted / Cancelled
+    `remarks` VARCHAR(255),
+    `created_by` INT NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE goods_return_items (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    return_id INT NOT NULL,                       -- FK to goods_return.id
+    product_id INT NOT NULL,                      -- FK to products.id
+    batch_id INT,                                 -- FK to product_batches.id (optional)
+    batch_no VARCHAR(50),                         -- For reference / manual entry
+    expiry_date DATE,                             -- Optional, auto-filled from batch
+    quantity DECIMAL(12,4) NOT NULL,
+    uom_id INT NOT NULL,                          -- Unit of Measure
+    cost_price DECIMAL(12,2) NOT NULL,           -- Per unit
+    line_total DECIMAL(12,2) GENERATED ALWAYS AS (quantity * cost_price) STORED,
+    reason VARCHAR(255),                          -- Damaged, expired, etc.
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (return_id) REFERENCES goods_return(id)
+);
 
 CREATE TABLE `stock_transfer_item` (
   `id` int PRIMARY KEY AUTO_INCREMENT,
@@ -1011,6 +1041,35 @@ CREATE TABLE `stock_transfer_item` (
   `damaged_qty` decimal(10,3) DEFAULT 0,
   `status` varchar(20) DEFAULT 'Pending',
   `remarks_line` text
+);
+CREATE TABLE GoodsReplace (
+  Id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ReplaceNo VARCHAR(30) UNIQUE NOT NULL,
+  SupplierId INT NOT NULL,
+  StoreId INT NOT NULL,
+  ReferenceReturnId INT,         -- links to GoodsReturns.Id if replacement is against a return
+  ReplaceDate DATETIME NOT NULL,
+  TotalAmount DECIMAL(12,2) DEFAULT 0,
+  Status VARCHAR(20) DEFAULT 'Pending',   -- Pending / Posted / Cancelled
+  Remarks TEXT,
+  CreatedBy INT NOT NULL,
+  CreatedAt DATETIME DEFAULT (datetime('now')),
+  UpdatedAt DATETIME DEFAULT (datetime('now'))
+);
+
+CREATE TABLE GoodsReplaceItems (
+  Id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ReplaceId INT NOT NULL,               -- FK → GoodsReplace.Id
+  ProductId INT NOT NULL,
+  UomId BIGINT NOT NULL,                -- Changed to long
+  BatchNo VARCHAR(50),
+  ExpiryDate DATE,
+  Quantity DECIMAL(10,3) NOT NULL,      -- replaced quantity
+  Rate DECIMAL(10,2) NOT NULL,
+  Amount DECIMAL(12,2) GENERATED ALWAYS AS (Quantity * Rate) STORED,
+  ReferenceReturnItemId INT,            -- link to GoodsRetproducturnItems.Id (optional)
+  RemarksLine TEXT,
+  CreatedAt DATETIME DEFAULT (datetime('now'))
 );
 
 CREATE TABLE `stock_adjustment` (

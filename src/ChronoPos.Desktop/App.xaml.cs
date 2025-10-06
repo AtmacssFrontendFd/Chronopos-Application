@@ -94,6 +94,10 @@ public partial class App : System.Windows.Application
 
                     services.AddTransient<IDiscountRepository, DiscountRepository>();
                     LogMessage("DiscountRepository registered as Transient");
+                    
+                    // Register CustomerGroupRelation repository
+                    services.AddTransient<ICustomerGroupRelationRepository, CustomerGroupRelationRepository>();
+                    LogMessage("CustomerGroupRelationRepository registered as Transient");
 
                     // Register Product Attribute repositories
                     services.AddTransient<IProductAttributeRepository, ProductAttributeRepository>();
@@ -131,6 +135,21 @@ public partial class App : System.Windows.Application
                     // Register Customer service
                     services.AddTransient<ICustomerService, CustomerService>();
                     LogMessage("CustomerService registered as Transient");
+                    
+                    // Register CustomerGroup services
+                    services.AddTransient<ICustomerGroupService, CustomerGroupService>();
+                    LogMessage("CustomerGroupService registered as Transient");
+                    
+                    services.AddTransient<ICustomerGroupRelationService, CustomerGroupRelationService>();
+                    LogMessage("CustomerGroupRelationService registered as Transient");
+                    
+                    // Register ProductGroup service
+                    services.AddTransient<IProductGroupService, ProductGroupService>();
+                    LogMessage("ProductGroupService registered as Transient");
+                    
+                    // Register ProductGroupItem service
+                    services.AddTransient<IProductGroupItemService, ProductGroupItemService>();
+                    LogMessage("ProductGroupItemService registered as Transient");
                     
                     // Register Supplier service
                     services.AddTransient<ISupplierService, SupplierService>();
@@ -249,6 +268,16 @@ public partial class App : System.Windows.Application
                     LogMessage("SalesViewModel registered as Transient");
                     services.AddTransient<CustomersViewModel>();
                     LogMessage("CustomersViewModel registered as Transient");
+                    services.AddTransient<CustomerSidePanelViewModel>();
+                    LogMessage("CustomerSidePanelViewModel registered as Transient");
+                    services.AddTransient<CustomerGroupsViewModel>();
+                    LogMessage("CustomerGroupsViewModel registered as Transient");
+                    services.AddTransient<CustomerGroupSidePanelViewModel>();
+                    LogMessage("CustomerGroupSidePanelViewModel registered as Transient");
+                    services.AddTransient<ProductGroupsViewModel>();
+                    LogMessage("ProductGroupsViewModel registered as Transient");
+                    services.AddTransient<ProductGroupSidePanelViewModel>();
+                    LogMessage("ProductGroupSidePanelViewModel registered as Transient");
                     services.AddTransient<SuppliersViewModel>();
                     LogMessage("SuppliersViewModel registered as Transient");
                     services.AddTransient<SupplierSidePanelViewModel>();

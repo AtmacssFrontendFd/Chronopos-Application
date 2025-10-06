@@ -1,4 +1,5 @@
 using ChronoPos.Application.DTOs;
+using ChronoPos.Domain.Enums;
 
 namespace ChronoPos.Application.Interfaces;
 
@@ -78,4 +79,12 @@ public interface IStockAdjustmentService
     /// Generate adjustment number
     /// </summary>
     Task<string> GenerateAdjustmentNumberAsync();
+    
+    /// <summary>
+    /// Search for products and product units for stock adjustment
+    /// </summary>
+    Task<List<StockAdjustmentSearchItemDto>> SearchForStockAdjustmentAsync(
+        string searchTerm,
+        StockAdjustmentMode mode,
+        int maxResults = 50);
 }

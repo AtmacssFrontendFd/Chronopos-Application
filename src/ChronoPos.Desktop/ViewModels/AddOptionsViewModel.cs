@@ -30,6 +30,7 @@ public partial class AddOptionsViewModel : ObservableObject
     private readonly ISellingPriceTypeService? _sellingPriceTypeService;
     private readonly ITaxTypeService _taxTypeService;
     private readonly ICustomerService _customerService;
+    private readonly ICustomerGroupService _customerGroupService;
     private readonly ISupplierService _supplierService;
 
     #endregion
@@ -154,6 +155,7 @@ public partial class AddOptionsViewModel : ObservableObject
         IDatabaseLocalizationService databaseLocalizationService,
         ITaxTypeService taxTypeService,
         ICustomerService customerService,
+        ICustomerGroupService customerGroupService,
         ISupplierService supplierService)
     {
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
@@ -165,6 +167,7 @@ public partial class AddOptionsViewModel : ObservableObject
         _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
         _taxTypeService = taxTypeService ?? throw new ArgumentNullException(nameof(taxTypeService));
         _customerService = customerService ?? throw new ArgumentNullException(nameof(customerService));
+        _customerGroupService = customerGroupService ?? throw new ArgumentNullException(nameof(customerGroupService));
         _supplierService = supplierService ?? throw new ArgumentNullException(nameof(supplierService));
 
         // Subscribe to service events (commented out until proper event signatures are confirmed)
@@ -449,8 +452,18 @@ public partial class AddOptionsViewModel : ObservableObject
 
     private async Task<int> GetCustomerGroupsCountAsync()
     {
+        try
+        {
+            return await _customerGroupService.GetCountAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting Customer Groups count: {ex.Message}");
+        }
+        
+        // Fallback to mock data
         await Task.Delay(50);
-        return 7;
+        return 0;
     }
 
     private async Task<int> GetDiscountsCountAsync()

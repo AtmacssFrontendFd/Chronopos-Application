@@ -22,6 +22,8 @@
     <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
     <converters:TaxTypeDisplayConverter x:Key="TaxTypeDisplayConverter"/>
     <converters:FlowDirectionToGridColumnConverter x:Key="FlowDirectionToGridColumnConverter"/>
+        <converters:DaysToExpiryConverter x:Key="DaysToExpiryConverter"/>
+        <converters:BatchStatusToColorConverter x:Key="BatchStatusToColorConverter"/>
         
         <!-- Section Button Style -->
         <Style x:Key="SidebarButtonStyle" TargetType="Button">
@@ -445,6 +447,12 @@
                             Name="UnitPricesButton"
                             Style="{StaticResource SidebarButtonStyle}"
                             Tag="UnitPrices"
+                            Click="SidebarButton_Click"/>
+                    
+                    <Button Content="{Binding ProductBatchesTitle}" 
+                            Name="ProductBatchesButton"
+                            Style="{StaticResource SidebarButtonStyle}"
+                            Tag="ProductBatches"
                             Click="SidebarButton_Click"/>
 
                 </StackPanel>
@@ -1541,6 +1549,266 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- Product Batches Section -->
+                <Border Name="ProductBatchesSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,15">
+                            <TextBlock Text="Product Batches" 
+                                       Style="{StaticResource SectionHeaderStyle}"/>
+                        </Grid>
+                        
+                        <!-- Product Batches DataGrid -->
+                        <Border Background="{DynamicResource CardBackground}"
+                                BorderBrush="{DynamicResource BorderLight}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="0">
+                            <Grid>
+                            <!-- No Batches Message -->
+                            <TextBlock Text="No batches present for this product"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Margin="20"
+                                       Visibility="{Binding HasProductBatches, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>                                <!-- Batches DataGrid -->
+                                <DataGrid Name="ProductBatchesDataGrid"
+                                      ItemsSource="{Binding ProductBatches}"
+                                      AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      CanUserDeleteRows="False"
+                                      CanUserReorderColumns="False"
+                                      IsReadOnly="True"
+                                      GridLinesVisibility="Horizontal"
+                                      HeadersVisibility="Column"
+                                      Background="Transparent"
+                                      BorderThickness="0"
+                                      Visibility="{Binding HasProductBatches, Converter={StaticResource BoolToVisibilityConverter}}"
+                                      MinHeight="100"
+                                      MaxHeight="300">
+                                
+                                <DataGrid.ColumnHeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="Padding" Value="12,8"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+                                        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                                    </Style>
+                                </DataGrid.ColumnHeaderStyle>
+                                
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="BorderThickness" Value="0"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource BackgroundHover}"/>
+                                            </Trigger>
+                                            <DataTrigger Binding="{Binding IsExpired}" Value="True">
+                                                <Setter Property="Background" Value="#FFEBEE"/>
+                                                <Setter Property="Foreground" Value="#C62828"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsNearExpiry}" Value="True">
+                                                <Setter Property="Background" Value="#FFF3E0"/>
+                                                <Setter Property="Foreground" Value="#EF6C00"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.RowStyle>
+                                
+                                <DataGrid.CellStyle>
+                                    <Style TargetType="DataGridCell">
+                                        <Setter Property="BorderThickness" Value="0"/>
+                                        <Setter Property="Padding" Value="12,8"/>
+                                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.CellStyle>
+                                
+                                <DataGrid.Columns>
+                                    <!-- Batch Number -->
+                                    <DataGridTextColumn Header="Batch No" 
+                                                        Binding="{Binding BatchNo, TargetNullValue='N/A'}" 
+                                                        Width="120"
+                                                        MinWidth="100">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="FontWeight" Value="Medium"/>
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    
+                                    <!-- Manufacture Date -->
+                                    <DataGridTextColumn Header="Mfg Date" 
+                                                        Binding="{Binding ManufactureDate, StringFormat='{}{0:dd/MM/yyyy}', TargetNullValue='N/A'}" 
+                                                        Width="100">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    
+                                    <!-- Expiry Date -->
+                                    <DataGridTextColumn Header="Expiry Date" 
+                                                        Binding="{Binding ExpiryDate, StringFormat='{}{0:dd/MM/yyyy}', TargetNullValue='N/A'}" 
+                                                        Width="100">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    
+                                    <!-- Days to Expiry -->
+                                    <DataGridTemplateColumn Header="Days to Expiry" Width="100">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock VerticalAlignment="Center">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding Converter="{StaticResource DaysToExpiryConverter}">
+                                                            <Binding Path="DaysToExpiry"/>
+                                                            <Binding Path="IsExpired"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsExpired}" Value="True">
+                                                                    <Setter Property="Foreground" Value="#C62828"/>
+                                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsNearExpiry}" Value="True">
+                                                                    <Setter Property="Foreground" Value="#EF6C00"/>
+                                                                    <Setter Property="FontWeight" Value="Medium"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    
+                                    <!-- Quantity -->
+                                    <DataGridTextColumn Header="Quantity" 
+                                                        Binding="{Binding Quantity, StringFormat='{}{0:N2}'}" 
+                                                        Width="80">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    
+                                    <!-- UOM -->
+                                    <DataGridTextColumn Header="UOM" 
+                                                        Binding="{Binding UomName, TargetNullValue='N/A'}" 
+                                                        Width="60">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    
+                                    <!-- Cost Price -->
+                                    <DataGridTextColumn Header="Cost Price" 
+                                                        Binding="{Binding CostPrice, StringFormat='{}{0:N2}', TargetNullValue='0.00'}" 
+                                                        Width="90">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    
+                                    <!-- Total Value -->
+                                    <DataGridTextColumn Header="Total Value" 
+                                                        Binding="{Binding TotalValue, StringFormat='{}{0:N2}', TargetNullValue='0.00'}" 
+                                                        Width="100">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                                                <Setter Property="FontWeight" Value="Medium"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    
+                                    <!-- Status -->
+                                    <DataGridTemplateColumn Header="Status" Width="80">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Border Padding="6,2" 
+                                                        CornerRadius="10" 
+                                                        HorizontalAlignment="Center">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="#E8F5E8"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Status}" Value="Inactive">
+                                                                    <Setter Property="Background" Value="#FFEBEE"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding Status, TargetNullValue='Active'}" 
+                                                               FontSize="10" 
+                                                               FontWeight="Medium"
+                                                               VerticalAlignment="Center">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="#2E7D32"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Status}" Value="Inactive">
+                                                                        <Setter Property="Foreground" Value="#C62828"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </Border>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    
+                                    <!-- Actions -->
+                                    <DataGridTemplateColumn Header="Actions" Width="50">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <Button Content="🗑️" 
+                                                            Command="{Binding DataContext.DeleteProductBatchCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            ToolTip="Delete Batch"
+                                                            Style="{StaticResource CompactButtonStyle}"
+                                                            Background="#C62828"
+                                                            Foreground="White"
+                                                            Width="24" Height="24"
+                                                            Margin="2,0"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            </Grid>
+                        </Border>
                     </StackPanel>
                 </Border>
 

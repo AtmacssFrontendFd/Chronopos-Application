@@ -81,6 +81,7 @@ public class LanguageSeedingService : ILanguageSeedingService
         await SeedNavigationTranslationsAsync(localizationService);
         await SeedCommonTranslationsAsync(localizationService);
         await SeedAddProductTranslationsAsync(localizationService);
+        await SeedAddGrnTranslationsAsync(localizationService);
         await SeedProductManagementTranslationsAsync(localizationService);
         await SeedStockManagementTranslationsAsync(localizationService);
         await SeedManagementTranslationsAsync(localizationService);
@@ -794,6 +795,274 @@ public class LanguageSeedingService : ILanguageSeedingService
         };
 
         await SeedTranslationCategory("AddProduct", addProductTranslations, localizationService);
+    }
+
+    private async Task SeedAddGrnTranslationsAsync(IDatabaseLocalizationService localizationService)
+    {
+        var addGrnTranslations = new Dictionary<string, Dictionary<string, string>>
+        {
+            // Page and Navigation
+            {
+                "add_grn_title",
+                new Dictionary<string, string>
+                {
+                    { "en", "Add Goods Received Note" },
+                    { "ur", "اجناس وصولی نوٹ شامل کریں" }
+                }
+            },
+            {
+                "grn_header_section",
+                new Dictionary<string, string>
+                {
+                    { "en", "GRN Header" },
+                    { "ur", "جی آر این ہیڈر" }
+                }
+            },
+            {
+                "grn_items_section",
+                new Dictionary<string, string>
+                {
+                    { "en", "GRN Items" },
+                    { "ur", "جی آر این آئٹمز" }
+                }
+            },
+            {
+                "summary_section",
+                new Dictionary<string, string>
+                {
+                    { "en", "Summary" },
+                    { "ur", "خلاصہ" }
+                }
+            },
+
+            // GRN Header Fields
+            {
+                "grn_no_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "GRN No:" },
+                    { "ur", "جی آر این نمبر:" }
+                }
+            },
+            {
+                "status_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Status:" },
+                    { "ur", "حالت:" }
+                }
+            },
+            {
+                "supplier_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Supplier:" },
+                    { "ur", "سپلائر:" }
+                }
+            },
+            {
+                "store_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Store:" },
+                    { "ur", "اسٹور:" }
+                }
+            },
+            {
+                "invoice_no_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Invoice No:" },
+                    { "ur", "انوائس نمبر:" }
+                }
+            },
+            {
+                "invoice_date_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Invoice Date:" },
+                    { "ur", "انوائس کی تاریخ:" }
+                }
+            },
+            {
+                "received_date_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Received Date:" },
+                    { "ur", "وصولی کی تاریخ:" }
+                }
+            },
+            {
+                "remarks_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Remarks:" },
+                    { "ur", "تبصرے:" }
+                }
+            },
+
+            // GRN Items Section
+            {
+                "add_product_button",
+                new Dictionary<string, string>
+                {
+                    { "en", "+ Add Product" },
+                    { "ur", "+ پروڈکٹ شامل کریں" }
+                }
+            },
+            {
+                "product_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Product" },
+                    { "ur", "پروڈکٹ" }
+                }
+            },
+            {
+                "quantity_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Quantity" },
+                    { "ur", "مقدار" }
+                }
+            },
+            {
+                "uom_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "UOM" },
+                    { "ur", "یونٹ" }
+                }
+            },
+            {
+                "cost_price_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Cost Price" },
+                    { "ur", "لاگت قیمت" }
+                }
+            },
+            {
+                "batch_no_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Batch No" },
+                    { "ur", "بیچ نمبر" }
+                }
+            },
+            {
+                "manufacture_date_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Mfg Date" },
+                    { "ur", "بنانے کی تاریخ" }
+                }
+            },
+            {
+                "expiry_date_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Expiry Date" },
+                    { "ur", "ختم ہونے کی تاریخ" }
+                }
+            },
+            {
+                "line_total_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Line Total" },
+                    { "ur", "لائن ٹوٹل" }
+                }
+            },
+            {
+                "actions_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Actions" },
+                    { "ur", "عمل" }
+                }
+            },
+
+            // Summary Section
+            {
+                "total_items_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Total Items:" },
+                    { "ur", "کل آئٹمز:" }
+                }
+            },
+            {
+                "total_quantity_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Total Quantity:" },
+                    { "ur", "کل مقدار:" }
+                }
+            },
+            {
+                "total_amount_label",
+                new Dictionary<string, string>
+                {
+                    { "en", "Total Amount:" },
+                    { "ur", "کل رقم:" }
+                }
+            },
+
+            // Button Text
+            {
+                "back_button",
+                new Dictionary<string, string>
+                {
+                    { "en", "Back" },
+                    { "ur", "واپس" }
+                }
+            },
+            {
+                "save_draft_button",
+                new Dictionary<string, string>
+                {
+                    { "en", "Save Draft" },
+                    { "ur", "مسودہ محفوظ کریں" }
+                }
+            },
+            {
+                "post_grn_button",
+                new Dictionary<string, string>
+                {
+                    { "en", "Post GRN" },
+                    { "ur", "جی آر این پوسٹ کریں" }
+                }
+            },
+            {
+                "cancel_button",
+                new Dictionary<string, string>
+                {
+                    { "en", "Cancel" },
+                    { "ur", "منسوخ" }
+                }
+            },
+
+            // Messages
+            {
+                "no_items_message",
+                new Dictionary<string, string>
+                {
+                    { "en", "No items added to GRN" },
+                    { "ur", "جی آر این میں کوئی آئٹم شامل نہیں" }
+                }
+            },
+            {
+                "add_items_instruction",
+                new Dictionary<string, string>
+                {
+                    { "en", "Click 'Add Product' to start adding items" },
+                    { "ur", "آئٹمز شامل کرنے کے لیے 'پروڈکٹ شامل کریں' پر کلک کریں" }
+                }
+            }
+        };
+
+        await SeedTranslationCategory("AddGrn", addGrnTranslations, localizationService);
     }
 
     private async Task SeedProductManagementTranslationsAsync(IDatabaseLocalizationService localizationService)

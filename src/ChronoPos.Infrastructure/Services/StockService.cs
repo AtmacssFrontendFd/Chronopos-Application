@@ -168,8 +168,9 @@ public class StockService : IStockService
                 throw new InvalidOperationException($"Insufficient stock. Available: {previousStock}, Requested: {Math.Abs(quantity)}");
             }
 
-            // Update product stock
+            // Update product stock - both StockQuantity and InitialStock
             product.StockQuantity = newStock;
+            product.InitialStock = newStock; // Update InitialStock to match current stock
             product.UpdatedAt = DateTime.UtcNow;
 
             // Create transaction record
@@ -209,8 +210,9 @@ public class StockService : IStockService
             var previousStock = product.StockQuantity;
             var newStock = previousStock + quantity;
 
-            // Update product stock and cost if provided
+            // Update product stock and cost if provided - both StockQuantity and InitialStock
             product.StockQuantity = newStock;
+            product.InitialStock = newStock; // Update InitialStock to match current stock
             if (unitCost.HasValue && unitCost > 0)
             {
                 product.LastPurchasePrice = unitCost.Value;

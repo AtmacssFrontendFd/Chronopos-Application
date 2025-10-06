@@ -32,6 +32,9 @@ public class StockAdjustmentItem
     [Required]
     public decimal DifferenceQty { get; set; }
     
+    [Required]
+    public decimal ConversionFactor { get; set; } = 1;
+    
     [StringLength(100)]
     public string? ReasonLine { get; set; }
     

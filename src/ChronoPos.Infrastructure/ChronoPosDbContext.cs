@@ -18,6 +18,10 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.Product> Products { get; set; }
     public DbSet<Domain.Entities.Category> Categories { get; set; }
     public DbSet<Domain.Entities.Customer> Customers { get; set; }
+    public DbSet<Domain.Entities.CustomerGroup> CustomerGroups { get; set; }
+    public DbSet<Domain.Entities.CustomerGroupRelation> CustomerGroupRelations { get; set; }
+    public DbSet<Domain.Entities.BusinessType> BusinessTypes { get; set; }
+    public DbSet<Domain.Entities.CustomerAddress> CustomerAddresses { get; set; }
     public DbSet<Domain.Entities.Supplier> Suppliers { get; set; }
     public DbSet<Domain.Entities.Sale> Sales { get; set; }
     public DbSet<Domain.Entities.SaleItem> SaleItems { get; set; }
@@ -27,6 +31,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.ProductComment> ProductComments { get; set; }
     public DbSet<Domain.Entities.ProductTax> ProductTaxes { get; set; }
     public DbSet<Domain.Entities.ProductUnit> ProductUnits { get; set; }
+    public DbSet<Domain.Entities.ProductBatch> ProductBatches { get; set; }
     public DbSet<Domain.Entities.TaxType> TaxTypes { get; set; }
     public DbSet<Domain.Entities.Brand> Brands { get; set; }
     public DbSet<Domain.Entities.ProductImage> ProductImages { get; set; }
@@ -49,6 +54,14 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.StockMovement> StockMovements { get; set; }
     public DbSet<Domain.Entities.StockTransfer> StockTransfers { get; set; }
     public DbSet<Domain.Entities.StockTransferItem> StockTransferItems { get; set; }
+    public DbSet<Domain.Entities.GoodsReturn> GoodsReturns { get; set; }
+    public DbSet<Domain.Entities.GoodsReturnItem> GoodsReturnItems { get; set; }
+    public DbSet<Domain.Entities.GoodsReplace> GoodsReplaces { get; set; }
+    public DbSet<Domain.Entities.GoodsReplaceItem> GoodsReplaceItems { get; set; }
+    
+    // Goods Received entities
+    public DbSet<Domain.Entities.GoodsReceived> GoodsReceived { get; set; }
+    public DbSet<Domain.Entities.GoodsReceivedItem> GoodsReceivedItems { get; set; }
     public DbSet<Domain.Entities.User> Users { get; set; }
     public DbSet<Domain.Entities.ShopLocation> ShopLocations { get; set; }
     public DbSet<Domain.Entities.UnitOfMeasurement> UnitsOfMeasurement { get; set; }
@@ -68,6 +81,10 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<ProductAttribute> ProductAttributes { get; set; }
     public DbSet<ProductAttributeValue> ProductAttributeValues { get; set; }
     public DbSet<ProductCombinationItem> ProductCombinationItems { get; set; }
+
+    // Product Grouping system entities
+    public DbSet<Domain.Entities.ProductGroup> ProductGroups { get; set; }
+    public DbSet<Domain.Entities.ProductGroupItem> ProductGroupItems { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -359,20 +376,263 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasIndex(e => new { e.ProductId, e.IsBase });
         });
 
+        // Configure ProductBatch entity
+        modelBuilder.Entity<Domain.Entities.ProductBatch>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ProductId).IsRequired();
+            entity.Property(e => e.BatchNo).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.ManufactureDate);
+            entity.Property(e => e.ExpiryDate);
+            entity.Property(e => e.Quantity).IsRequired().HasPrecision(12, 4);
+            entity.Property(e => e.UomId).IsRequired();
+            entity.Property(e => e.CostPrice).HasPrecision(12, 2);
+            entity.Property(e => e.LandedCost).HasPrecision(12, 2);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            // Foreign key relationships
+            entity.HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.Uom)
+                .WithMany()
+                .HasForeignKey(d => d.UomId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.ProductId);
+            entity.HasIndex(e => new { e.ProductId, e.BatchNo }).IsUnique();
+            entity.HasIndex(e => e.ExpiryDate);
+            entity.HasIndex(e => e.Status);
+        });
+
         // Configure Customer entity
         modelBuilder.Entity<Domain.Entities.Customer>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.FirstName).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.LastName).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.Email).HasMaxLength(200);
-            entity.Property(e => e.PhoneNumber).HasMaxLength(20);
-            entity.Property(e => e.Address).HasMaxLength(500);
+            entity.Property(e => e.CustomerFullName).HasMaxLength(150);
+            entity.Property(e => e.BusinessFullName).HasMaxLength(150);
+            entity.Property(e => e.IsBusiness).IsRequired();
+            entity.Property(e => e.LicenseNo).HasMaxLength(50);
+            entity.Property(e => e.TrnNo).HasMaxLength(50);
+            entity.Property(e => e.MobileNo).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.HomePhone).HasMaxLength(20);
+            entity.Property(e => e.OfficePhone).HasMaxLength(20);
+            entity.Property(e => e.ContactMobileNo).HasMaxLength(20);
+            entity.Property(e => e.OfficialEmail).HasMaxLength(100);
+            entity.Property(e => e.KeyContactName).HasMaxLength(150);
+            entity.Property(e => e.KeyContactMobile).HasMaxLength(20);
+            entity.Property(e => e.KeyContactEmail).HasMaxLength(100);
+            entity.Property(e => e.FinancePersonName).HasMaxLength(150);
+            entity.Property(e => e.FinancePersonMobile).HasMaxLength(20);
+            entity.Property(e => e.FinancePersonEmail).HasMaxLength(100);
+            entity.Property(e => e.CreditReference1Name).HasMaxLength(150);
+            entity.Property(e => e.CreditReference2Name).HasMaxLength(150);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
             entity.Property(e => e.CreatedAt).IsRequired();
             entity.Property(e => e.UpdatedAt).IsRequired();
 
-            // Index on email for quick lookup
-            entity.HasIndex(e => e.Email).IsUnique();
+            // Relationships
+            entity.HasOne(e => e.BusinessType)
+                  .WithMany(bt => bt.Customers)
+                  .HasForeignKey(e => e.BusinessTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.CustomerGroup)
+                  .WithMany(cg => cg.Customers)
+                  .HasForeignKey(e => e.CustomerGroupId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasMany(e => e.Addresses)
+                  .WithOne(a => a.Customer)
+                  .HasForeignKey(a => a.CustomerId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Index on mobile for quick lookup
+            entity.HasIndex(e => e.MobileNo);
+            entity.HasIndex(e => e.OfficialEmail);
+        });
+
+        // Configure BusinessType entity
+        modelBuilder.Entity<Domain.Entities.BusinessType>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.BusinessTypeName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.BusinessTypeNameAr).HasMaxLength(100);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+        });
+
+        // Configure CustomerGroup entity
+        modelBuilder.Entity<Domain.Entities.CustomerGroup>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.NameAr).HasMaxLength(100);
+            entity.Property(e => e.DiscountValue).HasPrecision(18, 2);
+            entity.Property(e => e.DiscountMaxValue).HasPrecision(18, 2);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Relationships
+            entity.HasOne(e => e.SellingPriceType)
+                  .WithMany()
+                  .HasForeignKey(e => e.SellingPriceTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.Discount)
+                  .WithMany()
+                  .HasForeignKey(e => e.DiscountId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Index on name for quick lookup
+            entity.HasIndex(e => e.Name);
+        });
+
+        // Configure CustomerGroupRelation entity
+        modelBuilder.Entity<Domain.Entities.CustomerGroupRelation>(entity =>
+        {
+            entity.ToTable("customers_group_relation");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Status).HasMaxLength(20);
+            entity.Property(e => e.CreatedAt).HasColumnType("timestamp");
+            entity.Property(e => e.UpdatedAt).HasColumnType("timestamp");
+            entity.Property(e => e.DeletedAt).HasColumnType("timestamp");
+
+            // Relationships
+            entity.HasOne(e => e.Customer)
+                  .WithMany()
+                  .HasForeignKey(e => e.CustomerId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.CustomerGroup)
+                  .WithMany()
+                  .HasForeignKey(e => e.CustomerGroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Index for quick lookup
+            entity.HasIndex(e => new { e.CustomerId, e.CustomerGroupId });
+            entity.HasIndex(e => e.Status);
+        });
+
+        // Configure ProductGroup entity
+        modelBuilder.Entity<Domain.Entities.ProductGroup>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.NameAr).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.DescriptionAr).HasMaxLength(500);
+            entity.Property(e => e.SkuPrefix).HasMaxLength(20);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedDate).IsRequired();
+
+            // Relationships
+            entity.HasOne(e => e.Discount)
+                  .WithMany()
+                  .HasForeignKey(e => e.DiscountId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.TaxType)
+                  .WithMany()
+                  .HasForeignKey(e => e.TaxTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.PriceType)
+                  .WithMany()
+                  .HasForeignKey(e => e.PriceTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.CreatedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.CreatedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.ModifiedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.ModifiedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.DeletedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.DeletedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.IsDeleted);
+        });
+
+        // Configure ProductGroupItem entity
+        modelBuilder.Entity<Domain.Entities.ProductGroupItem>(entity =>
+        {
+            entity.ToTable("product_group_items");
+            entity.HasKey(e => e.Id);
+            
+            // Properties with column mapping
+            entity.Property(e => e.ProductGroupId).HasColumnName("group_id").IsRequired();
+            entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.ProductUnitId).HasColumnName("product_unit_id");
+            entity.Property(e => e.ProductCombinationId).HasColumnName("product_combination_id");
+            entity.Property(e => e.Quantity).HasPrecision(12, 4).HasDefaultValue(1).IsRequired();
+            entity.Property(e => e.PriceAdjustment).HasPrecision(10, 2).HasDefaultValue(0).IsRequired();
+            entity.Property(e => e.DiscountId).HasColumnName("discount_id");
+            entity.Property(e => e.TaxTypeId).HasColumnName("tax_type_id");
+            entity.Property(e => e.SellingPriceTypeId).HasColumnName("price_type_id");
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active").IsRequired();
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at").IsRequired();
+
+            // Relationships
+            entity.HasOne(e => e.ProductGroup)
+                  .WithMany(g => g.ProductGroupItems)
+                  .HasForeignKey(e => e.ProductGroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Product)
+                  .WithMany()
+                  .HasForeignKey(e => e.ProductId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Discount)
+                  .WithMany()
+                  .HasForeignKey(e => e.DiscountId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.TaxType)
+                  .WithMany()
+                  .HasForeignKey(e => e.TaxTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.SellingPriceType)
+                  .WithMany()
+                  .HasForeignKey(e => e.SellingPriceTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            entity.HasIndex(e => e.ProductGroupId);
+            entity.HasIndex(e => e.ProductId);
+        });
+
+        // Configure CustomerAddress entity
+        modelBuilder.Entity<Domain.Entities.CustomerAddress>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AddressLine1).HasMaxLength(255);
+            entity.Property(e => e.AddressLine2).HasMaxLength(255);
+            entity.Property(e => e.PoBox).HasMaxLength(50);
+            entity.Property(e => e.Area).HasMaxLength(100);
+            entity.Property(e => e.City).HasMaxLength(100);
+            entity.Property(e => e.Landmark).HasMaxLength(255);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
         });
 
         // Configure Supplier entity
@@ -656,6 +916,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.Property(e => e.QuantityBefore).HasPrecision(10, 3);
             entity.Property(e => e.QuantityAfter).HasPrecision(10, 3);
             entity.Property(e => e.DifferenceQty).HasPrecision(10, 3);
+            entity.Property(e => e.ConversionFactor).HasPrecision(10, 4).HasDefaultValue(1);
             entity.Property(e => e.ReasonLine).HasMaxLength(100);
 
             // Foreign key relationships
@@ -746,12 +1007,12 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.Property(e => e.CreatedAt).IsRequired();
 
             // Foreign key relationships
-            entity.HasOne(d => d.FromStore)
+            entity.HasOne<Domain.Entities.Store>(d => d.FromStore)
                 .WithMany()
                 .HasForeignKey(d => d.FromStoreId)
                 .OnDelete(DeleteBehavior.Restrict);
                 
-            entity.HasOne(d => d.ToStore)
+            entity.HasOne<Domain.Entities.Store>(d => d.ToStore)
                 .WithMany()
                 .HasForeignKey(d => d.ToStoreId)
                 .OnDelete(DeleteBehavior.Restrict);
@@ -792,6 +1053,88 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasOne(d => d.Product)
                 .WithMany()
                 .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Uom)
+                .WithMany()
+                .HasForeignKey(d => d.UomId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Configure GoodsReturn entity
+        modelBuilder.Entity<Domain.Entities.GoodsReturn>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ReturnNo).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.SupplierId).IsRequired();
+            entity.Property(e => e.StoreId).IsRequired();
+            entity.Property(e => e.ReferenceGrnId);
+            entity.Property(e => e.ReturnDate).IsRequired();
+            entity.Property(e => e.TotalAmount).HasPrecision(12, 2).HasDefaultValue(0);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Pending");
+            entity.Property(e => e.Remarks).HasMaxLength(255);
+            entity.Property(e => e.IsTotallyReplaced).HasDefaultValue(false);
+            entity.Property(e => e.CreatedBy).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(d => d.Supplier)
+                .WithMany()
+                .HasForeignKey(d => d.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Store)
+                .WithMany()
+                .HasForeignKey(d => d.StoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.ReferenceGrn)
+                .WithMany()
+                .HasForeignKey(d => d.ReferenceGrnId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(d => d.Creator)
+                .WithMany()
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Index on return number for quick lookup
+            entity.HasIndex(e => e.ReturnNo).IsUnique();
+        });
+
+        // Configure GoodsReturnItem entity
+        modelBuilder.Entity<Domain.Entities.GoodsReturnItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ReturnId).IsRequired();
+            entity.Property(e => e.ProductId).IsRequired();
+            entity.Property(e => e.BatchId);
+            entity.Property(e => e.BatchNo).HasMaxLength(50);
+            entity.Property(e => e.ExpiryDate);
+            entity.Property(e => e.Quantity).HasPrecision(12, 4).IsRequired();
+            entity.Property(e => e.UomId).IsRequired();
+            entity.Property(e => e.CostPrice).HasPrecision(12, 2).IsRequired();
+            entity.Property(e => e.LineTotal).HasPrecision(12, 2);
+            entity.Property(e => e.Reason).HasMaxLength(255);
+            entity.Property(e => e.AlreadyReplacedQuantity).HasPrecision(12, 4).HasDefaultValue(0);
+            entity.Property(e => e.IsTotallyReplaced).HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(d => d.Return)
+                .WithMany(p => p.Items)
+                .HasForeignKey(d => d.ReturnId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            entity.HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Batch)
+                .WithMany()
+                .HasForeignKey(d => d.BatchId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(d => d.Uom)
@@ -1195,10 +1538,41 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             new Domain.Entities.PaymentType { Id = 6, Name = "Check", PaymentCode = "CHK", NameAr = "شيك", Status = true, CreatedBy = null, CreatedAt = baseDate }
         );
 
+        // Seed Business Types
+        modelBuilder.Entity<Domain.Entities.BusinessType>().HasData(
+            new Domain.Entities.BusinessType { Id = 1, BusinessTypeName = "Corporation", BusinessTypeNameAr = "شركة", Status = "Active", CreatedAt = baseDate, UpdatedAt = baseDate },
+            new Domain.Entities.BusinessType { Id = 2, BusinessTypeName = "Partnership", BusinessTypeNameAr = "شراكة", Status = "Active", CreatedAt = baseDate, UpdatedAt = baseDate },
+            new Domain.Entities.BusinessType { Id = 3, BusinessTypeName = "Sole Proprietorship", BusinessTypeNameAr = "ملكية فردية", Status = "Active", CreatedAt = baseDate, UpdatedAt = baseDate },
+            new Domain.Entities.BusinessType { Id = 4, BusinessTypeName = "LLC", BusinessTypeNameAr = "ذات مسؤولية محدودة", Status = "Active", CreatedAt = baseDate, UpdatedAt = baseDate },
+            new Domain.Entities.BusinessType { Id = 5, BusinessTypeName = "Non-Profit", BusinessTypeNameAr = "غير ربحية", Status = "Active", CreatedAt = baseDate, UpdatedAt = baseDate }
+        );
+
         // Seed Customers
         modelBuilder.Entity<Domain.Entities.Customer>().HasData(
-            new Domain.Entities.Customer { Id = 1, FirstName = "John", LastName = "Doe", Email = "john.doe@email.com", PhoneNumber = "555-0101", Address = "123 Main St, City, State", CreatedAt = baseDate, UpdatedAt = baseDate },
-            new Domain.Entities.Customer { Id = 2, FirstName = "Jane", LastName = "Smith", Email = "jane.smith@email.com", PhoneNumber = "555-0102", Address = "456 Oak Ave, City, State", CreatedAt = baseDate, UpdatedAt = baseDate }
+            new Domain.Entities.Customer 
+            { 
+                Id = 1, 
+                CustomerFullName = "John Doe", 
+                IsBusiness = false,
+                MobileNo = "555-0101", 
+                OfficialEmail = "john.doe@email.com",
+                Status = "Active",
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Customer 
+            { 
+                Id = 2, 
+                BusinessFullName = "Smith Corporation", 
+                IsBusiness = true,
+                MobileNo = "555-0102", 
+                OfficialEmail = "info@smithcorp.com",
+                LicenseNo = "BL123456",
+                TrnNo = "TRN789012",
+                Status = "Active",
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            }
         );
 
         // Seed Languages
@@ -1587,5 +1961,155 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             }
         );
         */
+
+        // Configure GoodsReceived entity
+        modelBuilder.Entity<Domain.Entities.GoodsReceived>(entity =>
+        {
+            entity.HasKey(gr => gr.Id);
+            entity.ToTable("goods_received");
+            
+            entity.Property(gr => gr.Id)
+                .HasColumnName("id")
+                .ValueGeneratedOnAdd();
+                
+            entity.Property(gr => gr.GrnNo)
+                .HasColumnName("grn_no")
+                .HasMaxLength(50)
+                .IsRequired();
+                
+            entity.Property(gr => gr.SupplierId)
+                .HasColumnName("supplier_id")
+                .IsRequired();
+                
+            entity.Property(gr => gr.StoreId)
+                .HasColumnName("store_id")
+                .IsRequired();
+                
+            entity.Property(gr => gr.InvoiceNo)
+                .HasColumnName("invoice_no")
+                .HasMaxLength(50);
+                
+            entity.Property(gr => gr.InvoiceDate)
+                .HasColumnName("invoice_date");
+                
+            entity.Property(gr => gr.ReceivedDate)
+                .HasColumnName("received_date")
+                .IsRequired()
+                .HasDefaultValueSql("CURRENT_DATE");
+                
+            entity.Property(gr => gr.TotalAmount)
+                .HasColumnName("total_amount")
+                .HasColumnType("decimal(12,2)")
+                .HasDefaultValue(0);
+                
+            entity.Property(gr => gr.Remarks)
+                .HasColumnName("remarks")
+                .HasMaxLength(255);
+                
+            entity.Property(gr => gr.Status)
+                .HasColumnName("status")
+                .HasMaxLength(20)
+                .HasDefaultValue("Pending");
+                
+            entity.Property(gr => gr.CreatedAt)
+                .HasColumnName("created_at")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+            
+            // Configure relationships
+            entity.HasOne(gr => gr.Supplier)
+                .WithMany()
+                .HasForeignKey(gr => gr.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+                
+            entity.HasOne(gr => gr.Store)
+                .WithMany()
+                .HasForeignKey(gr => gr.StoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+                
+            entity.HasMany(gr => gr.Items)
+                .WithOne(gri => gri.GoodsReceived)
+                .HasForeignKey(gri => gri.GrnId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configure GoodsReceivedItem entity
+        modelBuilder.Entity<Domain.Entities.GoodsReceivedItem>(entity =>
+        {
+            entity.HasKey(gri => gri.Id);
+            entity.ToTable("goods_received_items");
+            
+            entity.Property(gri => gri.Id)
+                .HasColumnName("id")
+                .ValueGeneratedOnAdd();
+                
+            entity.Property(gri => gri.GrnId)
+                .HasColumnName("grn_id")
+                .IsRequired();
+                
+            entity.Property(gri => gri.ProductId)
+                .HasColumnName("product_id")
+                .IsRequired();
+                
+            entity.Property(gri => gri.BatchId)
+                .HasColumnName("batch_id");
+                
+            entity.Property(gri => gri.BatchNo)
+                .HasColumnName("batch_no")
+                .HasMaxLength(50);
+                
+            entity.Property(gri => gri.ManufactureDate)
+                .HasColumnName("manufacture_date");
+                
+            entity.Property(gri => gri.ExpiryDate)
+                .HasColumnName("expiry_date");
+                
+            entity.Property(gri => gri.Quantity)
+                .HasColumnName("quantity")
+                .HasColumnType("decimal(12,4)")
+                .IsRequired();
+                
+            entity.Property(gri => gri.UomId)
+                .HasColumnName("uom_id")
+                .IsRequired();
+                
+            entity.Property(gri => gri.CostPrice)
+                .HasColumnName("cost_price")
+                .HasColumnType("decimal(12,2)")
+                .IsRequired();
+                
+            entity.Property(gri => gri.LandedCost)
+                .HasColumnName("landed_cost")
+                .HasColumnType("decimal(12,2)");
+                
+            entity.Property(gri => gri.LineTotal)
+                .HasColumnName("line_total")
+                .HasColumnType("decimal(12,2)")
+                .HasComputedColumnSql("quantity * cost_price", stored: true);
+                
+            entity.Property(gri => gri.CreatedAt)
+                .HasColumnName("created_at")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+            
+            // Configure relationships
+            entity.HasOne(gri => gri.GoodsReceived)
+                .WithMany(gr => gr.Items)
+                .HasForeignKey(gri => gri.GrnId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            entity.HasOne(gri => gri.Product)
+                .WithMany()
+                .HasForeignKey(gri => gri.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+                
+            entity.HasOne(gri => gri.ProductBatch)
+                .WithMany()
+                .HasForeignKey(gri => gri.BatchId)
+                .OnDelete(DeleteBehavior.SetNull);
+                
+            entity.HasOne(gri => gri.UnitOfMeasurement)
+                .WithMany()
+                .HasForeignKey(gri => gri.UomId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }

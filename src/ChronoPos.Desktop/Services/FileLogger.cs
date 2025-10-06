@@ -11,9 +11,27 @@ namespace ChronoPos.Desktop.Services
 
         static FileLogger()
         {
-            if (!Directory.Exists(LogDirectory))
+            try
             {
-                Directory.CreateDirectory(LogDirectory);
+                // Print diagnostic information to console
+                Console.WriteLine($"[FileLogger] AppDomain.CurrentDomain.BaseDirectory: {AppDomain.CurrentDomain.BaseDirectory}");
+                Console.WriteLine($"[FileLogger] LogDirectory: {LogDirectory}");
+                Console.WriteLine($"[FileLogger] LogFilePath: {LogFilePath}");
+                
+                if (!Directory.Exists(LogDirectory))
+                {
+                    Console.WriteLine($"[FileLogger] Creating log directory...");
+                    Directory.CreateDirectory(LogDirectory);
+                    Console.WriteLine($"[FileLogger] Log directory created successfully");
+                }
+                else
+                {
+                    Console.WriteLine($"[FileLogger] Log directory already exists");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[FileLogger] Error in static constructor: {ex.Message}");
             }
         }
 

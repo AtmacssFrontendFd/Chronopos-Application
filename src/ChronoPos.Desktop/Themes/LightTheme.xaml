@@ -9,6 +9,7 @@
     <converters:HalfValueConverter x:Key="HalfValueConverter"/>
     <converters:EqualsConverter x:Key="EqualsConverter"/>
     <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
     <converters:ModuleToColorConverter x:Key="ModuleToColorConverter"/>
     <converters:ModuleToIconConverter x:Key="ModuleToIconConverter"/>
     <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>

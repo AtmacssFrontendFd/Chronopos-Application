@@ -14,7 +14,9 @@ namespace ChronoPos.Desktop.Converters
                 return status.ToLower() switch
                 {
                     "active" => new SolidColorBrush(Color.FromRgb(34, 197, 94)),    // Green
+                    "posted" => new SolidColorBrush(Color.FromRgb(34, 197, 94)),    // Green
                     "inactive" => new SolidColorBrush(Color.FromRgb(239, 68, 68)),  // Red
+                    "cancelled" => new SolidColorBrush(Color.FromRgb(239, 68, 68)), // Red
                     "pending" => new SolidColorBrush(Color.FromRgb(245, 158, 11)),  // Orange
                     "draft" => new SolidColorBrush(Color.FromRgb(107, 114, 128)),   // Gray
                     _ => new SolidColorBrush(Color.FromRgb(107, 114, 128))          // Default Gray

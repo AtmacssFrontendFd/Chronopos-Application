@@ -20,25 +20,7 @@ public class StockTransferDto
     public List<StockTransferItemDto> Items { get; set; } = new();
 }
 
-/// <summary>
-/// DTO for stock transfer item display
-/// </summary>
-public class StockTransferItemDto
-{
-    public int Id { get; set; }
-    public int TransferId { get; set; }
-    public int ProductId { get; set; }
-    public string ProductName { get; set; } = string.Empty;
-    public long UomId { get; set; }
-    public string UomName { get; set; } = string.Empty;
-    public string? BatchNo { get; set; }
-    public DateTime? ExpiryDate { get; set; }
-    public decimal QuantitySent { get; set; }
-    public decimal QuantityReceived { get; set; }
-    public decimal DamagedQty { get; set; }
-    public string Status { get; set; } = string.Empty;
-    public string? RemarksLine { get; set; }
-}
+
 
 /// <summary>
 /// DTO for shop location in transfers

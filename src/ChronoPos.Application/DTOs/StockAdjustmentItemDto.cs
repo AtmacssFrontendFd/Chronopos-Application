@@ -15,6 +15,7 @@ public class StockAdjustmentItemDto
     public decimal QuantityBefore { get; set; }
     public decimal QuantityAfter { get; set; }
     public decimal DifferenceQty { get; set; }
+    public decimal ConversionFactor { get; set; } = 1;
     public string AdjustmentType { get; set; } = string.Empty; // "Increase" or "Decrease"
     public string UomName { get; set; } = string.Empty;
     public string? ReasonLine { get; set; }
@@ -31,6 +32,6 @@ public class StockAdjustmentItemDto
     
     // Calculated Properties
     public decimal CostInclusive => CostPrice * (1 + TaxRate); // Cost with tax
-    public decimal ValueAfter => QuantityAfter * CostPrice; // Quantity * Cost Price
-    public decimal InclusiveValue => QuantityAfter * CostPrice * (1 + TaxRate); // Quantity * Cost Price with tax
+    public decimal ValueAfter => QuantityAfter * CostPrice * ConversionFactor; // Quantity * Cost Price * Conversion Factor
+    public decimal InclusiveValue => QuantityAfter * CostPrice * ConversionFactor * (1 + TaxRate); // Quantity * Cost Price * Conversion Factor with tax
 }

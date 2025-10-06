@@ -15,6 +15,9 @@ public class UnitOfWork : IUnitOfWork
     private IProductRepository? _productRepository;
     private ICategoryRepository? _categoryRepository;
     private IRepository<Customer>? _customerRepository;
+    private IRepository<CustomerGroup>? _customerGroupRepository;
+    private IProductGroupRepository? _productGroupRepository;
+    private IProductGroupItemRepository? _productGroupItemRepository;
     private ISaleRepository? _saleRepository;
     private IRepository<SaleItem>? _saleItemRepository;
     private IRepository<UnitOfMeasurement>? _unitOfMeasurementRepository;
@@ -43,6 +46,15 @@ public class UnitOfWork : IUnitOfWork
     
     public IRepository<Customer> Customers => 
         _customerRepository ??= new Repository<Customer>(_context);
+    
+    public IRepository<CustomerGroup> CustomerGroups => 
+        _customerGroupRepository ??= new Repository<CustomerGroup>(_context);
+    
+    public IProductGroupRepository ProductGroups => 
+        _productGroupRepository ??= new ProductGroupRepository(_context);
+    
+    public IProductGroupItemRepository ProductGroupItems => 
+        _productGroupItemRepository ??= new ProductGroupItemRepository(_context);
     
     public ISaleRepository Sales => 
         _saleRepository ??= new SaleRepository(_context);

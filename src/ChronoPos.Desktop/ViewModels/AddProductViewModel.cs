@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
+using ChronoPos.Application.Logging;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.ComponentModel.DataAnnotations;
@@ -28,6 +29,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     private readonly IDiscountService _discountService;
     private readonly IProductUnitService _productUnitService;
     private readonly ISkuGenerationService _skuGenerationService;
+    private readonly IProductBatchService _productBatchService;
     private readonly Action? _navigateBack;
     
     // Settings services
@@ -106,6 +108,9 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private bool isUsingDefaultQuantity = true;
+
+    // Flag to prevent recursive tax calculations
+    private bool _isCalculatingTax = false;
 
     // Stock Control Properties (Enhanced)
     [ObservableProperty]
@@ -295,6 +300,16 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private int productId = 0;
 
+    // Product Batch Properties
+    [ObservableProperty]
+    private ObservableCollection<ProductBatchDto> productBatches = new();
+
+    [ObservableProperty]
+    private bool hasProductBatches = false;
+
+    [ObservableProperty]
+    private ProductBatchDto? selectedProductBatch = null;
+
     #region Settings Properties
     [ObservableProperty]
     private int _currentZoom = 100;
@@ -321,6 +336,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string picturesTitle = "Pictures";
     [ObservableProperty] private string attributesTitle = "Attributes";
     [ObservableProperty] private string unitPricesTitle = "Unit Prices";
+    [ObservableProperty] private string productBatchesTitle = "Product Batches";
 
     // Form labels and inputs
     [ObservableProperty] private string codeLabel = "Code";
@@ -1013,6 +1029,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     IDiscountService discountService,
         IProductUnitService productUnitService,
         ISkuGenerationService skuGenerationService,
+        IProductBatchService productBatchService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -1029,6 +1046,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
         _productUnitService = productUnitService ?? throw new ArgumentNullException(nameof(productUnitService));
         _skuGenerationService = skuGenerationService ?? throw new ArgumentNullException(nameof(skuGenerationService));
+        _productBatchService = productBatchService ?? throw new ArgumentNullException(nameof(productBatchService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -1492,6 +1510,9 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             
             // Note: No need to recalculate tax-inclusive price here since we already loaded 
             // the saved value from product.TaxInclusivePriceValue above
+
+            // Load product batches for edit mode
+            await LoadProductBatchesAsync();
 
             // Update title and button text for edit mode
             await UpdateTitleForEditMode();
@@ -3052,8 +3073,13 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     /// </summary>
     private void CalculateTaxInclusivePrice()
     {
+        // Prevent recursive calculations
+        if (_isCalculatingTax) return;
+        
         try
         {
+            _isCalculatingTax = true;
+            
             decimal basePrice = Price;
             if (basePrice <= 0)
             {
@@ -3067,30 +3093,70 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            decimal runningTotal = basePrice;
             var applicableTaxes = SelectedTaxTypes
                 .Where(t => t.IsActive && t.AppliesToSelling)
                 .OrderBy(t => t.CalculationOrder)
                 .ToList();
 
-            foreach (var tax in applicableTaxes)
+            if (IsTaxInclusivePrice)
             {
-                if (tax.IsPercentage)
-                {
-                    runningTotal += Math.Round(basePrice * (tax.Value / 100m), 2);
-                }
-                else
-                {
-                    runningTotal += tax.Value;
-                }
-            }
+                // Tax Inclusive Mode: Price Including Tax stays same, Selling Price gets reduced
+                decimal totalTaxPercentage = 0;
+                decimal totalTaxAmount = 0;
 
-            TaxInclusivePriceValue = Math.Round(runningTotal, 2);
+                foreach (var tax in applicableTaxes)
+                {
+                    if (tax.IsPercentage)
+                    {
+                        totalTaxPercentage += tax.Value;
+                    }
+                    else
+                    {
+                        totalTaxAmount += tax.Value;
+                    }
+                }
+
+                // Keep the Price Including Tax as the original entered selling price
+                TaxInclusivePriceValue = Math.Round(basePrice, 2);
+                
+                // Calculate new base selling price: BasePrice = (TotalPrice - FixedTax) / (1 + TaxPercentage/100)
+                decimal newSellingPrice = (basePrice - totalTaxAmount) / (1 + totalTaxPercentage / 100m);
+                
+                // Update the selling price (this will trigger property change notification)
+                Price = Math.Round(newSellingPrice, 2);
+                
+                FileLogger.Log($"Tax Inclusive Mode: Original Selling Price: {basePrice:C}, New Selling Price: {Price:C}, Price Including Tax: {TaxInclusivePriceValue:C}, Total Tax%: {totalTaxPercentage}%, Fixed Tax: {totalTaxAmount:C}");
+            }
+            else
+            {
+                // Tax Exclusive Mode: Selling Price stays same, Price Including Tax gets increased
+                decimal runningTotal = basePrice;
+
+                foreach (var tax in applicableTaxes)
+                {
+                    if (tax.IsPercentage)
+                    {
+                        runningTotal += Math.Round(basePrice * (tax.Value / 100m), 2);
+                    }
+                    else
+                    {
+                        runningTotal += tax.Value;
+                    }
+                }
+
+                TaxInclusivePriceValue = Math.Round(runningTotal, 2);
+                
+                FileLogger.Log($"Tax Exclusive Mode: Selling Price: {basePrice:C}, Price Including Tax: {TaxInclusivePriceValue:C}");
+            }
         }
         catch (Exception ex)
         {
             FileLogger.Log($"Error calculating tax-inclusive price: {ex.Message}");
             TaxInclusivePriceValue = Price; // Fallback to base price
+        }
+        finally
+        {
+            _isCalculatingTax = false;
         }
     }
 
@@ -3192,6 +3258,271 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             throw; // Re-throw to be handled by the calling method
         }
     }
+
+    #region Product Batch Commands
+
+    [RelayCommand]
+    private async Task ShowProductBatchesAsync()
+    {
+        AppLogger.LogSeparator("SHOW PRODUCT BATCHES CLICKED", "product_batches_ui");
+        
+        try
+        {
+            AppLogger.LogInfo($"ShowProductBatches command started", 
+                $"Product ID: {ProductId}, Current ProductBatches count: {ProductBatches?.Count ?? 0}", "product_batches_ui");
+
+            // Check if ProductBatchService is available
+            if (_productBatchService == null)
+            {
+                AppLogger.LogError($"ProductBatchService is null - cannot load batches", 
+                    null, $"Product ID: {ProductId}", "product_batches_ui");
+                StatusMessage = "Product Batch service not available";
+                return;
+            }
+
+            AppLogger.LogInfo($"ProductBatchService is available, starting to load batches", 
+                $"Product ID: {ProductId}", "product_batches_ui");
+
+            // Load current batches for the product
+            await LoadProductBatchesAsync();
+            
+            AppLogger.LogInfo($"Product batches loaded successfully", 
+                $"Product ID: {ProductId}, Loaded batches count: {ProductBatches?.Count ?? 0}", "product_batches_ui");
+            
+            StatusMessage = "Product Batches loaded successfully";
+            
+            // TODO: Implement AddProductBatchDialog or inline batch creation
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"Critical error showing product batches", ex, 
+                $"Product ID: {ProductId}, Exception Type: {ex.GetType().Name}", "product_batches_ui");
+            
+            StatusMessage = "Error loading product batches";
+        }
+        finally
+        {
+            AppLogger.LogSeparator("SHOW PRODUCT BATCHES COMPLETE", "product_batches_ui");
+        }
+    }
+
+    [RelayCommand]
+    private void EditProductBatch(ProductBatchDto? batch)
+    {
+        AppLogger.LogInfo($"EditProductBatch command started", 
+            $"Batch: {(batch != null ? $"ID={batch.Id}, BatchNo={batch.BatchNo}" : "NULL")}", "product_batches_ui");
+        
+        try
+        {
+            if (batch == null)
+            {
+                AppLogger.LogWarning($"EditProductBatch called with null batch", 
+                    $"Product ID: {ProductId}", "product_batches_ui");
+                return;
+            }
+            
+            AppLogger.LogInfo($"Starting to edit product batch", 
+                $"Batch ID: {batch.Id}, Batch No: {batch.BatchNo}, Product ID: {ProductId}", "product_batches_ui");
+            
+            StatusMessage = $"Editing batch: {batch.BatchNo}";
+            
+            // TODO: Implement EditProductBatchDialog
+            AppLogger.LogWarning($"EditProductBatchDialog not implemented yet", 
+                $"Batch ID: {batch.Id}", "product_batches_ui");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"Error editing product batch", ex, 
+                $"Batch ID: {batch?.Id}, Product ID: {ProductId}", "product_batches_ui");
+            StatusMessage = "Error editing batch";
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteProductBatchAsync(ProductBatchDto? batch)
+    {
+        AppLogger.LogInfo($"DeleteProductBatch command started", 
+            $"Batch: {(batch != null ? $"ID={batch.Id}, BatchNo={batch.BatchNo}" : "NULL")}", "product_batches_ui");
+        
+        try
+        {
+            if (batch == null)
+            {
+                AppLogger.LogWarning($"DeleteProductBatch called with null batch", 
+                    $"Product ID: {ProductId}", "product_batches_ui");
+                return;
+            }
+
+            AppLogger.LogInfo($"Showing delete confirmation dialog", 
+                $"Batch ID: {batch.Id}, Batch No: {batch.BatchNo}", "product_batches_ui");
+
+            var result = MessageBox.Show(
+                $"Are you sure you want to delete batch '{batch.BatchNo}'?",
+                "Confirm Delete",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            AppLogger.LogInfo($"User response to delete confirmation", 
+                $"Batch ID: {batch.Id}, User choice: {result}", "product_batches_ui");
+
+            if (result == MessageBoxResult.Yes)
+            {
+                AppLogger.LogInfo($"Proceeding with batch deletion", 
+                    $"Batch ID: {batch.Id}, Batch No: {batch.BatchNo}", "product_batches_ui");
+
+                await _productBatchService.DeleteProductBatchAsync(batch.Id);
+                
+                AppLogger.LogInfo($"Batch deleted successfully, reloading batches", 
+                    $"Deleted Batch ID: {batch.Id}, Product ID: {ProductId}", "product_batches_ui");
+
+                await LoadProductBatchesAsync();
+                StatusMessage = $"Batch '{batch.BatchNo}' deleted successfully";
+            }
+            else
+            {
+                AppLogger.LogInfo($"User cancelled batch deletion", 
+                    $"Batch ID: {batch.Id}", "product_batches_ui");
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"Critical error deleting product batch", ex, 
+                $"Batch ID: {batch?.Id}, Product ID: {ProductId}", "product_batches_ui");
+            StatusMessage = "Error deleting batch";
+        }
+    }
+
+    private async Task LoadProductBatchesAsync()
+    {
+        AppLogger.LogInfo($"Starting to load product batches", 
+            $"Product ID: {ProductId}", "product_batches_loading");
+        
+        try
+        {
+            // Check if Product ID is valid
+            if (ProductId <= 0) 
+            {
+                AppLogger.LogWarning($"Invalid Product ID - clearing batches", 
+                    $"Product ID: {ProductId}", "product_batches_loading");
+                
+                ProductBatches.Clear();
+                HasProductBatches = false;
+                return;
+            }
+
+            // Check if ProductBatches collection is initialized
+            if (ProductBatches == null)
+            {
+                AppLogger.LogWarning($"ProductBatches collection is null - initializing", 
+                    $"Product ID: {ProductId}", "product_batches_loading");
+                ProductBatches = new ObservableCollection<ProductBatchDto>();
+            }
+
+            AppLogger.LogDebug($"Calling ProductBatchService.GetProductBatchesByProductIdAsync", 
+                $"Product ID: {ProductId}, Service: {(_productBatchService?.GetType().Name ?? "NULL")}", "product_batches_loading");
+
+            // Call the service to get batches
+            var batches = await _productBatchService.GetProductBatchesByProductIdAsync(ProductId);
+            
+            AppLogger.LogInfo($"ProductBatchService returned batches", 
+                $"Product ID: {ProductId}, Returned batches count: {batches?.Count ?? 0}", "product_batches_loading");
+            
+            // Clear and populate the collection on UI thread
+            AppLogger.LogDebug($"Clearing ProductBatches collection on UI thread", 
+                $"Product ID: {ProductId}, Current count: {ProductBatches.Count}", "product_batches_loading");
+
+            // Ensure UI thread operations
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                try
+                {
+                    ProductBatches.Clear();
+                    AppLogger.LogDebug($"ProductBatches collection cleared successfully", 
+                        $"Product ID: {ProductId}", "product_batches_loading");
+                }
+                catch (Exception ex)
+                {
+                    AppLogger.LogError($"Error clearing ProductBatches collection", ex, 
+                        $"Product ID: {ProductId}", "product_batches_loading");
+                    throw;
+                }
+            });
+            
+            if (batches != null && batches.Any())
+            {
+                AppLogger.LogDebug($"Adding batches to ProductBatches collection on UI thread", 
+                    $"Product ID: {ProductId}, Batches to add: {batches.Count}", "product_batches_loading");
+                
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    try
+                    {
+                        foreach (var batch in batches)
+                        {
+                            // Validate batch before adding
+                            if (batch == null)
+                            {
+                                AppLogger.LogWarning($"Skipping null batch", 
+                                    $"Product ID: {ProductId}", "product_batches_loading");
+                                continue;
+                            }
+
+                            if (string.IsNullOrEmpty(batch.BatchNo))
+                            {
+                                AppLogger.LogWarning($"Batch has empty BatchNo, using default", 
+                                    $"Batch ID: {batch.Id}, Product ID: {ProductId}", "product_batches_loading");
+                                batch.BatchNo = $"BATCH-{batch.Id}";
+                            }
+
+                            AppLogger.LogDebug($"Adding validated batch to collection", 
+                                $"Batch ID: {batch.Id}, Batch No: {batch.BatchNo}, Quantity: {batch.Quantity}", "product_batches_loading");
+                            
+                            ProductBatches.Add(batch);
+                        }
+                        
+                        AppLogger.LogInfo($"All batches added to collection successfully", 
+                            $"Product ID: {ProductId}, Final collection count: {ProductBatches.Count}", "product_batches_loading");
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLogger.LogError($"Error adding batches to collection", ex, 
+                            $"Product ID: {ProductId}, Attempted count: {batches.Count}", "product_batches_loading");
+                        throw;
+                    }
+                });
+            }
+            
+            // Update HasProductBatches on UI thread
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                HasProductBatches = ProductBatches.Count > 0;
+                AppLogger.LogInfo($"HasProductBatches updated", 
+                    $"Product ID: {ProductId}, HasProductBatches: {HasProductBatches}, Count: {ProductBatches.Count}", "product_batches_loading");
+            });
+            
+            AppLogger.LogInfo($"Product batches loaded successfully", 
+                $"Product ID: {ProductId}, Final count: {ProductBatches.Count}, HasProductBatches: {HasProductBatches}", "product_batches_loading");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"Critical error loading product batches", ex, 
+                $"Product ID: {ProductId}, Exception Type: {ex.GetType().Name}, Inner Exception: {ex.InnerException?.Message}", "product_batches_loading");
+            
+            // Ensure safe state
+            try
+            {
+                ProductBatches?.Clear();
+                HasProductBatches = false;
+            }
+            catch (Exception cleanupEx)
+            {
+                AppLogger.LogError($"Error during cleanup after batch loading failure", cleanupEx, 
+                    $"Product ID: {ProductId}", "product_batches_loading");
+            }
+        }
+    }
+
+    #endregion
 
     #endregion
 }
