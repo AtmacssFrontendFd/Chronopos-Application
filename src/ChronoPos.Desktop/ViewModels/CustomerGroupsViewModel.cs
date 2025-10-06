@@ -42,6 +42,12 @@ public partial class CustomerGroupsViewModel : ObservableObject
     [ObservableProperty]
     private System.Windows.FlowDirection _currentFlowDirection = System.Windows.FlowDirection.LeftToRight;
 
+    [ObservableProperty]
+    private bool _isLoading = false;
+
+    [ObservableProperty]
+    private string _statusMessage = string.Empty;
+
     /// <summary>
     /// Text for the active filter toggle button
     /// </summary>
@@ -51,6 +57,11 @@ public partial class CustomerGroupsViewModel : ObservableObject
     /// Check if there are any customer groups to display
     /// </summary>
     public bool HasCustomerGroups => FilteredCustomerGroups.Count > 0;
+
+    /// <summary>
+    /// Total number of customer groups
+    /// </summary>
+    public int TotalCustomerGroups => CustomerGroups.Count;
 
     /// <summary>
     /// Action to navigate back (set by parent)
@@ -110,6 +121,8 @@ public partial class CustomerGroupsViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(HasCustomerGroups));
+        OnPropertyChanged(nameof(TotalCustomerGroups));
+        StatusMessage = $"Showing {FilteredCustomerGroups.Count} of {CustomerGroups.Count} customer group(s)";
     }
 
     [RelayCommand]
@@ -117,14 +130,24 @@ public partial class CustomerGroupsViewModel : ObservableObject
     {
         try
         {
+            IsLoading = true;
+            StatusMessage = "Loading customer groups...";
+            
             var groups = await _customerGroupService.GetAllAsync();
             CustomerGroups = new ObservableCollection<CustomerGroupDto>(groups);
             FilterCustomerGroups();
+            
+            StatusMessage = $"Loaded {CustomerGroups.Count} customer group(s)";
         }
         catch (Exception ex)
         {
+            StatusMessage = "Error loading customer groups";
             MessageBox.Show($"Error loading customer groups: {ex.Message}", "Error", 
                 MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 
@@ -235,5 +258,23 @@ public partial class CustomerGroupsViewModel : ObservableObject
     private void RefreshData()
     {
         _ = LoadCustomerGroupsAsync();
+    }
+
+    [RelayCommand]
+    private void ClearFilters()
+    {
+        SearchText = string.Empty;
+        ShowActiveOnly = false;
+        StatusMessage = "Filters cleared";
+    }
+
+    [RelayCommand]
+    private void ViewCustomerGroupDetails(CustomerGroupDto customerGroup)
+    {
+        if (customerGroup != null)
+        {
+            MessageBox.Show($"Customer Group Details:\n\nName: {customerGroup.Name}\nArabic Name: {customerGroup.NameAr}\nStatus: {customerGroup.Status}", 
+                "Customer Group Details", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
     }
 }

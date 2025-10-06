@@ -44,6 +44,12 @@ public partial class ProductGroupsViewModel : ObservableObject
     [ObservableProperty]
     private System.Windows.FlowDirection _currentFlowDirection = System.Windows.FlowDirection.LeftToRight;
 
+    [ObservableProperty]
+    private bool _isLoading = false;
+
+    [ObservableProperty]
+    private string _statusMessage = string.Empty;
+
     /// <summary>
     /// Text for the active filter toggle button
     /// </summary>
@@ -53,6 +59,11 @@ public partial class ProductGroupsViewModel : ObservableObject
     /// Check if there are any product groups to display
     /// </summary>
     public bool HasProductGroups => FilteredProductGroups.Count > 0;
+
+    /// <summary>
+    /// Total number of product groups (before filtering)
+    /// </summary>
+    public int TotalProductGroups => ProductGroups.Count;
 
     /// <summary>
     /// Action to navigate back (set by parent)
@@ -122,6 +133,32 @@ public partial class ProductGroupsViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(HasProductGroups));
+        OnPropertyChanged(nameof(TotalProductGroups));
+        UpdateStatusMessage();
+    }
+
+    private void UpdateStatusMessage()
+    {
+        if (IsLoading)
+        {
+            StatusMessage = "Loading product groups...";
+        }
+        else if (!HasProductGroups && !string.IsNullOrWhiteSpace(SearchText))
+        {
+            StatusMessage = "No product groups match your search criteria";
+        }
+        else if (!HasProductGroups && ShowActiveOnly)
+        {
+            StatusMessage = "No active product groups found";
+        }
+        else if (!HasProductGroups)
+        {
+            StatusMessage = "No product groups found";
+        }
+        else
+        {
+            StatusMessage = $"Showing {FilteredProductGroups.Count} of {TotalProductGroups} product groups";
+        }
     }
 
     /// <summary>
@@ -132,6 +169,9 @@ public partial class ProductGroupsViewModel : ObservableObject
     {
         try
         {
+            IsLoading = true;
+            UpdateStatusMessage();
+            
             var groups = await _productGroupService.GetAllAsync();
             ProductGroups = new ObservableCollection<ProductGroupDto>(groups);
             FilterProductGroups();
@@ -139,6 +179,12 @@ public partial class ProductGroupsViewModel : ObservableObject
         catch (Exception ex)
         {
             MessageBox.Show($"Error loading product groups: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            StatusMessage = "Error loading product groups";
+        }
+        finally
+        {
+            IsLoading = false;
+            UpdateStatusMessage();
         }
     }
 
@@ -149,6 +195,75 @@ public partial class ProductGroupsViewModel : ObservableObject
     private void ToggleActiveFilter()
     {
         ShowActiveOnly = !ShowActiveOnly;
+    }
+
+    /// <summary>
+    /// Clear all filters and search text
+    /// </summary>
+    [RelayCommand]
+    private void ClearFilters()
+    {
+        SearchText = string.Empty;
+        ShowActiveOnly = false;
+    }
+
+    /// <summary>
+    /// Toggle active status of a product group
+    /// </summary>
+    [RelayCommand]
+    private async Task ToggleActiveAsync(ProductGroupDto productGroup)
+    {
+        if (productGroup == null)
+            return;
+
+        try
+        {
+            // Load full details
+            var details = await _productGroupService.GetDetailByIdAsync(productGroup.Id);
+            if (details != null)
+            {
+                // Create update DTO
+                var updateDto = new UpdateProductGroupDto
+                {
+                    Id = details.Id,
+                    Name = details.Name,
+                    NameAr = details.NameAr,
+                    Description = details.Description,
+                    DescriptionAr = details.DescriptionAr,
+                    DiscountId = details.DiscountId,
+                    TaxTypeId = details.TaxTypeId,
+                    PriceTypeId = details.PriceTypeId,
+                    SkuPrefix = details.SkuPrefix,
+                    Status = details.Status == "Active" ? "Inactive" : "Active"
+                };
+                
+                var result = await _productGroupService.UpdateAsync(updateDto);
+                
+                if (result != null)
+                {
+                    await LoadProductGroupsAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error toggling product group status: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// View product group details (placeholder for future implementation)
+    /// </summary>
+    [RelayCommand]
+    private void ViewProductGroupDetails(ProductGroupDto productGroup)
+    {
+        if (productGroup == null)
+            return;
+
+        MessageBox.Show($"Product Group Details:\n\nName: {productGroup.Name}\nSKU Prefix: {productGroup.SkuPrefix}\nProducts: {productGroup.ItemCount}",
+            "Product Group Details",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
     }
 
     /// <summary>
