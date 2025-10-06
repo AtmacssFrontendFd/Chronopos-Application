@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using System.Windows;
 using System.IO;
+using System.Threading.Tasks;
 using ChronoPos.Infrastructure;
 using ChronoPos.Infrastructure.Repositories;
 using ChronoPos.Infrastructure.Services;
@@ -32,6 +33,21 @@ public partial class App : System.Windows.Application
         _logFilePath = Path.Combine(chronoPosPath, "app.log");
         
         LogMessage("=== Application Starting ===");
+        
+        // Add global exception handlers
+        AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+        {
+            var ex = e.ExceptionObject as Exception;
+            LogMessage($"UNHANDLED EXCEPTION: {ex?.Message}");
+            LogMessage($"UNHANDLED STACK TRACE: {ex?.StackTrace}");
+        };
+        
+        DispatcherUnhandledException += (s, e) =>
+        {
+            LogMessage($"DISPATCHER EXCEPTION: {e.Exception.Message}");
+            LogMessage($"DISPATCHER STACK TRACE: {e.Exception.StackTrace}");
+            e.Handled = true; // Prevent app crash
+        };
         
         try
         {
@@ -206,6 +222,16 @@ public partial class App : System.Windows.Application
                     services.AddSingleton<IIconService, IconService>();
                     LogMessage("IconService registered");
 
+                    // Register licensing services
+                    services.AddSingleton<ILicensingService, LicensingService>();
+                    LogMessage("LicensingService registered");
+
+                    services.AddSingleton<IHostDiscoveryService, HostDiscoveryService>();
+                    LogMessage("HostDiscoveryService registered");
+
+                    services.AddSingleton<ICameraService, CameraService>();
+                    LogMessage("CameraService registered");
+
                     // Register MainWindowViewModel as Singleton for stable event subscriptions
                     services.AddSingleton<MainWindowViewModel>();
                     LogMessage("MainWindowViewModel registered as Singleton");
@@ -245,10 +271,23 @@ public partial class App : System.Windows.Application
                     LogMessage("ProductCombinationSidePanelViewModel registered as Transient");
                     services.AddTransient<CategorySidePanelViewModel>();
                     LogMessage("CategorySidePanelViewModel registered as Transient");
+
+                    // Register onboarding view model
+                    services.AddTransient<OnboardingViewModel>();
+                    LogMessage("OnboardingViewModel registered as Transient");
         
                     // Register Views - MainWindow as Singleton to match ViewModel
                     services.AddSingleton<MainWindow>();
                     LogMessage("MainWindow registered as Singleton");
+
+                    services.AddTransient<OnboardingWindow>();
+                    LogMessage("OnboardingWindow registered as Transient");
+
+                    services.AddTransient<CreateAdminWindow>();
+                    LogMessage("CreateAdminWindow registered as Transient");
+
+                    services.AddTransient<LoginWindow>();
+                    LogMessage("LoginWindow registered as Transient");
                     
                     LogMessage("All services configured successfully");
                 })
@@ -277,147 +316,343 @@ public partial class App : System.Windows.Application
         }
     }
 
-    protected override async void OnStartup(StartupEventArgs e)
+    protected override void OnStartup(StartupEventArgs e)
     {
-        LogMessage("OnStartup called");
+        LogMessage("=== OnStartup called ===");
+        
+        // Call base.OnStartup FIRST (standard WPF pattern)
+        base.OnStartup(e);
+        LogMessage("base.OnStartup() completed");
+        
         try
         {
             LogMessage("Starting host...");
-            await _host.StartAsync();
+            _host.Start();
             LogMessage("Host started successfully");
 
-            // Initialize theme service
-            try 
-            {
-                LogMessage("Initializing theme service...");
-                var themeService = _host.Services.GetRequiredService<IThemeService>();
-                LogMessage("Theme service retrieved");
-                themeService.LoadThemeFromSettings();
-                LogMessage("Theme service initialized successfully");
-            }
-            catch (Exception ex)
-            {
-                LogMessage($"Theme service error: {ex.Message}");
-                LogMessage($"Theme service stack trace: {ex.StackTrace}");
-            }
-
-            // Initialize font service
-            try 
-            {
-                LogMessage("Initializing font service...");
-                var fontService = _host.Services.GetRequiredService<IFontService>();
-                LogMessage("Font service retrieved");
-                fontService.LoadFontFromSettings();
-                LogMessage("Font service initialized successfully");
-            }
-            catch (Exception ex)
-            {
-                LogMessage($"Font service error: {ex.Message}");
-                LogMessage($"Font service stack trace: {ex.StackTrace}");
-            }
-
-            // Initialize icon service
-            try 
-            {
-                LogMessage("Initializing icon service...");
-                var iconService = _host.Services.GetRequiredService<IIconService>();
-                LogMessage("Icon service retrieved");
-                iconService.RegisterIconResources();
-                LogMessage("Icon service initialized successfully");
-            }
-            catch (Exception ex)
-            {
-                LogMessage($"Icon service error: {ex.Message}");
-                LogMessage($"Icon service stack trace: {ex.StackTrace}");
-            }
-
-            // Initialize localization service
-            try 
-            {
-                LogMessage("Initializing localization service...");
-                var localizationService = _host.Services.GetRequiredService<ILocalizationService>();
-                LogMessage("Localization service retrieved");
-                localizationService.LoadLanguageFromSettings();
-                LogMessage("Localization service initialized successfully");
-            }
-            catch (Exception ex)
-            {
-                LogMessage($"Localization service error: {ex.Message}");
-                LogMessage($"Localization service stack trace: {ex.StackTrace}");
-            }
-
-            // Initialize color scheme service
-            try 
-            {
-                LogMessage("Initializing color scheme service...");
-                var colorSchemeService = _host.Services.GetRequiredService<IColorSchemeService>();
-                LogMessage("Color scheme service retrieved");
-                colorSchemeService.LoadColorsFromSettings();
-                LogMessage("Color scheme service initialized successfully");
-            }
-            catch (Exception ex)
-            {
-                LogMessage($"Color scheme service error: {ex.Message}");
-                LogMessage($"Color scheme service stack trace: {ex.StackTrace}");
-            }
-
-            // Initialize layout direction service
-            try 
-            {
-                LogMessage("Initializing layout direction service...");
-                var layoutDirectionService = _host.Services.GetRequiredService<ILayoutDirectionService>();
-                LogMessage("Layout direction service retrieved");
-                layoutDirectionService.LoadDirectionFromSettings();
-                LogMessage("Layout direction service initialized successfully");
-            }
-            catch (Exception ex)
-            {
-                LogMessage($"Layout direction service error: {ex.Message}");
-                LogMessage($"Layout direction service stack trace: {ex.StackTrace}");
-            }
-
-            // Initialize zoom service
-            try 
-            {
-                LogMessage("Initializing zoom service...");
-                var zoomService = _host.Services.GetRequiredService<IZoomService>();
-                LogMessage("Zoom service retrieved");
-                zoomService.LoadZoomFromSettings();
-                LogMessage("Zoom service initialized successfully");
-            }
-            catch (Exception ex)
-            {
-                LogMessage($"Zoom service error: {ex.Message}");
-                LogMessage($"Zoom service stack trace: {ex.StackTrace}");
-                // Don't fail the app if zoom service fails
-            }
-
-            // Initialize database on startup
+            // Initialize all services synchronously
+            InitializeServices();
+            
+            // Initialize database synchronously
             LogMessage("Initializing database...");
-            await InitializeDatabaseAsync();
+            InitializeDatabase();
             LogMessage("Database initialized successfully");
 
-            // Initialize and seed all language translations
+            // Seed language translations synchronously
             LogMessage("Seeding language translations...");
-            await SeedLanguageTranslationsAsync();
+            SeedLanguageTranslations();
             LogMessage("Language translations seeded successfully");
 
-            LogMessage("Getting MainWindow...");
-            var mainWindow = _host.Services.GetRequiredService<MainWindow>();
-            LogMessage("MainWindow retrieved, showing...");
-            mainWindow.Show();
-            LogMessage("MainWindow shown successfully");
-
-            base.OnStartup(e);
-            LogMessage("OnStartup completed successfully");
+            // Now run the startup flow SYNCHRONOUSLY (we're already on UI thread)
+            LogMessage("=== Starting Startup Flow ===");
+            RunStartupFlow();
+            
+            LogMessage("=== OnStartup completed successfully ===");
         }
         catch (Exception ex)
         {
-            LogMessage($"Application startup failed: {ex.Message}");
-            LogMessage($"Startup stack trace: {ex.StackTrace}");
-            MessageBox.Show($"Application startup failed: {ex.Message}\n\nStack trace:\n{ex.StackTrace}", 
-                          "Startup Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            LogMessage($"!!! FATAL ERROR in OnStartup: {ex.Message}");
+            LogMessage($"!!! Stack trace: {ex.StackTrace}");
+            if (ex.InnerException != null)
+            {
+                LogMessage($"!!! Inner exception: {ex.InnerException.Message}");
+                LogMessage($"!!! Inner stack trace: {ex.InnerException.StackTrace}");
+            }
+            
+            MessageBox.Show(
+                $"Application startup failed:\n\n{ex.Message}\n\nSee log file for details.", 
+                "Startup Error", 
+                MessageBoxButton.OK, 
+                MessageBoxImage.Error);
+            
             this.Shutdown(1);
+        }
+    }
+
+    private void InitializeServices()
+    {
+        LogMessage(">>> Initializing all services...");
+        
+        // Initialize theme service
+        try 
+        {
+            LogMessage("  - Initializing theme service...");
+            var themeService = _host.Services.GetRequiredService<IThemeService>();
+            themeService.LoadThemeFromSettings();
+            LogMessage("  - Theme service initialized ✓");
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"  - Theme service error: {ex.Message}");
+        }
+
+        // Initialize font service
+        try 
+        {
+            LogMessage("  - Initializing font service...");
+            var fontService = _host.Services.GetRequiredService<IFontService>();
+            fontService.LoadFontFromSettings();
+            LogMessage("  - Font service initialized ✓");
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"  - Font service error: {ex.Message}");
+        }
+
+        // Initialize icon service
+        try 
+        {
+            LogMessage("  - Initializing icon service...");
+            var iconService = _host.Services.GetRequiredService<IIconService>();
+            iconService.RegisterIconResources();
+            LogMessage("  - Icon service initialized ✓");
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"  - Icon service error: {ex.Message}");
+        }
+
+        // Initialize localization service
+        try 
+        {
+            LogMessage("  - Initializing localization service...");
+            var localizationService = _host.Services.GetRequiredService<ILocalizationService>();
+            localizationService.LoadLanguageFromSettings();
+            LogMessage("  - Localization service initialized ✓");
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"  - Localization service error: {ex.Message}");
+        }
+
+        // Initialize color scheme service
+        try 
+        {
+            LogMessage("  - Initializing color scheme service...");
+            var colorSchemeService = _host.Services.GetRequiredService<IColorSchemeService>();
+            colorSchemeService.LoadColorsFromSettings();
+            LogMessage("  - Color scheme service initialized ✓");
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"  - Color scheme service error: {ex.Message}");
+        }
+
+        // Initialize layout direction service
+        try 
+        {
+            LogMessage("  - Initializing layout direction service...");
+            var layoutDirectionService = _host.Services.GetRequiredService<ILayoutDirectionService>();
+            layoutDirectionService.LoadDirectionFromSettings();
+            LogMessage("  - Layout direction service initialized ✓");
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"  - Layout direction service error: {ex.Message}");
+        }
+
+        // Initialize zoom service
+        try 
+        {
+            LogMessage("  - Initializing zoom service...");
+            var zoomService = _host.Services.GetRequiredService<IZoomService>();
+            zoomService.LoadZoomFromSettings();
+            LogMessage("  - Zoom service initialized ✓");
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"  - Zoom service error: {ex.Message}");
+        }
+        
+        LogMessage(">>> All services initialized");
+    }
+
+    private void RunStartupFlow()
+    {
+        LogMessage(">>> Step 1: Checking license status...");
+        
+        var licensingService = _host.Services.GetRequiredService<ILicensingService>();
+        
+        // Step 1: License check
+        if (!licensingService.IsLicenseValid())
+        {
+            LogMessage(">>> No valid license found, showing OnboardingWindow...");
+            
+            var onboardingWindow = _host.Services.GetRequiredService<OnboardingWindow>();
+            LogMessage(">>> OnboardingWindow instance created");
+            
+            LogMessage(">>> Calling OnboardingWindow.ShowDialog()...");
+            var onboardingResult = onboardingWindow.ShowDialog();
+            LogMessage($">>> OnboardingWindow.ShowDialog() returned: {onboardingResult}");
+            
+            if (onboardingResult != true)
+            {
+                LogMessage(">>> Onboarding cancelled by user, shutting down...");
+                this.Shutdown();
+                return;
+            }
+            
+            LogMessage(">>> Onboarding completed successfully ✓");
+        }
+        else
+        {
+            LogMessage(">>> Valid license found, skipping onboarding ✓");
+        }
+
+        // Step 2: Admin user check
+        LogMessage(">>> Step 2: Checking for admin user...");
+        
+        if (!AdminUserExists())
+        {
+            LogMessage(">>> No admin user found, showing CreateAdminWindow...");
+            
+            var createAdminWindow = _host.Services.GetRequiredService<CreateAdminWindow>();
+            LogMessage(">>> CreateAdminWindow instance created");
+            
+            LogMessage(">>> Calling CreateAdminWindow.ShowDialog()...");
+            var adminResult = createAdminWindow.ShowDialog();
+            LogMessage($">>> CreateAdminWindow.ShowDialog() returned: {adminResult}");
+            LogMessage($">>> AdminCreated property: {createAdminWindow.AdminCreated}");
+            
+            if (adminResult != true || !createAdminWindow.AdminCreated)
+            {
+                LogMessage(">>> Admin creation cancelled or failed, shutting down...");
+                this.Shutdown();
+                return;
+            }
+            
+            LogMessage(">>> Admin user created successfully ✓");
+        }
+        else
+        {
+            LogMessage(">>> Admin user already exists, skipping admin creation ✓");
+        }
+
+        // Step 3: Login
+        LogMessage(">>> Step 3: Showing LoginWindow...");
+        
+        var loginWindow = _host.Services.GetRequiredService<LoginWindow>();
+        LogMessage(">>> LoginWindow instance created");
+        
+        LogMessage(">>> Calling LoginWindow.ShowDialog()...");
+        var loginResult = loginWindow.ShowDialog();
+        LogMessage($">>> LoginWindow.ShowDialog() returned: {loginResult}");
+        
+        if (loginResult != true)
+        {
+            LogMessage(">>> Login cancelled by user, shutting down...");
+            this.Shutdown();
+            return;
+        }
+        
+        LogMessage($">>> Login successful! User ID: {loginWindow.LoggedInUserId} ✓");
+
+        // Step 4: Show MainWindow
+        LogMessage(">>> Step 4: Showing MainWindow...");
+        
+        var mainWindow = _host.Services.GetRequiredService<MainWindow>();
+        LogMessage(">>> MainWindow instance created");
+        
+        // Set as application main window
+        this.MainWindow = mainWindow;
+        LogMessage(">>> Set as Application.MainWindow");
+        
+        // Change shutdown mode to close when main window closes
+        this.ShutdownMode = ShutdownMode.OnMainWindowClose;
+        LogMessage(">>> ShutdownMode changed to OnMainWindowClose");
+        
+        LogMessage(">>> Calling MainWindow.Show()...");
+        mainWindow.Show();
+        LogMessage(">>> MainWindow.Show() completed ✓");
+        
+        LogMessage(">>> === STARTUP FLOW COMPLETED SUCCESSFULLY ===");
+    }
+
+    private bool AdminUserExists()
+    {
+        try
+        {
+            LogMessage("  - Creating scope for admin user check...");
+            using var scope = _host.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
+            
+            LogMessage("  - Checking database connection...");
+            var canConnect = dbContext.Database.CanConnect();
+            LogMessage($"  - Database connection status: {canConnect}");
+            
+            if (!canConnect)
+            {
+                LogMessage("  - Cannot connect to database, returning false");
+                return false;
+            }
+            
+            LogMessage("  - Counting non-deleted users...");
+            var userCount = dbContext.Users.Count(u => !u.Deleted);
+            LogMessage($"  - Found {userCount} non-deleted users");
+            
+            if (userCount > 0)
+            {
+                var users = dbContext.Users
+                    .Where(u => !u.Deleted)
+                    .Select(u => new { u.Id, u.Email, u.FullName })
+                    .ToList();
+                
+                foreach (var user in users)
+                {
+                    LogMessage($"  - Existing user: ID={user.Id}, Email={user.Email}, Name={user.FullName}");
+                }
+            }
+            
+            return userCount > 0;
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"  - Error checking for admin user: {ex.Message}");
+            LogMessage($"  - Stack trace: {ex.StackTrace}");
+            return false;
+        }
+    }
+
+    private void InitializeDatabase()
+    {
+        try
+        {
+            using var scope = _host.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
+            
+            LogMessage("  - Ensuring database exists...");
+            dbContext.Database.EnsureCreated();
+            LogMessage("  - Database ensured ✓");
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"  - Database initialization error: {ex.Message}");
+            MessageBox.Show(
+                $"Database initialization failed: {ex.Message}\nThe application will continue without database functionality.", 
+                "Database Warning", 
+                MessageBoxButton.OK, 
+                MessageBoxImage.Warning);
+        }
+    }
+
+    private void SeedLanguageTranslations()
+    {
+        try
+        {
+            LogMessage("  - Starting language translation seeding...");
+            
+            using var scope = _host.Services.CreateScope();
+            var seedingService = scope.ServiceProvider.GetRequiredService<ILanguageSeedingService>();
+            
+            // Run async seeding synchronously (we're in startup, it's ok)
+            seedingService.SeedAllTranslationsAsync().GetAwaiter().GetResult();
+            
+            LogMessage("  - Language translations seeded ✓");
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"  - Language seeding error: {ex.Message}");
+            // Don't fail the app if seeding fails
         }
     }
 

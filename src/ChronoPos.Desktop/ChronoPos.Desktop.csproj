@@ -17,6 +17,9 @@
     <FileVersion>1.0.0.0</FileVersion>
     <InformationalVersion>1.0.0-Release</InformationalVersion>
     
+    <!-- Application Icon -->
+    <ApplicationIcon>Images\LogoImage.ico</ApplicationIcon>
+    
     <!-- Deployment Configuration -->
     <Win32Resource />
     <StartupObject />
@@ -55,6 +58,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="8.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AForge.Video" Version="2.2.5" />
+    <PackageReference Include="AForge.Video.DirectShow" Version="2.2.5" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.8" />
@@ -63,6 +72,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="System.Management" Version="9.0.9" />
+    <PackageReference Include="ZXing.Net" Version="0.16.10" />
+    <PackageReference Include="ZXing.Net.Bindings.Windows.Compatibility" Version="0.16.13" />
   </ItemGroup>
 
   <ItemGroup>

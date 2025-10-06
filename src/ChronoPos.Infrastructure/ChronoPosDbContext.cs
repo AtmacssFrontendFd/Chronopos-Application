@@ -1084,7 +1084,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 CategoryTitle = "Count",
                 IsActive = true, 
                 Status = "Active",
-                CreatedBy = 1,
+                CreatedBy = null,
                 CreatedAt = baseDate 
             },
             new Domain.Entities.UnitOfMeasurement 
@@ -1096,7 +1096,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 CategoryTitle = "Weight",
                 IsActive = true, 
                 Status = "Active",
-                CreatedBy = 1,
+                CreatedBy = null,
                 CreatedAt = baseDate 
             },
             new Domain.Entities.UnitOfMeasurement 
@@ -1110,7 +1110,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 ConversionFactor = 12.0000m,
                 IsActive = true, 
                 Status = "Active",
-                CreatedBy = 1,
+                CreatedBy = null,
                 CreatedAt = baseDate 
             },
             new Domain.Entities.UnitOfMeasurement 
@@ -1122,7 +1122,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 CategoryTitle = "Volume",
                 IsActive = true, 
                 Status = "Active",
-                CreatedBy = 1,
+                CreatedBy = null,
                 CreatedAt = baseDate 
             },
             new Domain.Entities.UnitOfMeasurement 
@@ -1136,7 +1136,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 ConversionFactor = 0.0010m,
                 IsActive = true, 
                 Status = "Active",
-                CreatedBy = 1,
+                CreatedBy = null,
                 CreatedAt = baseDate 
             },
             new Domain.Entities.UnitOfMeasurement 
@@ -1150,7 +1150,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 ConversionFactor = 0.0010m,
                 IsActive = true, 
                 Status = "Active",
-                CreatedBy = 1,
+                CreatedBy = null,
                 CreatedAt = baseDate 
             }
         );
@@ -1178,21 +1178,21 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
 
         // Seed Selling Price Types
         modelBuilder.Entity<Domain.Entities.SellingPriceType>().HasData(
-            new Domain.Entities.SellingPriceType { Id = 1, TypeName = "Retail", ArabicName = "بيع بالتجزئة", Description = "Standard retail pricing", Status = true, CreatedBy = 1, CreatedAt = baseDate },
-            new Domain.Entities.SellingPriceType { Id = 2, TypeName = "Wholesale", ArabicName = "بيع بالجملة", Description = "Bulk pricing for wholesale customers", Status = true, CreatedBy = 1, CreatedAt = baseDate },
-            new Domain.Entities.SellingPriceType { Id = 3, TypeName = "VIP", ArabicName = "في آي بي", Description = "Premium pricing for VIP customers", Status = true, CreatedBy = 1, CreatedAt = baseDate },
-            new Domain.Entities.SellingPriceType { Id = 4, TypeName = "Staff", ArabicName = "موظف", Description = "Employee discount pricing", Status = true, CreatedBy = 1, CreatedAt = baseDate },
-            new Domain.Entities.SellingPriceType { Id = 5, TypeName = "Student", ArabicName = "طالب", Description = "Student discount pricing", Status = true, CreatedBy = 1, CreatedAt = baseDate }
+            new Domain.Entities.SellingPriceType { Id = 1, TypeName = "Retail", ArabicName = "بيع بالتجزئة", Description = "Standard retail pricing", Status = true, CreatedBy = null, CreatedAt = baseDate },
+            new Domain.Entities.SellingPriceType { Id = 2, TypeName = "Wholesale", ArabicName = "بيع بالجملة", Description = "Bulk pricing for wholesale customers", Status = true, CreatedBy = null, CreatedAt = baseDate },
+            new Domain.Entities.SellingPriceType { Id = 3, TypeName = "VIP", ArabicName = "في آي بي", Description = "Premium pricing for VIP customers", Status = true, CreatedBy = null, CreatedAt = baseDate },
+            new Domain.Entities.SellingPriceType { Id = 4, TypeName = "Staff", ArabicName = "موظف", Description = "Employee discount pricing", Status = true, CreatedBy = null, CreatedAt = baseDate },
+            new Domain.Entities.SellingPriceType { Id = 5, TypeName = "Student", ArabicName = "طالب", Description = "Student discount pricing", Status = true, CreatedBy = null, CreatedAt = baseDate }
         );
 
         // Seed Payment Types
         modelBuilder.Entity<Domain.Entities.PaymentType>().HasData(
-            new Domain.Entities.PaymentType { Id = 1, Name = "Cash", PaymentCode = "CASH", NameAr = "نقد", Status = true, CreatedBy = 1, CreatedAt = baseDate },
-            new Domain.Entities.PaymentType { Id = 2, Name = "Credit Card", PaymentCode = "CC", NameAr = "بطاقة ائتمان", Status = true, CreatedBy = 1, CreatedAt = baseDate },
-            new Domain.Entities.PaymentType { Id = 3, Name = "Debit Card", PaymentCode = "DC", NameAr = "بطاقة خصم", Status = true, CreatedBy = 1, CreatedAt = baseDate },
-            new Domain.Entities.PaymentType { Id = 4, Name = "Digital Wallet", PaymentCode = "DW", NameAr = "محفظة رقمية", Status = true, CreatedBy = 1, CreatedAt = baseDate },
-            new Domain.Entities.PaymentType { Id = 5, Name = "Bank Transfer", PaymentCode = "BT", NameAr = "تحويل مصرفي", Status = true, CreatedBy = 1, CreatedAt = baseDate },
-            new Domain.Entities.PaymentType { Id = 6, Name = "Check", PaymentCode = "CHK", NameAr = "شيك", Status = true, CreatedBy = 1, CreatedAt = baseDate }
+            new Domain.Entities.PaymentType { Id = 1, Name = "Cash", PaymentCode = "CASH", NameAr = "نقد", Status = true, CreatedBy = null, CreatedAt = baseDate },
+            new Domain.Entities.PaymentType { Id = 2, Name = "Credit Card", PaymentCode = "CC", NameAr = "بطاقة ائتمان", Status = true, CreatedBy = null, CreatedAt = baseDate },
+            new Domain.Entities.PaymentType { Id = 3, Name = "Debit Card", PaymentCode = "DC", NameAr = "بطاقة خصم", Status = true, CreatedBy = null, CreatedAt = baseDate },
+            new Domain.Entities.PaymentType { Id = 4, Name = "Digital Wallet", PaymentCode = "DW", NameAr = "محفظة رقمية", Status = true, CreatedBy = null, CreatedAt = baseDate },
+            new Domain.Entities.PaymentType { Id = 5, Name = "Bank Transfer", PaymentCode = "BT", NameAr = "تحويل مصرفي", Status = true, CreatedBy = null, CreatedAt = baseDate },
+            new Domain.Entities.PaymentType { Id = 6, Name = "Check", PaymentCode = "CHK", NameAr = "شيك", Status = true, CreatedBy = null, CreatedAt = baseDate }
         );
 
         // Seed Customers
@@ -1282,6 +1282,9 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
         );
 
         // Seed Users (required by many entities with CreatedBy/UpdatedBy)
+        // NOTE: User seeding disabled to allow admin creation during onboarding
+        // Users will be created through the CreateAdminWindow after license activation
+        /*
         modelBuilder.Entity<Domain.Entities.User>().HasData(
             new Domain.Entities.User 
             { 
@@ -1306,6 +1309,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 CreatedAt = baseDate 
             }
         );
+        */
 
         // Seed ShopLocations (required by StockAdjustments)
         modelBuilder.Entity<Domain.Entities.ShopLocation>().HasData(
@@ -1338,7 +1342,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 Name = "Physical Count Adjustment", 
                 Description = "Adjustment based on physical stock count",
                 Status = "Active",
-                CreatedBy = 1,
+                CreatedBy = null,
                 CreatedAt = baseDate
             },
             new Domain.Entities.StockAdjustmentReason 
@@ -1347,7 +1351,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 Name = "Damaged Goods", 
                 Description = "Stock reduction due to damaged inventory",
                 Status = "Active",
-                CreatedBy = 1,
+                CreatedBy = null,
                 CreatedAt = baseDate
             },
             new Domain.Entities.StockAdjustmentReason 
@@ -1356,7 +1360,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 Name = "System Error Correction", 
                 Description = "Correction of system entry errors",
                 Status = "Active",
-                CreatedBy = 1,
+                CreatedBy = null,
                 CreatedAt = baseDate
             }
         );
