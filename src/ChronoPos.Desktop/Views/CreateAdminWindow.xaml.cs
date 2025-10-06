@@ -229,15 +229,15 @@ namespace ChronoPos.Desktop.Views
         private void ShowError(string message)
         {
             ErrorTextBlock.Text = message;
-            ErrorTextBlock.Visibility = Visibility.Visible;
-            SuccessTextBlock.Visibility = Visibility.Collapsed;
+            ErrorBorder.Visibility = Visibility.Visible;
+            SuccessBorder.Visibility = Visibility.Collapsed;
         }
 
         private void ShowSuccess(string message)
         {
             SuccessTextBlock.Text = message;
-            SuccessTextBlock.Visibility = Visibility.Visible;
-            ErrorTextBlock.Visibility = Visibility.Collapsed;
+            SuccessBorder.Visibility = Visibility.Visible;
+            ErrorBorder.Visibility = Visibility.Collapsed;
         }
 
         private bool IsValidEmail(string email)
