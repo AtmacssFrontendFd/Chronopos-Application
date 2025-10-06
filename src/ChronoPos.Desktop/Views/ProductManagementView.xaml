@@ -1,0 +1,1266 @@
+<UserControl x:Class="ChronoPos.Desktop.Views.ProductManagementView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ChronoPos.Desktop.Views.Controls"
+             xmlns:viewControls="clr-namespace:ChronoPos.Desktop.Views.Controls"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             mc:Ignorable="d" 
+             Background="{DynamicResource MainBackground}"
+             FlowDirection="{Binding CurrentFlowDirection}"
+             FontFamily="{DynamicResource PoppinsFontFallback}">
+
+    <UserControl.Resources>
+        <!-- Converters -->
+        <converters:FlowDirectionToGridColumnConverter x:Key="FlowDirectionToGridColumnConverter" />
+        
+        <!-- Category Button Style with Dynamic Resources -->
+        <Style x:Key="CategoryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+            <Setter Property="Margin" Value="{DynamicResource DefaultMarginThickness}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Action Button Style with Dynamic Resources -->
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Primary}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+            <Setter Property="Margin" Value="{DynamicResource DefaultMarginThickness}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Product Card Style with Dynamic Resources -->
+        <Style x:Key="ProductCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="{DynamicResource BorderCornerRadius}"/>
+            <Setter Property="Margin" Value="{DynamicResource DefaultMarginThickness}"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="LightGray" Direction="270" BlurRadius="5" ShadowDepth="2" Opacity="0.3"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <!-- Root Container with Grid for ScrollViewer and Side Panel -->
+    <Grid>
+        <!-- Main Scrollable Content -->
+        <ScrollViewer x:Name="MainScrollViewer"
+                      VerticalScrollBarVisibility="Auto" 
+                      HorizontalScrollBarVisibility="Disabled"
+                      PanningMode="VerticalOnly"
+                      CanContentScroll="True"
+                      IsDeferredScrollingEnabled="False"
+                      Focusable="True"
+                      IsTabStop="True">
+            <!-- Main Content -->
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+        <!-- Title Header -->
+        <Grid Grid.Row="0" Margin="{DynamicResource DefaultMarginThickness}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Side: Back Button + Title in LTR, Refresh Button in RTL -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- Back Button + Title (visible in LTR) -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    
+                    <viewControls:CircularBackButton VerticalAlignment="Center"
+                                                     Command="{Binding NavigateBackCommand}"
+                                                     ButtonSize="30"
+                                                     ButtonBackground="{DynamicResource SurfaceBackground}"
+                                                     ButtonForeground="{DynamicResource TextSecondary}"
+                                                     ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                                                     ButtonHoverForeground="{DynamicResource TextSecondary}"
+                                                     Margin="0,0,10,0"/>
+
+                    <TextBlock Text="{Binding PageTitle}"
+                               FontSize="{DynamicResource FontSizeLarge}"
+                               FontWeight="Bold"
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource TextPrimary}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Refresh Button (visible in RTL) -->
+                <controls:RefreshButton HorizontalAlignment="Left"
+                                        VerticalAlignment="Top"
+                                        ButtonText="{Binding RefreshButtonText}"
+                                        ButtonIcon="🔄"
+                                        Command="{Binding RefreshDataCommand}"
+                                        ButtonBackground="{DynamicResource Primary}"
+                                        ButtonForeground="White"
+                                        MinButtonWidth="120"
+                                        ButtonHeight="{DynamicResource ButtonHeight}"
+                                        ButtonWidth="120">
+                    <controls:RefreshButton.Style>
+                        <Style TargetType="controls:RefreshButton">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </controls:RefreshButton.Style>
+                </controls:RefreshButton>
+            </StackPanel>
+
+            <!-- Right Side: Refresh Button in LTR, Back Button + Title in RTL -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                <!-- Refresh Button (visible in LTR) -->
+                <controls:RefreshButton HorizontalAlignment="Right"
+                                        VerticalAlignment="Top"
+                                        ButtonText="{Binding RefreshButtonText}"
+                                        ButtonIcon="🔄"
+                                        Command="{Binding RefreshDataCommand}"
+                                        ButtonBackground="{DynamicResource Primary}"
+                                        ButtonForeground="White"
+                                        MinButtonWidth="120"
+                                        ButtonHeight="{DynamicResource ButtonHeight}"
+                                        ButtonWidth="120">
+                    <controls:RefreshButton.Style>
+                        <Style TargetType="controls:RefreshButton">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </controls:RefreshButton.Style>
+                </controls:RefreshButton>
+
+                <!-- Back Button + Title (visible in RTL) -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    
+                    <TextBlock Text="{Binding PageTitle}"
+                               FontSize="{DynamicResource FontSizeLarge}"
+                               FontWeight="Bold"
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource TextPrimary}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"/>
+
+                    <viewControls:CircularBackButton VerticalAlignment="Center"
+                                                     Command="{Binding NavigateBackCommand}"
+                                                     ButtonSize="30"
+                                                     ButtonBackground="{DynamicResource SurfaceBackground}"
+                                                     ButtonForeground="{DynamicResource TextSecondary}"
+                                                     ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                                                     ButtonHoverForeground="{DynamicResource TextSecondary}"/>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+
+        <!-- Categories Section -->
+        <Border Grid.Row="2" 
+                Padding="{DynamicResource DefaultPaddingThickness}"
+                BorderBrush="{DynamicResource BorderLight}"
+                BorderThickness="0,1,0,1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding CategoriesHeaderText}" 
+                               FontSize="{DynamicResource FontSizeMedium}" 
+                               FontWeight="Bold" 
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource TextPrimary}" 
+                               VerticalAlignment="Center"
+                               TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
+                    
+                    <!-- Scroll Left Button -->
+                    <Button Grid.Column="1" 
+                            x:Name="ScrollLeftButton"
+                            Command="{Binding ScrollCategoriesLeftCommand}"
+                            Width="30" Height="30" 
+                            Margin="5,0"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource SurfaceBackground}"
+                            BorderBrush="{DynamicResource BorderLight}"
+                            BorderThickness="1"
+                            Style="{DynamicResource {x:Type Button}}">
+                        <Button.Content>
+                            <TextBlock Text="◀" 
+                                       FontSize="12" 
+                                       Foreground="{DynamicResource TextPrimary}"
+                                       HorizontalAlignment="Center" 
+                                       VerticalAlignment="Center"/>
+                        </Button.Content>
+                    </Button>
+                    
+                    <!-- Scroll Right Button -->
+                    <Button Grid.Column="2" 
+                            x:Name="ScrollRightButton"
+                            Command="{Binding ScrollCategoriesRightCommand}"
+                            Width="30" Height="30" 
+                            Margin="5,0"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource SurfaceBackground}"
+                            BorderBrush="{DynamicResource BorderLight}"
+                            BorderThickness="1"
+                            Style="{DynamicResource {x:Type Button}}">
+                        <Button.Content>
+                            <TextBlock Text="▶" 
+                                       FontSize="12" 
+                                       Foreground="{DynamicResource TextPrimary}"
+                                       HorizontalAlignment="Center" 
+                                       VerticalAlignment="Center"/>
+                        </Button.Content>
+                    </Button>
+                    
+                    <controls:RefreshButton Grid.Column="3"
+                                            ButtonText="{Binding AddNewCategoryButtonText}"
+                                            ButtonIcon="➕"
+                                            Command="{Binding AddNewCategoryCommand}"
+                                            ButtonBackground="{DynamicResource Primary}"
+                                            ButtonForeground="White"
+                                            MinButtonWidth="140"
+                                            ButtonHeight="{DynamicResource ButtonHeight}"
+                                            ButtonWidth="140"
+                                            Margin="{DynamicResource DefaultMarginThickness}"/>
+                </Grid>
+
+                <ScrollViewer Grid.Row="1" 
+                              x:Name="CategoryScrollViewer"
+                              HorizontalScrollBarVisibility="Hidden" 
+                              VerticalScrollBarVisibility="Disabled"
+                              Margin="{DynamicResource DefaultMarginThickness}">
+                    <ItemsControl ItemsSource="{Binding Categories}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource CategoryButtonStyle}"
+                                        Command="{Binding DataContext.FilterProductsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}">
+                                    <Button.Content>
+                                        <StackPanel>
+                                            <Border Width="{DynamicResource IconSize}" 
+                                                    Height="{DynamicResource IconSize}" 
+                                                    Background="{DynamicResource Primary}" 
+                                                    CornerRadius="{DynamicResource BorderCornerRadius}" 
+                                                    Margin="{DynamicResource DefaultMarginThickness}">
+                                                <TextBlock Text="📦" 
+                                                           FontSize="{DynamicResource FontSizeSmall}" 
+                                                           HorizontalAlignment="Center" 
+                                                           VerticalAlignment="Center" 
+                                                           Foreground="White"/>
+                                            </Border>
+                                            <TextBlock Text="{Binding Name}" 
+                                                       FontSize="{DynamicResource FontSizeVerySmall}" 
+                                                       FontWeight="SemiBold" 
+                                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                       TextAlignment="Center"
+                                                       Foreground="{DynamicResource TextPrimary}"/>
+                                            <TextBlock FontSize="{DynamicResource FontSizeVerySmall}" 
+                                                       TextAlignment="Center"
+                                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                       Foreground="{DynamicResource TextSecondary}">
+                                                <TextBlock.Text>
+                                                    <MultiBinding StringFormat="{}{0} {1}">
+                                                        <Binding Path="ProductCount"/>
+                                                        <Binding Path="DataContext.ItemsCountText" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Button.Content>
+                                    <Button.InputBindings>
+                                        <MouseBinding MouseAction="LeftClick" 
+                                                      Command="{Binding DataContext.EditCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      CommandParameter="{Binding}"/>
+                                    </Button.InputBindings>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Search and Actions Row -->
+        <Border Grid.Row="3" 
+                Background="{DynamicResource CardBackground}" 
+                Padding="{DynamicResource DefaultPaddingThickness}" 
+                BorderBrush="{DynamicResource BorderLight}" 
+                BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left Side - Search Field -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Integrated Search Field with Dropdown -->
+                    <Border Background="{DynamicResource CardBackground}"
+                            BorderBrush="{DynamicResource BorderLight}"
+                            BorderThickness="1"
+                            CornerRadius="{DynamicResource BorderCornerRadius}"
+                            Width="300" 
+                            Height="{DynamicResource ButtonHeight}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Dropdown Button -->
+                            <Button Grid.Column="0"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="{DynamicResource DefaultPaddingThickness}"
+                                    Cursor="Hand"
+                                    VerticalAlignment="Stretch"
+                                    FontFamily="{DynamicResource PoppinsFontFallback}"
+                                    Click="SearchTypeDropdown_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding SelectedSearchType}" 
+                                               FontSize="{DynamicResource FontSizeSmall}" 
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="▼" 
+                                               FontSize="{DynamicResource FontSizeVerySmall}" 
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               Margin="5,0,0,0"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            
+                            <!-- Separator Line -->
+                            <Border Grid.Column="0" 
+                                    Width="1" 
+                                    Background="{DynamicResource BorderLight}" 
+                                    HorizontalAlignment="Right"
+                                    Margin="0,5"/>
+                            
+                            <!-- Search TextBox -->
+                            <TextBox Grid.Column="1"
+                                     Name="SearchBox" 
+                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Padding="{DynamicResource DefaultPaddingThickness}"
+                                     FontSize="{DynamicResource FontSizeSmall}"
+                                     FontFamily="{DynamicResource PoppinsFontFallback}"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     VerticalContentAlignment="Center"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     FlowDirection="{Binding CurrentFlowDirection}"/>
+                            
+                            <!-- Placeholder Text -->
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding SearchPlaceholder}"
+                                       FontSize="{DynamicResource FontSizeSmall}"
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Foreground="{DynamicResource TextDisabled}"
+                                       Margin="{DynamicResource DefaultPaddingThickness}"
+                                       VerticalAlignment="Center"
+                                       IsHitTestVisible="False">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ElementName=SearchBox, Path=Text}" Value="">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            
+                            <!-- Search Icon -->
+                            <TextBlock Grid.Column="2"
+                                       Text="🔍" 
+                                       VerticalAlignment="Center" 
+                                       Margin="{DynamicResource DefaultMarginThickness}" 
+                                       FontSize="{DynamicResource FontSizeSmall}" 
+                                       Foreground="{DynamicResource TextSecondary}"/>
+                            
+                            <!-- Dropdown Popup -->
+                            <Popup Name="SearchTypePopup"
+                                   Grid.Column="0"
+                                   Grid.ColumnSpan="3"
+                                   Placement="Bottom"
+                                   PlacementTarget="{Binding ElementName=SearchBox}"
+                                   StaysOpen="False"
+                                   Width="120">
+                                <Border Background="{DynamicResource CardBackground}"
+                                        BorderBrush="{DynamicResource BorderLight}"
+                                        BorderThickness="1"
+                                        CornerRadius="{DynamicResource BorderCornerRadius}">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="LightGray" Direction="270" BlurRadius="8" ShadowDepth="2" Opacity="0.3"/>
+                                    </Border.Effect>
+                                    <StackPanel>
+                                        <Button Content="{Binding SearchTypeProductName}"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Padding="{DynamicResource DefaultPaddingThickness}"
+                                                HorizontalContentAlignment="Left"
+                                                FontSize="{DynamicResource FontSizeSmall}"
+                                                FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                Foreground="{DynamicResource TextPrimary}"
+                                                Cursor="Hand"
+                                                Click="SearchTypeOption_Click">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                        <Button Content="{Binding SearchTypeCategory}"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Padding="{DynamicResource DefaultPaddingThickness}"
+                                                HorizontalContentAlignment="Left"
+                                                FontSize="{DynamicResource FontSizeSmall}"
+                                                FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                Foreground="{DynamicResource TextPrimary}"
+                                                Cursor="Hand"
+                                                Click="SearchTypeOption_Click">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- Right Side - Action Buttons and Product Count -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Product Count -->
+                    <TextBlock FontSize="{DynamicResource FontSizeSmall}" 
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource TextPrimary}" 
+                               VerticalAlignment="Center" 
+                               Margin="{DynamicResource DefaultMarginThickness}">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="{}{0}">
+                                <Binding Path="StatusMessage"/>
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                    
+                    <!-- Action Buttons -->
+                    <controls:RefreshButton ButtonText="{Binding AddNewProductButtonText}"
+                                            ButtonIcon="➕"
+                                            Command="{Binding AddNewProductCommand}"
+                                            ButtonBackground="{DynamicResource Primary}"
+                                            ButtonForeground="White"
+                                            MinButtonWidth="140"
+                                            ButtonHeight="{DynamicResource ButtonHeight}"
+                                            ButtonWidth="140"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Products Section -->
+        <Grid Grid.Row="4">
+            <!-- Products DataGrid with Full Settings Integration -->
+            <Border Style="{StaticResource ProductCardStyle}">
+                <DataGrid ItemsSource="{Binding FilteredProducts}"
+                          SelectedItem="{Binding SelectedProduct}"
+                          AutoGenerateColumns="False"
+                          GridLinesVisibility="None"
+                          HeadersVisibility="Column"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          IsReadOnly="True"
+                          FontFamily="{DynamicResource PoppinsFontFallback}"
+                          FontSize="{DynamicResource FontSizeSmall}"
+                          FlowDirection="{Binding CurrentFlowDirection}"
+                          HorizontalGridLinesBrush="{DynamicResource BorderLight}"
+                          VerticalGridLinesBrush="Transparent"
+                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                          ScrollViewer.CanContentScroll="False"
+                          Height="Auto">
+
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+                            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+                            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+                            <Setter Property="HorizontalContentAlignment" Value="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"/>
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
+
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+
+                    <DataGrid.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                            <Setter Property="HorizontalContentAlignment" Value="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.CellStyle>
+
+                    <DataGrid.Columns>
+                        <!-- Product Image/Icon -->
+                        <DataGridTemplateColumn Header="" Width="80">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border Width="50" 
+                                            Height="50" 
+                                            Background="{Binding Color, TargetNullValue={StaticResource Primary}}"
+                                            CornerRadius="{DynamicResource BorderCornerRadius}"
+                                            Margin="5">
+                                        <Grid>
+                                            <Image Source="{Binding ImagePath}" 
+                                                   Stretch="UniformToFill"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center">
+                                                <Image.Style>
+                                                    <Style TargetType="Image">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ImagePath}" Value="{x:Null}">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Image.Style>
+                                            </Image>
+                                            <TextBlock Text="🍽️" 
+                                                       FontSize="{DynamicResource FontSizeSmall}" 
+                                                       HorizontalAlignment="Center" 
+                                                       VerticalAlignment="Center" 
+                                                       Foreground="White">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ImagePath}" Value="{x:Null}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding ImagePath}" Value="">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Product Name -->
+                        <DataGridTextColumn Header="Product Name" 
+                                          Binding="{Binding Name}" 
+                                          Width="*" 
+                                          MinWidth="200">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                    <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                    <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- Item ID/SKU -->
+                        <DataGridTextColumn Header="Item ID" 
+                                          Binding="{Binding SKU}" 
+                                          Width="120">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                    <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                    <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- Stock -->
+                        <DataGridTemplateColumn Header="{Binding ColumnStock}" Width="100">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding StockDisplay}" 
+                                               HorizontalAlignment="Center"
+                                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                                               FontSize="{DynamicResource FontSizeSmall}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource Success}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasLowStock}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource Error}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Category -->
+                        <DataGridTextColumn Header="Category" 
+                                          Binding="{Binding CategoryName}" 
+                                          Width="120">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                    <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                    <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- Price -->
+                        <DataGridTextColumn Header="Price" 
+                                          Binding="{Binding Price, StringFormat=C}" 
+                                          Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                    <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                    <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- Discounts -->
+                        <DataGridTemplateColumn Header="Discounts" 
+                                              Width="140"
+                                              MinWidth="120">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,2">
+                                        <!-- Show pill only if there are active discounts -->
+                                        <Border x:Name="DiscountPill"
+                                                Background="{DynamicResource Success}"
+                                                CornerRadius="12"
+                                                Padding="8,3"
+                                                MinWidth="60"
+                                                Visibility="{Binding HasActiveDiscounts, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <TextBlock Text="{Binding CompactDiscountsDisplay}"
+                                                     Foreground="White"
+                                                     FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                     FontSize="{DynamicResource FontSizeExtraSmall}"
+                                                     FontWeight="SemiBold"
+                                                     TextAlignment="Center"
+                                                     VerticalAlignment="Center"
+                                                     HorizontalAlignment="Center"/>
+                                        </Border>
+                                        
+                                        <!-- Show dash when no discounts -->
+                                        <TextBlock x:Name="NoDiscountText"
+                                                 Text="—"
+                                                 Foreground="{DynamicResource TextTertiary}"
+                                                 FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                 FontSize="{DynamicResource FontSizeExtraSmall}"
+                                                 TextAlignment="Center"
+                                                 VerticalAlignment="Center"
+                                                 HorizontalAlignment="Center"
+                                                 Visibility="Collapsed"/>
+                                    </Grid>
+                                    
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding HasActiveDiscounts}" Value="False">
+                                            <Setter TargetName="NoDiscountText" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="DiscountPill" Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Actions -->
+                        <DataGridTemplateColumn Header="{Binding ColumnActions}" Width="150">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Content="✏️" 
+                                                ToolTip="{Binding DataContext.EditProductTooltip, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Command="{Binding DataContext.EditProductCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                Width="25" Height="25" 
+                                                Background="Transparent" 
+                                                BorderThickness="0" 
+                                                Cursor="Hand" 
+                                                Margin="2"
+                                                FontSize="{DynamicResource FontSizeSmall}"/>
+                                        <Button Content="🗑️" 
+                                                ToolTip="{Binding DataContext.DeleteProductTooltip, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Command="{Binding DataContext.DeleteProductCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                Width="25" Height="25" 
+                                                Background="Transparent" 
+                                                BorderThickness="0" 
+                                                Cursor="Hand" 
+                                                Margin="2"
+                                                FontSize="{DynamicResource FontSizeSmall}"/>
+                                        <Button Content="📋" 
+                                                ToolTip="{Binding DataContext.DuplicateProductTooltip, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Command="{Binding DataContext.DuplicateProductCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                Width="25" Height="25" 
+                                                Background="Transparent" 
+                                                BorderThickness="0" 
+                                                Cursor="Hand" 
+                                                Margin="2"
+                                                FontSize="{DynamicResource FontSizeSmall}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+        </Grid>
+
+        <!-- Loading Overlay with Settings Integration -->
+        <Border Grid.RowSpan="5" 
+                Background="{DynamicResource OverlayBackground}" 
+                Opacity="0.8"
+                Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ProgressBar IsIndeterminate="True" 
+                             Width="200" 
+                             Height="4" 
+                             Margin="{DynamicResource DefaultMarginThickness}"
+                             Background="{DynamicResource CardBackground}"
+                             Foreground="{DynamicResource Primary}"/>
+                <TextBlock Text="{Binding StatusMessage}" 
+                           Foreground="{DynamicResource TextPrimary}" 
+                           FontSize="{DynamicResource FontSizeMedium}"
+                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                           HorizontalAlignment="Center"
+                           Margin="{DynamicResource DefaultMarginThickness}"/>
+            </StackPanel>
+        </Border>
+
+        </Grid>
+    </ScrollViewer>
+
+        <!-- Category Side Panel - FULL SCREEN OVERLAY with Settings Integration -->
+        <Border Background="{DynamicResource CardBackground}"
+                BorderBrush="{DynamicResource BorderLight}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource BorderCornerRadius}"
+                Width="400"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Stretch"
+                Margin="0"
+                Panel.ZIndex="1000"
+                FlowDirection="{Binding CurrentFlowDirection}">
+            
+            <Border.Effect>
+                <DropShadowEffect Color="Black" Direction="320" ShadowDepth="8" Opacity="0.3" BlurRadius="15"/>
+            </Border.Effect>
+
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsCategoryFormVisible}" Value="True">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+
+            <Grid Margin="{DynamicResource CardPaddingThickness}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header with Dynamic Title -->
+                <Grid Grid.Row="0" Margin="{DynamicResource DefaultMarginThickness}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <TextBlock Text="📁" 
+                                   FontSize="{DynamicResource FontSizeLarge}" 
+                                   VerticalAlignment="Center" 
+                                   Margin="{DynamicResource DefaultMarginThickness}"/>
+                        <TextBlock Text="{Binding CurrentCategoryFormTitle}" 
+                                   FontSize="{DynamicResource FontSizeLarge}" 
+                                   FontWeight="SemiBold"
+                                   FontFamily="{DynamicResource PoppinsFontFallback}"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <Button Grid.Column="1" 
+                            Content="✕" 
+                            Command="{Binding CancelCategoryFormCommand}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{DynamicResource TextSecondary}"
+                            FontSize="{DynamicResource FontSizeMedium}"
+                            FontFamily="{DynamicResource PoppinsFontFallback}"
+                            Padding="{DynamicResource DefaultPaddingThickness}"
+                            Cursor="Hand"
+                            ToolTip="{Binding ClosePanelTooltip}"/>
+                </Grid>
+
+                <!-- Form Content -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        
+                        <!-- Category Name -->
+                        <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
+                            <TextBlock Text="{Binding CategoryNameLabel}" 
+                                       FontSize="{DynamicResource FontSizeSmall}"
+                                       FontWeight="Medium"
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="{DynamicResource DefaultMarginThickness}"
+                                       TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
+                            <TextBox Text="{Binding CurrentCategory.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                     Style="{DynamicResource ModernTextBoxStyle}"
+                                     MinHeight="{DynamicResource ButtonHeight}"
+                                     FontSize="{DynamicResource FontSizeSmall}"
+                                     FontFamily="{DynamicResource PoppinsFontFallback}"
+                                     MaxLength="100"
+                                     FlowDirection="{Binding CurrentFlowDirection}"/>
+                        </StackPanel>
+
+                        <!-- Category Name (Arabic) -->
+                        <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
+                            <TextBlock Text="{Binding CategoryNameArabicLabel}" 
+                                       FontSize="{DynamicResource FontSizeSmall}"
+                                       FontWeight="Medium"
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="{DynamicResource DefaultMarginThickness}"
+                                       TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
+                            <TextBox Text="{Binding CurrentCategory.NameArabic, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                     Style="{DynamicResource ModernTextBoxStyle}"
+                                     MinHeight="{DynamicResource ButtonHeight}"
+                                     FontSize="{DynamicResource FontSizeSmall}"
+                                     FontFamily="{DynamicResource PoppinsFontFallback}"
+                                     MaxLength="100"
+                                     FlowDirection="RightToLeft"/>
+                        </StackPanel>
+
+                        <!-- Parent Category -->
+                        <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
+                            <TextBlock Text="{Binding ParentCategoryLabel}" 
+                                       FontSize="{DynamicResource FontSizeSmall}"
+                                       FontWeight="Medium"
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="{DynamicResource DefaultMarginThickness}"
+                                       TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
+                            <ComboBox ItemsSource="{Binding ParentCategories}"
+                                      SelectedValue="{Binding CurrentCategory.ParentCategoryId, Mode=TwoWay}"
+                                      SelectedValuePath="Id"
+                                      DisplayMemberPath="Name"
+                                      MinHeight="{DynamicResource ButtonHeight}"
+                                      FontSize="{DynamicResource FontSizeSmall}"
+                                      FontFamily="{DynamicResource PoppinsFontFallback}"
+                                      Background="{DynamicResource CardBackground}"
+                                      Foreground="{DynamicResource TextPrimary}"
+                                      BorderBrush="{DynamicResource BorderLight}"
+                                      FlowDirection="{Binding CurrentFlowDirection}"/>
+                        </StackPanel>
+
+                        <!-- Display Order -->
+                        <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
+                            <TextBlock Text="{Binding DisplayOrderLabel}" 
+                                       FontSize="{DynamicResource FontSizeSmall}"
+                                       FontWeight="Medium"
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="{DynamicResource DefaultMarginThickness}"
+                                       TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
+                            <TextBox Text="{Binding CurrentCategory.DisplayOrder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                     Style="{DynamicResource ModernTextBoxStyle}"
+                                     MinHeight="{DynamicResource ButtonHeight}"
+                                     FontSize="{DynamicResource FontSizeSmall}"
+                                     FontFamily="{DynamicResource PoppinsFontFallback}"
+                                     FlowDirection="{Binding CurrentFlowDirection}"/>
+                            <TextBlock Text="{Binding DisplayOrderHelp}" 
+                                       FontSize="{DynamicResource FontSizeVerySmall}" 
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Foreground="{DynamicResource TextSecondary}" 
+                                       Margin="{DynamicResource DefaultMarginThickness}"
+                                       TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
+                        </StackPanel>
+
+                        <!-- Description -->
+                        <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
+                            <TextBlock Text="{Binding DescriptionLabel}" 
+                                       FontSize="{DynamicResource FontSizeSmall}"
+                                       FontWeight="Medium"
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="{DynamicResource DefaultMarginThickness}"
+                                       TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
+                            <TextBox Text="{Binding CurrentCategory.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                     Style="{DynamicResource ModernTextBoxStyle}"
+                                     Height="80"
+                                     FontSize="{DynamicResource FontSizeSmall}"
+                                     FontFamily="{DynamicResource PoppinsFontFallback}"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="True"
+                                     VerticalScrollBarVisibility="Auto"
+                                     MaxLength="500"
+                                     FlowDirection="{Binding CurrentFlowDirection}"/>
+                        </StackPanel>
+
+                        <!-- Active Status -->
+                        <CheckBox Content="{Binding ActiveCategoryLabel}" 
+                                  IsChecked="{Binding CurrentCategory.IsActive, Mode=TwoWay}"
+                                  FontSize="{DynamicResource FontSizeSmall}"
+                                  FontFamily="{DynamicResource PoppinsFontFallback}"
+                                  Foreground="{DynamicResource TextPrimary}"
+                                  Margin="{DynamicResource DefaultMarginThickness}"
+                                  FlowDirection="{Binding CurrentFlowDirection}"/>
+
+                        <!-- Category Discounts Section -->
+                        <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
+                            <TextBlock Text="{Binding CategoryDiscountsLabel}" 
+                                       FontSize="{DynamicResource FontSizeSmall}"
+                                       FontWeight="Medium"
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="{DynamicResource DefaultMarginThickness}"
+                                       TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ComboBox ItemsSource="{Binding AvailableDiscounts}"
+                                          SelectedItem="{Binding SelectedDiscount, Mode=TwoWay}"
+                                          MinHeight="{DynamicResource ButtonHeight}"
+                                          FontSize="{DynamicResource FontSizeSmall}"
+                                          FontFamily="{DynamicResource PoppinsFontFallback}"
+                                          Background="{DynamicResource CardBackground}"
+                                          Foreground="{DynamicResource TextPrimary}"
+                                          BorderBrush="{DynamicResource BorderLight}"
+                                          FlowDirection="{Binding CurrentFlowDirection}"
+                                          Margin="0,0,5,0">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding DiscountName}"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <Button Grid.Column="1"
+                                        Content="+"
+                                        Command="{Binding AddSelectedDiscountCommand}"
+                                        MinHeight="{DynamicResource ButtonHeight}"
+                                        Background="{DynamicResource Success}"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        Padding="8,4"
+                                        FontSize="{DynamicResource FontSizeSmall}"
+                                        FontFamily="{DynamicResource PoppinsFontFallback}"
+                                        Cursor="Hand"
+                                        Width="40"/>
+                            </Grid>
+                            
+                            <!-- Stackable Logic Hint -->
+                            <TextBlock Margin="0,5,0,0" 
+                                       FontSize="{DynamicResource FontSizeVerySmall}" 
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       TextWrapping="Wrap">
+                                <Run Text="💡 "/>
+                                <Run Text="Stackable Rule: Non-stackable discounts cannot be combined with other discounts. Stackable discounts can only be combined with one non-stackable discount."/>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <!-- Selected Category Discounts Chips Section -->
+                        <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
+                            <TextBlock Text="{Binding SelectedCategoryDiscountsLabel}" 
+                                       FontSize="{DynamicResource FontSizeSmall}"
+                                       FontWeight="Medium"
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,5"
+                                       TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
+                            <!-- Selected discount chips -->
+                            <ItemsControl ItemsSource="{Binding SelectedDiscounts}" Margin="0,5,0,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{DynamicResource SurfaceBackground}" 
+                                                BorderBrush="{DynamicResource BorderLight}" 
+                                                BorderThickness="1" 
+                                                CornerRadius="12" 
+                                                Margin="4" 
+                                                Padding="8,4">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding DiscountName}" 
+                                                           FontSize="{DynamicResource FontSizeVerySmall}"
+                                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                           Foreground="{DynamicResource TextPrimary}"/>
+                                                <Button Content="✕"
+                                                        Command="{Binding DataContext.RemoveDiscountCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Foreground="{DynamicResource Error}"
+                                                        FontSize="{DynamicResource FontSizeSmall}"
+                                                        FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                        Padding="4,0"
+                                                        Cursor="Hand"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- Information Panel -->
+                        <Border BorderBrush="{DynamicResource Info}" 
+                                BorderThickness="1" 
+                                CornerRadius="{DynamicResource BorderCornerRadius}" 
+                                Padding="{DynamicResource DefaultPaddingThickness}" 
+                                Background="{DynamicResource OverlayBackground}" 
+                                Margin="{DynamicResource DefaultMarginThickness}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding CategoryInfoTitle}" 
+                                           FontWeight="SemiBold" 
+                                           FontSize="{DynamicResource FontSizeSmall}" 
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource Info}" 
+                                           Margin="{DynamicResource DefaultMarginThickness}"
+                                           TextAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
+                                <TextBlock Text="{Binding CategoryInfoNameRequired}" 
+                                           FontSize="{DynamicResource FontSizeVerySmall}" 
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextPrimary}" 
+                                           Margin="{DynamicResource DefaultMarginThickness}"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding CategoryInfoArabicOptional}" 
+                                           FontSize="{DynamicResource FontSizeVerySmall}" 
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextPrimary}" 
+                                           Margin="{DynamicResource DefaultMarginThickness}"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding CategoryInfoParentHierarchy}" 
+                                           FontSize="{DynamicResource FontSizeVerySmall}" 
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextPrimary}" 
+                                           Margin="{DynamicResource DefaultMarginThickness}"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding CategoryInfoDisplayOrder}" 
+                                           FontSize="{DynamicResource FontSizeVerySmall}" 
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Footer Actions -->
+                <StackPanel Grid.Row="2" 
+                            Orientation="Vertical" 
+                            Margin="{DynamicResource DefaultMarginThickness}">
+                    
+                    <Button Content="{Binding SaveCategoryButton}" 
+                            Command="{Binding SaveCategoryCommand}"
+                            Style="{DynamicResource PrimaryButtonStyle}"
+                            MinHeight="{DynamicResource ButtonHeight}"
+                            FontSize="{DynamicResource FontSizeSmall}"
+                            FontWeight="SemiBold"
+                            FontFamily="{DynamicResource PoppinsFontFallback}"
+                            Cursor="Hand"
+                            Margin="{DynamicResource DefaultMarginThickness}"/>
+                    
+                    <Button Content="{Binding CancelButton}" 
+                            Command="{Binding CancelCategoryFormCommand}"
+                            MinHeight="{DynamicResource ButtonHeight}"
+                            FontSize="{DynamicResource FontSizeSmall}"
+                            FontWeight="SemiBold"
+                            FontFamily="{DynamicResource PoppinsFontFallback}"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Background="{DynamicResource TextSecondary}"
+                            Foreground="White">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        CornerRadius="{DynamicResource BorderCornerRadius}">
+                                    <ContentPresenter HorizontalAlignment="Center" 
+                                                    VerticalAlignment="Center"
+                                                    Margin="{TemplateBinding Padding}"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Opacity" Value="0.9"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter Property="Opacity" Value="0.8"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+    </Grid>
+</UserControl>

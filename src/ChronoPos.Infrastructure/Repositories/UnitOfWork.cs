@@ -13,30 +13,75 @@ public class UnitOfWork : IUnitOfWork
     private IDbContextTransaction? _transaction;
     
     private IProductRepository? _productRepository;
-    private IRepository<Category>? _categoryRepository;
+    private ICategoryRepository? _categoryRepository;
     private IRepository<Customer>? _customerRepository;
+    private IRepository<CustomerGroup>? _customerGroupRepository;
+    private IProductGroupRepository? _productGroupRepository;
+    private IProductGroupItemRepository? _productGroupItemRepository;
     private ISaleRepository? _saleRepository;
     private IRepository<SaleItem>? _saleItemRepository;
+    private IRepository<UnitOfMeasurement>? _unitOfMeasurementRepository;
+    private IProductImageRepository? _productImageRepository;
+    private IRepository<TaxType>? _taxTypeRepository;
+    private IProductDiscountRepository? _productDiscountRepository;
+    private ICategoryDiscountRepository? _categoryDiscountRepository;
+    private ISellingPriceTypeRepository? _sellingPriceTypeRepository;
+    private IPaymentTypeRepository? _paymentTypeRepository;
+    private ISupplierRepository? _supplierRepository;
     
     public UnitOfWork(ChronoPosDbContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
     
+
     public IProductRepository Products => 
         _productRepository ??= new ProductRepository(_context);
+
+    public IProductImageRepository ProductImages =>
+        _productImageRepository ??= new ProductImageRepository(_context);
     
-    public IRepository<Category> Categories => 
-        _categoryRepository ??= new Repository<Category>(_context);
+    public ICategoryRepository Categories => 
+        _categoryRepository ??= new CategoryRepository(_context);
     
     public IRepository<Customer> Customers => 
         _customerRepository ??= new Repository<Customer>(_context);
+    
+    public IRepository<CustomerGroup> CustomerGroups => 
+        _customerGroupRepository ??= new Repository<CustomerGroup>(_context);
+    
+    public IProductGroupRepository ProductGroups => 
+        _productGroupRepository ??= new ProductGroupRepository(_context);
+    
+    public IProductGroupItemRepository ProductGroupItems => 
+        _productGroupItemRepository ??= new ProductGroupItemRepository(_context);
     
     public ISaleRepository Sales => 
         _saleRepository ??= new SaleRepository(_context);
     
     public IRepository<SaleItem> SaleItems => 
         _saleItemRepository ??= new Repository<SaleItem>(_context);
+    
+    public IRepository<UnitOfMeasurement> UnitsOfMeasurement => 
+        _unitOfMeasurementRepository ??= new Repository<UnitOfMeasurement>(_context);
+
+    public IRepository<TaxType> TaxTypes =>
+        _taxTypeRepository ??= new Repository<TaxType>(_context);
+    
+    public IProductDiscountRepository ProductDiscounts =>
+        _productDiscountRepository ??= new ProductDiscountRepository(_context);
+    
+    public ICategoryDiscountRepository CategoryDiscounts =>
+        _categoryDiscountRepository ??= new CategoryDiscountRepository(_context);
+    
+    public ISellingPriceTypeRepository SellingPriceTypes =>
+        _sellingPriceTypeRepository ??= new SellingPriceTypeRepository(_context);
+    
+    public IPaymentTypeRepository PaymentTypes =>
+        _paymentTypeRepository ??= new PaymentTypeRepository(_context);
+    
+    public ISupplierRepository Suppliers =>
+        _supplierRepository ??= new SupplierRepository(_context);
     
     public async Task<int> SaveChangesAsync()
     {

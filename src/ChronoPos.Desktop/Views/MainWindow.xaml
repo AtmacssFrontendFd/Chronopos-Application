@@ -1,6 +1,7 @@
 <Window x:Class="ChronoPos.Desktop.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:ChronoPos.Desktop.Views.Controls"
         Title="ChronoPos - Point of Sale System" 
         Height="800" 
         Width="1200"
@@ -11,7 +12,7 @@
     
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="60"/>
+            <RowDefinition Height="80"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="30"/>
         </Grid.RowDefinitions>
@@ -23,33 +24,165 @@
                 BorderBrush="{DynamicResource BorderLight}">
             <Grid Margin="{DynamicResource CardPaddingThickness}">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 
+                <!-- Logo and Title -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Logo Image (will show if logo.png exists) -->
+                    <Image Source="/Images/logo.png" 
+                           Width="40" 
+                           Height="40" 
+                           Margin="0,0,10,0"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center"/>
+                    
+                    <!-- Text Logo as fallback -->
                     <TextBlock Text="ChronoPos" 
                                FontSize="{DynamicResource FontSizeXXLarge}" 
                                FontWeight="Bold" 
                                Foreground="{DynamicResource TextPrimary}" 
                                VerticalAlignment="Center"/>
-                    <TextBlock Text="Point of Sale System" 
+                    
+                    <!-- <TextBlock Text="Point of Sale System" 
                                FontSize="{DynamicResource FontSizeSmall}" 
                                Foreground="{DynamicResource TextSecondary}" 
                                VerticalAlignment="Center" 
-                               Margin="15,0,0,0"/>
+                               Margin="15,0,0,0"/> -->
                 </StackPanel>
                 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- Search Bar -->
+                <Grid Grid.Column="1" HorizontalAlignment="Center" MinWidth="400" MaxWidth="600" Margin="20,0" VerticalAlignment="Center">
+                    <Border Background="{DynamicResource CardBackground}"
+                            BorderBrush="{DynamicResource BorderLight}"
+                            BorderThickness="1"
+                            CornerRadius="25"
+                            Height="45"
+                            Padding="3">
+                        <Grid Margin="18,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Search Icon -->
+                            <TextBlock Grid.Column="0"
+                                      Text="🔍"
+                                      FontSize="18"
+                                      Foreground="{DynamicResource TextSecondary}"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Center"
+                                      Margin="0,0,12,0"/>
+                            
+                            <!-- Search TextBox -->
+                            <TextBox Grid.Column="1"
+                                    x:Name="GlobalSearchTextBox"
+                                    BorderThickness="0"
+                                    Background="Transparent"
+                                    Foreground="{DynamicResource TextPrimary}"
+                                    FontSize="14"
+                                    VerticalAlignment="Center"
+                                    VerticalContentAlignment="Center"
+                                    Text="{Binding GlobalSearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                                    Tag="Search products, customers, sales..."
+                                    GotFocus="GlobalSearchTextBox_GotFocus"
+                                    LostFocus="GlobalSearchTextBox_LostFocus"
+                                    KeyDown="GlobalSearchTextBox_KeyDown">
+                                <TextBox.Style>
+                                    <Style TargetType="TextBox">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="TextBox">
+                                                    <ScrollViewer x:Name="PART_ContentHost"
+                                                                Background="Transparent"
+                                                                Focusable="false"
+                                                                HorizontalScrollBarVisibility="Hidden"
+                                                                VerticalScrollBarVisibility="Hidden"/>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsFocused" Value="False">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBox.Style>
+                            </TextBox>
+                            
+                            <!-- Clear Button -->
+                            <Button Grid.Column="2"
+                                   x:Name="ClearSearchButton"
+                                   Background="Transparent"
+                                   BorderThickness="0"
+                                   Width="24"
+                                   Height="24"
+                                   Visibility="{Binding HasGlobalSearchText, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                   Command="{Binding ClearGlobalSearchCommand}"
+                                   Margin="12,0,0,0">
+                                <TextBlock Text="❌"
+                                          FontSize="12"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+                
+                <!-- User Info -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="{Binding CurrentDateTime}" 
                                FontSize="{DynamicResource FontSizeVerySmall}" 
                                Foreground="{DynamicResource TextPrimary}" 
                                VerticalAlignment="Center" 
                                Margin="0,0,20,0"/>
-                    <TextBlock Text="{Binding CurrentUser}" 
-                               FontSize="{DynamicResource FontSizeVerySmall}" 
-                               Foreground="{DynamicResource TextSecondary}" 
-                               VerticalAlignment="Center"/>
+                    
+                    <!-- Language Switcher -->
+                    <Border Background="{DynamicResource SurfaceBackground}"
+                            BorderBrush="{DynamicResource BorderLight}"
+                            BorderThickness="1"
+                            CornerRadius="15"
+                            Margin="0,0,15,0">
+                        <Button Background="Transparent"
+                                BorderThickness="0"
+                                Padding="8,4"
+                                Command="{Binding ToggleLanguageCommand}"
+                                ToolTip="Switch Language">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🌐" 
+                                          FontSize="14" 
+                                          VerticalAlignment="Center" 
+                                          Margin="0,0,5,0"/>
+                                <TextBlock Text="{Binding CurrentLanguageDisplayName}" 
+                                          FontSize="{DynamicResource FontSizeVerySmall}"
+                                          VerticalAlignment="Center"
+                                          Foreground="{DynamicResource TextPrimary}"/>
+                            </StackPanel>
+                        </Button>
+                    </Border>
+                    
+                    <!-- User Icon and Name -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Background="{DynamicResource Primary}"
+                                CornerRadius="15"
+                                Width="30"
+                                Height="30"
+                                Margin="0,0,8,0">
+                            <TextBlock Text="👤"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Foreground="White"
+                                      FontSize="16"/>
+                        </Border>
+                        <TextBlock Text="{Binding CurrentUser}" 
+                                   FontSize="{DynamicResource FontSizeSmall}" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}" 
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
                 </StackPanel>
             </Grid>
         </Border>
@@ -57,7 +190,7 @@
         <!-- Main Content -->
         <Grid Grid.Row="1" Margin="{DynamicResource DefaultMarginThickness}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="200"/>
+                <ColumnDefinition Width="160"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
@@ -68,127 +201,62 @@
                     Margin="0,0,10,0"
                     BorderBrush="{DynamicResource BorderLight}"
                     BorderThickness="1">
-                <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
-                    <TextBlock Text="Navigation" 
-                               FontSize="{DynamicResource FontSizeMedium}" 
-                               FontWeight="Bold" 
-                               Foreground="{DynamicResource TextPrimary}"
-                               Margin="0,0,0,15"/>
-                    
-                    <Button Content="🏠 Dashboard" 
-                            Command="{Binding ShowDashboardCommand}">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Dashboard">
-                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    
-                    <Button Content="💳 Transactions" 
-                            Command="{Binding ShowTransactionsCommand}">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Transactions">
-                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    
-                    <Button Content="📦 Management" 
-                            Command="{Binding ShowManagementCommand}">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Management">
-                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    
-                    <Button Content="🏨 Reservation" 
-                            Command="{Binding ShowReservationCommand}">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Reservation">
-                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    
-                    <Button Content="📋 Order Table" 
-                            Command="{Binding ShowOrderTableCommand}">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedPage}" Value="OrderTable">
-                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    
-                    <Button Content="📈 Reports" 
-                            Margin="0,0,0,25"
-                            Command="{Binding ShowReportsCommand}">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Reports">
-                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    
-                    <Separator Background="{DynamicResource BorderLight}" Margin="0,15,0,10"/>
-                    
-                    <Button Content="⚙️ Settings" 
-                            Command="{Binding ShowSettingsCommand}">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedPage}" Value="Settings">
-                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    
-                    <Button Content="🚪 Logout" 
-                            Background="{DynamicResource Error}"
-                            Foreground="White"
-                            Margin="0,15,0,5"
-                            Command="{Binding LogoutCommand}">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                                <Setter Property="Background" Value="{DynamicResource Error}"/>
-                                <Setter Property="Foreground" Value="White"/>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                </StackPanel>
+                <ScrollViewer VerticalScrollBarVisibility="Hidden"
+                             HorizontalScrollBarVisibility="Disabled"
+                             CanContentScroll="True">
+                    <StackPanel Margin="10,15,10,15">
+                            <!-- Navigation Buttons using SidebarButton -->
+                            <controls:SidebarButton IconName="dashboard"
+                                                   ButtonText="{Binding DashboardButtonText}"
+                                                   Command="{Binding ShowDashboardCommand}"
+                                                   IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=Dashboard}"
+                                                   Margin="0,0,0,5"/>
+                            
+                            <controls:SidebarButton IconName="transactions"
+                                                   ButtonText="{Binding TransactionsButtonText}"
+                                                   Command="{Binding ShowTransactionsCommand}"
+                                                   IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=Transactions}"
+                                                   Margin="0,0,0,5"/>
+                            
+                            <controls:SidebarButton IconName="management"
+                                                   ButtonText="{Binding ManagementButtonText}"
+                                                   Command="{Binding ShowManagementCommand}"
+                                                   IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=Management}"
+                                                   Margin="0,0,0,5"/>
+                            
+                            <controls:SidebarButton IconName="reservation"
+                                                   ButtonText="{Binding ReservationButtonText}"
+                                                   Command="{Binding ShowReservationCommand}"
+                                                   IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=Reservation}"
+                                                   Margin="0,0,0,5"/>
+                            
+                            <controls:SidebarButton IconName="order_table"
+                                                   ButtonText="{Binding OrderTableButtonText}"
+                                                   Command="{Binding ShowOrderTableCommand}"
+                                                   IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=OrderTable}"
+                                                   Margin="0,0,0,5"/>
+                            
+                            <controls:SidebarButton IconName="reports"
+                                                   ButtonText="{Binding ReportsButtonText}"
+                                                   Command="{Binding ShowReportsCommand}"
+                                                   IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=Reports}"
+                                                   Margin="0,0,0,15"/>
+                            
+                            <Separator Background="{DynamicResource BorderLight}" Margin="0,10,0,5"/>
+                            
+                            <controls:SidebarButton IconName="settings"
+                                                   ButtonText="{Binding SettingsButtonText}"
+                                                   Command="{Binding ShowSettingsCommand}"
+                                                   IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=Settings}"
+                                                   Margin="0,0,0,5"/>
+                            
+                            <controls:SidebarButton IconName="logout"
+                                                   ButtonText="{Binding LogoutButtonText}"
+                                                   Command="{Binding LogoutCommand}"
+                                                   IsLogoutButton="True"
+                                                   Margin="0,10,0,5"/>
+                        </StackPanel>
+                </ScrollViewer>
             </Border>
 
             <!-- Content Area -->
@@ -199,20 +267,11 @@
                     BorderThickness="1">
                 <Grid Margin="{DynamicResource CardPaddingThickness}">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Page Title -->
-                    <TextBlock Grid.Row="0" 
-                               Text="{Binding CurrentPageTitle}" 
-                               FontSize="{DynamicResource FontSizeLarge}" 
-                               FontWeight="Bold" 
-                               Foreground="{DynamicResource TextPrimary}"
-                               Margin="0,0,0,20"/>
-
                     <!-- Content Frame -->
-                    <ContentControl Grid.Row="1" Content="{Binding CurrentView}"/>
+                    <ContentControl Grid.Row="0" Content="{Binding CurrentView}"/>
                 </Grid>
             </Border>
         </Grid>
@@ -220,10 +279,10 @@
         <!-- Status Bar -->
         <StatusBar Grid.Row="2" Background="{DynamicResource SurfaceBackground}">
             <StatusBarItem>
-                <TextBlock Text="Ready" Foreground="{DynamicResource TextPrimary}"/>
+                <TextBlock Text="© 2025 ChronoPos - All Rights Reserved" Foreground="{DynamicResource TextPrimary}"/>
             </StatusBarItem>
             <StatusBarItem HorizontalAlignment="Right">
-                <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource TextPrimary}"/>
+                <TextBlock Text="Professional Edition" Foreground="{DynamicResource TextPrimary}"/>
             </StatusBarItem>
         </StatusBar>
     </Grid>

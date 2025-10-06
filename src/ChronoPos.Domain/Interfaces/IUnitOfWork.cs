@@ -9,16 +9,36 @@ public interface IUnitOfWork : IDisposable
     /// Product repository
     /// </summary>
     IProductRepository Products { get; }
+
+    /// <summary>
+    /// Product image repository
+    /// </summary>
+    IProductImageRepository ProductImages { get; }
     
     /// <summary>
     /// Category repository
     /// </summary>
-    IRepository<ChronoPos.Domain.Entities.Category> Categories { get; }
+    ICategoryRepository Categories { get; }
     
     /// <summary>
     /// Customer repository
     /// </summary>
     IRepository<ChronoPos.Domain.Entities.Customer> Customers { get; }
+    
+    /// <summary>
+    /// Customer Group repository
+    /// </summary>
+    IRepository<ChronoPos.Domain.Entities.CustomerGroup> CustomerGroups { get; }
+    
+    /// <summary>
+    /// Product Group repository
+    /// </summary>
+    IProductGroupRepository ProductGroups { get; }
+    
+    /// <summary>
+    /// Product Group Item repository
+    /// </summary>
+    IProductGroupItemRepository ProductGroupItems { get; }
     
     /// <summary>
     /// Sale repository
@@ -31,11 +51,46 @@ public interface IUnitOfWork : IDisposable
     IRepository<ChronoPos.Domain.Entities.SaleItem> SaleItems { get; }
     
     /// <summary>
+    /// Unit of Measurement repository
+    /// </summary>
+    IRepository<ChronoPos.Domain.Entities.UnitOfMeasurement> UnitsOfMeasurement { get; }
+
+    /// <summary>
+    /// Tax Types repository
+    /// </summary>
+    IRepository<ChronoPos.Domain.Entities.TaxType> TaxTypes { get; }
+    
+    /// <summary>
+    /// Product Discount repository
+    /// </summary>
+    IProductDiscountRepository ProductDiscounts { get; }
+    
+    /// <summary>  
+    /// Category Discount repository 
+    /// </summary>
+    ICategoryDiscountRepository CategoryDiscounts { get; }
+    
+    /// <summary>
+    /// Selling Price Type repository
+    /// </summary>
+    ISellingPriceTypeRepository SellingPriceTypes { get; }
+    
+    /// <summary>
+    /// Payment Type repository
+    /// </summary>
+    IPaymentTypeRepository PaymentTypes { get; }
+    
+    /// <summary>
+    /// Supplier repository
+    /// </summary>
+    ISupplierRepository Suppliers { get; }
+    
+    /// <summary>
     /// Saves all changes asynchronously
     /// </summary>
     Task<int> SaveChangesAsync();
     
-    /// <summary>
+    /// <summary> 
     /// Begins a database transaction asynchronously
     /// </summary>
     Task BeginTransactionAsync();

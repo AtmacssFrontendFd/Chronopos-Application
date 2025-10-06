@@ -1,0 +1,457 @@
+<UserControl x:Class="ChronoPos.Desktop.UserControls.CustomerSidePanelControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="600"
+             Background="{DynamicResource CardBackground}"
+             FlowDirection="{Binding CurrentFlowDirection}"
+             FontFamily="{DynamicResource PoppinsFontFallback}">
+
+    <UserControl.Resources>
+        <!-- Converters -->
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+
+        <!-- Input Field Style -->
+        <Style x:Key="InputFieldStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        </Style>
+
+        <!-- Label Style -->
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Margin" Value="0,0,0,5"/>
+        </Style>
+
+        <!-- Section Header Style -->
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeMedium}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Margin" Value="0,0,0,15"/>
+        </Style>
+
+        <!-- Button Style -->
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Primary}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryDark}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryDarker}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Secondary Button Style -->
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+        </Style>
+
+        <!-- CheckBox Style -->
+        <Style x:Key="CheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- RadioButton Style -->
+        <Style x:Key="RadioButtonStyle" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- ComboBox Style -->
+        <Style x:Key="ComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource SurfaceBackground}"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource BorderLight}"
+                Padding="{DynamicResource DefaultPaddingThickness}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="{Binding FormTitle}"
+                           FontSize="{DynamicResource FontSizeLarge}"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimary}"
+                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                           VerticalAlignment="Center"/>
+
+                <Button Grid.Column="1"
+                        Content="✕"
+                        Command="{Binding CloseSidePanelCommand}"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Foreground="{DynamicResource TextSecondary}"
+                        Cursor="Hand"
+                        Padding="8"
+                        ToolTip="Close"/>
+            </Grid>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" 
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Padding="{DynamicResource DefaultPaddingThickness}">
+            <StackPanel Margin="0,15,0,15">
+
+                <!-- Customer Type Selection -->
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <RadioButton Grid.Column="0"
+                                Name="IndividualRadio"
+                                Content="Individual Customer"
+                                IsChecked="{Binding IsIndividualCustomer}"
+                                GroupName="CustomerType"
+                                Style="{StaticResource RadioButtonStyle}"
+                                Margin="0,0,10,0"/>
+                    
+                    <RadioButton Grid.Column="1"
+                                Name="BusinessRadio"
+                                Content="Business Customer"
+                                IsChecked="{Binding EditingCustomer.IsBusiness}"
+                                GroupName="CustomerType"
+                                Style="{StaticResource RadioButtonStyle}"/>
+                </Grid>
+
+                <!-- Basic Information Section -->
+                <TextBlock Text="Basic Information" Style="{StaticResource SectionHeaderStyle}"/>
+
+                <!-- Individual Customer Name -->
+                <StackPanel Visibility="{Binding EditingCustomer.IsBusiness, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                           Margin="0,0,0,15">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                        <TextBlock Text="Full Name" Style="{StaticResource LabelStyle}"/>
+                        <TextBlock Text="*" Foreground="{DynamicResource ErrorColor}" FontWeight="Bold" Margin="2,0,0,0"/>
+                    </StackPanel>
+                    <TextBox Text="{Binding EditingCustomer.CustomerFullName, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter customer's full name"/>
+                </StackPanel>
+
+                <!-- Business Customer Name -->
+                <StackPanel Visibility="{Binding EditingCustomer.IsBusiness, Converter={StaticResource BoolToVisibilityConverter}}"
+                           Margin="0,0,0,15">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                        <TextBlock Text="Business Name" Style="{StaticResource LabelStyle}"/>
+                        <TextBlock Text="*" Foreground="{DynamicResource ErrorColor}" FontWeight="Bold" Margin="2,0,0,0"/>
+                    </StackPanel>
+                    <TextBox Text="{Binding EditingCustomer.BusinessFullName, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter business name"/>
+                </StackPanel>
+
+                <!-- Business Type (only for business customers) -->
+                <StackPanel Visibility="{Binding EditingCustomer.IsBusiness, Converter={StaticResource BoolToVisibilityConverter}}"
+                           Margin="0,0,0,15">
+                    <TextBlock Text="Business Type" Style="{StaticResource LabelStyle}"/>
+                    <ComboBox SelectedValue="{Binding EditingCustomer.BusinessTypeId}"
+                              DisplayMemberPath="BusinessTypeName"
+                              SelectedValuePath="Id"
+                              ItemsSource="{Binding BusinessTypes}"
+                              Style="{StaticResource ComboBoxStyle}"/>
+                </StackPanel>
+
+                <!-- Customer Group -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Customer Group" Style="{StaticResource LabelStyle}"/>
+                    <ComboBox SelectedItem="{Binding SelectedCustomerGroup}"
+                              DisplayMemberPath="Name"
+                              ItemsSource="{Binding CustomerGroups}"
+                              Style="{StaticResource ComboBoxStyle}"
+                              ToolTip="Select a customer group for pricing and discounts"/>
+                </StackPanel>
+
+                <!-- Contact Information Section -->
+                <TextBlock Text="Contact Information" Style="{StaticResource SectionHeaderStyle}"/>
+
+                <!-- Mobile Number (Required) -->
+                <StackPanel Margin="0,0,0,15">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                        <TextBlock Text="Mobile Number" Style="{StaticResource LabelStyle}"/>
+                        <TextBlock Text="*" Foreground="{DynamicResource ErrorColor}" FontWeight="Bold" Margin="2,0,0,0"/>
+                    </StackPanel>
+                    <TextBox Text="{Binding EditingCustomer.MobileNo, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter mobile number"/>
+                </StackPanel>
+
+                <!-- Home Phone -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Home Phone" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.HomePhone, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter home phone"/>
+                </StackPanel>
+
+                <!-- Office Phone -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Office Phone" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.OfficePhone, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter office phone"/>
+                </StackPanel>
+
+                <!-- Official Email -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Official Email" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.OfficialEmail, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter official email"/>
+                </StackPanel>
+
+                <!-- Business Information Section (for business customers only) -->
+                <StackPanel Visibility="{Binding EditingCustomer.IsBusiness, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="Business Information" Style="{StaticResource SectionHeaderStyle}"/>
+
+                    <!-- License Number -->
+                    <StackPanel Margin="0,0,0,15">
+                        <TextBlock Text="License Number" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingCustomer.LicenseNo, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter license number"/>
+                    </StackPanel>
+
+                    <!-- TRN Number -->
+                    <StackPanel Margin="0,0,0,15">
+                        <TextBlock Text="TRN Number" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingCustomer.TrnNo, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter TRN number"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Credit Management Section -->
+                <TextBlock Text="Credit Management" Style="{StaticResource SectionHeaderStyle}"/>
+
+                <!-- Allow Credit -->
+                <CheckBox Content="Allow Credit"
+                          IsChecked="{Binding EditingCustomer.CreditAllowed}"
+                          Style="{StaticResource CheckBoxStyle}"
+                          Margin="0,0,0,15"/>
+
+                <!-- Credit Details (visible when credit is allowed) -->
+                <StackPanel Visibility="{Binding EditingCustomer.CreditAllowed, Converter={StaticResource BoolToVisibilityConverter}}">
+                    
+                    <!-- Credit Amount Max -->
+                    <StackPanel Margin="0,0,0,15">
+                        <TextBlock Text="Maximum Credit Amount" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingCustomer.CreditAmountMax, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter maximum credit amount"/>
+                    </StackPanel>
+
+                    <!-- Credit Days -->
+                    <StackPanel Margin="0,0,0,15">
+                        <TextBlock Text="Credit Days" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingCustomer.CreditDays, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter credit days"/>
+                    </StackPanel>
+
+                    <!-- Credit References -->
+                    <StackPanel Margin="0,0,0,15">
+                        <TextBlock Text="Credit Reference 1" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingCustomer.CreditReference1Name, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter first credit reference"/>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,0,15">
+                        <TextBlock Text="Credit Reference 2" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingCustomer.CreditReference2Name, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter second credit reference"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Contact Persons Section -->
+                <TextBlock Text="Contact Persons" Style="{StaticResource SectionHeaderStyle}"/>
+
+                <!-- Key Contact -->
+                <TextBlock Text="Key Contact Person" Style="{StaticResource LabelStyle}" FontWeight="SemiBold"/>
+                
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Key Contact Name" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.KeyContactName, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter key contact name"/>
+                </StackPanel>
+
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Key Contact Mobile" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.KeyContactMobile, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter key contact mobile"/>
+                </StackPanel>
+
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Key Contact Email" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.KeyContactEmail, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter key contact email"/>
+                </StackPanel>
+
+                <!-- Finance Contact -->
+                <TextBlock Text="Finance Contact Person" Style="{StaticResource LabelStyle}" FontWeight="SemiBold" Margin="0,15,0,5"/>
+                
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Finance Person Name" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.FinancePersonName, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter finance person name"/>
+                </StackPanel>
+
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Finance Person Mobile" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.FinancePersonMobile, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter finance person mobile"/>
+                </StackPanel>
+
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Finance Person Email" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.FinancePersonEmail, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter finance person email"/>
+                </StackPanel>
+
+                <!-- Payment Options Section -->
+                <TextBlock Text="Payment Options" Style="{StaticResource SectionHeaderStyle}"/>
+
+                <!-- Post-Dated Cheques -->
+                <CheckBox Content="Allow Post-Dated Cheques"
+                          IsChecked="{Binding EditingCustomer.PostDatedChequesAllowed}"
+                          Style="{StaticResource CheckBoxStyle}"
+                          Margin="0,0,0,15"/>
+
+                <!-- Customer Balance -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Current Balance" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingCustomer.CustomerBalanceAmount, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter current customer balance"/>
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" 
+                Background="{DynamicResource CardBackground}"
+                BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource BorderLight}"
+                Padding="{DynamicResource DefaultPaddingThickness}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Validation Messages -->
+                <TextBlock Grid.Column="0"
+                           Text="{Binding ValidationMessage}"
+                           FontSize="{DynamicResource FontSizeExtraSmall}"
+                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                           Foreground="{DynamicResource ErrorColor}"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap"
+                           Visibility="{Binding HasValidationErrors, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                <!-- Cancel Button -->
+                <Button Grid.Column="1"
+                        Content="Cancel"
+                        Command="{Binding CloseSidePanelCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Margin="0,0,10,0"/>
+
+                <!-- Save Button -->
+                <Button Grid.Column="2"
+                        Content="Save Customer"
+                        Command="{Binding SaveCustomerCommand}"
+                        Style="{StaticResource ActionButtonStyle}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

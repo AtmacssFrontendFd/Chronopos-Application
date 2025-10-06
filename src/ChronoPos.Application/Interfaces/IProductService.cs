@@ -53,4 +53,50 @@ public interface IProductService
     /// </summary>
     /// <param name="threshold">Stock threshold</param>
     Task<IEnumerable<ProductDto>> GetLowStockProductsAsync(int threshold = 10);
+    
+    /// <summary>
+    /// Gets all categories asynchronously
+    /// </summary>
+    Task<IEnumerable<CategoryDto>> GetAllCategoriesAsync();
+    
+    /// <summary>
+    /// Creates a new category asynchronously
+    /// </summary>
+    /// <param name="categoryDto">Category data</param>
+    Task<CategoryDto> CreateCategoryAsync(CategoryDto categoryDto);
+    
+    /// <summary>
+    /// Updates an existing category asynchronously
+    /// </summary>
+    /// <param name="categoryDto">Category data</param>
+    Task<CategoryDto> UpdateCategoryAsync(CategoryDto categoryDto);
+    
+    /// <summary>
+    /// Deletes a category asynchronously
+    /// </summary>
+    /// <param name="id">Category ID</param>
+    Task DeleteCategoryAsync(int id);
+    
+    /// <summary>
+    /// Gets category by ID with translations asynchronously
+    /// </summary>
+    /// <param name="id">Category ID</param>
+    Task<CategoryDto?> GetCategoryByIdAsync(int id);
+    
+    /// <summary>
+    /// Creates a category translation asynchronously
+    /// </summary>
+    /// <param name="translationDto">Category translation data</param>
+    Task<CategoryTranslationDto> CreateCategoryTranslationAsync(CategoryTranslationDto translationDto);
+    
+    /// <summary>
+    /// Gets all units of measurement asynchronously
+    /// </summary>
+    Task<IEnumerable<UnitOfMeasurementDto>> GetAllUnitsOfMeasurementAsync();
+    
+    /// <summary>
+    /// Gets a unit of measurement by ID asynchronously
+    /// </summary>
+    /// <param name="id">UOM ID</param>
+    Task<UnitOfMeasurementDto?> GetUnitOfMeasurementByIdAsync(int id);
 }
