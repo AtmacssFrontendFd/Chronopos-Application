@@ -2460,14 +2460,32 @@ public partial class MainWindowViewModel : ObservableObject
         {
             Console.WriteLine("ShowSettings: Starting to load settings");
             
+            // Create SettingsViewModel
+            Console.WriteLine("ShowSettings: Getting SettingsViewModel from service provider");
+            var settingsViewModel = _serviceProvider.GetRequiredService<SettingsViewModel>();
+            Console.WriteLine("ShowSettings: SettingsViewModel retrieved successfully");
+            
+            // Set up navigation from settings to specific modules
+            settingsViewModel.NavigateToSettingsModuleAction = (moduleType) =>
+            {
+                switch (moduleType)
+                {
+                    case "UserSettings":
+                        _ = ShowUserSettings();
+                        break;
+                    case "ApplicationSettings":
+                        _ = ShowApplicationSettings();
+                        break;
+                    default:
+                        StatusMessage = $"Navigation to {moduleType} not implemented yet";
+                        break;
+                }
+            };
+            
             // Create and configure the settings view
             Console.WriteLine("ShowSettings: Creating SettingsView");
             var settingsView = new SettingsView();
             Console.WriteLine("ShowSettings: SettingsView created successfully");
-            
-            Console.WriteLine("ShowSettings: Getting SettingsViewModel from service provider");
-            var settingsViewModel = _serviceProvider.GetRequiredService<SettingsViewModel>();
-            Console.WriteLine("ShowSettings: SettingsViewModel retrieved successfully");
             
             Console.WriteLine("ShowSettings: Setting DataContext");
             settingsView.DataContext = settingsViewModel;
@@ -2487,6 +2505,95 @@ public partial class MainWindowViewModel : ObservableObject
             StatusMessage = $"Error loading settings: {ex.Message}";
             System.Windows.MessageBox.Show($"Failed to load settings: {ex.Message}\n\nStack trace:\n{ex.StackTrace}", 
                 "Settings Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+    }
+
+    private async Task ShowUserSettings()
+    {
+        // Don't change SelectedPage - keep it as "Settings" so sidebar stays highlighted
+        CurrentPageTitle = "User Settings";
+        StatusMessage = "Loading user settings...";
+        
+        try
+        {
+            // Create a simple user settings view (placeholder for now)
+            var userSettingsContent = new System.Windows.Controls.StackPanel
+            {
+                Margin = new System.Windows.Thickness(20)
+            };
+            
+            userSettingsContent.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text = "User Settings",
+                FontSize = 28,
+                FontWeight = System.Windows.FontWeights.Bold,
+                Margin = new System.Windows.Thickness(0, 0, 0, 20)
+            });
+            
+            userSettingsContent.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text = "Profile & Account settings will be available here.",
+                FontSize = 14,
+                Foreground = System.Windows.Media.Brushes.Gray,
+                Margin = new System.Windows.Thickness(0, 0, 0, 20)
+            });
+            
+            // Back button
+            var backButton = new System.Windows.Controls.Button
+            {
+                Content = "← Back to Settings",
+                Width = 150,
+                Height = 40,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(225, 175, 35)),
+                Foreground = System.Windows.Media.Brushes.White,
+                BorderThickness = new System.Windows.Thickness(0),
+                Cursor = System.Windows.Input.Cursors.Hand
+            };
+            backButton.Click += (s, e) => _ = ShowSettings();
+            
+            userSettingsContent.Children.Add(backButton);
+            
+            CurrentView = userSettingsContent;
+            StatusMessage = "User settings loaded";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading user settings: {ex.Message}";
+            Console.WriteLine($"ShowUserSettings error: {ex.Message}");
+        }
+    }
+
+    private async Task ShowApplicationSettings()
+    {
+        // Don't change SelectedPage - keep it as "Settings" so sidebar stays highlighted
+        CurrentPageTitle = "Application Settings";
+        StatusMessage = "Loading application settings...";
+        
+        try
+        {
+            Console.WriteLine("ShowApplicationSettings: Getting SettingsViewModel");
+            // Get the current SettingsViewModel which already has all the application settings
+            var settingsViewModel = _serviceProvider.GetRequiredService<SettingsViewModel>();
+            
+            // Set the navigation back action to return to Settings module view
+            settingsViewModel.NavigateBackAction = () => _ = ShowSettings();
+            
+            Console.WriteLine("ShowApplicationSettings: Creating ApplicationSettingsView");
+            // Create the application settings view with all settings controls
+            var appSettingsView = new ApplicationSettingsView();
+            appSettingsView.DataContext = settingsViewModel;
+            
+            Console.WriteLine("ShowApplicationSettings: Setting CurrentView");
+            CurrentView = appSettingsView;
+            StatusMessage = "Application settings loaded";
+            Console.WriteLine("ShowApplicationSettings: Application settings loaded successfully");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading application settings: {ex.Message}";
+            Console.WriteLine($"ShowApplicationSettings error: {ex.Message}");
+            Console.WriteLine($"ShowApplicationSettings stack trace: {ex.StackTrace}");
         }
     }
 
