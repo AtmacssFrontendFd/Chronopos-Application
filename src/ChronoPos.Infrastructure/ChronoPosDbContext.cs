@@ -86,6 +86,12 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.ProductGroup> ProductGroups { get; set; }
     public DbSet<Domain.Entities.ProductGroupItem> ProductGroupItems { get; set; }
 
+    // Permission system entities
+    public DbSet<Domain.Entities.Permission> Permissions { get; set; }
+    public DbSet<Domain.Entities.Role> Roles { get; set; }
+    public DbSet<Domain.Entities.RolePermission> RolePermissions { get; set; }
+    public DbSet<Domain.Entities.UserPermissionOverride> UserPermissionOverrides { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -1406,6 +1412,183 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasIndex(e => new { e.ProductUnitId, e.AttributeValueId })
                   .IsUnique()
                   .HasDatabaseName("IX_ProductCombinationItem_ProductUnit_AttributeValue");
+        });
+
+        // Configure Permission entity
+        modelBuilder.Entity<Domain.Entities.Permission>(entity =>
+        {
+            entity.HasKey(e => e.PermissionId);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Code).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.ScreenName).HasMaxLength(100);
+            entity.Property(e => e.TypeMatrix).HasMaxLength(20);
+            entity.Property(e => e.IsParent).IsRequired().HasDefaultValue(false);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Unique constraint on code
+            entity.HasIndex(e => e.Code).IsUnique();
+
+            // Self-referencing relationship for parent permission
+            entity.HasOne(p => p.ParentPermission)
+                  .WithMany(p => p.ChildPermissions)
+                  .HasForeignKey(p => p.ParentPermissionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // User relationships
+            entity.HasOne(p => p.Creator)
+                  .WithMany()
+                  .HasForeignKey(p => p.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(p => p.Updater)
+                  .WithMany()
+                  .HasForeignKey(p => p.UpdatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(p => p.Deleter)
+                  .WithMany()
+                  .HasForeignKey(p => p.DeletedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.ScreenName);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.IsParent);
+            entity.HasIndex(e => e.DeletedAt);
+        });
+
+        // Configure Role entity
+        modelBuilder.Entity<Domain.Entities.Role>(entity =>
+        {
+            entity.HasKey(e => e.RoleId);
+            entity.Property(e => e.RoleName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Unique constraint on role name
+            entity.HasIndex(e => e.RoleName).IsUnique();
+
+            // User relationships
+            entity.HasOne(r => r.Creator)
+                  .WithMany()
+                  .HasForeignKey(r => r.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(r => r.Updater)
+                  .WithMany()
+                  .HasForeignKey(r => r.UpdatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(r => r.Deleter)
+                  .WithMany()
+                  .HasForeignKey(r => r.DeletedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.DeletedAt);
+        });
+
+        // Configure RolePermission entity
+        modelBuilder.Entity<Domain.Entities.RolePermission>(entity =>
+        {
+            entity.HasKey(e => e.RolePermissionId);
+            entity.Property(e => e.RoleId).IsRequired();
+            entity.Property(e => e.PermissionId).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Unique constraint on Role-Permission combination
+            entity.HasIndex(e => new { e.RoleId, e.PermissionId }).IsUnique();
+
+            // Foreign key relationships
+            entity.HasOne(rp => rp.Role)
+                  .WithMany(r => r.RolePermissions)
+                  .HasForeignKey(rp => rp.RoleId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(rp => rp.Permission)
+                  .WithMany(p => p.RolePermissions)
+                  .HasForeignKey(rp => rp.PermissionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // User relationships
+            entity.HasOne(rp => rp.Creator)
+                  .WithMany()
+                  .HasForeignKey(rp => rp.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(rp => rp.Updater)
+                  .WithMany()
+                  .HasForeignKey(rp => rp.UpdatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(rp => rp.Deleter)
+                  .WithMany()
+                  .HasForeignKey(rp => rp.DeletedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.RoleId);
+            entity.HasIndex(e => e.PermissionId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.DeletedAt);
+        });
+
+        // Configure UserPermissionOverride entity
+        modelBuilder.Entity<Domain.Entities.UserPermissionOverride>(entity =>
+        {
+            entity.HasKey(e => e.UserPermissionOverrideId);
+            entity.Property(e => e.UserId).IsRequired();
+            entity.Property(e => e.PermissionId).IsRequired();
+            entity.Property(e => e.IsAllowed).IsRequired().HasDefaultValue(true);
+            entity.Property(e => e.Reason);
+            entity.Property(e => e.ValidFrom);
+            entity.Property(e => e.ValidTo);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Unique constraint on User-Permission combination
+            entity.HasIndex(e => new { e.UserId, e.PermissionId }).IsUnique();
+
+            // Foreign key relationships
+            entity.HasOne(upo => upo.User)
+                  .WithMany()
+                  .HasForeignKey(upo => upo.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(upo => upo.Permission)
+                  .WithMany(p => p.UserPermissionOverrides)
+                  .HasForeignKey(upo => upo.PermissionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // User relationships for audit
+            entity.HasOne(upo => upo.Creator)
+                  .WithMany()
+                  .HasForeignKey(upo => upo.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(upo => upo.Updater)
+                  .WithMany()
+                  .HasForeignKey(upo => upo.UpdatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(upo => upo.Deleter)
+                  .WithMany()
+                  .HasForeignKey(upo => upo.DeletedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.PermissionId);
+            entity.HasIndex(e => e.ValidFrom);
+            entity.HasIndex(e => e.ValidTo);
+            entity.HasIndex(e => e.DeletedAt);
         });
 
         // Seed initial data

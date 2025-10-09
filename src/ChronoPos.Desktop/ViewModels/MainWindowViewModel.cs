@@ -2476,6 +2476,9 @@ public partial class MainWindowViewModel : ObservableObject
                     case "ApplicationSettings":
                         _ = ShowApplicationSettings();
                         break;
+                    case "Permissions":
+                        _ = ShowPermissions();
+                        break;
                     default:
                         StatusMessage = $"Navigation to {moduleType} not implemented yet";
                         break;
@@ -2595,6 +2598,43 @@ public partial class MainWindowViewModel : ObservableObject
             Console.WriteLine($"ShowApplicationSettings error: {ex.Message}");
             Console.WriteLine($"ShowApplicationSettings stack trace: {ex.StackTrace}");
         }
+    }
+
+    private async Task ShowPermissions()
+    {
+        // Don't change SelectedPage - keep it as "Settings" so sidebar stays highlighted
+        CurrentPageTitle = "Permissions";
+        StatusMessage = "Loading permissions...";
+        
+        try
+        {
+            Console.WriteLine("ShowPermissions: Creating PermissionViewModel");
+            // Create the PermissionViewModel with all required services and navigation callback
+            var permissionViewModel = new PermissionViewModel(
+                _serviceProvider.GetRequiredService<IPermissionService>(),
+                navigateBack: () => _ = ShowSettings()
+            );
+
+            Console.WriteLine("ShowPermissions: Creating PermissionView");
+            // Create the permissions view
+            var permissionView = new PermissionView
+            {
+                DataContext = permissionViewModel
+            };
+            
+            Console.WriteLine("ShowPermissions: Setting CurrentView");
+            CurrentView = permissionView;
+            StatusMessage = "Permissions loaded";
+            Console.WriteLine("ShowPermissions: Permissions loaded successfully");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading permissions: {ex.Message}";
+            Console.WriteLine($"ShowPermissions error: {ex.Message}");
+            Console.WriteLine($"ShowPermissions stack trace: {ex.StackTrace}");
+        }
+        
+        await Task.CompletedTask;
     }
 
     [RelayCommand]

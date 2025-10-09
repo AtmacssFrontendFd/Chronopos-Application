@@ -83,6 +83,19 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IBrandRepository, BrandRepository>();
                     LogMessage("BrandRepository registered as Transient");
                     
+                    // Register Permission repositories
+                    services.AddTransient<IPermissionRepository, PermissionRepository>();
+                    LogMessage("PermissionRepository registered as Transient");
+                    
+                    services.AddTransient<IRoleRepository, RoleRepository>();
+                    LogMessage("RoleRepository registered as Transient");
+                    
+                    services.AddTransient<IRolePermissionRepository, RolePermissionRepository>();
+                    LogMessage("RolePermissionRepository registered as Transient");
+                    
+                    services.AddTransient<IUserPermissionOverrideRepository, UserPermissionOverrideRepository>();
+                    LogMessage("UserPermissionOverrideRepository registered as Transient");
+                    
                     services.AddTransient<IStoreRepository, StoreRepository>();
                     LogMessage("StoreRepository registered as Transient");
                     
@@ -158,6 +171,10 @@ public partial class App : System.Windows.Application
                     
                     services.AddTransient<IBrandService, BrandService>();
                     LogMessage("BrandService registered as Transient");
+                    
+                    // Register Permission services
+                    services.AddTransient<IPermissionService, PermissionService>();
+                    LogMessage("PermissionService registered as Transient");
                     
                     services.AddTransient<IStoreService, StoreService>();
                     LogMessage("StoreService registered as Transient");
@@ -354,6 +371,14 @@ public partial class App : System.Windows.Application
                     LogMessage("SupplierSidePanelViewModel registered as Transient");
                     services.AddTransient<SettingsViewModel>();
                     LogMessage("SettingsViewModel registered as Transient");
+                    
+                    // Register Permission ViewModels
+                    services.AddTransient<PermissionViewModel>();
+                    LogMessage("PermissionViewModel registered as Transient");
+                    
+                    services.AddTransient<PermissionSidePanelViewModel>();
+                    LogMessage("PermissionSidePanelViewModel registered as Transient");
+                    
                     services.AddTransient<DiscountViewModel>();
                     LogMessage("DiscountViewModel registered as Transient");
                     services.AddTransient<ProductAttributeViewModel>();

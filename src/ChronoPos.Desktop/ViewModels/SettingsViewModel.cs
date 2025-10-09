@@ -14,13 +14,13 @@ namespace ChronoPos.Desktop.ViewModels;
 /// </summary>
 public partial class SettingsViewModel : ObservableObject
 {
-    private readonly IThemeService _themeService;
-    private readonly IFontService _fontService;
-    private readonly ILocalizationService _localizationService;
-    private readonly IDatabaseLocalizationService _databaseLocalizationService;
-    private readonly IColorSchemeService _colorSchemeService;
-    private readonly ILayoutDirectionService _layoutDirectionService;
-    private readonly IZoomService _zoomService;
+    private readonly IThemeService _themeService = null!;
+    private readonly IFontService _fontService = null!;
+    private readonly ILocalizationService _localizationService = null!;
+    private readonly IDatabaseLocalizationService _databaseLocalizationService = null!;
+    private readonly IColorSchemeService _colorSchemeService = null!;
+    private readonly ILayoutDirectionService _layoutDirectionService = null!;
+    private readonly IZoomService _zoomService = null!;
 
     [ObservableProperty]
     private bool _isDarkTheme;
@@ -210,7 +210,7 @@ public partial class SettingsViewModel : ObservableObject
             var primaryColorBrush = GetPrimaryColorBrush();
             var buttonBackgroundBrush = GetButtonBackgroundBrush();
 
-            // Add two setting modules
+            // Add four setting modules
             Modules.Add(new SettingsModuleInfo
             {
                 ModuleType = "UserSettings",
@@ -224,7 +224,24 @@ public partial class SettingsViewModel : ObservableObject
             {
                 ModuleType = "ApplicationSettings",
                 Title = "Application Settings",
-                Description = "",
+                IconBackground = primaryColorBrush,
+                ButtonBackground = buttonBackgroundBrush
+            });
+
+            Modules.Add(new SettingsModuleInfo
+            {
+                ModuleType = "Roles",
+                Title = "Roles",
+                Description = "3",
+                IconBackground = primaryColorBrush,
+                ButtonBackground = buttonBackgroundBrush
+            });
+
+            Modules.Add(new SettingsModuleInfo
+            {
+                ModuleType = "Permissions",
+                Title = "Permissions",
+                Description = "2",
                 IconBackground = primaryColorBrush,
                 ButtonBackground = buttonBackgroundBrush
             });
