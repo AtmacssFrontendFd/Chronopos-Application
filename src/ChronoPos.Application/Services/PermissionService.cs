@@ -11,11 +11,16 @@ namespace ChronoPos.Application.Services;
 public class PermissionService : IPermissionService
 {
     private readonly IPermissionRepository _permissionRepository;
+    private readonly IRolePermissionRepository _rolePermissionRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public PermissionService(IPermissionRepository permissionRepository, IUnitOfWork unitOfWork)
+    public PermissionService(
+        IPermissionRepository permissionRepository, 
+        IRolePermissionRepository rolePermissionRepository,
+        IUnitOfWork unitOfWork)
     {
         _permissionRepository = permissionRepository ?? throw new ArgumentNullException(nameof(permissionRepository));
+        _rolePermissionRepository = rolePermissionRepository ?? throw new ArgumentNullException(nameof(rolePermissionRepository));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     }
 
@@ -206,6 +211,34 @@ public class PermissionService : IPermissionService
     {
         var permission = await _permissionRepository.GetPermissionWithChildrenAsync(permissionId);
         return permission != null ? MapToDto(permission) : null;
+    }
+
+    /// <summary>
+    /// Gets permissions assigned to a role
+    /// </summary>
+    /// <param name="roleId">Role ID</param>
+    /// <returns>Collection of permission DTOs assigned to the role</returns>
+    public async Task<IEnumerable<PermissionDto>> GetPermissionsByRoleIdAsync(int roleId)
+    {
+        // Get all role permissions for this role
+        var allRolePermissions = await _rolePermissionRepository.GetAllAsync();
+        var rolePermissions = allRolePermissions
+            .Where(rp => rp.RoleId == roleId && rp.DeletedAt == null)
+            .ToList();
+
+        if (!rolePermissions.Any())
+            return Enumerable.Empty<PermissionDto>();
+
+        // Get the permission IDs
+        var permissionIds = rolePermissions.Select(rp => rp.PermissionId).ToList();
+
+        // Get all permissions and filter by IDs
+        var allPermissions = await _permissionRepository.GetAllAsync();
+        var permissions = allPermissions
+            .Where(p => permissionIds.Contains(p.PermissionId) && p.DeletedAt == null)
+            .ToList();
+
+        return permissions.Select(MapToDto);
     }
 
     /// <summary>

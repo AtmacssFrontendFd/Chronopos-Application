@@ -176,6 +176,10 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IPermissionService, PermissionService>();
                     LogMessage("PermissionService registered as Transient");
                     
+                    // Register Role service
+                    services.AddTransient<IRoleService, RoleService>();
+                    LogMessage("RoleService registered as Transient");
+                    
                     services.AddTransient<IStoreService, StoreService>();
                     LogMessage("StoreService registered as Transient");
                     
@@ -378,6 +382,13 @@ public partial class App : System.Windows.Application
                     
                     services.AddTransient<PermissionSidePanelViewModel>();
                     LogMessage("PermissionSidePanelViewModel registered as Transient");
+                    
+                    // Register Role ViewModels
+                    services.AddTransient<RoleViewModel>();
+                    LogMessage("RoleViewModel registered as Transient");
+                    
+                    services.AddTransient<RoleSidePanelViewModel>();
+                    LogMessage("RoleSidePanelViewModel registered as Transient");
                     
                     services.AddTransient<DiscountViewModel>();
                     LogMessage("DiscountViewModel registered as Transient");

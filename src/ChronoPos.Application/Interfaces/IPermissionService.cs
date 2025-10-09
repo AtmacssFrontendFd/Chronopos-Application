@@ -89,4 +89,11 @@ public interface IPermissionService
     /// <param name="permissionId">Permission ID</param>
     /// <returns>Permission DTO with children</returns>
     Task<PermissionDto?> GetPermissionWithChildrenAsync(int permissionId);
+
+    /// <summary>
+    /// Gets permissions assigned to a role
+    /// </summary>
+    /// <param name="roleId">Role ID</param>
+    /// <returns>Collection of permission DTOs assigned to the role</returns>
+    Task<IEnumerable<PermissionDto>> GetPermissionsByRoleIdAsync(int roleId);
 }

@@ -169,11 +169,18 @@ public partial class SettingsViewModel : ObservableObject
     private void NavigateToSettingsModule(string moduleType)
     {
         Console.WriteLine($"Navigating to settings module: {moduleType}");
+        ChronoPos.Application.Logging.AppLogger.Log($"SettingsViewModel: NavigateToSettingsModule called with moduleType={moduleType}");
         CurrentView = moduleType;
         
         if (NavigateToSettingsModuleAction != null)
         {
+            ChronoPos.Application.Logging.AppLogger.Log($"SettingsViewModel: Invoking NavigateToSettingsModuleAction for {moduleType}");
             NavigateToSettingsModuleAction(moduleType);
+            ChronoPos.Application.Logging.AppLogger.Log($"SettingsViewModel: NavigateToSettingsModuleAction completed for {moduleType}");
+        }
+        else
+        {
+            ChronoPos.Application.Logging.AppLogger.Log($"SettingsViewModel: NavigateToSettingsModuleAction is NULL!");
         }
     }
 
@@ -232,7 +239,7 @@ public partial class SettingsViewModel : ObservableObject
             {
                 ModuleType = "Roles",
                 Title = "Roles",
-                Description = "3",
+                Description = "Manage user roles",
                 IconBackground = primaryColorBrush,
                 ButtonBackground = buttonBackgroundBrush
             });
@@ -241,7 +248,7 @@ public partial class SettingsViewModel : ObservableObject
             {
                 ModuleType = "Permissions",
                 Title = "Permissions",
-                Description = "2",
+                Description = "Manage permissions",
                 IconBackground = primaryColorBrush,
                 ButtonBackground = buttonBackgroundBrush
             });

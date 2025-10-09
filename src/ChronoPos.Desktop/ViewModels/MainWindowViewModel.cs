@@ -2468,18 +2468,27 @@ public partial class MainWindowViewModel : ObservableObject
             // Set up navigation from settings to specific modules
             settingsViewModel.NavigateToSettingsModuleAction = (moduleType) =>
             {
+                AppLogger.Log($"MainWindowViewModel: NavigateToSettingsModuleAction invoked with moduleType={moduleType}");
                 switch (moduleType)
                 {
                     case "UserSettings":
+                        AppLogger.Log("MainWindowViewModel: Navigating to UserSettings");
                         _ = ShowUserSettings();
                         break;
                     case "ApplicationSettings":
+                        AppLogger.Log("MainWindowViewModel: Navigating to ApplicationSettings");
                         _ = ShowApplicationSettings();
                         break;
                     case "Permissions":
+                        AppLogger.Log("MainWindowViewModel: Navigating to Permissions");
                         _ = ShowPermissions();
                         break;
+                    case "Roles":
+                        AppLogger.Log("MainWindowViewModel: Navigating to Roles");
+                        _ = ShowRoles();
+                        break;
                     default:
+                        AppLogger.Log($"MainWindowViewModel: Unknown module type: {moduleType}");
                         StatusMessage = $"Navigation to {moduleType} not implemented yet";
                         break;
                 }
@@ -2632,6 +2641,64 @@ public partial class MainWindowViewModel : ObservableObject
             StatusMessage = $"Error loading permissions: {ex.Message}";
             Console.WriteLine($"ShowPermissions error: {ex.Message}");
             Console.WriteLine($"ShowPermissions stack trace: {ex.StackTrace}");
+        }
+        
+        await Task.CompletedTask;
+    }
+
+    private async Task ShowRoles()
+    {
+        // Don't change SelectedPage - keep it as "Settings" so sidebar stays highlighted
+        CurrentPageTitle = "Roles";
+        StatusMessage = "Loading roles...";
+        
+        try
+        {
+            AppLogger.Log("ShowRoles: Starting method execution");
+            Console.WriteLine("ShowRoles: Creating RoleViewModel");
+            
+            // Get the services
+            AppLogger.Log("ShowRoles: Getting IRoleService from ServiceProvider");
+            var roleService = _serviceProvider.GetRequiredService<IRoleService>();
+            AppLogger.Log("ShowRoles: IRoleService obtained successfully");
+            
+            AppLogger.Log("ShowRoles: Getting IPermissionService from ServiceProvider");
+            var permissionService = _serviceProvider.GetRequiredService<IPermissionService>();
+            AppLogger.Log("ShowRoles: IPermissionService obtained successfully");
+            
+            // Create the RoleViewModel with all required services and navigation callback
+            AppLogger.Log("ShowRoles: Creating RoleViewModel instance");
+            var roleViewModel = new RoleViewModel(
+                roleService,
+                permissionService,
+                navigateBack: () => _ = ShowSettings()
+            );
+            AppLogger.Log("ShowRoles: RoleViewModel created successfully");
+
+            Console.WriteLine("ShowRoles: Creating RoleView");
+            // Create the roles view
+            AppLogger.Log("ShowRoles: Creating RoleView instance");
+            var roleView = new RoleView
+            {
+                DataContext = roleViewModel
+            };
+            AppLogger.Log("ShowRoles: RoleView created successfully");
+            
+            Console.WriteLine("ShowRoles: Setting CurrentView");
+            AppLogger.Log("ShowRoles: Setting CurrentView property");
+            CurrentView = roleView;
+            AppLogger.Log("ShowRoles: CurrentView set successfully");
+            
+            StatusMessage = "Roles loaded";
+            Console.WriteLine("ShowRoles: Roles loaded successfully");
+            AppLogger.Log("ShowRoles: Method completed successfully");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading roles: {ex.Message}";
+            Console.WriteLine($"ShowRoles error: {ex.Message}");
+            Console.WriteLine($"ShowRoles stack trace: {ex.StackTrace}");
+            AppLogger.LogError("ShowRoles", ex);
         }
         
         await Task.CompletedTask;
