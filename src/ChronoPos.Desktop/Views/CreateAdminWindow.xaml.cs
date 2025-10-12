@@ -164,14 +164,61 @@ namespace ChronoPos.Desktop.Views
                         return;
                     }
 
-                    // Create admin user
+                    // Step 1: Create "Company" Permission with All Screens and All Operations
+                    LogMessage(">>> Creating Company permission...");
+                    var companyPermission = new Permission
+                    {
+                        Name = "Company - Full Access",
+                        Code = "COMPANY.FULL_ACCESS",
+                        ScreenName = "-- All Screens --",  // Special value for all screens
+                        TypeMatrix = "-- All Operations --",  // Special value for all operations
+                        IsParent = true,  // This is a parent permission
+                        ParentPermissionId = null,
+                        Status = "Active",
+                        CreatedBy = null,  // Will be updated after user is created
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    dbContext.Permissions.Add(companyPermission);
+                    await dbContext.SaveChangesAsync();
+                    LogMessage($">>> Company permission created with ID: {companyPermission.PermissionId}");
+
+                    // Step 2: Create "Company" Role
+                    LogMessage(">>> Creating Company role...");
+                    var companyRole = new Role
+                    {
+                        RoleName = "Company",
+                        Description = "Company owner with full access to all screens and operations",
+                        Status = "Active",
+                        CreatedBy = null,  // Will be updated after user is created
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    dbContext.Roles.Add(companyRole);
+                    await dbContext.SaveChangesAsync();
+                    LogMessage($">>> Company role created with ID: {companyRole.RoleId}");
+
+                    // Step 3: Assign Company Permission to Company Role
+                    LogMessage(">>> Assigning Company permission to Company role...");
+                    var rolePermission = new RolePermission
+                    {
+                        RoleId = companyRole.RoleId,
+                        PermissionId = companyPermission.PermissionId,
+                        Status = "Active",
+                        CreatedBy = null,  // Will be updated after user is created
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    dbContext.RolePermissions.Add(rolePermission);
+                    await dbContext.SaveChangesAsync();
+                    LogMessage($">>> Permission assigned to role with ID: {rolePermission.RolePermissionId}");
+
+                    // Step 4: Create admin user with Company role
+                    LogMessage(">>> Creating admin user with Company role...");
                     var adminUser = new User
                     {
                         FullName = FullNameTextBox.Text.Trim(),
                         Email = EmailTextBox.Text.Trim().ToLower(),
                         Password = HashPassword(PasswordBox.Password),
-                        Role = "Administrator",
-                        RolePermissionId = 1, // Admin permission
+                        Role = "Company Owner",
+                        RolePermissionId = companyRole.RoleId,  // Assign Company role
                         ShopId = 1, // Default shop
                         ChangeAccess = true,
                         CreatedAt = DateTime.UtcNow,
@@ -180,6 +227,14 @@ namespace ChronoPos.Desktop.Views
 
                     dbContext.Users.Add(adminUser);
                     await dbContext.SaveChangesAsync();
+                    LogMessage($">>> Admin user created with ID: {adminUser.Id}");
+
+                    // Step 5: Update CreatedBy fields now that we have the admin user
+                    companyPermission.CreatedBy = adminUser.Id;
+                    companyRole.CreatedBy = adminUser.Id;
+                    rolePermission.CreatedBy = adminUser.Id;
+                    await dbContext.SaveChangesAsync();
+                    LogMessage(">>> Updated CreatedBy fields with admin user ID");
 
                     // Save username for login
                     SaveUsername(UsernameTextBox.Text.Trim(), adminUser.Id);

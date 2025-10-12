@@ -270,18 +270,54 @@ public class CurrentUserService : ICurrentUserService
     // ==========================================
 
     /// <summary>
-    /// Checks if current user has a specific permission by code
+    /// Ensures the permission cache is valid, refreshing it if expired
     /// </summary>
-    public bool HasPermission(string permissionCode)
+    private void EnsurePermissionCacheValid()
     {
         if (_permissionCache == null || _permissionCache.IsExpired)
         {
             ChronoPos.Application.Logging.AppLogger.Log(
-                "CurrentUserService: Permission cache is null or expired");
+                "CurrentUserService: Permission cache is null or expired, attempting to refresh...");
+            
+            // Try to refresh the cache if we have a current user
+            if (_currentUserId.HasValue)
+            {
+                try
+                {
+                    LoadUserPermissionsAsync(_currentUserId.Value).GetAwaiter().GetResult();
+                    ChronoPos.Application.Logging.AppLogger.Log(
+                        "CurrentUserService: Permission cache refreshed successfully");
+                }
+                catch (Exception ex)
+                {
+                    ChronoPos.Application.Logging.AppLogger.Log(
+                        $"CurrentUserService: Failed to refresh permission cache - {ex.Message}");
+                    throw;
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException("No user is currently logged in");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks if current user has a specific permission by code
+    /// </summary>
+    public bool HasPermission(string permissionCode)
+    {
+        try
+        {
+            EnsurePermissionCacheValid();
+            return _permissionCache!.HasPermission(permissionCode);
+        }
+        catch (Exception ex)
+        {
+            ChronoPos.Application.Logging.AppLogger.Log(
+                $"CurrentUserService: Permission check failed - {ex.Message}");
             return false;
         }
-
-        return _permissionCache.HasPermission(permissionCode);
     }
 
     /// <summary>
@@ -289,14 +325,17 @@ public class CurrentUserService : ICurrentUserService
     /// </summary>
     public bool HasPermission(string screenName, string typeMatrix)
     {
-        if (_permissionCache == null || _permissionCache.IsExpired)
+        try
+        {
+            EnsurePermissionCacheValid();
+            return _permissionCache!.HasPermission(screenName, typeMatrix);
+        }
+        catch (Exception ex)
         {
             ChronoPos.Application.Logging.AppLogger.Log(
-                "CurrentUserService: Permission cache is null or expired");
+                $"CurrentUserService: Permission check failed for screen '{screenName}' - {ex.Message}");
             return false;
         }
-
-        return _permissionCache.HasPermission(screenName, typeMatrix);
     }
 
     /// <summary>
@@ -304,12 +343,17 @@ public class CurrentUserService : ICurrentUserService
     /// </summary>
     public bool HasAnyScreenPermission(string screenName)
     {
-        if (_permissionCache == null || _permissionCache.IsExpired)
+        try
         {
+            EnsurePermissionCacheValid();
+            return _permissionCache!.HasAnyScreenPermission(screenName);
+        }
+        catch (Exception ex)
+        {
+            ChronoPos.Application.Logging.AppLogger.Log(
+                $"CurrentUserService: Screen permission check failed for '{screenName}' - {ex.Message}");
             return false;
         }
-
-        return _permissionCache.HasAnyScreenPermission(screenName);
     }
 
     /// <summary>
@@ -317,12 +361,17 @@ public class CurrentUserService : ICurrentUserService
     /// </summary>
     public List<CachedPermission> GetScreenPermissions(string screenName)
     {
-        if (_permissionCache == null || _permissionCache.IsExpired)
+        try
         {
+            EnsurePermissionCacheValid();
+            return _permissionCache!.GetScreenPermissions(screenName);
+        }
+        catch (Exception ex)
+        {
+            ChronoPos.Application.Logging.AppLogger.Log(
+                $"CurrentUserService: Get screen permissions failed for '{screenName}' - {ex.Message}");
             return new List<CachedPermission>();
         }
-
-        return _permissionCache.GetScreenPermissions(screenName);
     }
 
     /// <summary>
@@ -330,12 +379,17 @@ public class CurrentUserService : ICurrentUserService
     /// </summary>
     public List<string> GetScreenTypeMatrixValues(string screenName)
     {
-        if (_permissionCache == null || _permissionCache.IsExpired)
+        try
         {
+            EnsurePermissionCacheValid();
+            return _permissionCache!.GetScreenTypeMatrixValues(screenName);
+        }
+        catch (Exception ex)
+        {
+            ChronoPos.Application.Logging.AppLogger.Log(
+                $"CurrentUserService: Get type matrix values failed for '{screenName}' - {ex.Message}");
             return new List<string>();
         }
-
-        return _permissionCache.GetScreenTypeMatrixValues(screenName);
     }
 
     /// <summary>
@@ -343,12 +397,17 @@ public class CurrentUserService : ICurrentUserService
     /// </summary>
     public bool HasFullAccess(string screenName)
     {
-        if (_permissionCache == null || _permissionCache.IsExpired)
+        try
         {
+            EnsurePermissionCacheValid();
+            return _permissionCache!.HasFullAccess(screenName);
+        }
+        catch (Exception ex)
+        {
+            ChronoPos.Application.Logging.AppLogger.Log(
+                $"CurrentUserService: Full access check failed for '{screenName}' - {ex.Message}");
             return false;
         }
-
-        return _permissionCache.HasFullAccess(screenName);
     }
 
     /// <summary>
@@ -356,11 +415,16 @@ public class CurrentUserService : ICurrentUserService
     /// </summary>
     public bool HasViewOnlyAccess(string screenName)
     {
-        if (_permissionCache == null || _permissionCache.IsExpired)
+        try
         {
+            EnsurePermissionCacheValid();
+            return _permissionCache!.HasViewOnlyAccess(screenName);
+        }
+        catch (Exception ex)
+        {
+            ChronoPos.Application.Logging.AppLogger.Log(
+                $"CurrentUserService: View-only access check failed for '{screenName}' - {ex.Message}");
             return false;
         }
-
-        return _permissionCache.HasViewOnlyAccess(screenName);
     }
 }
