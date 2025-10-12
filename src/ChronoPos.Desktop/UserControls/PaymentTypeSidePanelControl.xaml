@@ -160,15 +160,77 @@
                     <TextBlock Text="Arabic Name" Style="{StaticResource LabelStyle}"/>
                     <TextBox Text="{Binding NameAr, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" FlowDirection="RightToLeft" ToolTip="Enter payment type name in Arabic"/>
                 </StackPanel>
-                <!-- Is Active -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                    <CheckBox Content="Active" IsChecked="{Binding Status}" 
-                              FontSize="{DynamicResource FontSizeSmall}" 
-                              FontWeight="SemiBold" 
-                              FontFamily="{DynamicResource PoppinsFontFallback}" 
-                              VerticalAlignment="Center"
-                              ToolTip="Enable or disable this payment type"/>
+                
+                <!-- Shortcut Key -->
+                <StackPanel Margin="0,0,0,14">
+                    <TextBlock Text="Shortcut Key" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding ShortcutKey, UpdateSourceTrigger=PropertyChanged}" 
+                             Style="{StaticResource InputFieldStyle}" 
+                             MaxLength="10"
+                             ToolTip="Enter shortcut key (e.g., F1, Ctrl+P)"/>
                 </StackPanel>
+                
+                <!-- Payment Configuration Section -->
+                <TextBlock Text="Payment Configuration" 
+                           FontSize="{DynamicResource FontSizeSmall}"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource Primary}"
+                           Margin="0,10,0,10"/>
+                
+                <!-- Change Allowed -->
+                <CheckBox Content="Allow Change" 
+                          IsChecked="{Binding ChangeAllowed}"
+                          FontSize="{DynamicResource FontSizeSmall}" 
+                          FontWeight="SemiBold" 
+                          FontFamily="{DynamicResource PoppinsFontFallback}" 
+                          Margin="0,0,0,10"
+                          ToolTip="Allow giving change for this payment method"/>
+                
+                <!-- Customer Required -->
+                <CheckBox Content="Customer Required" 
+                          IsChecked="{Binding CustomerRequired}"
+                          FontSize="{DynamicResource FontSizeSmall}" 
+                          FontWeight="SemiBold" 
+                          FontFamily="{DynamicResource PoppinsFontFallback}" 
+                          Margin="0,0,0,10"
+                          ToolTip="Require customer selection for this payment type"/>
+                
+                <!-- Mark Transaction as Paid -->
+                <CheckBox Content="Mark Transaction as Paid" 
+                          IsChecked="{Binding MarkTransactionAsPaid}"
+                          FontSize="{DynamicResource FontSizeSmall}" 
+                          FontWeight="SemiBold" 
+                          FontFamily="{DynamicResource PoppinsFontFallback}" 
+                          Margin="0,0,0,10"
+                          ToolTip="Automatically mark transaction as paid when using this payment type"/>
+                
+                <!-- Is Refundable -->
+                <CheckBox Content="Is Refundable" 
+                          IsChecked="{Binding IsRefundable}"
+                          FontSize="{DynamicResource FontSizeSmall}" 
+                          FontWeight="SemiBold" 
+                          FontFamily="{DynamicResource PoppinsFontFallback}" 
+                          Margin="0,0,0,10"
+                          ToolTip="Allow refunds for this payment type"/>
+                
+                <!-- Is Split Allowed -->
+                <CheckBox Content="Allow Split Payment" 
+                          IsChecked="{Binding IsSplitAllowed}"
+                          FontSize="{DynamicResource FontSizeSmall}" 
+                          FontWeight="SemiBold" 
+                          FontFamily="{DynamicResource PoppinsFontFallback}" 
+                          Margin="0,0,0,10"
+                          ToolTip="Allow splitting payment across multiple methods"/>
+                
+                <!-- Is Active -->
+                <CheckBox Content="Active" 
+                          IsChecked="{Binding Status}"
+                          FontSize="{DynamicResource FontSizeSmall}" 
+                          FontWeight="SemiBold" 
+                          FontFamily="{DynamicResource PoppinsFontFallback}" 
+                          Margin="0,0,0,14"
+                          ToolTip="Enable or disable this payment type"/>
+                
             </StackPanel>
         </ScrollViewer>
         <!-- Action Buttons -->

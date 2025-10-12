@@ -53,10 +53,17 @@ public class PaymentTypeService : IPaymentTypeService
     {
         var entity = new PaymentType
         {
+            BusinessId = dto.BusinessId,
             Name = dto.Name,
             PaymentCode = dto.PaymentCode,
             NameAr = dto.NameAr,
             Status = dto.Status,
+            ChangeAllowed = dto.ChangeAllowed,
+            CustomerRequired = dto.CustomerRequired,
+            MarkTransactionAsPaid = dto.MarkTransactionAsPaid,
+            ShortcutKey = dto.ShortcutKey,
+            IsRefundable = dto.IsRefundable,
+            IsSplitAllowed = dto.IsSplitAllowed,
             CreatedBy = dto.CreatedBy,
             CreatedAt = DateTime.UtcNow
         };
@@ -79,10 +86,17 @@ public class PaymentTypeService : IPaymentTypeService
             throw new ArgumentException($"Payment type with ID {dto.Id} not found", nameof(dto.Id));
         }
 
+        entity.BusinessId = dto.BusinessId;
         entity.Name = dto.Name;
         entity.PaymentCode = dto.PaymentCode;
         entity.NameAr = dto.NameAr;
         entity.Status = dto.Status;
+        entity.ChangeAllowed = dto.ChangeAllowed;
+        entity.CustomerRequired = dto.CustomerRequired;
+        entity.MarkTransactionAsPaid = dto.MarkTransactionAsPaid;
+        entity.ShortcutKey = dto.ShortcutKey;
+        entity.IsRefundable = dto.IsRefundable;
+        entity.IsSplitAllowed = dto.IsSplitAllowed;
         entity.UpdatedBy = dto.UpdatedBy;
         entity.UpdatedAt = DateTime.UtcNow;
 
@@ -155,10 +169,17 @@ public class PaymentTypeService : IPaymentTypeService
         return new PaymentTypeDto
         {
             Id = entity.Id,
+            BusinessId = entity.BusinessId,
             Name = entity.Name,
             PaymentCode = entity.PaymentCode,
             NameAr = entity.NameAr,
             Status = entity.Status,
+            ChangeAllowed = entity.ChangeAllowed,
+            CustomerRequired = entity.CustomerRequired,
+            MarkTransactionAsPaid = entity.MarkTransactionAsPaid,
+            ShortcutKey = entity.ShortcutKey,
+            IsRefundable = entity.IsRefundable,
+            IsSplitAllowed = entity.IsSplitAllowed,
             CreatedBy = entity.CreatedBy,
             CreatedAt = entity.CreatedAt,
             UpdatedBy = entity.UpdatedBy,

@@ -30,6 +30,25 @@ namespace ChronoPos.Desktop.ViewModels
 
         [ObservableProperty]
         private bool _status = true;
+        
+        // Payment Configuration Properties
+        [ObservableProperty]
+        private bool _changeAllowed = false;
+
+        [ObservableProperty]
+        private bool _customerRequired = false;
+
+        [ObservableProperty]
+        private bool _markTransactionAsPaid = true;
+
+        [ObservableProperty]
+        private string _shortcutKey = string.Empty;
+
+        [ObservableProperty]
+        private bool _isRefundable = true;
+
+        [ObservableProperty]
+        private bool _isSplitAllowed = true;
 
         [ObservableProperty]
         private string _formTitle = "Add Payment Type";
@@ -113,6 +132,12 @@ namespace ChronoPos.Desktop.ViewModels
                         PaymentCode = PaymentCode.Trim(),
                         NameAr = NameAr?.Trim(),
                         Status = Status,
+                        ChangeAllowed = ChangeAllowed,
+                        CustomerRequired = CustomerRequired,
+                        MarkTransactionAsPaid = MarkTransactionAsPaid,
+                        ShortcutKey = ShortcutKey?.Trim(),
+                        IsRefundable = IsRefundable,
+                        IsSplitAllowed = IsSplitAllowed,
                         CreatedBy = 1 // TODO: Get from current user context
                     };
 
@@ -141,6 +166,12 @@ namespace ChronoPos.Desktop.ViewModels
                         PaymentCode = PaymentCode.Trim(),
                         NameAr = NameAr?.Trim(),
                         Status = Status,
+                        ChangeAllowed = ChangeAllowed,
+                        CustomerRequired = CustomerRequired,
+                        MarkTransactionAsPaid = MarkTransactionAsPaid,
+                        ShortcutKey = ShortcutKey?.Trim(),
+                        IsRefundable = IsRefundable,
+                        IsSplitAllowed = IsSplitAllowed,
                         UpdatedBy = 1 // TODO: Get from current user context
                     };
 
@@ -183,6 +214,12 @@ namespace ChronoPos.Desktop.ViewModels
                 PaymentCode = paymentType.PaymentCode ?? string.Empty;
                 NameAr = paymentType.NameAr ?? string.Empty;
                 Status = paymentType.Status;
+                ChangeAllowed = paymentType.ChangeAllowed;
+                CustomerRequired = paymentType.CustomerRequired;
+                MarkTransactionAsPaid = paymentType.MarkTransactionAsPaid;
+                ShortcutKey = paymentType.ShortcutKey ?? string.Empty;
+                IsRefundable = paymentType.IsRefundable;
+                IsSplitAllowed = paymentType.IsSplitAllowed;
                 FormTitle = "Edit Payment Type";
                 SaveButtonText = "Update";
             }
@@ -198,6 +235,12 @@ namespace ChronoPos.Desktop.ViewModels
             PaymentCode = string.Empty;
             NameAr = string.Empty;
             Status = true;
+            ChangeAllowed = false;
+            CustomerRequired = false;
+            MarkTransactionAsPaid = true;
+            ShortcutKey = string.Empty;
+            IsRefundable = true;
+            IsSplitAllowed = true;
             FormTitle = "Add Payment Type";
             SaveButtonText = "Save";
             ValidationMessage = string.Empty;
