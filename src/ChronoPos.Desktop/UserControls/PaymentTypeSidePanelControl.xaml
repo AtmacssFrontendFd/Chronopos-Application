@@ -9,23 +9,24 @@
              FlowDirection="{Binding CurrentFlowDirection}"
              FontFamily="{DynamicResource PoppinsFontFallback}">
     <UserControl.Resources>
-        <!-- Input Field Style -->
+        <!-- Input Field Style - Compact -->
         <Style x:Key="InputFieldStyle" TargetType="TextBox">
             <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+            <Setter Property="Padding" Value="10,7"/>
             <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
             <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                                CornerRadius="4">
                             <ScrollViewer x:Name="PART_ContentHost" 
                                         Margin="{TemplateBinding Padding}"
                                         VerticalAlignment="Center"/>
@@ -40,40 +41,40 @@
             </Setter>
         </Style>
         
-        <!-- Label Style -->
+        <!-- Label Style - Compact -->
         <Style x:Key="LabelStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeExtraSmall}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="Margin" Value="0,0,0,5"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
         </Style>
         
-        <!-- Section Header Style -->
+        <!-- Section Header Style - Compact -->
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="{DynamicResource FontSizeMedium}"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="Margin" Value="0,0,0,15"/>
+            <Setter Property="Margin" Value="0,8,0,12"/>
         </Style>
         
-        <!-- Action Button Style -->
+        <!-- Action Button Style - Compact -->
         <Style x:Key="ActionButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource Primary}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="Padding" Value="14,8"/>
             <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+            <Setter Property="MinHeight" Value="36"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                                CornerRadius="4">
                             <ContentPresenter HorizontalAlignment="Center" 
                                             VerticalAlignment="Center"
                                             Margin="{TemplateBinding Padding}"/>
@@ -95,7 +96,7 @@
             </Setter>
         </Style>
         
-        <!-- Secondary Button Style -->
+        <!-- Secondary Button Style - Compact -->
         <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
             <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
@@ -114,7 +115,7 @@
                 Background="{DynamicResource SurfaceBackground}"
                 BorderThickness="0,0,0,1"
                 BorderBrush="{DynamicResource BorderLight}"
-                Padding="{DynamicResource DefaultPaddingThickness}">
+                Padding="16,12">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -135,32 +136,38 @@
                         FontWeight="Bold"
                         Foreground="{DynamicResource TextSecondary}"
                         Cursor="Hand"
-                        Padding="8"
+                        Width="28"
+                        Height="28"
                         ToolTip="Close"/>
             </Grid>
         </Border>
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{DynamicResource DefaultPaddingThickness}">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
             <StackPanel>
                 <TextBlock Text="Payment Type Information" Style="{StaticResource SectionHeaderStyle}"/>
                 <!-- Name -->
-                <StackPanel Margin="0,0,0,20">
+                <StackPanel Margin="0,0,0,14">
                     <TextBlock Text="Name *" Style="{StaticResource LabelStyle}"/>
                     <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" ToolTip="Enter payment type name"/>
                 </StackPanel>
                 <!-- Payment Code -->
-                <StackPanel Margin="0,0,0,20">
+                <StackPanel Margin="0,0,0,14">
                     <TextBlock Text="Payment Code *" Style="{StaticResource LabelStyle}"/>
                     <TextBox Text="{Binding PaymentCode, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" ToolTip="Enter payment code"/>
                 </StackPanel>
                 <!-- Arabic Name -->
-                <StackPanel Margin="0,0,0,20">
+                <StackPanel Margin="0,0,0,14">
                     <TextBlock Text="Arabic Name" Style="{StaticResource LabelStyle}"/>
                     <TextBox Text="{Binding NameAr, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" FlowDirection="RightToLeft" ToolTip="Enter payment type name in Arabic"/>
                 </StackPanel>
                 <!-- Is Active -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                    <CheckBox Content="Active" IsChecked="{Binding Status}" FontSize="{DynamicResource FontSizeMedium}" FontWeight="SemiBold" FontFamily="{DynamicResource PoppinsFontFallback}" ToolTip="Enable or disable this payment type"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                    <CheckBox Content="Active" IsChecked="{Binding Status}" 
+                              FontSize="{DynamicResource FontSizeSmall}" 
+                              FontWeight="SemiBold" 
+                              FontFamily="{DynamicResource PoppinsFontFallback}" 
+                              VerticalAlignment="Center"
+                              ToolTip="Enable or disable this payment type"/>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>
@@ -169,16 +176,31 @@
                 Background="{DynamicResource SurfaceBackground}"
                 BorderThickness="0,1,0,0"
                 BorderBrush="{DynamicResource BorderLight}"
-                Padding="{DynamicResource DefaultPaddingThickness}">
+                Padding="16,12">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="{Binding ValidationMessage}" Foreground="Red" FontSize="{DynamicResource FontSizeSmall}" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                <Button Grid.Column="1" Content="Cancel" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,10,0"/>
-                <Button Grid.Column="2" Content="{Binding SaveButtonText}" Command="{Binding SaveCommand}" Style="{StaticResource ActionButtonStyle}" IsDefault="True"/>
+                <TextBlock Grid.Column="0" 
+                           Text="{Binding ValidationMessage}" 
+                           Foreground="Red" 
+                           FontSize="{DynamicResource FontSizeExtraSmall}" 
+                           VerticalAlignment="Center" 
+                           TextWrapping="Wrap"/>
+                <Button Grid.Column="1" 
+                        Content="Cancel" 
+                        Command="{Binding CancelCommand}" 
+                        Style="{StaticResource SecondaryButtonStyle}" 
+                        Width="90"
+                        Margin="0,0,10,0"/>
+                <Button Grid.Column="2" 
+                        Content="{Binding SaveButtonText}" 
+                        Command="{Binding SaveCommand}" 
+                        Style="{StaticResource ActionButtonStyle}" 
+                        Width="90"
+                        IsDefault="True"/>
             </Grid>
         </Border>
     </Grid>
