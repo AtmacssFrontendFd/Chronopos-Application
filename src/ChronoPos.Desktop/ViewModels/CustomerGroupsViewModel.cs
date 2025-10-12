@@ -1,3 +1,4 @@
+using ChronoPos.Application.Constants;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
@@ -19,6 +20,7 @@ public partial class CustomerGroupsViewModel : ObservableObject
     private readonly ICustomerService _customerService;
     private readonly ISellingPriceTypeService _sellingPriceTypeService;
     private readonly IDiscountService _discountService;
+    private readonly ICurrentUserService _currentUserService;
 
     [ObservableProperty]
     private ObservableCollection<CustomerGroupDto> _customerGroups = new();
@@ -50,6 +52,15 @@ public partial class CustomerGroupsViewModel : ObservableObject
     [ObservableProperty]
     private string _statusMessage = string.Empty;
 
+    [ObservableProperty]
+    private bool canCreateCustomerGroup = false;
+
+    [ObservableProperty]
+    private bool canEditCustomerGroup = false;
+
+    [ObservableProperty]
+    private bool canDeleteCustomerGroup = false;
+
     /// <summary>
     /// Text for the active filter toggle button
     /// </summary>
@@ -75,13 +86,17 @@ public partial class CustomerGroupsViewModel : ObservableObject
         ICustomerGroupRelationService customerGroupRelationService,
         ICustomerService customerService,
         ISellingPriceTypeService sellingPriceTypeService,
-        IDiscountService discountService)
+        IDiscountService discountService,
+        ICurrentUserService currentUserService)
     {
         _customerGroupService = customerGroupService;
         _customerGroupRelationService = customerGroupRelationService;
         _customerService = customerService;
         _sellingPriceTypeService = sellingPriceTypeService;
         _discountService = discountService;
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+
+        InitializePermissions();
         
         // Initialize side panel view model
         SidePanelViewModel = new CustomerGroupSidePanelViewModel(
@@ -283,6 +298,22 @@ public partial class CustomerGroupsViewModel : ObservableObject
         {
             MessageBox.Show($"Customer Group Details:\n\nName: {customerGroup.Name}\nArabic Name: {customerGroup.NameAr}\nStatus: {customerGroup.Status}", 
                 "Customer Group Details", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    private void InitializePermissions()
+    {
+        try
+        {
+            CanCreateCustomerGroup = _currentUserService.HasPermission(ScreenNames.CUSTOMER_GROUPS, TypeMatrix.CREATE);
+            CanEditCustomerGroup = _currentUserService.HasPermission(ScreenNames.CUSTOMER_GROUPS, TypeMatrix.UPDATE);
+            CanDeleteCustomerGroup = _currentUserService.HasPermission(ScreenNames.CUSTOMER_GROUPS, TypeMatrix.DELETE);
+        }
+        catch (Exception)
+        {
+            CanCreateCustomerGroup = false;
+            CanEditCustomerGroup = false;
+            CanDeleteCustomerGroup = false;
         }
     }
 }

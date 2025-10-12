@@ -4,21 +4,23 @@ using ChronoPos.Desktop.Services;
 using ChronoPos.Infrastructure.Services;
 using ChronoPos.Domain.Entities;
 using System.Collections.ObjectModel;
+using System.Windows;
+using System.Windows.Media;
 
 namespace ChronoPos.Desktop.ViewModels;
 
 /// <summary>
-/// ViewModel for the Settings page
+/// ViewModel for the Settings page with module navigation
 /// </summary>
 public partial class SettingsViewModel : ObservableObject
 {
-    private readonly IThemeService _themeService;
-    private readonly IFontService _fontService;
-    private readonly ILocalizationService _localizationService;
-    private readonly IDatabaseLocalizationService _databaseLocalizationService;
-    private readonly IColorSchemeService _colorSchemeService;
-    private readonly ILayoutDirectionService _layoutDirectionService;
-    private readonly IZoomService _zoomService;
+    private readonly IThemeService _themeService = null!;
+    private readonly IFontService _fontService = null!;
+    private readonly ILocalizationService _localizationService = null!;
+    private readonly IDatabaseLocalizationService _databaseLocalizationService = null!;
+    private readonly IColorSchemeService _colorSchemeService = null!;
+    private readonly ILayoutDirectionService _layoutDirectionService = null!;
+    private readonly IZoomService _zoomService = null!;
 
     [ObservableProperty]
     private bool _isDarkTheme;
@@ -67,6 +69,28 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private ObservableCollection<KeyValuePair<ZoomLevel, string>> _availableZoomLevels = new();
+
+    [ObservableProperty]
+    private ObservableCollection<SettingsModuleInfo> _modules = new();
+
+    [ObservableProperty]
+    private string _pageTitle = "Settings";
+
+    [ObservableProperty]
+    private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
+
+    [ObservableProperty]
+    private string _currentView = "Modules"; // "Modules", "UserSettings", "ApplicationSettings"
+
+    /// <summary>
+    /// Navigation action for module navigation (set by parent)
+    /// </summary>
+    public Action<string>? NavigateToSettingsModuleAction { get; set; }
+
+    /// <summary>
+    /// Navigation action to go back (set by parent)
+    /// </summary>
+    public Action? NavigateBackAction { get; set; }
 
     public SettingsViewModel(IThemeService themeService, IFontService fontService, 
                             ILocalizationService localizationService, IDatabaseLocalizationService databaseLocalizationService,
@@ -122,6 +146,10 @@ public partial class SettingsViewModel : ObservableObject
             SafelyLoadAvailableOptions();
             Console.WriteLine("SettingsViewModel: Available options loaded");
             
+            Console.WriteLine("SettingsViewModel: Loading settings modules");
+            LoadSettingsModules();
+            Console.WriteLine("SettingsViewModel: Settings modules loaded");
+            
             Console.WriteLine("SettingsViewModel: Constructor completed successfully");
         }
         catch (Exception ex)
@@ -134,6 +162,133 @@ public partial class SettingsViewModel : ObservableObject
             StatusMessage = "Settings loaded with defaults due to initialization error";
         }
     }
+
+    #region Commands
+
+    [RelayCommand]
+    private void NavigateToSettingsModule(string moduleType)
+    {
+        Console.WriteLine($"Navigating to settings module: {moduleType}");
+        ChronoPos.Application.Logging.AppLogger.Log($"SettingsViewModel: NavigateToSettingsModule called with moduleType={moduleType}");
+        CurrentView = moduleType;
+        
+        if (NavigateToSettingsModuleAction != null)
+        {
+            ChronoPos.Application.Logging.AppLogger.Log($"SettingsViewModel: Invoking NavigateToSettingsModuleAction for {moduleType}");
+            NavigateToSettingsModuleAction(moduleType);
+            ChronoPos.Application.Logging.AppLogger.Log($"SettingsViewModel: NavigateToSettingsModuleAction completed for {moduleType}");
+        }
+        else
+        {
+            ChronoPos.Application.Logging.AppLogger.Log($"SettingsViewModel: NavigateToSettingsModuleAction is NULL!");
+        }
+    }
+
+    [RelayCommand]
+    private void BackToModules()
+    {
+        CurrentView = "Modules";
+    }
+
+    [RelayCommand]
+    private void GoBack()
+    {
+        Console.WriteLine("GoBack command triggered");
+        NavigateBackAction?.Invoke();
+    }
+
+    [RelayCommand]
+    private async Task RefreshModulesAsync()
+    {
+        LoadSettingsModules();
+        await Task.CompletedTask;
+    }
+
+    #endregion
+
+    #region Module Loading
+
+    private void LoadSettingsModules()
+    {
+        try
+        {
+            Modules.Clear();
+
+            var primaryColorBrush = GetPrimaryColorBrush();
+            var buttonBackgroundBrush = GetButtonBackgroundBrush();
+
+            // Add four setting modules
+            Modules.Add(new SettingsModuleInfo
+            {
+                ModuleType = "UserSettings",
+                Title = "User Settings",
+                Description = "",
+                IconBackground = primaryColorBrush,
+                ButtonBackground = buttonBackgroundBrush
+            });
+
+            Modules.Add(new SettingsModuleInfo
+            {
+                ModuleType = "ApplicationSettings",
+                Title = "Application Settings",
+                IconBackground = primaryColorBrush,
+                ButtonBackground = buttonBackgroundBrush
+            });
+
+            Modules.Add(new SettingsModuleInfo
+            {
+                ModuleType = "Roles",
+                Title = "Roles",
+                Description = "Manage user roles",
+                IconBackground = primaryColorBrush,
+                ButtonBackground = buttonBackgroundBrush
+            });
+
+            Modules.Add(new SettingsModuleInfo
+            {
+                ModuleType = "Permissions",
+                Title = "Permissions",
+                Description = "Manage permissions",
+                IconBackground = primaryColorBrush,
+                ButtonBackground = buttonBackgroundBrush
+            });
+
+            Console.WriteLine($"Loaded {Modules.Count} settings modules");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading settings modules: {ex.Message}");
+        }
+    }
+
+    private Brush GetPrimaryColorBrush()
+    {
+        try
+        {
+            var primaryColor = _colorSchemeService.CurrentPrimaryColor;
+            return new SolidColorBrush(primaryColor.Color);
+        }
+        catch
+        {
+            return new SolidColorBrush(Color.FromRgb(225, 175, 35)); // Default gold
+        }
+    }
+
+    private Brush GetButtonBackgroundBrush()
+    {
+        try
+        {
+            return SelectedTheme == "Dark"
+                ? new SolidColorBrush(Color.FromRgb(45, 45, 45))
+                : new SolidColorBrush(Color.FromRgb(255, 255, 255));
+        }
+        catch
+        {
+            return new SolidColorBrush(Color.FromRgb(255, 255, 255));
+        }
+    }
+
+    #endregion
 
     [RelayCommand]
     private void ToggleTheme()
@@ -350,6 +505,11 @@ public partial class SettingsViewModel : ObservableObject
     private void OnLayoutDirectionChanged(LayoutDirection newDirection)
     {
         UpdateLayoutDirectionProperties(newDirection);
+        CurrentFlowDirection = newDirection == LayoutDirection.RightToLeft
+            ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+        
+        // Reload modules with updated direction
+        LoadSettingsModules();
     }
 
     private void OnZoomChanged(ZoomLevel newZoomLevel)
@@ -765,4 +925,25 @@ public partial class SettingsViewModel : ObservableObject
             StatusMessage = $"Error changing zoom level: {ex.Message}";
         }
     }
+}
+
+/// <summary>
+/// Model class for settings module information
+/// </summary>
+public partial class SettingsModuleInfo : ObservableObject
+{
+    [ObservableProperty]
+    private string _moduleType = string.Empty;
+
+    [ObservableProperty]
+    private string _title = string.Empty;
+
+    [ObservableProperty]
+    private string _description = string.Empty;
+
+    [ObservableProperty]
+    private Brush _iconBackground = new SolidColorBrush(Colors.Blue);
+
+    [ObservableProperty]
+    private Brush _buttonBackground = new SolidColorBrush(Colors.White);
 }

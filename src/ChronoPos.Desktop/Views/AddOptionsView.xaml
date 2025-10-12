@@ -178,7 +178,7 @@
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel Orientation="Horizontal"
-                                HorizontalAlignment="Center"
+                                HorizontalAlignment="Left"
                                 ItemWidth="Auto"
                                 ItemHeight="Auto" />
                     </ItemsPanelTemplate>

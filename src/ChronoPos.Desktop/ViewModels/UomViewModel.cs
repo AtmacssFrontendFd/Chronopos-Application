@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.Constants;
 using ChronoPos.Application.DTOs;
 using System.Collections.ObjectModel;
 using System.Windows;
@@ -17,6 +18,7 @@ public partial class UomViewModel : ObservableObject, IDisposable
     #region Fields
     
     private readonly IUomService _uomService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly Action? _navigateToAddUom;
     private readonly Action<UnitOfMeasurementDto>? _navigateToEditUom;
     private readonly Action? _navigateBack;
@@ -108,6 +110,16 @@ public partial class UomViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _itemsCountText = "units";
 
+    // Permission Properties
+    [ObservableProperty]
+    private bool canCreateUom = false;
+
+    [ObservableProperty]
+    private bool canEditUom = false;
+
+    [ObservableProperty]
+    private bool canDeleteUom = false;
+
     // Table Column Headers
     [ObservableProperty]
     private string _columnName = "Name";
@@ -180,6 +192,7 @@ public partial class UomViewModel : ObservableObject, IDisposable
         ILayoutDirectionService layoutDirectionService,
         IFontService fontService,
         InfrastructureServices.IDatabaseLocalizationService databaseLocalizationService,
+        ICurrentUserService currentUserService,
         Action? navigateToAddUom = null,
         Action<UnitOfMeasurementDto>? navigateToEditUom = null,
         Action? navigateBack = null)
@@ -192,10 +205,14 @@ public partial class UomViewModel : ObservableObject, IDisposable
         _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
         _fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
         _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         
         _navigateToAddUom = navigateToAddUom;
         _navigateToEditUom = navigateToEditUom;
         _navigateBack = navigateBack;
+
+        // Initialize permissions
+        InitializePermissions();
 
         // Initialize current settings
         InitializeCurrentSettings();
@@ -637,6 +654,23 @@ public partial class UomViewModel : ObservableObject, IDisposable
         if (e.PropertyName == nameof(SearchText) || e.PropertyName == nameof(SelectedSearchType))
         {
             FilterUoms();
+        }
+    }
+
+    private void InitializePermissions()
+    {
+        try
+        {
+            CanCreateUom = _currentUserService.HasPermission(ScreenNames.UOM, TypeMatrix.CREATE);
+            CanEditUom = _currentUserService.HasPermission(ScreenNames.UOM, TypeMatrix.UPDATE);
+            CanDeleteUom = _currentUserService.HasPermission(ScreenNames.UOM, TypeMatrix.DELETE);
+        }
+        catch (Exception)
+        {
+            // Fail-secure: all permissions default to false
+            CanCreateUom = false;
+            CanEditUom = false;
+            CanDeleteUom = false;
         }
     }
 

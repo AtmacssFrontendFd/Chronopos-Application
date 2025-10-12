@@ -169,7 +169,8 @@
                 <!-- Add Payment Type Button -->
                 <Button Content="Add Payment Type"
                         Style="{StaticResource ActionButtonStyle}"
-                        Command="{Binding AddNewCommand}"/>
+                        Command="{Binding AddNewCommand}"
+                        Visibility="{Binding CanCreatePaymentType, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </StackPanel>
         </Grid>
 
@@ -481,13 +482,15 @@
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
-                                                Margin="2"/>
+                                                Margin="2"
+                                                Visibility="{Binding DataContext.CanEditPaymentType, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                         <Button Content="Delete" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Foreground="Red"
-                                                Margin="2"/>
+                                                Margin="2"
+                                                Visibility="{Binding DataContext.CanDeletePaymentType, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

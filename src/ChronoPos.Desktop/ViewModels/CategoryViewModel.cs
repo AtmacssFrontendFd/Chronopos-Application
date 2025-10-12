@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.Constants;
 using ChronoPos.Desktop.ViewModels;
 using ChronoPos.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,7 @@ namespace ChronoPos.Desktop.ViewModels
         private readonly IDiscountService _discountService;
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<CategoryViewModel> _logger;
+        private readonly ICurrentUserService _currentUserService;
         private readonly Action? _navigateBack;
 
         // Cache for discount information to avoid repeated service calls
@@ -49,18 +51,33 @@ namespace ChronoPos.Desktop.ViewModels
         [ObservableProperty]
         private int totalCategories;
 
+        // Permission Properties
+        [ObservableProperty]
+        private bool canCreateCategory = false;
+
+        [ObservableProperty]
+        private bool canEditCategory = false;
+
+        [ObservableProperty]
+        private bool canDeleteCategory = false;
+
         public CategoryViewModel(
             IProductService productService,
             IDiscountService discountService,
             IServiceProvider serviceProvider,
             ILogger<CategoryViewModel> logger,
+            ICurrentUserService currentUserService,
             Action? navigateBack = null)
         {
             _productService = productService ?? throw new ArgumentNullException(nameof(productService));
             _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
             _navigateBack = navigateBack;
+
+            // Initialize permissions
+            InitializePermissions();
 
             // Initialize commands
             BackCommand = new RelayCommand(GoBack);
@@ -447,6 +464,23 @@ namespace ChronoPos.Desktop.ViewModels
             }
 
             _navigateBack?.Invoke();
+        }
+
+        private void InitializePermissions()
+        {
+            try
+            {
+                CanCreateCategory = _currentUserService.HasPermission(ScreenNames.CATEGORY, TypeMatrix.CREATE);
+                CanEditCategory = _currentUserService.HasPermission(ScreenNames.CATEGORY, TypeMatrix.UPDATE);
+                CanDeleteCategory = _currentUserService.HasPermission(ScreenNames.CATEGORY, TypeMatrix.DELETE);
+            }
+            catch (Exception)
+            {
+                // Fail-secure: all permissions default to false
+                CanCreateCategory = false;
+                CanEditCategory = false;
+                CanDeleteCategory = false;
+            }
         }
 
         #endregion

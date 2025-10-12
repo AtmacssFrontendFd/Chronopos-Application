@@ -17,6 +17,7 @@ using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Domain.Enums;
 using System.Linq;
+using ChronoPos.Application.Constants;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -37,6 +38,7 @@ public partial class StockManagementViewModel : ObservableObject
     private readonly IProductBatchService? _productBatchService;
     private readonly IGoodsReceivedService? _goodsReceivedService;
     private readonly ISupplierService? _supplierService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly Action? _navigateToAddGrn;
     private readonly Action<long>? NavigateToEditGrn;
     private readonly Action? _navigateToAddStockTransfer;
@@ -229,6 +231,66 @@ public partial class StockManagementViewModel : ObservableObject
 
     [ObservableProperty]
     private string _refreshButtonText = "Refresh";
+
+    // Permission Properties for Inventory Module
+    [ObservableProperty]
+    private bool _canCreateInventory = false;
+
+    [ObservableProperty]
+    private bool _canEditInventory = false;
+
+    [ObservableProperty]
+    private bool _canDeleteInventory = false;
+
+    // Permission Properties for Stock Adjustment Module
+    [ObservableProperty]
+    private bool _canCreateStockAdjustment = false;
+
+    [ObservableProperty]
+    private bool _canEditStockAdjustment = false;
+
+    [ObservableProperty]
+    private bool _canDeleteStockAdjustment = false;
+
+    // Permission Properties for Stock Transfer Module
+    [ObservableProperty]
+    private bool _canCreateStockTransfer = false;
+
+    [ObservableProperty]
+    private bool _canEditStockTransfer = false;
+
+    [ObservableProperty]
+    private bool _canDeleteStockTransfer = false;
+
+    // Permission Properties for GRN Module
+    [ObservableProperty]
+    private bool _canCreateGrn = false;
+
+    [ObservableProperty]
+    private bool _canEditGrn = false;
+
+    [ObservableProperty]
+    private bool _canDeleteGrn = false;
+
+    // Permission Properties for Goods Return Module
+    [ObservableProperty]
+    private bool _canCreateGoodsReturn = false;
+
+    [ObservableProperty]
+    private bool _canEditGoodsReturn = false;
+
+    [ObservableProperty]
+    private bool _canDeleteGoodsReturn = false;
+
+    // Permission Properties for Goods Replace Module
+    [ObservableProperty]
+    private bool _canCreateGoodsReplace = false;
+
+    [ObservableProperty]
+    private bool _canEditGoodsReplace = false;
+
+    [ObservableProperty]
+    private bool _canDeleteGoodsReplace = false;
 
     #endregion
 
@@ -1417,6 +1479,7 @@ public partial class StockManagementViewModel : ObservableObject
         ILayoutDirectionService layoutDirectionService,
         IFontService fontService,
         InfrastructureServices.IDatabaseLocalizationService databaseLocalizationService,
+        ICurrentUserService currentUserService,
         IProductService? productService = null,
         IStockAdjustmentService? stockAdjustmentService = null,
         IProductBatchService? productBatchService = null,
@@ -1450,6 +1513,7 @@ public partial class StockManagementViewModel : ObservableObject
         _layoutDirectionService = layoutDirectionService;
         _fontService = fontService;
         _databaseLocalizationService = databaseLocalizationService;
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _productService = productService;
         _stockAdjustmentService = stockAdjustmentService;
         _productBatchService = productBatchService;
@@ -1524,6 +1588,9 @@ public partial class StockManagementViewModel : ObservableObject
 
         // Initialize with current settings
         InitializeSettings();
+        
+        // Initialize permissions
+        InitializePermissions();
         
         // Setup product search event handler
         AdjustProduct.PropertyChanged += OnAdjustProductPropertyChanged;
@@ -1614,6 +1681,59 @@ public partial class StockManagementViewModel : ObservableObject
     #endregion
 
     #region Private Methods
+
+    /// <summary>
+    /// Initialize permission properties based on current user's permissions
+    /// </summary>
+    private void InitializePermissions()
+    {
+        try
+        {
+            // Inventory permissions
+            CanCreateInventory = _currentUserService.HasPermission(ScreenNames.INVENTORY, TypeMatrix.CREATE);
+            CanEditInventory = _currentUserService.HasPermission(ScreenNames.INVENTORY, TypeMatrix.UPDATE);
+            CanDeleteInventory = _currentUserService.HasPermission(ScreenNames.INVENTORY, TypeMatrix.DELETE);
+
+            // Stock Adjustment permissions
+            CanCreateStockAdjustment = _currentUserService.HasPermission(ScreenNames.STOCK_ADJUSTMENT, TypeMatrix.CREATE);
+            CanEditStockAdjustment = _currentUserService.HasPermission(ScreenNames.STOCK_ADJUSTMENT, TypeMatrix.UPDATE);
+            CanDeleteStockAdjustment = _currentUserService.HasPermission(ScreenNames.STOCK_ADJUSTMENT, TypeMatrix.DELETE);
+
+            // Stock Transfer permissions
+            CanCreateStockTransfer = _currentUserService.HasPermission(ScreenNames.STOCK_TRANSFER, TypeMatrix.CREATE);
+            CanEditStockTransfer = _currentUserService.HasPermission(ScreenNames.STOCK_TRANSFER, TypeMatrix.UPDATE);
+            CanDeleteStockTransfer = _currentUserService.HasPermission(ScreenNames.STOCK_TRANSFER, TypeMatrix.DELETE);
+
+            // GRN permissions
+            CanCreateGrn = _currentUserService.HasPermission(ScreenNames.GRN, TypeMatrix.CREATE);
+            CanEditGrn = _currentUserService.HasPermission(ScreenNames.GRN, TypeMatrix.UPDATE);
+            CanDeleteGrn = _currentUserService.HasPermission(ScreenNames.GRN, TypeMatrix.DELETE);
+
+            // Goods Return permissions
+            CanCreateGoodsReturn = _currentUserService.HasPermission(ScreenNames.GOODS_RETURN, TypeMatrix.CREATE);
+            CanEditGoodsReturn = _currentUserService.HasPermission(ScreenNames.GOODS_RETURN, TypeMatrix.UPDATE);
+            CanDeleteGoodsReturn = _currentUserService.HasPermission(ScreenNames.GOODS_RETURN, TypeMatrix.DELETE);
+
+            // Goods Replace permissions
+            CanCreateGoodsReplace = _currentUserService.HasPermission(ScreenNames.GOODS_REPLACE, TypeMatrix.CREATE);
+            CanEditGoodsReplace = _currentUserService.HasPermission(ScreenNames.GOODS_REPLACE, TypeMatrix.UPDATE);
+            CanDeleteGoodsReplace = _currentUserService.HasPermission(ScreenNames.GOODS_REPLACE, TypeMatrix.DELETE);
+
+            AppLogger.LogInfo("Stock Management permissions initialized successfully", 
+                $"Inventory: C={CanCreateInventory},U={CanEditInventory},D={CanDeleteInventory} | " +
+                $"Adjustment: C={CanCreateStockAdjustment},U={CanEditStockAdjustment},D={CanDeleteStockAdjustment} | " +
+                $"Transfer: C={CanCreateStockTransfer},U={CanEditStockTransfer},D={CanDeleteStockTransfer} | " +
+                $"GRN: C={CanCreateGrn},U={CanEditGrn},D={CanDeleteGrn} | " +
+                $"Return: C={CanCreateGoodsReturn},U={CanEditGoodsReturn},D={CanDeleteGoodsReturn} | " +
+                $"Replace: C={CanCreateGoodsReplace},U={CanEditGoodsReplace},D={CanDeleteGoodsReplace}",
+                "viewmodel");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Failed to initialize Stock Management permissions", ex, "viewmodel");
+            // Fail-secure: all permissions default to false
+        }
+    }
 
     /// <summary>
     /// Initialize modules synchronously for immediate UI display

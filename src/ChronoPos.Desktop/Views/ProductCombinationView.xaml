@@ -169,7 +169,8 @@
                 <!-- Add Combination Button -->
                 <Button Content="Add Combination"
                         Style="{StaticResource ActionButtonStyle}"
-                        Command="{Binding AddCombinationCommand}"/>
+                        Command="{Binding AddCombinationCommand}"
+                        Visibility="{Binding CanCreateProductCombination, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </StackPanel>
         </Grid>
 
@@ -441,19 +442,22 @@
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.AddCombinationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
-                                                Margin="2"/>
+                                                Margin="2"
+                                                Visibility="{Binding DataContext.CanCreateProductCombination, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                         <Button Content="Edit" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.EditCombinationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Background="{DynamicResource WarningBrush}"
-                                                Margin="2"/>
+                                                Margin="2"
+                                                Visibility="{Binding DataContext.CanEditProductCombination, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                         <Button Content="Delete All" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.DeleteCombinationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Foreground="Red"
-                                                Margin="2"/>
+                                                Margin="2"
+                                                Visibility="{Binding DataContext.CanDeleteProductCombination, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

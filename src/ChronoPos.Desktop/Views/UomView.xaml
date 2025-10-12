@@ -169,7 +169,8 @@
                 <!-- Add UOM Button -->
                 <Button Content="Add UOM"
                         Style="{StaticResource ActionButtonStyle}"
-                        Command="{Binding AddUomCommand}"/>
+                        Command="{Binding AddUomCommand}"
+                        Visibility="{Binding CanCreateUom, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </StackPanel>
         </Grid>
 
@@ -507,13 +508,15 @@
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.EditUomCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
-                                                Margin="2"/>
+                                                Margin="2"
+                                                Visibility="{Binding DataContext.CanEditUom, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                         <Button Content="Delete" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.DeleteUomCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Foreground="Red"
-                                                Margin="2"/>
+                                                Margin="2"
+                                                Visibility="{Binding DataContext.CanDeleteUom, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                         <Button Content="📊" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.ViewConversionsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"

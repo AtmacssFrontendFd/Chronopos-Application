@@ -1,3 +1,4 @@
+using ChronoPos.Application.Constants;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -12,6 +13,7 @@ namespace ChronoPos.Desktop.ViewModels;
 public partial class StoreViewModel : ObservableObject
 {
     private readonly IStoreService _storeService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly Action? _navigateBack;
 
     [ObservableProperty]
@@ -41,6 +43,15 @@ public partial class StoreViewModel : ObservableObject
     [ObservableProperty]
     private bool showActiveOnly = false;
 
+    [ObservableProperty]
+    private bool canCreateStore = false;
+
+    [ObservableProperty]
+    private bool canEditStore = false;
+
+    [ObservableProperty]
+    private bool canDeleteStore = false;
+
     private readonly ICollectionView _filteredStoresView;
 
     public ICollectionView FilteredStores => _filteredStoresView;
@@ -48,10 +59,13 @@ public partial class StoreViewModel : ObservableObject
     public bool HasStores => Stores.Count > 0;
     public int TotalStores => Stores.Count;
 
-    public StoreViewModel(IStoreService storeService, Action? navigateBack = null)
+    public StoreViewModel(IStoreService storeService, ICurrentUserService currentUserService, Action? navigateBack = null)
     {
         _storeService = storeService;
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _navigateBack = navigateBack;
+
+        InitializePermissions();
         
         // Initialize filtered view
         _filteredStoresView = CollectionViewSource.GetDefaultView(Stores);
@@ -309,6 +323,22 @@ public partial class StoreViewModel : ObservableObject
         else
         {
             StatusMessage = "Navigation back not configured.";
+        }
+    }
+
+    private void InitializePermissions()
+    {
+        try
+        {
+            CanCreateStore = _currentUserService.HasPermission(ScreenNames.SHOP, TypeMatrix.CREATE);
+            CanEditStore = _currentUserService.HasPermission(ScreenNames.SHOP, TypeMatrix.UPDATE);
+            CanDeleteStore = _currentUserService.HasPermission(ScreenNames.SHOP, TypeMatrix.DELETE);
+        }
+        catch (Exception)
+        {
+            CanCreateStore = false;
+            CanEditStore = false;
+            CanDeleteStore = false;
         }
     }
 }

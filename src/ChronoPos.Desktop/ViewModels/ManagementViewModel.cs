@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ChronoPos.Application.Interfaces;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Infrastructure.Services;
 
@@ -25,6 +26,7 @@ public partial class ManagementViewModel : ObservableObject
     private readonly ILayoutDirectionService _layoutDirectionService;
     private readonly IFontService _fontService;
     private readonly IDatabaseLocalizationService _databaseLocalizationService;
+    private readonly ICurrentUserService _currentUserService;
 
     #endregion
 
@@ -71,6 +73,24 @@ public partial class ManagementViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
+
+    /// <summary>
+    /// Visibility for Product Management module (based on UMAC permissions)
+    /// </summary>
+    [ObservableProperty]
+    private bool _isProductManagementVisible = true;
+
+    /// <summary>
+    /// Visibility for Stock Management module (based on UMAC permissions)
+    /// </summary>
+    [ObservableProperty]
+    private bool _isStockManagementVisible = true;
+
+    /// <summary>
+    /// Visibility for Add Options module (based on UMAC permissions)
+    /// </summary>
+    [ObservableProperty]
+    private bool _isAddOptionsVisible = true;
 
     #endregion
 
@@ -119,7 +139,8 @@ public partial class ManagementViewModel : ObservableObject
         IColorSchemeService colorSchemeService,
         ILayoutDirectionService layoutDirectionService,
         IFontService fontService,
-        IDatabaseLocalizationService databaseLocalizationService)
+        IDatabaseLocalizationService databaseLocalizationService,
+        ICurrentUserService currentUserService)
     {
         _themeService = themeService;
         _zoomService = zoomService;
@@ -128,6 +149,7 @@ public partial class ManagementViewModel : ObservableObject
         _layoutDirectionService = layoutDirectionService;
         _fontService = fontService;
         _databaseLocalizationService = databaseLocalizationService;
+        _currentUserService = currentUserService;
 
         // Subscribe to settings changes
         _themeService.ThemeChanged += OnThemeChanged;
@@ -140,6 +162,9 @@ public partial class ManagementViewModel : ObservableObject
         // Initialize with current settings
         InitializeSettings();
         
+        // Initialize module visibility based on UMAC permissions
+        InitializeModuleVisibility();
+        
         // Load module data
         _ = LoadModuleDataAsync();
     }
@@ -147,6 +172,29 @@ public partial class ManagementViewModel : ObservableObject
     #endregion
 
     #region Private Methods
+
+    /// <summary>
+    /// Initialize module visibility based on UMAC permissions
+    /// Hides modules the user doesn't have any permission to access
+    /// </summary>
+    private void InitializeModuleVisibility()
+    {
+        try
+        {
+            // Check if user has ANY permission for each module
+            IsProductManagementVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PRODUCT_MANAGEMENT);
+            IsStockManagementVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.STOCK_MANAGEMENT);
+            IsAddOptionsVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.ADD_OPTIONS);
+        }
+        catch (Exception ex)
+        {
+            // Default to showing all modules if error occurs
+            System.Diagnostics.Debug.WriteLine($"Error initializing module visibility: {ex.Message}");
+            IsProductManagementVisible = true;
+            IsStockManagementVisible = true;
+            IsAddOptionsVisible = true;
+        }
+    }
 
     /// <summary>
     /// Initialize all settings with current values
@@ -187,29 +235,33 @@ public partial class ManagementViewModel : ObservableObject
         // Create modules with localized content from database (All 7 modules including Add Options)
         var moduleData = new[]
         {
-            new { Type = "Stock", TitleKey = "management.stock", CountLabel = "Items", Count = await GetStockCountAsync() },
-            new { Type = "Product", TitleKey = "management.products", CountLabel = "Products", Count = await GetProductCountAsync() },
-            new { Type = "Supplier", TitleKey = "management.supplier", CountLabel = "Suppliers", Count = await GetSupplierCountAsync() },
-            new { Type = "Customer", TitleKey = "management.customers", CountLabel = "Customers", Count = await GetCustomerCountAsync() },
-            new { Type = "Payment", TitleKey = "management.payment", CountLabel = "Transactions", Count = await GetPaymentCountAsync() },
-            new { Type = "Service", TitleKey = "management.service", CountLabel = "Services", Count = await GetServiceCountAsync() },
-            new { Type = "AddOptions", TitleKey = "management.add_options", CountLabel = "Options", Count = 14 }
+            new { Type = "Stock", TitleKey = "management.stock", CountLabel = "Items", Count = await GetStockCountAsync(), IsVisible = IsStockManagementVisible },
+            new { Type = "Product", TitleKey = "management.products", CountLabel = "Products", Count = await GetProductCountAsync(), IsVisible = IsProductManagementVisible },
+            new { Type = "Supplier", TitleKey = "management.supplier", CountLabel = "Suppliers", Count = await GetSupplierCountAsync(), IsVisible = true },
+            new { Type = "Customer", TitleKey = "management.customers", CountLabel = "Customers", Count = await GetCustomerCountAsync(), IsVisible = true },
+            new { Type = "Payment", TitleKey = "management.payment", CountLabel = "Transactions", Count = await GetPaymentCountAsync(), IsVisible = true },
+            new { Type = "Service", TitleKey = "management.service", CountLabel = "Services", Count = await GetServiceCountAsync(), IsVisible = true },
+            new { Type = "AddOptions", TitleKey = "management.add_options", CountLabel = "Options", Count = 14, IsVisible = IsAddOptionsVisible }
         };
 
-        // Add modules to collection - All use the same primary color
+        // Add modules to collection - All use the same primary color - Only add visible modules
         for (int i = 0; i < moduleData.Length; i++)
         {
             var data = moduleData[i];
             
-            Modules.Add(new ManagementModuleInfo
+            // Only add module if user has permission to see it
+            if (data.IsVisible)
             {
-                ModuleType = data.Type,
-                Title = await _databaseLocalizationService.GetTranslationAsync(data.TitleKey),
-                ItemCount = data.Count,
-                ItemCountLabel = data.CountLabel, // TODO: Make this dynamic too
-                IconBackground = primaryColorBrush, // Same primary color for all icons
-                ButtonBackground = buttonBackgroundBrush
-            });
+                Modules.Add(new ManagementModuleInfo
+                {
+                    ModuleType = data.Type,
+                    Title = await _databaseLocalizationService.GetTranslationAsync(data.TitleKey),
+                    ItemCount = data.Count,
+                    ItemCountLabel = data.CountLabel, // TODO: Make this dynamic too
+                    IconBackground = primaryColorBrush, // Same primary color for all icons
+                    ButtonBackground = buttonBackgroundBrush
+                });
+            }
         }
         
         // Reorder modules based on current direction after loading

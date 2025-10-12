@@ -172,7 +172,8 @@
                 <!-- Add Attribute Button -->
                 <Button Content="Add Attribute"
                         Style="{StaticResource ActionButtonStyle}"
-                        Command="{Binding AddAttributeCommand}"/>
+                        Command="{Binding AddAttributeCommand}"
+                        Visibility="{Binding CanCreateProductAttribute, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </StackPanel>
         </Grid>
 
@@ -475,13 +476,15 @@
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.EditAttributeValueCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
-                                                Margin="2"/>
+                                                Margin="2"
+                                                Visibility="{Binding DataContext.CanEditProductAttribute, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                         <Button Content="Delete" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.DeleteAttributeValueCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Foreground="Red"
-                                                Margin="2"/>
+                                                Margin="2"
+                                                Visibility="{Binding DataContext.CanDeleteProductAttribute, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                         <Button Content="🖨️" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.ViewAttributeDetailsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"

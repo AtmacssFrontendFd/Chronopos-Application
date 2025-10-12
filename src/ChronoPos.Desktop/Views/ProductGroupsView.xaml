@@ -169,7 +169,8 @@
                 <!-- Add Product Group Button -->
                 <Button Content="Add Product Group"
                         Style="{StaticResource ActionButtonStyle}"
-                        Command="{Binding AddProductGroupCommand}"/>
+                        Command="{Binding AddProductGroupCommand}"
+                        Visibility="{Binding CanCreateProductGroup, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </StackPanel>
         </Grid>
 
@@ -497,13 +498,15 @@
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.EditProductGroupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
-                                                Margin="2"/>
+                                                Margin="2"
+                                                Visibility="{Binding DataContext.CanEditProductGroup, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                         <Button Content="Delete" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.DeleteProductGroupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Foreground="Red"
-                                                Margin="2"/>
+                                                Margin="2"
+                                                Visibility="{Binding DataContext.CanDeleteProductGroup, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

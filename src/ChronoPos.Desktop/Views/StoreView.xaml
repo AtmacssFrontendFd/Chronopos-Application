@@ -169,7 +169,8 @@
                 <!-- Add Store Button -->
                 <Button Content="Add Store"
                         Style="{StaticResource ActionButtonStyle}"
-                        Command="{Binding AddStoreCommand}"/>
+                        Command="{Binding AddStoreCommand}"
+                        Visibility="{Binding CanCreateStore, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </StackPanel>
         </Grid>
 
@@ -519,11 +520,13 @@
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.EditStoreCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
+                                                Visibility="{Binding DataContext.CanEditStore, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                 Margin="2"/>
                                         <Button Content="Delete" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.DeleteStoreCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
+                                                Visibility="{Binding DataContext.CanDeleteStore, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                 Foreground="Red"
                                                 Margin="2"/>
                                         <Button Content="Default" 

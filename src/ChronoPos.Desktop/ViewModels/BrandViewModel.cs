@@ -1,5 +1,6 @@
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.Constants;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -12,6 +13,7 @@ namespace ChronoPos.Desktop.ViewModels;
 public partial class BrandViewModel : ObservableObject
 {
     private readonly IBrandService _brandService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly Action? _navigateBack;
 
     [ObservableProperty]
@@ -41,6 +43,16 @@ public partial class BrandViewModel : ObservableObject
     [ObservableProperty]
     private bool showActiveOnly = false;
 
+    // Permission Properties
+    [ObservableProperty]
+    private bool canCreateBrand = false;
+
+    [ObservableProperty]
+    private bool canEditBrand = false;
+
+    [ObservableProperty]
+    private bool canDeleteBrand = false;
+
     private readonly ICollectionView _filteredBrandsView;
 
     public ICollectionView FilteredBrands => _filteredBrandsView;
@@ -48,10 +60,14 @@ public partial class BrandViewModel : ObservableObject
     public bool HasBrands => Brands.Count > 0;
     public int TotalBrands => Brands.Count;
 
-    public BrandViewModel(IBrandService brandService, Action? navigateBack = null)
+    public BrandViewModel(IBrandService brandService, ICurrentUserService currentUserService, Action? navigateBack = null)
     {
         _brandService = brandService;
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _navigateBack = navigateBack;
+        
+        // Initialize permissions
+        InitializePermissions();
         
         // Initialize filtered view
         _filteredBrandsView = CollectionViewSource.GetDefaultView(Brands);
@@ -273,6 +289,23 @@ public partial class BrandViewModel : ObservableObject
         SearchText = string.Empty;
         ShowActiveOnly = false;
         StatusMessage = "Filters cleared.";
+    }
+
+    private void InitializePermissions()
+    {
+        try
+        {
+            CanCreateBrand = _currentUserService.HasPermission(ScreenNames.BRAND, TypeMatrix.CREATE);
+            CanEditBrand = _currentUserService.HasPermission(ScreenNames.BRAND, TypeMatrix.UPDATE);
+            CanDeleteBrand = _currentUserService.HasPermission(ScreenNames.BRAND, TypeMatrix.DELETE);
+        }
+        catch (Exception)
+        {
+            // Fail-secure: all permissions default to false
+            CanCreateBrand = false;
+            CanEditBrand = false;
+            CanDeleteBrand = false;
+        }
     }
 
     private void GoBack()

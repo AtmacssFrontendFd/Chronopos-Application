@@ -160,19 +160,22 @@
                                                 Command="{Binding DataContext.EditCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Background="{DynamicResource WarningBrush}"
-                                                Margin="2,0"/>
+                                                Margin="2,0"
+                                                Visibility="{Binding DataContext.CanEditCategory, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                         <Button Content="Add Sub" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.AddSubCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Background="{DynamicResource SuccessBrush}"
-                                                Margin="2,0"/>
+                                                Margin="2,0"
+                                                Visibility="{Binding DataContext.CanCreateCategory, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                         <Button Content="Delete" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.DeleteCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Background="{DynamicResource DangerBrush}"
-                                                Margin="2,0"/>
+                                                Margin="2,0"
+                                                Visibility="{Binding DataContext.CanDeleteCategory, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                     </StackPanel>
                                 </Grid>
                             </Border>
@@ -238,7 +241,8 @@
                 <Button Grid.Column="1"
                         Content="+ Add Category"
                         Style="{StaticResource ActionButtonStyle}"
-                        Command="{Binding AddCategoryCommand}"/>
+                        Command="{Binding AddCategoryCommand}"
+                        Visibility="{Binding CanCreateCategory, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </Grid>
 
             <!-- Search and Filters -->
