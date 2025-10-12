@@ -21,12 +21,19 @@ public static class ScreenNames
     // ==========================================
     
     public const string DASHBOARD = "Dashboard";
-    public const string TRANSACTIONS = "Transactions";
-    public const string MANAGEMENT = "Management";
+    public const string SALES_WINDOW = "SalesWindow";  // Previously TRANSACTIONS
+    public const string TRANSACTION = "Transaction";    // New Transaction button
+    public const string BACK_OFFICE = "BackOffice";     // Previously MANAGEMENT
     public const string RESERVATION = "Reservation";
     public const string ORDER_TABLE = "OrderTable";
     public const string REPORTS = "Reports";
     public const string SETTINGS = "Settings";
+    
+    // Legacy constants (for backward compatibility - deprecated)
+    [Obsolete("Use SALES_WINDOW instead")]
+    public const string TRANSACTIONS = "Transactions";
+    [Obsolete("Use BACK_OFFICE instead")]
+    public const string MANAGEMENT = "Management";
 
     // ==========================================
     // MANAGEMENT SECTION SCREENS
@@ -38,7 +45,6 @@ public static class ScreenNames
     public const string SUPPLIER_MANAGEMENT = "SupplierManagement";
     public const string PAYMENT_MANAGEMENT = "PaymentManagement";
     public const string SERVICE_MANAGEMENT = "ServiceManagement";
-    public const string ADD_OPTIONS = "AddOptions";
 
     // ==========================================
     // STOCK MANAGEMENT SUB-MODULES (Tabs)
@@ -52,7 +58,7 @@ public static class ScreenNames
     public const string GOODS_REPLACE = "GoodsReplace";
 
     // ==========================================
-    // ADD OPTIONS SCREENS
+    // OTHERS SCREENS (Formerly "Add Options")
     // ==========================================
     
     public const string BRAND = "Brand";
@@ -74,10 +80,18 @@ public static class ScreenNames
     // SETTINGS SCREENS
     // ==========================================
     
-    public const string USER_SETTINGS = "UserSettings";
-    public const string APPLICATION_SETTINGS = "ApplicationSettings";
+    public const string CLIENT_SETTINGS = "ClientSettings";        // Previously USER_SETTINGS
+    public const string GLOBAL_SETTINGS = "GlobalSettings";        // Previously APPLICATION_SETTINGS
+    public const string ADD_OPTIONS = "AddOptions";                // Moved from Management, displays as "Others"
     public const string ROLES = "Roles";
     public const string PERMISSIONS = "Permissions";
+    public const string SERVICES = "Services";                     // New Services screen
+    
+    // Legacy constants (for backward compatibility - deprecated)
+    [Obsolete("Use CLIENT_SETTINGS instead")]
+    public const string USER_SETTINGS = "UserSettings";
+    [Obsolete("Use GLOBAL_SETTINGS instead")]
+    public const string APPLICATION_SETTINGS = "ApplicationSettings";
 
     // ==========================================
     // HELPER: Get All Screen Names
@@ -92,8 +106,9 @@ public static class ScreenNames
         {
             // Main Views
             DASHBOARD,
-            TRANSACTIONS,
-            MANAGEMENT,
+            SALES_WINDOW,
+            TRANSACTION,
+            BACK_OFFICE,
             RESERVATION,
             ORDER_TABLE,
             REPORTS,
@@ -106,7 +121,6 @@ public static class ScreenNames
             SUPPLIER_MANAGEMENT,
             PAYMENT_MANAGEMENT,
             SERVICE_MANAGEMENT,
-            ADD_OPTIONS,
             
             // Stock Management Sub-modules
             INVENTORY,
@@ -116,7 +130,7 @@ public static class ScreenNames
             GOODS_RETURN,
             GOODS_REPLACE,
             
-            // Add Options Screens
+            // Others Screens (Formerly Add Options)
             BRAND,
             CATEGORY,
             PRODUCT_ATTRIBUTES,
@@ -133,10 +147,12 @@ public static class ScreenNames
             DISCOUNTS,
             
             // Settings Screens
-            USER_SETTINGS,
-            APPLICATION_SETTINGS,
+            CLIENT_SETTINGS,
+            GLOBAL_SETTINGS,
+            ADD_OPTIONS,
             ROLES,
-            PERMISSIONS
+            PERMISSIONS,
+            SERVICES
         };
     }
 
@@ -168,8 +184,9 @@ public static class ScreenNames
         {
             ALL_SCREENS => "-- All Screens --",
             DASHBOARD => "Dashboard",
-            TRANSACTIONS => "Transactions",
-            MANAGEMENT => "Management",
+            SALES_WINDOW => "Sales Window",
+            TRANSACTION => "Transaction",
+            BACK_OFFICE => "Back Office",
             RESERVATION => "Reservation",
             ORDER_TABLE => "Order Table",
             REPORTS => "Reports",
@@ -180,7 +197,6 @@ public static class ScreenNames
             SUPPLIER_MANAGEMENT => "Supplier Management",
             PAYMENT_MANAGEMENT => "Payment Management",
             SERVICE_MANAGEMENT => "Service Management",
-            ADD_OPTIONS => "Add Options",
             INVENTORY => "Inventory",
             STOCK_ADJUSTMENT => "Stock Adjustment",
             STOCK_TRANSFER => "Stock Transfer",
@@ -201,10 +217,12 @@ public static class ScreenNames
             UOM => "Unit of Measure (UOM)",
             SHOP => "Shop",
             DISCOUNTS => "Discounts",
-            USER_SETTINGS => "User Settings",
-            APPLICATION_SETTINGS => "Application Settings",
+            CLIENT_SETTINGS => "Client Settings",
+            GLOBAL_SETTINGS => "Global Settings",
+            ADD_OPTIONS => "Others",
             ROLES => "Roles",
             PERMISSIONS => "Permissions",
+            SERVICES => "Services",
             _ => screenName
         };
     }

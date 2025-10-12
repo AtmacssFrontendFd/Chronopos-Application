@@ -1295,8 +1295,8 @@ public class LanguageSeedingService : ILanguageSeedingService
                 "add_options.page_title",
                 new Dictionary<string, string>
                 {
-                    { "en", "Add Options" },
-                    { "ur", "اضافی اختیارات" }
+                    { "en", "Others" },
+                    { "ur", "دیگر" }
                 }
             },
             {
@@ -1413,7 +1413,7 @@ public class LanguageSeedingService : ILanguageSeedingService
             }
         };
 
-        await SeedTranslationCategory("Add Options", addOptionsTranslations, localizationService);
+        await SeedTranslationCategory("Others", addOptionsTranslations, localizationService);
     }
 
     private async Task SeedTranslationCategory(string category, Dictionary<string, Dictionary<string, string>> translations, IDatabaseLocalizationService localizationService)

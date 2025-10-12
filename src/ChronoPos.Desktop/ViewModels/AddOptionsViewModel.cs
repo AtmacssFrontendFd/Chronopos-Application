@@ -14,8 +14,8 @@ using ChronoPos.Application.Constants;
 namespace ChronoPos.Desktop.ViewModels;
 
 /// <summary>
-/// ViewModel for the Add Options page with all add-on modules
-/// Provides 14 different add option modules for various data management tasks
+/// ViewModel for the Others page with all add-on modules
+/// Provides 14 different modules for various data management tasks
 /// </summary>
 public partial class AddOptionsViewModel : ObservableObject
 {
@@ -40,7 +40,7 @@ public partial class AddOptionsViewModel : ObservableObject
     #region Observable Properties
 
     /// <summary>
-    /// Collection of add options modules
+    /// Collection of modules in Others section
     /// </summary>
     [ObservableProperty]
     private ObservableCollection<AddOptionsModuleInfo> _addOptionsModules = new();
@@ -49,7 +49,7 @@ public partial class AddOptionsViewModel : ObservableObject
     /// Current page title with localization support
     /// </summary>
     [ObservableProperty]
-    private string _pageTitle = "Add Options";
+    private string _pageTitle = "Others";
 
     /// <summary>
     /// Current theme (Light/Dark)
@@ -186,7 +186,7 @@ public partial class AddOptionsViewModel : ObservableObject
     public Action? GoBackAction { get; set; }
 
     /// <summary>
-    /// Command to navigate to a specific add options module
+    /// Command to navigate to a specific module in Others section
     /// </summary>
     [RelayCommand]
     private void NavigateToModule(string moduleType)
@@ -339,7 +339,7 @@ public partial class AddOptionsViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Load all add options modules with their respective data
+    /// Load all modules in Others section with their respective data
     /// </summary>
     private async Task LoadModulesAsync()
     {
@@ -354,7 +354,7 @@ public partial class AddOptionsViewModel : ObservableObject
                 var primaryColorBrush = GetPrimaryColorBrush();
                 var buttonBackgroundBrush = GetButtonBackgroundBrush();
 
-                // Create all 14 add options modules with visibility flags
+                // Create all 14 modules with visibility flags
                 var moduleData = new[]
                 {
                     new { Type = "Brand", TitleKey = "add_options.brand", CountLabel = "Brands", Count = await GetBrandCountAsync(), IsVisible = IsBrandVisible },
@@ -394,13 +394,13 @@ public partial class AddOptionsViewModel : ObservableObject
                 }
                 
                 // Update page title
-                PageTitle = await _databaseLocalizationService.GetTranslationAsync("add_options.page_title") ?? "Add Options";
+                PageTitle = await _databaseLocalizationService.GetTranslationAsync("add_options.page_title") ?? "Others";
             });
         }
         catch (Exception ex)
         {
             // Log error (in production, use proper logging)
-            System.Diagnostics.Debug.WriteLine($"Error loading add options modules: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Error loading modules: {ex.Message}");
         }
     }
 
@@ -656,7 +656,7 @@ public partial class AddOptionsViewModel : ObservableObject
 }
 
 /// <summary>
-/// Information about an add options module
+/// Information about a module in the Others section
 /// </summary>
 public class AddOptionsModuleInfo : INotifyPropertyChanged
 {

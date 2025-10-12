@@ -1768,11 +1768,12 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
         modelBuilder.Entity<Domain.Entities.LanguageKeyword>().HasData(
             // Main Navigation
             new Domain.Entities.LanguageKeyword { Id = 1, Key = "nav.dashboard", Description = "Dashboard navigation item" },
-            new Domain.Entities.LanguageKeyword { Id = 2, Key = "nav.management", Description = "Management navigation item" },
+            new Domain.Entities.LanguageKeyword { Id = 2, Key = "nav.management", Description = "Back Office navigation item (formerly Management)" },
             new Domain.Entities.LanguageKeyword { Id = 3, Key = "nav.customers", Description = "Customers navigation item" },
-            new Domain.Entities.LanguageKeyword { Id = 4, Key = "nav.sales", Description = "Sales navigation item" },
+            new Domain.Entities.LanguageKeyword { Id = 4, Key = "nav.sales", Description = "Sales Window navigation item (formerly Transactions)" },
             new Domain.Entities.LanguageKeyword { Id = 5, Key = "nav.settings", Description = "Settings navigation item" },
             new Domain.Entities.LanguageKeyword { Id = 6, Key = "nav.logout", Description = "Logout button" },
+            new Domain.Entities.LanguageKeyword { Id = 121, Key = "nav.transaction", Description = "Transaction navigation item (NEW)" },
 
             // Common Buttons
             new Domain.Entities.LanguageKeyword { Id = 7, Key = "btn.save", Description = "Save button" },
@@ -1832,6 +1833,12 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             new Domain.Entities.LanguageKeyword { Id = 45, Key = "management.customers", Description = "Customer Module" },
             new Domain.Entities.LanguageKeyword { Id = 46, Key = "management.payment", Description = "Payment Options" },
             new Domain.Entities.LanguageKeyword { Id = 47, Key = "management.service", Description = "Service Charge" },
+
+            // Settings Modules (NEW - for renamed/new modules)
+            new Domain.Entities.LanguageKeyword { Id = 123, Key = "settings.client_settings", Description = "Client Settings module (formerly User Settings)" },
+            new Domain.Entities.LanguageKeyword { Id = 124, Key = "settings.global_settings", Description = "Global Settings module (formerly Application Settings)" },
+            new Domain.Entities.LanguageKeyword { Id = 125, Key = "settings.others", Description = "Others module (formerly Add Options, moved from Management)" },
+            new Domain.Entities.LanguageKeyword { Id = 126, Key = "settings.services", Description = "Services module (NEW)" },
 
             // UI Buttons
             new Domain.Entities.LanguageKeyword { Id = 48, Key = "btn.back", Description = "Back button" },
@@ -1926,11 +1933,12 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
         modelBuilder.Entity<Domain.Entities.LabelTranslation>().HasData(
             // Navigation - English
             new Domain.Entities.LabelTranslation { Id = 1, LanguageId = 1, TranslationKey = "nav.dashboard", Value = "Dashboard", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 2, LanguageId = 1, TranslationKey = "nav.management", Value = "Management", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 2, LanguageId = 1, TranslationKey = "nav.management", Value = "Back Office", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
             new Domain.Entities.LabelTranslation { Id = 3, LanguageId = 1, TranslationKey = "nav.customers", Value = "Customers", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 4, LanguageId = 1, TranslationKey = "nav.sales", Value = "Sales", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 4, LanguageId = 1, TranslationKey = "nav.sales", Value = "Sales Window", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
             new Domain.Entities.LabelTranslation { Id = 5, LanguageId = 1, TranslationKey = "nav.settings", Value = "Settings", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
             new Domain.Entities.LabelTranslation { Id = 6, LanguageId = 1, TranslationKey = "nav.logout", Value = "Logout", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 121, LanguageId = 1, TranslationKey = "nav.transaction", Value = "Transaction", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
 
             // Buttons - English
             new Domain.Entities.LabelTranslation { Id = 7, LanguageId = 1, TranslationKey = "btn.save", Value = "Save", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
@@ -1987,11 +1995,12 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
 
             // Navigation - Urdu
             new Domain.Entities.LabelTranslation { Id = 46, LanguageId = 2, TranslationKey = "nav.dashboard", Value = "ڈیش بورڈ", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 47, LanguageId = 2, TranslationKey = "nav.management", Value = "انتظام", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 47, LanguageId = 2, TranslationKey = "nav.management", Value = "بیک آفس", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
             new Domain.Entities.LabelTranslation { Id = 48, LanguageId = 2, TranslationKey = "nav.customers", Value = "گاہک", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 49, LanguageId = 2, TranslationKey = "nav.sales", Value = "فروخت", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 49, LanguageId = 2, TranslationKey = "nav.sales", Value = "سیلز ونڈو", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
             new Domain.Entities.LabelTranslation { Id = 50, LanguageId = 2, TranslationKey = "nav.settings", Value = "ترتیبات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
             new Domain.Entities.LabelTranslation { Id = 51, LanguageId = 2, TranslationKey = "nav.logout", Value = "لاگ آؤٹ", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 122, LanguageId = 2, TranslationKey = "nav.transaction", Value = "لین دین", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
 
             // Buttons - Urdu
             new Domain.Entities.LabelTranslation { Id = 52, LanguageId = 2, TranslationKey = "btn.save", Value = "محفوظ کریں", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
@@ -2044,7 +2053,19 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             new Domain.Entities.LabelTranslation { Id = 87, LanguageId = 2, TranslationKey = "layout.rtl", Value = "دائیں سے بائیں (RTL)", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
             new Domain.Entities.LabelTranslation { Id = 88, LanguageId = 2, TranslationKey = "font.small", Value = "چھوٹا", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
             new Domain.Entities.LabelTranslation { Id = 89, LanguageId = 2, TranslationKey = "font.medium", Value = "درمیانہ", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 90, LanguageId = 2, TranslationKey = "font.large", Value = "بڑا", Status = "Active", CreatedBy = "System", CreatedAt = baseDate }
+            new Domain.Entities.LabelTranslation { Id = 90, LanguageId = 2, TranslationKey = "font.large", Value = "بڑا", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+
+            // Settings Modules - English (NEW)
+            new Domain.Entities.LabelTranslation { Id = 127, LanguageId = 1, TranslationKey = "settings.client_settings", Value = "Client Settings", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 128, LanguageId = 1, TranslationKey = "settings.global_settings", Value = "Global Settings", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 129, LanguageId = 1, TranslationKey = "settings.others", Value = "Others", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 130, LanguageId = 1, TranslationKey = "settings.services", Value = "Services", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+
+            // Settings Modules - Urdu (NEW)
+            new Domain.Entities.LabelTranslation { Id = 131, LanguageId = 2, TranslationKey = "settings.client_settings", Value = "کلائنٹ کی ترتیبات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 132, LanguageId = 2, TranslationKey = "settings.global_settings", Value = "عالمی ترتیبات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 133, LanguageId = 2, TranslationKey = "settings.others", Value = "دیگر", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 134, LanguageId = 2, TranslationKey = "settings.services", Value = "خدمات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate }
         );
 
         // Seed Brands

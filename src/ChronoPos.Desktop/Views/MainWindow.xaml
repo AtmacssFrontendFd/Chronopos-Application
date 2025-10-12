@@ -214,14 +214,21 @@
                                                    Margin="0,0,0,5"/>
                             
                             <controls:SidebarButton IconName="transactions"
-                                                   ButtonText="{Binding TransactionsButtonText}"
+                                                   ButtonText="{Binding SalesWindowButtonText}"
                                                    Command="{Binding ShowTransactionsCommand}"
                                                    IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=Transactions}"
                                                    Visibility="{Binding IsTransactionsVisible, Converter={StaticResource BoolToVisibilityConverter}}"
                                                    Margin="0,0,0,5"/>
                             
+                            <controls:SidebarButton IconName="transaction"
+                                                   ButtonText="{Binding TransactionButtonText}"
+                                                   Command="{Binding ShowTransactionCommand}"
+                                                   IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=Transaction}"
+                                                   Visibility="{Binding IsTransactionVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                   Margin="0,0,0,5"/>
+                            
                             <controls:SidebarButton IconName="management"
-                                                   ButtonText="{Binding ManagementButtonText}"
+                                                   ButtonText="{Binding BackOfficeButtonText}"
                                                    Command="{Binding ShowManagementCommand}"
                                                    IsSelected="{Binding SelectedPage, Converter={StaticResource EqualsConverter}, ConverterParameter=Management}"
                                                    Visibility="{Binding IsManagementVisible, Converter={StaticResource BoolToVisibilityConverter}}"

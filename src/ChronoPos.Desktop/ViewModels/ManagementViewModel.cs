@@ -87,7 +87,7 @@ public partial class ManagementViewModel : ObservableObject
     private bool _isStockManagementVisible = true;
 
     /// <summary>
-    /// Visibility for Add Options module (based on UMAC permissions)
+    /// Visibility for Others module (based on UMAC permissions) - Moved to Settings
     /// </summary>
     [ObservableProperty]
     private bool _isAddOptionsVisible = true;
@@ -232,7 +232,7 @@ public partial class ManagementViewModel : ObservableObject
         var primaryColorBrush = GetPrimaryColorBrush();
         var buttonBackgroundBrush = GetButtonBackgroundBrush();
 
-        // Create modules with localized content from database (All 7 modules including Add Options)
+        // Create modules with localized content from database (6 modules - AddOptions moved to Settings)
         var moduleData = new[]
         {
             new { Type = "Stock", TitleKey = "management.stock", CountLabel = "Items", Count = await GetStockCountAsync(), IsVisible = IsStockManagementVisible },
@@ -240,8 +240,7 @@ public partial class ManagementViewModel : ObservableObject
             new { Type = "Supplier", TitleKey = "management.supplier", CountLabel = "Suppliers", Count = await GetSupplierCountAsync(), IsVisible = true },
             new { Type = "Customer", TitleKey = "management.customers", CountLabel = "Customers", Count = await GetCustomerCountAsync(), IsVisible = true },
             new { Type = "Payment", TitleKey = "management.payment", CountLabel = "Transactions", Count = await GetPaymentCountAsync(), IsVisible = true },
-            new { Type = "Service", TitleKey = "management.service", CountLabel = "Services", Count = await GetServiceCountAsync(), IsVisible = true },
-            new { Type = "AddOptions", TitleKey = "management.add_options", CountLabel = "Options", Count = 14, IsVisible = IsAddOptionsVisible }
+            new { Type = "Service", TitleKey = "management.service", CountLabel = "Services", Count = await GetServiceCountAsync(), IsVisible = true }
         };
 
         // Add modules to collection - All use the same primary color - Only add visible modules

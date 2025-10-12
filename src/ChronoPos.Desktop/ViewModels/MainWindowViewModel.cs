@@ -50,10 +50,13 @@ public partial class MainWindowViewModel : ObservableObject
     private string dashboardButtonText = "Dashboard";
 
     [ObservableProperty]
-    private string transactionsButtonText = "Transactions";
+    private string salesWindowButtonText = "Sales Window";
 
     [ObservableProperty]
-    private string managementButtonText = "Management";
+    private string transactionButtonText = "Transaction";
+
+    [ObservableProperty]
+    private string backOfficeButtonText = "Back Office";
 
     [ObservableProperty]
     private string reservationButtonText = "Reservation";
@@ -76,6 +79,9 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private bool isTransactionsVisible = true;
+
+    [ObservableProperty]
+    private bool isTransactionVisible = true;
 
     [ObservableProperty]
     private bool isManagementVisible = true;
@@ -198,14 +204,15 @@ public partial class MainWindowViewModel : ObservableObject
         {
             // Check if user has ANY permission for each screen (Create, Edit, Delete, Import, Export, View, Print)
             IsDashboardVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.DASHBOARD);
-            IsTransactionsVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.TRANSACTIONS);
-            IsManagementVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.MANAGEMENT);
+            IsTransactionsVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.SALES_WINDOW);
+            IsTransactionVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.TRANSACTION);
+            IsManagementVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.BACK_OFFICE);
             IsReservationVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.RESERVATION);
             IsOrderTableVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.ORDER_TABLE);
             IsReportsVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.REPORTS);
             IsSettingsVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.SETTINGS);
 
-            AppLogger.Log($"Navigation visibility initialized: Dashboard={IsDashboardVisible}, Transactions={IsTransactionsVisible}, Management={IsManagementVisible}, Reservation={IsReservationVisible}, OrderTable={IsOrderTableVisible}, Reports={IsReportsVisible}, Settings={IsSettingsVisible}");
+            AppLogger.Log($"Navigation visibility initialized: Dashboard={IsDashboardVisible}, SalesWindow={IsTransactionsVisible}, Transaction={IsTransactionVisible}, BackOffice={IsManagementVisible}, Reservation={IsReservationVisible}, OrderTable={IsOrderTableVisible}, Reports={IsReportsVisible}, Settings={IsSettingsVisible}");
         }
         catch (Exception ex)
         {
@@ -440,11 +447,14 @@ public partial class MainWindowViewModel : ObservableObject
             DashboardButtonText = await GetTranslationWithFallback("nav.dashboard", "Dashboard");
             Console.WriteLine($"✅ [MainWindowViewModel] DashboardButtonText = '{DashboardButtonText}'");
             
-            TransactionsButtonText = await GetTranslationWithFallback("nav.sales", "Transactions");
-            Console.WriteLine($"✅ [MainWindowViewModel] TransactionsButtonText = '{TransactionsButtonText}'");
+            SalesWindowButtonText = await GetTranslationWithFallback("nav.sales", "Sales Window");
+            Console.WriteLine($"✅ [MainWindowViewModel] SalesWindowButtonText = '{SalesWindowButtonText}'");
             
-            ManagementButtonText = await GetTranslationWithFallback("nav.management", "Management");
-            Console.WriteLine($"✅ [MainWindowViewModel] ManagementButtonText = '{ManagementButtonText}'");
+            TransactionButtonText = await GetTranslationWithFallback("nav.transaction", "Transaction");
+            Console.WriteLine($"✅ [MainWindowViewModel] TransactionButtonText = '{TransactionButtonText}'");
+            
+            BackOfficeButtonText = await GetTranslationWithFallback("nav.management", "Back Office");
+            Console.WriteLine($"✅ [MainWindowViewModel] BackOfficeButtonText = '{BackOfficeButtonText}'");
             
             ReservationButtonText = await GetTranslationWithFallback("nav_reservation", "Reservation");
             Console.WriteLine($"✅ [MainWindowViewModel] ReservationButtonText = '{ReservationButtonText}'");
@@ -504,8 +514,9 @@ public partial class MainWindowViewModel : ObservableObject
     private void SetFallbackTexts()
     {
         DashboardButtonText = "Dashboard";
-        TransactionsButtonText = "Transactions";
-        ManagementButtonText = "Management";
+        SalesWindowButtonText = "Sales Window";
+        TransactionButtonText = "Transaction";
+        BackOfficeButtonText = "Back Office";
         ReservationButtonText = "Reservation";
         OrderTableButtonText = "Order Table";
         ReportsButtonText = "Reports";
@@ -767,10 +778,10 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task ShowTransactions()
     {
         // Check permission using UMAC - Allow if user has ANY permission (Create, Edit, Delete, Import, Export, View, Print)
-        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.TRANSACTIONS))
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.SALES_WINDOW))
         {
             MessageBox.Show(
-                "You don't have permission to access the Transactions screen.",
+                "You don't have permission to access the Sales Window screen.",
                 "Access Denied",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -824,13 +835,49 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task ShowTransaction()
+    {
+        // Check permission using UMAC - Allow if user has ANY permission (Create, Edit, Delete, Import, Export, View, Print)
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.TRANSACTION))
+        {
+            MessageBox.Show(
+                "You don't have permission to access the Transaction screen.",
+                "Access Denied",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        SelectedPage = "Transaction";
+        CurrentPageTitle = await _databaseLocalizationService.GetTranslationAsync("nav_transaction") ?? "Transaction";
+        StatusMessage = "Transaction interface loaded";
+        
+        // Transaction screen placeholder content
+        var transactionContent = new System.Windows.Controls.Border
+        {
+            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.LightYellow),
+            CornerRadius = new System.Windows.CornerRadius(5),
+            Child = new System.Windows.Controls.TextBlock
+            {
+                Text = "Transaction Screen\n(Coming Soon)",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 24,
+                FontWeight = System.Windows.FontWeights.Bold
+            }
+        };
+        
+        CurrentView = transactionContent;
+    }
+
+    [RelayCommand]
     private async Task ShowManagement()
     {
         // Check permission using UMAC - Allow if user has ANY permission (Create, Edit, Delete, Import, Export, View, Print)
-        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.MANAGEMENT))
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.BACK_OFFICE))
         {
             MessageBox.Show(
-                "You don't have permission to access the Management screen.",
+                "You don't have permission to access the Back Office screen.",
                 "Access Denied",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -1019,7 +1066,7 @@ public partial class MainWindowViewModel : ObservableObject
             var productAttributeViewModel = new ProductAttributeViewModel(
                 productAttributeService,
                 _currentUserService,
-                () => _ = ShowAddOptions() // Navigate back to Add Options
+                () => _ = ShowAddOptions() // Navigate back to Others
             );
             ChronoPos.Desktop.Services.FileLogger.Log("✅ ProductAttributeViewModel created successfully");
             
@@ -1095,7 +1142,7 @@ public partial class MainWindowViewModel : ObservableObject
                 productUnitService,
                 attributeService,
                 _currentUserService,
-                () => _ = ShowAddOptions() // Navigate back to Add Options
+                () => _ = ShowAddOptions() // Navigate back to Others
             );
             
             // Create the view and set the ViewModel
@@ -1896,16 +1943,16 @@ public partial class MainWindowViewModel : ObservableObject
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.ADD_OPTIONS))
         {
             MessageBox.Show(
-                "You don't have permission to access Add Options.",
+                "You don't have permission to access Others.",
                 "Access Denied",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             return;
         }
 
-        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
-        CurrentPageTitle = "Add Options";
-        StatusMessage = "Loading add options...";
+        // Don't change SelectedPage - keep it as "Settings" so sidebar stays highlighted
+        CurrentPageTitle = "Others";
+        StatusMessage = "Loading others...";
         
         try
         {
@@ -1925,7 +1972,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _currentUserService
             );
 
-            // Set up navigation from add options to specific modules
+            // Set up navigation from Others to specific modules
             addOptionsViewModel.NavigateToModuleAction = (moduleType) =>
             {
                 switch (moduleType)
@@ -1979,10 +2026,10 @@ public partial class MainWindowViewModel : ObservableObject
                 }
             };
 
-            // Set up back navigation to return to Management
+            // Set up back navigation to return to Settings
             addOptionsViewModel.GoBackAction = () =>
             {
-                ShowManagementCommand.Execute(null);
+                ShowSettingsCommand.Execute(null);
             };
 
             // Create the AddOptionsView and set its DataContext
@@ -1992,12 +2039,12 @@ public partial class MainWindowViewModel : ObservableObject
             };
 
             CurrentView = addOptionsView;
-            StatusMessage = "Add options loaded successfully";
+            StatusMessage = "Others loaded successfully";
             await Task.CompletedTask; // satisfy analyzer
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Error loading add options: {ex.Message}";
+            StatusMessage = $"Error loading others: {ex.Message}";
             var errorContent = new System.Windows.Controls.TextBlock
             {
                 Text = $"Error: {ex.Message}",
@@ -2169,7 +2216,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ChronoPos.Infrastructure.Services.IDatabaseLocalizationService>()
             );
 
-            // Set up back navigation to return to Add Options
+            // Set up back navigation to return to Others
             priceTypesViewModel.GoBackAction = () =>
             {
                 ShowAddOptionsCommand.Execute(null);
@@ -2282,7 +2329,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ChronoPos.Infrastructure.Services.IDatabaseLocalizationService>()
             );
 
-            // Set up back navigation to return to Add Options
+            // Set up back navigation to return to Others
             paymentTypesViewModel.GoBackAction = () =>
             {
                 ShowAddOptionsCommand.Execute(null);
@@ -2448,7 +2495,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IDatabaseLocalizationService>()
             );
 
-            // Set up back navigation to return to Add Options
+            // Set up back navigation to return to Others
             taxTypesViewModel.GoBackAction = () =>
             {
                 ShowAddOptionsCommand.Execute(null);
@@ -2504,7 +2551,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _currentUserService
             );
 
-            // Set up back navigation to return to Add Options
+            // Set up back navigation to return to Others
             customersViewModel.GoBackAction = () =>
             {
                 ShowAddOptionsCommand.Execute(null);
@@ -2563,7 +2610,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _currentUserService
             );
 
-            // Set up back navigation to return to Add Options
+            // Set up back navigation to return to Others
             customerGroupsViewModel.GoBackAction = () =>
             {
                 ShowAddOptionsCommand.Execute(null);
@@ -2624,7 +2671,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _currentUserService
             );
 
-            // Set up back navigation to return to Add Options
+            // Set up back navigation to return to Others
             productGroupsViewModel.GoBackAction = () =>
             {
                 ShowAddOptionsCommand.Execute(null);
@@ -2679,7 +2726,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _currentUserService
             );
 
-            // Set up back navigation to return to Add Options
+            // Set up back navigation to return to Others
             suppliersViewModel.GoBackAction = () =>
             {
                 ShowAddOptionsCommand.Execute(null);
@@ -2822,6 +2869,14 @@ public partial class MainWindowViewModel : ObservableObject
                     case "ApplicationSettings":
                         AppLogger.Log("MainWindowViewModel: Navigating to ApplicationSettings");
                         _ = ShowApplicationSettings();
+                        break;
+                    case "AddOptions":
+                        AppLogger.Log("MainWindowViewModel: Navigating to AddOptions (Others)");
+                        _ = ShowAddOptions();
+                        break;
+                    case "Services":
+                        AppLogger.Log("MainWindowViewModel: Navigating to Services");
+                        StatusMessage = "Services module - Coming Soon";
                         break;
                     case "Permissions":
                         AppLogger.Log("MainWindowViewModel: Navigating to Permissions");
@@ -3406,3 +3461,5 @@ public partial class MainWindowViewModel : ObservableObject
 
     #endregion
 }
+
+

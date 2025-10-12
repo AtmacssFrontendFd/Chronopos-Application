@@ -242,7 +242,7 @@ namespace ChronoPos.Desktop.Constants
             public const string Print = "PRODUCT.PRINT";
         }
 
-        // --- ADD OPTIONS SCREENS (14 screens) ---
+        // --- OTHERS SCREENS (14 screens) - Formerly "Add Options" ---
 
         /// <summary>
         /// Brand screen permissions

@@ -217,11 +217,11 @@ public partial class SettingsViewModel : ObservableObject
             var primaryColorBrush = GetPrimaryColorBrush();
             var buttonBackgroundBrush = GetButtonBackgroundBrush();
 
-            // Add four setting modules
+            // Add six setting modules
             Modules.Add(new SettingsModuleInfo
             {
                 ModuleType = "UserSettings",
-                Title = "User Settings",
+                Title = "Client Settings",
                 Description = "",
                 IconBackground = primaryColorBrush,
                 ButtonBackground = buttonBackgroundBrush
@@ -230,7 +230,25 @@ public partial class SettingsViewModel : ObservableObject
             Modules.Add(new SettingsModuleInfo
             {
                 ModuleType = "ApplicationSettings",
-                Title = "Application Settings",
+                Title = "Global Settings",
+                IconBackground = primaryColorBrush,
+                ButtonBackground = buttonBackgroundBrush
+            });
+
+            Modules.Add(new SettingsModuleInfo
+            {
+                ModuleType = "AddOptions",
+                Title = "Others",
+                Description = "Configure system options",
+                IconBackground = primaryColorBrush,
+                ButtonBackground = buttonBackgroundBrush
+            });
+
+            Modules.Add(new SettingsModuleInfo
+            {
+                ModuleType = "Services",
+                Title = "Services",
+                Description = "Manage services",
                 IconBackground = primaryColorBrush,
                 ButtonBackground = buttonBackgroundBrush
             });
