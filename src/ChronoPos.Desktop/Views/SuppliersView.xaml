@@ -244,7 +244,8 @@
                     <!-- Add Supplier Button -->
                     <Button Content="Add Supplier"
                             Style="{StaticResource ActionButtonStyle}"
-                            Command="{Binding AddSupplierCommand}"/>
+                            Command="{Binding AddSupplierCommand}"
+                            Visibility="{Binding CanCreateSupplier, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 </StackPanel>
             </Grid>
 
@@ -553,13 +554,15 @@
                                                     Style="{StaticResource SmallActionButtonStyle}"
                                                     Command="{Binding DataContext.EditSupplierCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"
-                                                    Margin="2"/>
+                                                    Margin="2"
+                                                    Visibility="{Binding DataContext.CanEditSupplier, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                             <Button Content="Delete" 
                                                     Style="{StaticResource SmallActionButtonStyle}"
                                                     Command="{Binding DataContext.DeleteSupplierCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"
                                                     Foreground="Red"
-                                                    Margin="2"/>
+                                                    Margin="2"
+                                                    Visibility="{Binding DataContext.CanDeleteSupplier, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>

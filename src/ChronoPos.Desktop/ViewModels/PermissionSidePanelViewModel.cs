@@ -396,39 +396,23 @@ public partial class PermissionSidePanelViewModel : ObservableObject
 
     private void InitializeDropdowns()
     {
-        // Available Screen Names based on the application screens
+        // Available Screen Names based on the application screens (using constants)
+        // Now includes "-- All Screens --" option at the top
         AvailableScreenNames.Clear();
-        AvailableScreenNames.Add("Dashboard");
-        AvailableScreenNames.Add("Products");
-        AvailableScreenNames.Add("Categories");
-        AvailableScreenNames.Add("Brands");
-        AvailableScreenNames.Add("Units");
-        AvailableScreenNames.Add("Customers");
-        AvailableScreenNames.Add("Suppliers");
-        AvailableScreenNames.Add("Sales");
-        AvailableScreenNames.Add("Purchase");
-        AvailableScreenNames.Add("Stock");
-        AvailableScreenNames.Add("Reports");
-        AvailableScreenNames.Add("Settings");
-        AvailableScreenNames.Add("Users");
-        AvailableScreenNames.Add("Roles");
-        AvailableScreenNames.Add("Permissions");
-        AvailableScreenNames.Add("Warehouse");
-        AvailableScreenNames.Add("POS");
-        AvailableScreenNames.Add("Invoices");
-        AvailableScreenNames.Add("Payments");
-        AvailableScreenNames.Add("Expenses");
+        var allScreenNames = ChronoPos.Application.Constants.ScreenNames.GetAllScreenNamesWithAllOption();
+        foreach (var screenName in allScreenNames)
+        {
+            AvailableScreenNames.Add(screenName);
+        }
 
-        // Available Type Matrix (CRUD operations)
+        // Available Type Matrix (CRUD operations using constants)
+        // Now includes "-- All Operations --" option at the top
         AvailableTypeMatrix.Clear();
-        AvailableTypeMatrix.Add("Create");
-        AvailableTypeMatrix.Add("Read");
-        AvailableTypeMatrix.Add("Update");
-        AvailableTypeMatrix.Add("Delete");
-        AvailableTypeMatrix.Add("View");
-        AvailableTypeMatrix.Add("Export");
-        AvailableTypeMatrix.Add("Import");
-        AvailableTypeMatrix.Add("Print");
+        var allTypeMatrix = ChronoPos.Application.Constants.TypeMatrix.GetAllTypeMatrixValuesWithAllOption();
+        foreach (var typeMatrix in allTypeMatrix)
+        {
+            AvailableTypeMatrix.Add(typeMatrix);
+        }
 
         // Available Statuses
         AvailableStatuses.Clear();

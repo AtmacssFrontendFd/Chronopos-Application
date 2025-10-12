@@ -318,7 +318,8 @@
                                             MinButtonWidth="140"
                                             ButtonHeight="{DynamicResource ButtonHeight}"
                                             ButtonWidth="140"
-                                            Margin="{DynamicResource DefaultMarginThickness}"/>
+                                            Margin="{DynamicResource DefaultMarginThickness}"
+                                            Visibility="{Binding CanCreateCategory, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 </Grid>
 
                 <ScrollViewer Grid.Row="1" 
@@ -567,7 +568,8 @@
                                             ButtonForeground="White"
                                             MinButtonWidth="140"
                                             ButtonHeight="{DynamicResource ButtonHeight}"
-                                            ButtonWidth="140"/>
+                                            ButtonWidth="140"
+                                            Visibility="{Binding CanCreateProduct, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -834,7 +836,8 @@
                                                 BorderThickness="0" 
                                                 Cursor="Hand" 
                                                 Margin="2"
-                                                FontSize="{DynamicResource FontSizeSmall}"/>
+                                                FontSize="{DynamicResource FontSizeSmall}"
+                                                Visibility="{Binding DataContext.CanEditProduct, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                         <Button Content="🗑️" 
                                                 ToolTip="{Binding DataContext.DeleteProductTooltip, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 Command="{Binding DataContext.DeleteProductCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -844,7 +847,8 @@
                                                 BorderThickness="0" 
                                                 Cursor="Hand" 
                                                 Margin="2"
-                                                FontSize="{DynamicResource FontSizeSmall}"/>
+                                                FontSize="{DynamicResource FontSizeSmall}"
+                                                Visibility="{Binding DataContext.CanDeleteProduct, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                         <Button Content="📋" 
                                                 ToolTip="{Binding DataContext.DuplicateProductTooltip, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 Command="{Binding DataContext.DuplicateProductCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"

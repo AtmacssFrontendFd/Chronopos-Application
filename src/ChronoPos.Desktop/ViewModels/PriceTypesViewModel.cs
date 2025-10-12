@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.Constants;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Infrastructure.Services;
 
@@ -20,6 +21,7 @@ public partial class PriceTypesViewModel : ObservableObject
     #region Private Fields
 
     private readonly ISellingPriceTypeService _sellingPriceTypeService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly IThemeService _themeService;
     private readonly IZoomService _zoomService;
     private readonly ILocalizationService _localizationService;
@@ -81,6 +83,15 @@ public partial class PriceTypesViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
+
+    [ObservableProperty]
+    private bool canCreatePriceType = false;
+
+    [ObservableProperty]
+    private bool canEditPriceType = false;
+
+    [ObservableProperty]
+    private bool canDeletePriceType = false;
 
     /// <summary>
     /// Side panel view model
@@ -159,6 +170,7 @@ public partial class PriceTypesViewModel : ObservableObject
 
     public PriceTypesViewModel(
         ISellingPriceTypeService sellingPriceTypeService,
+        ICurrentUserService currentUserService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -168,6 +180,7 @@ public partial class PriceTypesViewModel : ObservableObject
         IDatabaseLocalizationService databaseLocalizationService)
     {
         _sellingPriceTypeService = sellingPriceTypeService ?? throw new ArgumentNullException(nameof(sellingPriceTypeService));
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -176,6 +189,8 @@ public partial class PriceTypesViewModel : ObservableObject
         _fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
         _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
 
+        InitializePermissions();
+        
         // Subscribe to layout direction changes
         _layoutDirectionService.DirectionChanged += OnDirectionChanged;
         CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
@@ -432,6 +447,22 @@ public partial class PriceTypesViewModel : ObservableObject
         IsSidePanelVisible = false;
         SidePanelViewModel = null;
         StatusMessage = "Operation cancelled";
+    }
+
+    private void InitializePermissions()
+    {
+        try
+        {
+            CanCreatePriceType = _currentUserService.HasPermission(ScreenNames.PRICE_TYPES, TypeMatrix.CREATE);
+            CanEditPriceType = _currentUserService.HasPermission(ScreenNames.PRICE_TYPES, TypeMatrix.UPDATE);
+            CanDeletePriceType = _currentUserService.HasPermission(ScreenNames.PRICE_TYPES, TypeMatrix.DELETE);
+        }
+        catch (Exception)
+        {
+            CanCreatePriceType = false;
+            CanEditPriceType = false;
+            CanDeletePriceType = false;
+        }
     }
 
     #endregion

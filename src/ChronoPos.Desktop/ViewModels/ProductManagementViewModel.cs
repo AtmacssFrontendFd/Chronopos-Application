@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using ChronoPos.Desktop.Services;
 using InfrastructureServices = ChronoPos.Infrastructure.Services;
+using ChronoPos.Application.Constants;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -21,6 +22,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
     private readonly Action? _navigateToAddProduct;
     private readonly Action<ProductDto>? _navigateToEditProduct;
     private readonly Action? _navigateBack;
+    private readonly ICurrentUserService _currentUserService;
     
     // Settings services
     private readonly IThemeService _themeService;
@@ -246,6 +248,19 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
     // Dynamic Category Form Title
     public string CurrentCategoryFormTitle => IsEditMode ? EditCategoryTitle : AddCategoryTitle;
 
+    // Permission-based visibility properties
+    [ObservableProperty]
+    private bool _canCreateProduct = false;
+
+    [ObservableProperty]
+    private bool _canEditProduct = false;
+
+    [ObservableProperty]
+    private bool _canDeleteProduct = false;
+
+    [ObservableProperty]
+    private bool _canCreateCategory = false;
+
     #endregion
 
     #region Constructor
@@ -260,6 +275,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
         ILayoutDirectionService layoutDirectionService,
         IFontService fontService,
         InfrastructureServices.IDatabaseLocalizationService databaseLocalizationService,
+        ICurrentUserService currentUserService,
         Action? navigateToAddProduct = null, 
         Action<ProductDto>? navigateToEditProduct = null,
         Action? navigateBack = null)
@@ -273,9 +289,13 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
         _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
         _fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
         _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _navigateToAddProduct = navigateToAddProduct;
         _navigateToEditProduct = navigateToEditProduct;
         _navigateBack = navigateBack;
+        
+        // Initialize permission-based visibility
+        InitializePermissions();
         
         // Subscribe to settings changes
         _themeService.ThemeChanged += OnThemeChanged;
@@ -297,6 +317,32 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
     #endregion
 
     #region Initialization
+
+    /// <summary>
+    /// Initialize permission-based visibility for buttons
+    /// </summary>
+    private void InitializePermissions()
+    {
+        try
+        {
+            // Check permissions for Product Management screen
+            CanCreateProduct = _currentUserService.HasPermission(ScreenNames.PRODUCT_MANAGEMENT, TypeMatrix.CREATE);
+            CanEditProduct = _currentUserService.HasPermission(ScreenNames.PRODUCT_MANAGEMENT, TypeMatrix.UPDATE);
+            CanDeleteProduct = _currentUserService.HasPermission(ScreenNames.PRODUCT_MANAGEMENT, TypeMatrix.DELETE);
+            CanCreateCategory = _currentUserService.HasPermission(ScreenNames.CATEGORY, TypeMatrix.CREATE);
+            
+            System.Diagnostics.Debug.WriteLine($"Product Management Permissions - Create: {CanCreateProduct}, Edit: {CanEditProduct}, Delete: {CanDeleteProduct}, CreateCategory: {CanCreateCategory}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error initializing product management permissions: {ex.Message}");
+            // Default to false if error occurs (fail-secure)
+            CanCreateProduct = false;
+            CanEditProduct = false;
+            CanDeleteProduct = false;
+            CanCreateCategory = false;
+        }
+    }
 
     private async Task InitializeAsync()
     {

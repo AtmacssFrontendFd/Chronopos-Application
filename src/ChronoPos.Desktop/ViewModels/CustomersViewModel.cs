@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
+using ChronoPos.Application.Constants;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,6 +14,7 @@ public partial class CustomersViewModel : ObservableObject
 {
     private readonly ICustomerService _customerService;
     private readonly ICustomerGroupService _customerGroupService;
+    private readonly ICurrentUserService _currentUserService;
 
     [ObservableProperty]
     private ObservableCollection<CustomerDto> _customers = new();
@@ -38,6 +40,15 @@ public partial class CustomersViewModel : ObservableObject
     [ObservableProperty]
     private System.Windows.FlowDirection _currentFlowDirection = System.Windows.FlowDirection.LeftToRight;
 
+    [ObservableProperty]
+    private bool canCreateCustomer = false;
+
+    [ObservableProperty]
+    private bool canEditCustomer = false;
+
+    [ObservableProperty]
+    private bool canDeleteCustomer = false;
+
     /// <summary>
     /// Text for the active filter toggle button
     /// </summary>
@@ -53,10 +64,14 @@ public partial class CustomersViewModel : ObservableObject
     /// </summary>
     public Action? GoBackAction { get; set; }
 
-    public CustomersViewModel(ICustomerService customerService, ICustomerGroupService customerGroupService)
+    public CustomersViewModel(
+        ICustomerService customerService, 
+        ICustomerGroupService customerGroupService,
+        ICurrentUserService currentUserService)
     {
         _customerService = customerService;
         _customerGroupService = customerGroupService;
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         
         // Initialize side panel view model
         SidePanelViewModel = new CustomerSidePanelViewModel(
@@ -64,7 +79,8 @@ public partial class CustomersViewModel : ObservableObject
             _customerGroupService,
             CloseSidePanel,
             LoadCustomersAsync);
-            
+        
+        InitializePermissions();
         _ = LoadCustomersAsync();
     }
 
@@ -232,6 +248,22 @@ public partial class CustomersViewModel : ObservableObject
         catch
         {
             return false;
+        }
+    }
+
+    private void InitializePermissions()
+    {
+        try
+        {
+            CanCreateCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS, TypeMatrix.CREATE);
+            CanEditCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS, TypeMatrix.UPDATE);
+            CanDeleteCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS, TypeMatrix.DELETE);
+        }
+        catch (Exception)
+        {
+            CanCreateCustomer = false;
+            CanEditCustomer = false;
+            CanDeleteCustomer = false;
         }
     }
 }

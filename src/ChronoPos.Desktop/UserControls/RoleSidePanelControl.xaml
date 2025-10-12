@@ -10,7 +10,7 @@
              FlowDirection="{Binding CurrentFlowDirection}"
              FontFamily="{DynamicResource PoppinsFontFallback}">
     <UserControl.Resources>
-        <!-- Converters -->
+        <!-- Converters -->   
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         
         <!-- Input Field Style -->

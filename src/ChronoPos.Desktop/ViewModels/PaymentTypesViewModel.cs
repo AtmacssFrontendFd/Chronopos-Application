@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.Constants;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.ViewModels;
 using ChronoPos.Infrastructure.Services;
@@ -21,6 +22,7 @@ public partial class PaymentTypesViewModel : ObservableObject
     #region Private Fields
 
     private readonly IPaymentTypeService _paymentTypeService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly IThemeService _themeService;
     private readonly IZoomService _zoomService;
     private readonly ILocalizationService _localizationService;
@@ -80,6 +82,15 @@ public partial class PaymentTypesViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
+
+    [ObservableProperty]
+    private bool canCreatePaymentType = false;
+
+    [ObservableProperty]
+    private bool canEditPaymentType = false;
+
+    [ObservableProperty]
+    private bool canDeletePaymentType = false;
 
     /// <summary>
     /// Side panel view model
@@ -143,6 +154,7 @@ public partial class PaymentTypesViewModel : ObservableObject
     /// </summary>
     public PaymentTypesViewModel(
         IPaymentTypeService paymentTypeService,
+        ICurrentUserService currentUserService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -152,6 +164,7 @@ public partial class PaymentTypesViewModel : ObservableObject
         IDatabaseLocalizationService databaseLocalizationService)
     {
         _paymentTypeService = paymentTypeService ?? throw new ArgumentNullException(nameof(paymentTypeService));
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -159,6 +172,8 @@ public partial class PaymentTypesViewModel : ObservableObject
         _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
         _fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
         _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
+
+        InitializePermissions();
 
         // Initialize side panel view model
         _sidePanelViewModel = new PaymentTypeSidePanelViewModel(paymentTypeService, layoutDirectionService);
@@ -356,6 +371,22 @@ public partial class PaymentTypesViewModel : ObservableObject
     partial void OnSearchTextChanged(string value)
     {
         OnPropertyChanged(nameof(FilteredPaymentTypes));
+    }
+
+    private void InitializePermissions()
+    {
+        try
+        {
+            CanCreatePaymentType = _currentUserService.HasPermission(ScreenNames.PAYMENT_TYPES, TypeMatrix.CREATE);
+            CanEditPaymentType = _currentUserService.HasPermission(ScreenNames.PAYMENT_TYPES, TypeMatrix.UPDATE);
+            CanDeletePaymentType = _currentUserService.HasPermission(ScreenNames.PAYMENT_TYPES, TypeMatrix.DELETE);
+        }
+        catch (Exception)
+        {
+            CanCreatePaymentType = false;
+            CanEditPaymentType = false;
+            CanDeletePaymentType = false;
+        }
     }
 
     #endregion

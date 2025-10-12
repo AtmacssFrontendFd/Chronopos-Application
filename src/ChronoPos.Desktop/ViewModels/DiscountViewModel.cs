@@ -1,3 +1,4 @@
+using ChronoPos.Application.Constants;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
@@ -20,6 +21,7 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
     
     private readonly IDiscountService _discountService;
     private readonly IProductService _productService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly object? _categoryService; // ICategoryService when available
     private readonly object? _customerService; // ICustomerService when available
     private readonly object? _storeService; // IStoreService when available
@@ -164,6 +166,15 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private DiscountSidePanelViewModel? _sidePanelViewModel;
 
+    [ObservableProperty]
+    private bool canCreateDiscount = false;
+
+    [ObservableProperty]
+    private bool canEditDiscount = false;
+
+    [ObservableProperty]
+    private bool canDeleteDiscount = false;
+
     #endregion
 
     #region Constructor
@@ -174,6 +185,7 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
     public DiscountViewModel(
         IDiscountService discountService,
         IProductService productService,
+        ICurrentUserService currentUserService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -187,6 +199,7 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
     {
         _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -198,6 +211,9 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
         _navigateToAddDiscount = navigateToAddDiscount;
         _navigateToEditDiscount = navigateToEditDiscount;
         _navigateBack = navigateBack;
+
+        // Initialize permissions
+        InitializePermissions();
 
         // Initialize current settings
         InitializeCurrentSettings();
@@ -704,6 +720,22 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
         if (e.PropertyName == nameof(SearchText) || e.PropertyName == nameof(SelectedSearchType))
         {
             FilterDiscounts();
+        }
+    }
+
+    private void InitializePermissions()
+    {
+        try
+        {
+            CanCreateDiscount = _currentUserService.HasPermission(ScreenNames.DISCOUNTS, TypeMatrix.CREATE);
+            CanEditDiscount = _currentUserService.HasPermission(ScreenNames.DISCOUNTS, TypeMatrix.UPDATE);
+            CanDeleteDiscount = _currentUserService.HasPermission(ScreenNames.DISCOUNTS, TypeMatrix.DELETE);
+        }
+        catch (Exception)
+        {
+            CanCreateDiscount = false;
+            CanEditDiscount = false;
+            CanDeleteDiscount = false;
         }
     }
 

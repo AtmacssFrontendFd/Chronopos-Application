@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.Constants;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.ViewModels;
 using ChronoPos.Infrastructure.Services;
@@ -21,6 +22,7 @@ public partial class TaxTypesViewModel : ObservableObject
     #region Private Fields
 
     private readonly ITaxTypeService _taxTypeService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly IThemeService _themeService;
     private readonly IZoomService _zoomService;
     private readonly ILocalizationService _localizationService;
@@ -80,6 +82,15 @@ public partial class TaxTypesViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
+
+    [ObservableProperty]
+    private bool canCreateTaxRate = false;
+
+    [ObservableProperty]
+    private bool canEditTaxRate = false;
+
+    [ObservableProperty]
+    private bool canDeleteTaxRate = false;
 
     /// <summary>
     /// Side panel view model
@@ -142,6 +153,7 @@ public partial class TaxTypesViewModel : ObservableObject
     /// </summary>
     public TaxTypesViewModel(
         ITaxTypeService taxTypeService,
+        ICurrentUserService currentUserService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -151,6 +163,7 @@ public partial class TaxTypesViewModel : ObservableObject
         IDatabaseLocalizationService databaseLocalizationService)
     {
         _taxTypeService = taxTypeService ?? throw new ArgumentNullException(nameof(taxTypeService));
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -158,6 +171,8 @@ public partial class TaxTypesViewModel : ObservableObject
         _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
         _fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
         _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
+
+        InitializePermissions();
 
         // Initialize side panel view model
         _sidePanelViewModel = new TaxTypeSidePanelViewModel(taxTypeService, layoutDirectionService);
@@ -370,6 +385,22 @@ public partial class TaxTypesViewModel : ObservableObject
     partial void OnShowActiveOnlyChanged(bool value)
     {
         FilterTaxTypes();
+    }
+
+    private void InitializePermissions()
+    {
+        try
+        {
+            CanCreateTaxRate = _currentUserService.HasPermission(ScreenNames.TAX_RATES, TypeMatrix.CREATE);
+            CanEditTaxRate = _currentUserService.HasPermission(ScreenNames.TAX_RATES, TypeMatrix.UPDATE);
+            CanDeleteTaxRate = _currentUserService.HasPermission(ScreenNames.TAX_RATES, TypeMatrix.DELETE);
+        }
+        catch (Exception)
+        {
+            CanCreateTaxRate = false;
+            CanEditTaxRate = false;
+            CanDeleteTaxRate = false;
+        }
     }
 
     #endregion

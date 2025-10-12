@@ -170,7 +170,8 @@
                 <!-- Add Customer Group Button -->
                 <Button Content="Add Customer Group"
                         Style="{StaticResource ActionButtonStyle}"
-                        Command="{Binding AddCustomerGroupCommand}"/>
+                        Command="{Binding AddCustomerGroupCommand}"
+                        Visibility="{Binding CanCreateCustomerGroup, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </StackPanel>
         </Grid>
 
@@ -498,11 +499,13 @@
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.EditCustomerGroupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
+                                                Visibility="{Binding DataContext.CanEditCustomerGroup, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                 Margin="2"/>
                                         <Button Content="Delete" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.DeleteCustomerGroupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
+                                                Visibility="{Binding DataContext.CanDeleteCustomerGroup, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                 Foreground="Red"
                                                 Margin="2"/>
                                     </StackPanel>

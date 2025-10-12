@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
+using ChronoPos.Application.Constants;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -21,6 +22,7 @@ public partial class ProductGroupsViewModel : ObservableObject
     private readonly ISellingPriceTypeService _sellingPriceTypeService;
     private readonly IProductService _productService;
     private readonly IProductUnitService _productUnitService;
+    private readonly ICurrentUserService _currentUserService;
 
     [ObservableProperty]
     private ObservableCollection<ProductGroupDto> _productGroups = new();
@@ -52,6 +54,15 @@ public partial class ProductGroupsViewModel : ObservableObject
     [ObservableProperty]
     private string _statusMessage = string.Empty;
 
+    [ObservableProperty]
+    private bool canCreateProductGroup = false;
+
+    [ObservableProperty]
+    private bool canEditProductGroup = false;
+
+    [ObservableProperty]
+    private bool canDeleteProductGroup = false;
+
     /// <summary>
     /// Text for the active filter toggle button
     /// </summary>
@@ -79,7 +90,8 @@ public partial class ProductGroupsViewModel : ObservableObject
         ITaxTypeService taxTypeService,
         ISellingPriceTypeService sellingPriceTypeService,
         IProductService productService,
-        IProductUnitService productUnitService)
+        IProductUnitService productUnitService,
+        ICurrentUserService currentUserService)
     {
         _productGroupService = productGroupService;
         _productGroupItemService = productGroupItemService;
@@ -88,6 +100,9 @@ public partial class ProductGroupsViewModel : ObservableObject
         _sellingPriceTypeService = sellingPriceTypeService;
         _productService = productService;
         _productUnitService = productUnitService;
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        
+        InitializePermissions();
         
         // Initialize side panel view model
         SidePanelViewModel = new ProductGroupSidePanelViewModel(
@@ -360,5 +375,21 @@ public partial class ProductGroupsViewModel : ObservableObject
     private void GoBack()
     {
         GoBackAction?.Invoke();
+    }
+
+    private void InitializePermissions()
+    {
+        try
+        {
+            CanCreateProductGroup = _currentUserService.HasPermission(ScreenNames.PRODUCT_GROUPING, TypeMatrix.CREATE);
+            CanEditProductGroup = _currentUserService.HasPermission(ScreenNames.PRODUCT_GROUPING, TypeMatrix.UPDATE);
+            CanDeleteProductGroup = _currentUserService.HasPermission(ScreenNames.PRODUCT_GROUPING, TypeMatrix.DELETE);
+        }
+        catch (Exception)
+        {
+            CanCreateProductGroup = false;
+            CanEditProductGroup = false;
+            CanDeleteProductGroup = false;
+        }
     }
 }

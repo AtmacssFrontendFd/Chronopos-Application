@@ -34,13 +34,58 @@ public class UserPermissionOverrideDto
     public string PermissionDisplay => PermissionName ?? "-";
     public string IsAllowedDisplay => IsAllowed ? "Allowed" : "Denied";
     public string ReasonDisplay => Reason ?? "-";
-    public string ValidFromDisplay => ValidFrom?.ToString("dd/MM/yyyy HH:mm") ?? "No Start Date";
-    public string ValidToDisplay => ValidTo?.ToString("dd/MM/yyyy HH:mm") ?? "No End Date";
+    public string ValidFromDisplay => ValidFrom?.ToString("dd/MM/yyyy") ?? "No Start Date";
+    public string ValidToDisplay => ValidTo?.ToString("dd/MM/yyyy") ?? "No End Date";
     public string CreatedAtFormatted => CreatedAt.ToString("dd/MM/yyyy HH:mm");
+    
     public bool IsCurrentlyValid => 
+        IsAllowed &&
         (!ValidFrom.HasValue || ValidFrom.Value <= DateTime.UtcNow) &&
         (!ValidTo.HasValue || ValidTo.Value >= DateTime.UtcNow);
-    public string ValidityStatus => IsCurrentlyValid ? "Active" : "Inactive";
+    
+    public bool IsScheduledForFuture => 
+        IsAllowed &&
+        ValidFrom.HasValue && ValidFrom.Value > DateTime.UtcNow;
+    
+    public bool IsExpired => 
+        IsAllowed &&
+        ValidTo.HasValue && ValidTo.Value < DateTime.UtcNow;
+    
+    public string ValidityStatus
+    {
+        get
+        {
+            if (!IsAllowed) return "Denied";
+            if (IsScheduledForFuture) return "Scheduled";
+            if (IsExpired) return "Expired";
+            if (IsCurrentlyValid) return "Active";
+            return "Inactive";
+        }
+    }
+    
+    public string StatusEmoji
+    {
+        get
+        {
+            if (!IsAllowed) return "🚫";
+            if (IsScheduledForFuture) return "📅";
+            if (IsExpired) return "⏰";
+            if (IsCurrentlyValid) return "✓";
+            return "⏱";
+        }
+    }
+    
+    public string StatusTooltip
+    {
+        get
+        {
+            if (!IsAllowed) return "Access Denied";
+            if (IsScheduledForFuture) return $"Scheduled to start: {ValidFromDisplay}";
+            if (IsExpired) return $"Expired on: {ValidToDisplay}";
+            if (IsCurrentlyValid) return $"Active until: {ValidToDisplay}";
+            return $"Valid: {ValidFromDisplay} - {ValidToDisplay}";
+        }
+    }
 }
 
 /// <summary>

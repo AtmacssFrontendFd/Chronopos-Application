@@ -127,7 +127,8 @@
                         Margin="0,0,10,0"/>
                     <Button Content="Add Tax Type"
                             Style="{StaticResource ActionButtonStyle}"
-                            Command="{Binding AddNewCommand}"/>
+                            Command="{Binding AddNewCommand}"
+                            Visibility="{Binding CanCreateTaxRate, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 </StackPanel>
         </Grid>
 
@@ -462,7 +463,8 @@
                                                    Margin="0,0,8,0"
                                                    Background="{DynamicResource Warning}"
                                                    BorderThickness="0"
-                                                   Cursor="Hand">
+                                                   Cursor="Hand"
+                                                   Visibility="{Binding DataContext.CanEditTaxRate, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                 <Button.Style>
                                                     <Style TargetType="Button">
                                                         <Setter Property="Template">
@@ -495,7 +497,8 @@
                                                    Height="32"
                                                    Background="{DynamicResource Error}"
                                                    BorderThickness="0"
-                                                   Cursor="Hand">
+                                                   Cursor="Hand"
+                                                   Visibility="{Binding DataContext.CanDeleteTaxRate, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                 <Button.Style>
                                                     <Style TargetType="Button">
                                                         <Setter Property="Template">

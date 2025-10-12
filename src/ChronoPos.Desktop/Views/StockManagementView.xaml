@@ -258,7 +258,8 @@
                                     Content="New Adjustment" 
                                     Command="{Binding OpenAdjustProductPanelCommand}"
                                     Style="{StaticResource ActionButtonStyle}"
-                                    Cursor="Hand"/>
+                                    Cursor="Hand"
+                                    Visibility="{Binding CanCreateStockAdjustment, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         </Grid>
 
                         <!-- Filters -->
@@ -528,7 +529,8 @@
                                     Content="New Transfer" 
                                     Command="{Binding CreateNewTransferCommand}"
                                     Style="{StaticResource ActionButtonStyle}"
-                                    ToolTip="Click to create a new stock transfer"/>
+                                    ToolTip="Click to create a new stock transfer"
+                                    Visibility="{Binding CanCreateStockTransfer, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         </Grid>
 
                         <!-- Filters -->
@@ -783,14 +785,16 @@
                                                                 CommandParameter="{Binding}"
                                                                 Background="{DynamicResource PrimaryAlt}"
                                                                 Foreground="White"
-                                                                Margin="2"/>
+                                                                Margin="2"
+                                                                Visibility="{Binding DataContext.CanEditStockTransfer, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                         <Button Content="Delete" 
                                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                                 Command="{Binding DataContext.DeleteTransferCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                 CommandParameter="{Binding}"
                                                                 Background="{DynamicResource Error}"
                                                                 Foreground="White"
-                                                                Margin="2"/>
+                                                                Margin="2"
+                                                                Visibility="{Binding DataContext.CanDeleteStockTransfer, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                     </StackPanel>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
@@ -838,7 +842,8 @@
                                     Content="+ New GRN"
                                     Command="{Binding AddGrnCommand}"
                                     Style="{StaticResource ActionButtonStyle}"
-                                    Padding="15,8"/>
+                                    Padding="15,8"
+                                    Visibility="{Binding CanCreateGrn, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         </Grid>
 
                         <!-- Filters -->
@@ -1103,6 +1108,9 @@
                                                                     <Setter Property="Background" Value="{DynamicResource PrimaryAlt}"/>
                                                                     <Setter Property="Foreground" Value="White"/>
                                                                     <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding DataContext.CanEditGrn, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
                                                                         <DataTrigger Binding="{Binding Status}" Value="Posted">
                                                                             <Setter Property="Visibility" Value="Collapsed"/>
                                                                         </DataTrigger>
@@ -1122,6 +1130,9 @@
                                                                     <Setter Property="Background" Value="{DynamicResource Error}"/>
                                                                     <Setter Property="Foreground" Value="White"/>
                                                                     <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding DataContext.CanDeleteGrn, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
                                                                         <DataTrigger Binding="{Binding Status}" Value="Posted">
                                                                             <Setter Property="Visibility" Value="Collapsed"/>
                                                                         </DataTrigger>
@@ -1177,7 +1188,8 @@
                                     Content="New Goods Return" 
                                     Command="{Binding CreateNewGoodsReturnCommand}"
                                     Style="{StaticResource ActionButtonStyle}"
-                                    ToolTip="Click to create a new goods return"/>
+                                    ToolTip="Click to create a new goods return"
+                                    Visibility="{Binding CanCreateGoodsReturn, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         </Grid>
 
                         <!-- Filters -->
@@ -1460,14 +1472,16 @@
                                                                 CommandParameter="{Binding}"
                                                                 Background="{DynamicResource PrimaryAlt}"
                                                                 Foreground="White"
-                                                                Margin="2"/>
+                                                                Margin="2"
+                                                                Visibility="{Binding DataContext.CanEditGoodsReturn, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                         <Button Content="Delete" 
                                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                                 Command="{Binding DataContext.DeleteGoodsReturnCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                 CommandParameter="{Binding}"
                                                                 Background="{DynamicResource Error}"
                                                                 Foreground="White"
-                                                                Margin="2"/>
+                                                                Margin="2"
+                                                                Visibility="{Binding DataContext.CanDeleteGoodsReturn, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                     </StackPanel>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
@@ -1515,7 +1529,8 @@
                                     Content="New Goods Replace" 
                                     Command="{Binding CreateNewGoodsReplaceCommand}"
                                     Style="{StaticResource ActionButtonStyle}"
-                                    ToolTip="Click to create a new goods replacement"/>
+                                    ToolTip="Click to create a new goods replacement"
+                                    Visibility="{Binding CanCreateGoodsReplace, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         </Grid>
 
                         <!-- Filters -->
@@ -1734,14 +1749,16 @@
                                                                 CommandParameter="{Binding}"
                                                                 Background="{DynamicResource PrimaryAlt}"
                                                                 Foreground="White"
-                                                                Margin="2"/>
+                                                                Margin="2"
+                                                                Visibility="{Binding DataContext.CanEditGoodsReplace, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                         <Button Content="Delete" 
                                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                                 Command="{Binding DataContext.DeleteGoodsReplaceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                 CommandParameter="{Binding}"
                                                                 Background="{DynamicResource Error}"
                                                                 Foreground="White"
-                                                                Margin="2"/>
+                                                                Margin="2"
+                                                                Visibility="{Binding DataContext.CanDeleteGoodsReplace, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                     </StackPanel>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>

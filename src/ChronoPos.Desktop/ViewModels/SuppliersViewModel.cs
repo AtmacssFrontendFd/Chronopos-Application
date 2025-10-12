@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
+using ChronoPos.Application.Constants;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,6 +14,7 @@ namespace ChronoPos.Desktop.ViewModels;
 public partial class SuppliersViewModel : ObservableObject
 {
     private readonly ISupplierService _supplierService;
+    private readonly ICurrentUserService _currentUserService;
 
     [ObservableProperty]
     private ObservableCollection<SupplierDto> _suppliers = new();
@@ -48,6 +50,15 @@ public partial class SuppliersViewModel : ObservableObject
     [ObservableProperty]
     private System.Windows.FlowDirection _currentFlowDirection = System.Windows.FlowDirection.LeftToRight;
 
+    [ObservableProperty]
+    private bool canCreateSupplier = false;
+
+    [ObservableProperty]
+    private bool canEditSupplier = false;
+
+    [ObservableProperty]
+    private bool canDeleteSupplier = false;
+
     /// <summary>
     /// Text for the active filter toggle button
     /// </summary>
@@ -68,9 +79,14 @@ public partial class SuppliersViewModel : ObservableObject
     /// </summary>
     public Action? GoBackAction { get; set; }
 
-    public SuppliersViewModel(ISupplierService supplierService)
+    public SuppliersViewModel(
+        ISupplierService supplierService,
+        ICurrentUserService currentUserService)
     {
         _supplierService = supplierService;
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        
+        InitializePermissions();
         _ = LoadSuppliersAsync();
     }
 
@@ -346,6 +362,22 @@ public partial class SuppliersViewModel : ObservableObject
         else
         {
             SidePanelViewModel.InitializeForAdd();
+        }
+    }
+
+    private void InitializePermissions()
+    {
+        try
+        {
+            CanCreateSupplier = _currentUserService.HasPermission(ScreenNames.SUPPLIERS_ADD_OPTIONS, TypeMatrix.CREATE);
+            CanEditSupplier = _currentUserService.HasPermission(ScreenNames.SUPPLIERS_ADD_OPTIONS, TypeMatrix.UPDATE);
+            CanDeleteSupplier = _currentUserService.HasPermission(ScreenNames.SUPPLIERS_ADD_OPTIONS, TypeMatrix.DELETE);
+        }
+        catch (Exception)
+        {
+            CanCreateSupplier = false;
+            CanEditSupplier = false;
+            CanDeleteSupplier = false;
         }
     }
 }

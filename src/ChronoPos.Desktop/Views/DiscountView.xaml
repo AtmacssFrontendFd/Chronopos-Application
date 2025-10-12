@@ -169,7 +169,8 @@
                 <!-- Add Discount Button -->
                 <Button Content="Add Discount"
                         Style="{StaticResource ActionButtonStyle}"
-                        Command="{Binding AddDiscountCommand}"/>
+                        Command="{Binding AddDiscountCommand}"
+                        Visibility="{Binding CanCreateDiscount, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </StackPanel>
         </Grid>
 
@@ -507,11 +508,13 @@
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.EditDiscountCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
+                                                Visibility="{Binding DataContext.CanEditDiscount, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                 Margin="2"/>
                                         <Button Content="Delete" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.DeleteDiscountCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
+                                                Visibility="{Binding DataContext.CanDeleteDiscount, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                 Foreground="Red"
                                                 Margin="2"/>
                                         <Button Content="🖨️" 

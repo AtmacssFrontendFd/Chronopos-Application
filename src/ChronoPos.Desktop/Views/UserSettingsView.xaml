@@ -1,0 +1,276 @@
+<UserControl x:Class="ChronoPos.Desktop.Views.UserSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             xmlns:userControls="clr-namespace:ChronoPos.Desktop.UserControls"
+             xmlns:controls="clr-namespace:ChronoPos.Desktop.Views.Controls"
+             mc:Ignorable="d"
+             Background="{DynamicResource MainBackground}"
+             FlowDirection="{Binding CurrentFlowDirection}"
+             FontFamily="{DynamicResource PoppinsFontFallback}">
+
+    <UserControl.Resources>
+        <!-- Converters -->
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        
+        <!-- Sidebar Button Style -->
+        <Style x:Key="SidebarButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="15,12"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,2,0,2"/>
+            <Setter Property="Tag" Value="NotSelected"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="8"
+                                Margin="5,0,5,0">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <!-- Only apply hover effect if button is not selected -->
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="Tag" Value="NotSelected"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Selected Tab Button Style -->
+        <Style x:Key="SelectedSidebarButtonStyle" TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+            <Setter Property="Background" Value="{DynamicResource Primary}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource CardBackground}"
+                BorderBrush="{DynamicResource BorderLight}"
+                BorderThickness="0,0,0,1"
+                Padding="20,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Back Button and Title -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Back Button -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
+                                        <Setter Property="FlowDirection" Value="LeftToRight"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <controls:CircularBackButton 
+                            Command="{Binding GoBackCommand}"
+                            Width="{DynamicResource ButtonHeight}"
+                            Height="{DynamicResource ButtonHeight}"
+                            Margin="0,0,10,0"/>
+                    </StackPanel>
+
+                    <!-- Title -->
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding PageTitle}"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimary}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content with Sidebar -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Sidebar Navigation -->
+            <Border Grid.Column="0"
+                    Background="{DynamicResource SurfaceBackground}"
+                    BorderBrush="{DynamicResource BorderLight}"
+                    BorderThickness="0,0,1,0">
+                <StackPanel Margin="10">
+                    
+                    <!-- Profile Tab -->
+                    <Button Content="Profile"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="Profile">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsProfileTabSelected}" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="Tag" Value="Selected"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    
+                    <!-- Users Tab -->
+                    <Button Content="Users"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="Users">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsUsersTabSelected}" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="Tag" Value="Selected"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    
+                    <!-- Company Details Tab -->
+                    <Button Content="Company Details"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="CompanyDetails">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsCompanyDetailsTabSelected}" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="Tag" Value="Selected"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    
+                    <!-- Company Settings Tab -->
+                    <Button Content="Company Settings"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="CompanySettings">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsCompanySettingsTabSelected}" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="Tag" Value="Selected"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                </StackPanel>
+            </Border>
+
+            <!-- Content Area -->
+            <Grid Grid.Column="1" Background="{DynamicResource MainBackground}">
+                
+                <!-- Profile Content -->
+                <userControls:ProfileUserControl 
+                    DataContext="{Binding ProfileViewModel}">
+                    <userControls:ProfileUserControl.Visibility>
+                        <Binding Path="DataContext.IsProfileTabSelected" 
+                                 RelativeSource="{RelativeSource AncestorType=UserControl}"
+                                 Converter="{StaticResource BoolToVisibilityConverter}"/>
+                    </userControls:ProfileUserControl.Visibility>
+                </userControls:ProfileUserControl>
+
+                <!-- Users Content -->
+                <userControls:UsersManagementUserControl 
+                    DataContext="{Binding UsersManagementViewModel}">
+                    <userControls:UsersManagementUserControl.Visibility>
+                        <Binding Path="DataContext.IsUsersTabSelected" 
+                                 RelativeSource="{RelativeSource AncestorType=UserControl}"
+                                 Converter="{StaticResource BoolToVisibilityConverter}"/>
+                    </userControls:UsersManagementUserControl.Visibility>
+                </userControls:UsersManagementUserControl>
+
+                <!-- Company Details Content -->
+                <Border Padding="20">
+                    <Border.Visibility>
+                        <Binding Path="DataContext.IsCompanyDetailsTabSelected" 
+                                 RelativeSource="{RelativeSource AncestorType=UserControl}"
+                                 Converter="{StaticResource BoolToVisibilityConverter}"/>
+                    </Border.Visibility>
+                    <TextBlock Text="Company Details - Coming Soon"
+                               FontSize="18"
+                               Foreground="{DynamicResource TextSecondary}"/>
+                </Border>
+
+                <!-- Company Settings Content -->
+                <Border Padding="20">
+                    <Border.Visibility>
+                        <Binding Path="DataContext.IsCompanySettingsTabSelected" 
+                                 RelativeSource="{RelativeSource AncestorType=UserControl}"
+                                 Converter="{StaticResource BoolToVisibilityConverter}"/>
+                    </Border.Visibility>
+                    <TextBlock Text="Company Settings - Coming Soon"
+                               FontSize="18"
+                               Foreground="{DynamicResource TextSecondary}"/>
+                </Border>
+
+            </Grid>
+        </Grid>
+        
+        <!-- Side Panel Overlay - For User Management -->
+        <Border Grid.Row="1"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Stretch"
+                Width="450"
+                Background="{DynamicResource CardBackground}"
+                BorderThickness="1,0,0,0"
+                BorderBrush="{DynamicResource BorderLight}"
+                Panel.ZIndex="1000"
+                Visibility="{Binding UsersManagementViewModel.IsSidePanelOpen, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="12" Opacity="0.3" Direction="180"/>
+            </Border.Effect>
+            <ContentControl Content="{Binding UsersManagementViewModel.UserSidePanelViewModel}">
+                <ContentControl.ContentTemplate>
+                    <DataTemplate>
+                        <userControls:UserSidePanelControl DataContext="{Binding}"/>
+                    </DataTemplate>
+                </ContentControl.ContentTemplate>
+            </ContentControl>
+        </Border>
+    </Grid>
+</UserControl>

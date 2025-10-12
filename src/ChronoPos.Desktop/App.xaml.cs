@@ -96,6 +96,9 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IUserPermissionOverrideRepository, UserPermissionOverrideRepository>();
                     LogMessage("UserPermissionOverrideRepository registered as Transient");
                     
+                    services.AddTransient<IUserRepository, UserRepository>();
+                    LogMessage("UserRepository registered as Transient");
+                    
                     services.AddTransient<IStoreRepository, StoreRepository>();
                     LogMessage("StoreRepository registered as Transient");
                     
@@ -179,6 +182,18 @@ public partial class App : System.Windows.Application
                     // Register Role service
                     services.AddTransient<IRoleService, RoleService>();
                     LogMessage("RoleService registered as Transient");
+                    
+                    // Register User service
+                    services.AddTransient<IUserService, UserService>();
+                    LogMessage("UserService registered as Transient");
+                    
+                    // Register UserPermissionOverride service
+                    services.AddTransient<IUserPermissionOverrideService, UserPermissionOverrideService>();
+                    LogMessage("UserPermissionOverrideService registered as Transient");
+                    
+                    // Register CurrentUser service (Singleton to maintain state across the app)
+                    services.AddSingleton<ICurrentUserService, CurrentUserService>();
+                    LogMessage("CurrentUserService registered as Singleton");
                     
                     services.AddTransient<IStoreService, StoreService>();
                     LogMessage("StoreService registered as Transient");
@@ -681,6 +696,11 @@ public partial class App : System.Windows.Application
         }
         
         LogMessage($">>> Login successful! User ID: {loginWindow.LoggedInUserId} ✓");
+
+        // Set the current user in the CurrentUserService
+        var currentUserService = _host.Services.GetRequiredService<ICurrentUserService>();
+        currentUserService.SetCurrentUserAsync(loginWindow.LoggedInUserId).GetAwaiter().GetResult();
+        LogMessage($">>> Current user set in CurrentUserService");
 
         // Step 4: Show MainWindow
         LogMessage(">>> Step 4: Showing MainWindow...");

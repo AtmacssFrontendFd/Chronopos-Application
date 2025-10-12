@@ -10,6 +10,9 @@
                 <ResourceDictionary Source="pack://application:,,,/ChronoPos.Desktop;component/Themes/LightTheme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             
+            <!-- Built-in WPF Converter for Boolean to Visibility -->
+            <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+            
             <!-- Add converters for Product Batches -->
             <converters:DaysToExpiryConverter x:Key="DaysToExpiryConverter"/>
             <converters:BatchStatusToColorConverter x:Key="BatchStatusToColorConverter"/>

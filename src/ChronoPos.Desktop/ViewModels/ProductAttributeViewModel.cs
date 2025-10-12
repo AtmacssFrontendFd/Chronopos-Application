@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.Constants;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.ViewModels;
 using ChronoPos.Desktop.Views;
@@ -13,6 +14,7 @@ namespace ChronoPos.Desktop.ViewModels
     public partial class ProductAttributeViewModel : ObservableObject
     {
         private readonly IProductAttributeService _attributeService;
+        private readonly ICurrentUserService _currentUserService;
         private readonly Action? _navigateBack;
 
         [ObservableProperty]
@@ -44,6 +46,15 @@ namespace ChronoPos.Desktop.ViewModels
 
         [ObservableProperty]
         private object? _sidePanelContent;
+
+        [ObservableProperty]
+        private bool canCreateProductAttribute = false;
+
+        [ObservableProperty]
+        private bool canEditProductAttribute = false;
+
+        [ObservableProperty]
+        private bool canDeleteProductAttribute = false;
 
         public string AttributeCountText 
         { 
@@ -99,13 +110,19 @@ namespace ChronoPos.Desktop.ViewModels
             }
         }
 
-        public ProductAttributeViewModel(IProductAttributeService attributeService, Action? navigateBack = null)
+        public ProductAttributeViewModel(
+            IProductAttributeService attributeService, 
+            ICurrentUserService currentUserService,
+            Action? navigateBack = null)
         {
             _attributeService = attributeService ?? throw new ArgumentNullException(nameof(attributeService));
+            _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
             _navigateBack = navigateBack;
             
             ChronoPos.Desktop.Services.FileLogger.Log("🔧 ProductAttributeViewModel constructor started");
 
+            InitializePermissions();
+            
             // Initialize like DiscountViewModel - use Task.Run to avoid deadlocks
             _ = Task.Run(LoadAttributesAsync);
             
@@ -463,6 +480,22 @@ namespace ChronoPos.Desktop.ViewModels
                 {
                     FileLogger.Log($"❌ Error in fallback close operation: {innerEx.Message}");
                 }
+            }
+        }
+
+        private void InitializePermissions()
+        {
+            try
+            {
+                CanCreateProductAttribute = _currentUserService.HasPermission(ScreenNames.PRODUCT_ATTRIBUTES, TypeMatrix.CREATE);
+                CanEditProductAttribute = _currentUserService.HasPermission(ScreenNames.PRODUCT_ATTRIBUTES, TypeMatrix.UPDATE);
+                CanDeleteProductAttribute = _currentUserService.HasPermission(ScreenNames.PRODUCT_ATTRIBUTES, TypeMatrix.DELETE);
+            }
+            catch (Exception)
+            {
+                CanCreateProductAttribute = false;
+                CanEditProductAttribute = false;
+                CanDeleteProductAttribute = false;
             }
         }
     }

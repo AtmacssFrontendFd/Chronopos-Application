@@ -9,6 +9,7 @@ using ChronoPos.Application.Interfaces;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
+using ChronoPos.Application.Constants;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -32,6 +33,7 @@ public partial class AddOptionsViewModel : ObservableObject
     private readonly ICustomerService _customerService;
     private readonly ICustomerGroupService _customerGroupService;
     private readonly ISupplierService _supplierService;
+    private readonly ICurrentUserService _currentUserService;
 
     #endregion
 
@@ -78,6 +80,96 @@ public partial class AddOptionsViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
+
+    /// <summary>
+    /// Visibility flag for Brand module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isBrandVisible = true;
+
+    /// <summary>
+    /// Visibility flag for Category module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isCategoryVisible = true;
+
+    /// <summary>
+    /// Visibility flag for Discounts module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isDiscountsVisible = true;
+
+    /// <summary>
+    /// Visibility flag for UOM module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isUomVisible = true;
+
+    /// <summary>
+    /// Visibility flag for Product Attributes module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isProductAttributesVisible = true;
+
+    /// <summary>
+    /// Visibility flag for Product Combinations module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isProductCombinationsVisible = true;
+
+    /// <summary>
+    /// Visibility flag for Product Groups module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isProductGroupsVisible = true;
+
+    /// <summary>
+    /// Visibility flag for Price Types module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isPriceTypesVisible = true;
+
+    /// <summary>
+    /// Visibility flag for Payment Types module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isPaymentTypesVisible = true;
+
+    /// <summary>
+    /// Visibility flag for Tax Rates module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isTaxRatesVisible = true;
+
+    /// <summary>
+    /// Visibility flag for Customers module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isCustomersVisible = true;
+
+    /// <summary>
+    /// Visibility flag for Customer Groups module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isCustomerGroupsVisible = true;
+
+    /// <summary>
+    /// Visibility flag for Suppliers module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isSuppliersVisible = true;
+
+    /// <summary>
+    /// Visibility flag for Shop/Store module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isShopVisible = true;
+
+    /// <summary>
+    /// Visibility flag for Warehouses module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isWarehousesVisible = true;
 
     #endregion
 
@@ -156,7 +248,8 @@ public partial class AddOptionsViewModel : ObservableObject
         ITaxTypeService taxTypeService,
         ICustomerService customerService,
         ICustomerGroupService customerGroupService,
-        ISupplierService supplierService)
+        ISupplierService supplierService,
+        ICurrentUserService currentUserService)
     {
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
@@ -169,6 +262,7 @@ public partial class AddOptionsViewModel : ObservableObject
         _customerService = customerService ?? throw new ArgumentNullException(nameof(customerService));
         _customerGroupService = customerGroupService ?? throw new ArgumentNullException(nameof(customerGroupService));
         _supplierService = supplierService ?? throw new ArgumentNullException(nameof(supplierService));
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
 
         // Subscribe to service events (commented out until proper event signatures are confirmed)
         // _themeService.ThemeChanged += OnThemeChanged;
@@ -183,6 +277,9 @@ public partial class AddOptionsViewModel : ObservableObject
         CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
             ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
 
+        // Initialize module visibility based on user permissions
+        InitializeModuleVisibility();
+
         // Load modules
         _ = Task.Run(LoadModulesAsync);
     }
@@ -190,6 +287,56 @@ public partial class AddOptionsViewModel : ObservableObject
     #endregion
 
     #region Private Methods
+
+    /// <summary>
+    /// Initialize module visibility based on user permissions
+    /// </summary>
+    private void InitializeModuleVisibility()
+    {
+        try
+        {
+            // Check permissions for each module and set visibility flags
+            IsBrandVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.BRAND);
+            IsCategoryVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.CATEGORY);
+            IsDiscountsVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.DISCOUNTS);
+            IsUomVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.UOM);
+            IsProductAttributesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRODUCT_ATTRIBUTES);
+            IsProductCombinationsVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRODUCT_COMBINATIONS);
+            IsProductGroupsVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRODUCT_GROUPING);
+            IsPriceTypesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRICE_TYPES);
+            IsPaymentTypesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PAYMENT_TYPES);
+            IsTaxRatesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.TAX_RATES);
+            IsCustomersVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS);
+            IsCustomerGroupsVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.CUSTOMER_GROUPS);
+            IsSuppliersVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.SUPPLIERS_ADD_OPTIONS);
+            IsShopVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.SHOP);
+            // Note: Warehouses doesn't have a screen constant, so keeping it visible by default
+            IsWarehousesVisible = true;
+        }
+        catch (Exception ex)
+        {
+            // If permission check fails, default to showing all modules (fail-open for better UX)
+            // The actual permission checks at module level will still protect the screens
+            System.Diagnostics.Debug.WriteLine($"Error checking module visibility: {ex.Message}");
+            
+            // Set all to visible as fallback
+            IsBrandVisible = true;
+            IsCategoryVisible = true;
+            IsDiscountsVisible = true;
+            IsUomVisible = true;
+            IsProductAttributesVisible = true;
+            IsProductCombinationsVisible = true;
+            IsProductGroupsVisible = true;
+            IsPriceTypesVisible = true;
+            IsPaymentTypesVisible = true;
+            IsTaxRatesVisible = true;
+            IsCustomersVisible = true;
+            IsCustomerGroupsVisible = true;
+            IsSuppliersVisible = true;
+            IsShopVisible = true;
+            IsWarehousesVisible = true;
+        }
+    }
 
     /// <summary>
     /// Load all add options modules with their respective data
@@ -207,39 +354,43 @@ public partial class AddOptionsViewModel : ObservableObject
                 var primaryColorBrush = GetPrimaryColorBrush();
                 var buttonBackgroundBrush = GetButtonBackgroundBrush();
 
-                // Create all 14 add options modules
+                // Create all 14 add options modules with visibility flags
                 var moduleData = new[]
                 {
-                    new { Type = "Brand", TitleKey = "add_options.brand", CountLabel = "Brands", Count = await GetBrandCountAsync() },
-                    new { Type = "Category", TitleKey = "add_options.category", CountLabel = "Categories", Count = await GetCategoryCountAsync() },
-                    new { Type = "ProductAttributes", TitleKey = "add_options.product_attributes", CountLabel = "Attributes", Count = await GetProductAttributesCountAsync() },
-                    new { Type = "ProductCombinations", TitleKey = "add_options.product_combinations", CountLabel = "Combinations", Count = await GetProductCombinationsCountAsync() },
-                    new { Type = "ProductGrouping", TitleKey = "add_options.product_grouping", CountLabel = "Groups", Count = await GetProductGroupingCountAsync() },
-                    new { Type = "PriceTypes", TitleKey = "add_options.price_types", CountLabel = "Price Types", Count = await GetPriceTypesCountAsync() },
-                    new { Type = "PaymentTypes", TitleKey = "add_options.payment_types", CountLabel = "Payment Types", Count = await GetPaymentTypesCountAsync() },
-                    new { Type = "TaxRates", TitleKey = "add_options.tax_rates", CountLabel = "Tax Rates", Count = await GetTaxRatesCountAsync() },
-                    new { Type = "Customers", TitleKey = "add_options.customer", CountLabel = "Customers", Count = await GetCustomerCountAsync() },
-                    new { Type = "Suppliers", TitleKey = "add_options.suppliers", CountLabel = "Suppliers", Count = await GetSuppliersCountAsync() },
-                    new { Type = "UOM", TitleKey = "add_options.uom", CountLabel = "UOMs", Count = await GetUOMCountAsync() },
-                    new { Type = "Shop", TitleKey = "add_options.shop", CountLabel = "Shops", Count = await GetShopCountAsync() },
-                    new { Type = "CustomerGroups", TitleKey = "add_options.customer_groups", CountLabel = "Groups", Count = await GetCustomerGroupsCountAsync() },
-                    new { Type = "Discounts", TitleKey = "add_options.discounts", CountLabel = "Discounts", Count = await GetDiscountsCountAsync() }
+                    new { Type = "Brand", TitleKey = "add_options.brand", CountLabel = "Brands", Count = await GetBrandCountAsync(), IsVisible = IsBrandVisible },
+                    new { Type = "Category", TitleKey = "add_options.category", CountLabel = "Categories", Count = await GetCategoryCountAsync(), IsVisible = IsCategoryVisible },
+                    new { Type = "ProductAttributes", TitleKey = "add_options.product_attributes", CountLabel = "Attributes", Count = await GetProductAttributesCountAsync(), IsVisible = IsProductAttributesVisible },
+                    new { Type = "ProductCombinations", TitleKey = "add_options.product_combinations", CountLabel = "Combinations", Count = await GetProductCombinationsCountAsync(), IsVisible = IsProductCombinationsVisible },
+                    new { Type = "ProductGrouping", TitleKey = "add_options.product_grouping", CountLabel = "Groups", Count = await GetProductGroupingCountAsync(), IsVisible = IsProductGroupsVisible },
+                    new { Type = "PriceTypes", TitleKey = "add_options.price_types", CountLabel = "Price Types", Count = await GetPriceTypesCountAsync(), IsVisible = IsPriceTypesVisible },
+                    new { Type = "PaymentTypes", TitleKey = "add_options.payment_types", CountLabel = "Payment Types", Count = await GetPaymentTypesCountAsync(), IsVisible = IsPaymentTypesVisible },
+                    new { Type = "TaxRates", TitleKey = "add_options.tax_rates", CountLabel = "Tax Rates", Count = await GetTaxRatesCountAsync(), IsVisible = IsTaxRatesVisible },
+                    new { Type = "Customers", TitleKey = "add_options.customer", CountLabel = "Customers", Count = await GetCustomerCountAsync(), IsVisible = IsCustomersVisible },
+                    new { Type = "Suppliers", TitleKey = "add_options.suppliers", CountLabel = "Suppliers", Count = await GetSuppliersCountAsync(), IsVisible = IsSuppliersVisible },
+                    new { Type = "UOM", TitleKey = "add_options.uom", CountLabel = "UOMs", Count = await GetUOMCountAsync(), IsVisible = IsUomVisible },
+                    new { Type = "Shop", TitleKey = "add_options.shop", CountLabel = "Shops", Count = await GetShopCountAsync(), IsVisible = IsShopVisible },
+                    new { Type = "CustomerGroups", TitleKey = "add_options.customer_groups", CountLabel = "Groups", Count = await GetCustomerGroupsCountAsync(), IsVisible = IsCustomerGroupsVisible },
+                    new { Type = "Discounts", TitleKey = "add_options.discounts", CountLabel = "Discounts", Count = await GetDiscountsCountAsync(), IsVisible = IsDiscountsVisible }
                 };
 
-                // Add modules to collection
+                // Add modules to collection - Only add visible modules
                 for (int i = 0; i < moduleData.Length; i++)
                 {
                     var data = moduleData[i];
                     
-                    AddOptionsModules.Add(new AddOptionsModuleInfo
+                    // Only add module if user has permission to see it
+                    if (data.IsVisible)
                     {
-                        ModuleType = data.Type,
-                        Title = await _databaseLocalizationService.GetTranslationAsync(data.TitleKey) ?? data.Type,
-                        ItemCount = data.Count,
-                        ItemCountLabel = data.CountLabel,
-                        IconBackground = primaryColorBrush,
-                        ButtonBackground = buttonBackgroundBrush
-                    });
+                        AddOptionsModules.Add(new AddOptionsModuleInfo
+                        {
+                            ModuleType = data.Type,
+                            Title = await _databaseLocalizationService.GetTranslationAsync(data.TitleKey) ?? data.Type,
+                            ItemCount = data.Count,
+                            ItemCountLabel = data.CountLabel,
+                            IconBackground = primaryColorBrush,
+                            ButtonBackground = buttonBackgroundBrush
+                        });
+                    }
                 }
                 
                 // Update page title

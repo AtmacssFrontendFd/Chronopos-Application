@@ -1,5 +1,6 @@
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.Constants;
 using ChronoPos.Domain.Entities;
 using ChronoPos.Desktop.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,6 +17,7 @@ public partial class ProductCombinationViewModel : ObservableObject
     private readonly IProductCombinationItemService _combinationService;
     private readonly IProductUnitService _productUnitService;
     private readonly IProductAttributeService _attributeService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly Action? _navigateBack;
 
     [ObservableProperty]
@@ -42,6 +44,15 @@ public partial class ProductCombinationViewModel : ObservableObject
     [ObservableProperty]
     private FlowDirection currentFlowDirection = FlowDirection.LeftToRight;
 
+    [ObservableProperty]
+    private bool canCreateProductCombination = false;
+
+    [ObservableProperty]
+    private bool canEditProductCombination = false;
+
+    [ObservableProperty]
+    private bool canDeleteProductCombination = false;
+
     private readonly ICollectionView _filteredProductUnitsView;
 
     public ICollectionView FilteredCombinations => _filteredProductUnitsView;
@@ -53,12 +64,16 @@ public partial class ProductCombinationViewModel : ObservableObject
         IProductCombinationItemService combinationService,
         IProductUnitService productUnitService,
         IProductAttributeService attributeService,
+        ICurrentUserService currentUserService,
         Action? navigateBack = null)
     {
         _combinationService = combinationService;
         _productUnitService = productUnitService;
         _attributeService = attributeService;
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _navigateBack = navigateBack;
+        
+        InitializePermissions();
         
         // Initialize filtered view
         _filteredProductUnitsView = CollectionViewSource.GetDefaultView(ProductUnits);
@@ -341,5 +356,21 @@ public partial class ProductCombinationViewModel : ObservableObject
     {
         IsSidePanelVisible = false;
         SidePanelViewModel = null;
+    }
+
+    private void InitializePermissions()
+    {
+        try
+        {
+            CanCreateProductCombination = _currentUserService.HasPermission(ScreenNames.PRODUCT_COMBINATIONS, TypeMatrix.CREATE);
+            CanEditProductCombination = _currentUserService.HasPermission(ScreenNames.PRODUCT_COMBINATIONS, TypeMatrix.UPDATE);
+            CanDeleteProductCombination = _currentUserService.HasPermission(ScreenNames.PRODUCT_COMBINATIONS, TypeMatrix.DELETE);
+        }
+        catch (Exception)
+        {
+            CanCreateProductCombination = false;
+            CanEditProductCombination = false;
+            CanDeleteProductCombination = false;
+        }
     }
 }
