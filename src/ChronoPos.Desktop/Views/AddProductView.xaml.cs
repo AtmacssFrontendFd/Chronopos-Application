@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Desktop.Services;
 
@@ -12,14 +13,35 @@ namespace ChronoPos.Desktop.Views
     public partial class AddProductView : UserControl
     {
         private Button? _currentSelectedButton;
+        private bool _isScrollingProgrammatically = false;
+        private ScrollViewer? _scrollViewer;
+        private StackPanel? _stackPanel;
 
         public AddProductView()
         {
             InitializeComponent();
             
-            // Set default selected section
-            ShowSection("ProductInfo");
-            SetSelectedButton(ProductInfoButton);
+            // Wait for the control to load before setting up scroll tracking
+            Loaded += OnLoaded;
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            // Get references to named elements
+            _scrollViewer = FindName("ContentScrollViewer") as ScrollViewer;
+            _stackPanel = FindName("SectionsStackPanel") as StackPanel;
+            
+            if (_scrollViewer != null)
+            {
+                _scrollViewer.ScrollChanged += OnScrollChanged;
+            }
+            
+            // Set initial active button
+            var firstButton = FindName("ProductInfoButton") as Button;
+            if (firstButton != null)
+            {
+                SetSelectedButton(firstButton);
+            }
         }
 
         private void SidebarButton_Click(object sender, RoutedEventArgs e)
@@ -29,60 +51,139 @@ namespace ChronoPos.Desktop.Views
                 var sectionName = button.Tag?.ToString();
                 if (!string.IsNullOrEmpty(sectionName))
                 {
-                    ShowSection(sectionName);
+                    ScrollToSection(sectionName);
                     SetSelectedButton(button);
                 }
             }
         }
 
-        private void ShowSection(string sectionName)
+        private void ScrollToSection(string sectionName)
         {
-            // Hide all sections first
-            ProductInfoSection.Visibility = Visibility.Collapsed;
-            TaxPricingSection.Visibility = Visibility.Collapsed;
-            BarcodesSection.Visibility = Visibility.Collapsed;
-            PicturesSection.Visibility = Visibility.Collapsed;
-            AttributesSection.Visibility = Visibility.Collapsed;
-            UnitPricesSection.Visibility = Visibility.Collapsed;
-            ProductBatchesSection.Visibility = Visibility.Collapsed;
+            if (_scrollViewer == null || _stackPanel == null)
+                return;
 
-            // Show the selected section
-            switch (sectionName)
+            var section = FindName($"{sectionName}Section") as Border;
+            if (section == null)
+                return;
+
+            _isScrollingProgrammatically = true;
+
+            try
             {
-                case "ProductInfo":
-                    ProductInfoSection.Visibility = Visibility.Visible;
-                    break;
-                case "TaxPricing":
-                    TaxPricingSection.Visibility = Visibility.Visible;
-                    break;
-                case "Barcodes":
-                    BarcodesSection.Visibility = Visibility.Visible;
-                    break;
-                case "Pictures":
-                    PicturesSection.Visibility = Visibility.Visible;
-                    break;
-                case "Attributes":
-                    AttributesSection.Visibility = Visibility.Visible;
-                    break;
-                case "UnitPrices":
-                    UnitPricesSection.Visibility = Visibility.Visible;
-                    break;
-                case "ProductBatches":
-                    ProductBatchesSection.Visibility = Visibility.Visible;
-                    break;
+                // Get the vertical offset of the section relative to the StackPanel
+                var transform = section.TransformToAncestor(_stackPanel);
+                var sectionPosition = transform.Transform(new Point(0, 0));
+
+                // Calculate target scroll position with some padding
+                var targetOffset = sectionPosition.Y - 20;
+
+                // Ensure target is within valid range
+                targetOffset = Math.Max(0, Math.Min(targetOffset, _scrollViewer.ScrollableHeight));
+
+                // Animate smooth scroll
+                AnimateScroll(_scrollViewer.VerticalOffset, targetOffset);
+            }
+            catch
+            {
+                // Fallback: reset flag
+                _isScrollingProgrammatically = false;
+            }
+        }
+
+        private async void AnimateScroll(double fromOffset, double toOffset)
+        {
+            if (_scrollViewer == null)
+                return;
+
+            const int steps = 20;
+            const int delayMs = 10;
+            var delta = (toOffset - fromOffset) / steps;
+
+            try
+            {
+                for (int i = 0; i < steps; i++)
+                {
+                    var newOffset = fromOffset + (delta * (i + 1));
+                    _scrollViewer.ScrollToVerticalOffset(newOffset);
+                    await Task.Delay(delayMs);
+                }
+
+                // Ensure we land exactly on target
+                _scrollViewer.ScrollToVerticalOffset(toOffset);
+            }
+            finally
+            {
+                _isScrollingProgrammatically = false;
+            }
+        }
+
+        private void OnScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            // Don't update active button during programmatic scrolling
+            if (_isScrollingProgrammatically)
+                return;
+
+            UpdateActiveButton();
+        }
+
+        private void UpdateActiveButton()
+        {
+            if (_scrollViewer == null || _stackPanel == null)
+                return;
+
+            var viewportTop = _scrollViewer.VerticalOffset;
+            var viewportMiddle = viewportTop + (_scrollViewer.ViewportHeight / 3); // Use top third for activation
+
+            Button? activeButton = null;
+            double closestDistance = double.MaxValue;
+
+            // Check all sections
+            string[] sectionNames = { "ProductInfo", "TaxPricing", "Barcodes", "Pictures", "Attributes", "UnitPrices", "ProductBatches" };
+            
+            foreach (var sectionName in sectionNames)
+            {
+                var section = FindName($"{sectionName}Section") as Border;
+                var button = FindName($"{sectionName}Button") as Button;
+                
+                if (section == null || button == null)
+                    continue;
+
+                try
+                {
+                    var transform = section.TransformToAncestor(_stackPanel);
+                    var sectionPosition = transform.Transform(new Point(0, 0));
+                    var sectionTop = sectionPosition.Y;
+                    var distance = Math.Abs(sectionTop - viewportMiddle);
+
+                    if (distance < closestDistance)
+                    {
+                        closestDistance = distance;
+                        activeButton = button;
+                    }
+                }
+                catch
+                {
+                    // Skip if transform fails
+                }
+            }
+
+            if (activeButton != null && activeButton != _currentSelectedButton)
+            {
+                SetSelectedButton(activeButton);
             }
         }
 
         private void SetSelectedButton(Button selectedButton)
         {
             // Reset all buttons to unselected state
-            ProductInfoButton.SetValue(IsSelectedProperty, false);
-            TaxPricingButton.SetValue(IsSelectedProperty, false);
-            BarcodesButton.SetValue(IsSelectedProperty, false);
-            PicturesButton.SetValue(IsSelectedProperty, false);
-            AttributesButton.SetValue(IsSelectedProperty, false);
-            UnitPricesButton.SetValue(IsSelectedProperty, false);
-            ProductBatchesButton.SetValue(IsSelectedProperty, false);
+            var buttonNames = new[] { "ProductInfoButton", "TaxPricingButton", "BarcodesButton", 
+                                     "PicturesButton", "AttributesButton", "UnitPricesButton", "ProductBatchesButton" };
+            
+            foreach (var buttonName in buttonNames)
+            {
+                var button = FindName(buttonName) as Button;
+                button?.SetValue(IsSelectedProperty, false);
+            }
 
             // Set the clicked button as selected
             selectedButton.SetValue(IsSelectedProperty, true);

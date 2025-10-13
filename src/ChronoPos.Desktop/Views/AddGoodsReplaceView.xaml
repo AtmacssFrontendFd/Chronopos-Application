@@ -411,14 +411,16 @@
                 </Grid.RowDefinitions>
                 
                 <!-- Scrollable Content -->
-                <ScrollViewer Grid.Row="0" 
+                <ScrollViewer x:Name="MainScrollViewer"
+                              Grid.Row="0" 
                               VerticalScrollBarVisibility="Auto" 
                               HorizontalScrollBarVisibility="Disabled"
+                              ScrollChanged="ScrollViewer_ScrollChanged"
                               Padding="0,0,0,0">
                     <StackPanel>
 
                         <!-- Replace Header Section -->
-                        <Border Name="ReplaceHeaderSection" Style="{StaticResource FormSectionStyle}">
+                        <Border Name="ReplaceHeaderSection" Style="{StaticResource FormSectionStyle}" Margin="20,20,20,10">
                             <StackPanel>
                                 <TextBlock Text="{Binding ReplaceHeaderTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                                 
@@ -514,7 +516,7 @@
                         </Border>
 
                         <!-- Replace Items Section -->
-                        <Border Name="ReplaceItemsSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                        <Border Name="ReplaceItemsSection" Style="{StaticResource FormSectionStyle}" Margin="20,10,20,10">
                             <StackPanel>
                                 <Grid Margin="0,0,0,15">
                                     <Grid.ColumnDefinitions>
@@ -799,7 +801,7 @@
                         </Border>
 
                         <!-- Summary Section -->
-                        <Border Name="SummarySection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                        <Border Name="SummarySection" Style="{StaticResource FormSectionStyle}" Margin="20,10,20,20">
                             <StackPanel>
                                 <TextBlock Text="{Binding SummaryTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                                 

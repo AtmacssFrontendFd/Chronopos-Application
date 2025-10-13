@@ -437,11 +437,15 @@
                 </Grid.RowDefinitions>
 
                 <!-- Scrollable Content -->
-                <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                <ScrollViewer x:Name="MainScrollViewer"
+                              Grid.Row="0" 
+                              VerticalScrollBarVisibility="Auto" 
+                              HorizontalScrollBarVisibility="Disabled"
+                              ScrollChanged="ScrollViewer_ScrollChanged">
                     <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
 
                         <!-- Return Header Section -->
-                        <Border Name="ReturnHeaderSection" Style="{StaticResource FormSectionStyle}">
+                        <Border Name="ReturnHeaderSection" Style="{StaticResource FormSectionStyle}" Margin="0,0,0,10">
                             <StackPanel>
                                 <TextBlock Text="{Binding ReturnHeaderTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                                 
@@ -527,7 +531,7 @@
                         </Border>
 
                         <!-- Return Items Section -->
-                        <Border Name="ReturnItemsSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                        <Border Name="ReturnItemsSection" Style="{StaticResource FormSectionStyle}" Margin="0,10,0,10">
                             <StackPanel>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -778,7 +782,7 @@
                         </Border>
 
                         <!-- Summary Section -->
-                        <Border Name="SummarySection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                        <Border Name="SummarySection" Style="{StaticResource FormSectionStyle}" Margin="0,10,0,0">
                             <StackPanel>
                                 <TextBlock Text="{Binding SummaryTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                                 

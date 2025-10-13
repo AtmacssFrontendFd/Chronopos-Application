@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using ChronoPos.Desktop.ViewModels;
@@ -9,12 +11,36 @@ namespace ChronoPos.Desktop.Views
     /// </summary>
     public partial class AddGoodsReplaceView : UserControl
     {
+        private Dictionary<Border, Button> _sectionButtonMap;
+        private bool _isScrolling = false;
+
         public AddGoodsReplaceView()
         {
             InitializeComponent();
             
-            // Set default selected section
-            SetSelectedSection("ReplaceHeader");
+            _sectionButtonMap = new Dictionary<Border, Button>();
+
+            // Set default selected section after controls are loaded
+            Loaded += (s, e) =>
+            {
+                // Map sections to buttons after UI is loaded
+                var replaceHeaderSection = this.FindName("ReplaceHeaderSection") as Border;
+                var replaceItemsSection = this.FindName("ReplaceItemsSection") as Border;
+                var summarySection = this.FindName("SummarySection") as Border;
+                var replaceHeaderButton = this.FindName("ReplaceHeaderButton") as Button;
+                var replaceItemsButton = this.FindName("ReplaceItemsButton") as Button;
+                var summaryButton = this.FindName("SummaryButton") as Button;
+
+                if (replaceHeaderSection != null && replaceHeaderButton != null)
+                    _sectionButtonMap[replaceHeaderSection] = replaceHeaderButton;
+                if (replaceItemsSection != null && replaceItemsButton != null)
+                    _sectionButtonMap[replaceItemsSection] = replaceItemsButton;
+                if (summarySection != null && summaryButton != null)
+                    _sectionButtonMap[summarySection] = summaryButton;
+
+                if (replaceHeaderButton != null)
+                    SetButtonSelected(replaceHeaderButton, true);
+            };
         }
 
         /// <summary>
@@ -24,40 +50,88 @@ namespace ChronoPos.Desktop.Views
         {
             if (sender is Button button && button.Tag is string sectionName)
             {
-                SetSelectedSection(sectionName);
+                ScrollToSection(sectionName);
             }
         }
 
         /// <summary>
-        /// Set the selected section and update visibility
+        /// Scroll to a specific section smoothly
         /// </summary>
-        private void SetSelectedSection(string sectionName)
+        private void ScrollToSection(string sectionName)
         {
-            // Hide all sections
-            ReplaceHeaderSection.Visibility = Visibility.Collapsed;
-            ReplaceItemsSection.Visibility = Visibility.Collapsed;
-            SummarySection.Visibility = Visibility.Collapsed;
-
-            // Clear all button selections
-            ClearAllButtonSelections();
-
-            // Show selected section and highlight button
-            switch (sectionName)
+            Border? targetSection = sectionName switch
             {
-                case "ReplaceHeader":
-                    ReplaceHeaderSection.Visibility = Visibility.Visible;
-                    SetButtonSelected(ReplaceHeaderButton, true);
-                    break;
+                "ReplaceHeader" => this.FindName("ReplaceHeaderSection") as Border,
+                "ReplaceItems" => this.FindName("ReplaceItemsSection") as Border,
+                "Summary" => this.FindName("SummarySection") as Border,
+                _ => null
+            };
+
+            var scrollViewer = this.FindName("MainScrollViewer") as ScrollViewer;
+            if (targetSection != null && scrollViewer != null)
+            {
+                _isScrolling = true;
+                var transform = targetSection.TransformToAncestor(scrollViewer);
+                var position = transform.Transform(new Point(0, 0));
+                scrollViewer.ScrollToVerticalOffset(position.Y + scrollViewer.VerticalOffset - 20);
                 
-                case "ReplaceItems":
-                    ReplaceItemsSection.Visibility = Visibility.Visible;
-                    SetButtonSelected(ReplaceItemsButton, true);
-                    break;
-                
-                case "Summary":
-                    SummarySection.Visibility = Visibility.Visible;
-                    SetButtonSelected(SummaryButton, true);
-                    break;
+                // Re-enable scroll tracking after a short delay
+                Dispatcher.InvokeAsync(async () =>
+                {
+                    await System.Threading.Tasks.Task.Delay(100);
+                    _isScrolling = false;
+                    UpdateActiveButton();
+                });
+            }
+        }
+
+        /// <summary>
+        /// Handle scroll events to update active section button
+        /// </summary>
+        private void ScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (!_isScrolling)
+            {
+                UpdateActiveButton();
+            }
+        }
+
+        /// <summary>
+        /// Update which button is active based on scroll position
+        /// </summary>
+        private void UpdateActiveButton()
+        {
+            var scrollViewer = this.FindName("MainScrollViewer") as ScrollViewer;
+            if (scrollViewer == null) return;
+
+            var viewportTop = scrollViewer.VerticalOffset;
+            var viewportMiddle = viewportTop + (scrollViewer.ViewportHeight / 3);
+
+            Border? activeSection = null;
+            double closestDistance = double.MaxValue;
+
+            foreach (var section in _sectionButtonMap.Keys)
+            {
+                try
+                {
+                    var transform = section.TransformToAncestor(scrollViewer);
+                    var position = transform.Transform(new Point(0, 0));
+                    var sectionTop = position.Y + scrollViewer.VerticalOffset;
+                    var distance = Math.Abs(sectionTop - viewportMiddle);
+
+                    if (distance < closestDistance)
+                    {
+                        closestDistance = distance;
+                        activeSection = section;
+                    }
+                }
+                catch { }
+            }
+
+            if (activeSection != null && _sectionButtonMap.TryGetValue(activeSection, out var button))
+            {
+                ClearAllButtonSelections();
+                SetButtonSelected(button, true);
             }
         }
 
@@ -66,9 +140,13 @@ namespace ChronoPos.Desktop.Views
         /// </summary>
         private void ClearAllButtonSelections()
         {
-            SetButtonSelected(ReplaceHeaderButton, false);
-            SetButtonSelected(ReplaceItemsButton, false);
-            SetButtonSelected(SummaryButton, false);
+            var replaceHeaderButton = this.FindName("ReplaceHeaderButton") as Button;
+            var replaceItemsButton = this.FindName("ReplaceItemsButton") as Button;
+            var summaryButton = this.FindName("SummaryButton") as Button;
+
+            if (replaceHeaderButton != null) SetButtonSelected(replaceHeaderButton, false);
+            if (replaceItemsButton != null) SetButtonSelected(replaceItemsButton, false);
+            if (summaryButton != null) SetButtonSelected(summaryButton, false);
         }
 
         /// <summary>
