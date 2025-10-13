@@ -69,7 +69,7 @@
             <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="{DynamicResource BorderCornerRadius}"/>
-            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Margin" Value="0,0,0,20"/>
             <Setter Property="Padding" Value="{DynamicResource CardPaddingThickness}"/>
             <Setter Property="Effect">
                 <Setter.Value>
@@ -466,14 +466,15 @@
                 </Grid.RowDefinitions>
                 
                 <!-- Scrollable Content -->
-                <ScrollViewer Grid.Row="0" 
+                <ScrollViewer x:Name="ContentScrollViewer"
+                              Grid.Row="0" 
                               VerticalScrollBarVisibility="Auto" 
                               HorizontalScrollBarVisibility="Disabled"
                               Padding="0,0,0,0">
-                    <StackPanel>
+                    <StackPanel x:Name="SectionsStackPanel">
                 
                 <!-- Product Information Section -->
-                <Border Name="ProductInfoSection" Style="{StaticResource FormSectionStyle}">
+                <Border x:Name="ProductInfoSection" Style="{StaticResource FormSectionStyle}">
                     <StackPanel>
                         <TextBlock Text="{Binding ProductInfoTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                         
@@ -601,7 +602,7 @@
                 </Border>
 
                 <!-- Tax & Pricing Section -->
-                <Border Name="TaxPricingSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                <Border x:Name="TaxPricingSection" Style="{StaticResource FormSectionStyle}">
                     <StackPanel>
                         <TextBlock Text="{Binding PricingTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                         
@@ -941,7 +942,7 @@
                 </Border>
 
                 <!-- Product Barcodes Section -->
-                <Border Name="BarcodesSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                <Border x:Name="BarcodesSection" Style="{StaticResource FormSectionStyle}">
                     <StackPanel>
                         <TextBlock Text="{Binding BarcodesTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                         
@@ -1161,7 +1162,7 @@
                 </Border>
 
                 <!-- Product Pictures Section -->
-                <Border Name="PicturesSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                <Border x:Name="PicturesSection" Style="{StaticResource FormSectionStyle}">
                     <StackPanel>
                         <TextBlock Text="{Binding PicturesTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                         
@@ -1295,7 +1296,7 @@
                 </Border>
 
                 <!-- Product Attributes Section -->
-                <Border Name="AttributesSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                <Border x:Name="AttributesSection" Style="{StaticResource FormSectionStyle}">
                     <StackPanel>
                         <TextBlock Text="{Binding AttributesTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                         
@@ -1446,7 +1447,7 @@
                 </Border>
 
                 <!-- Unit Prices Section -->
-                <Border Name="UnitPricesSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                <Border x:Name="UnitPricesSection" Style="{StaticResource FormSectionStyle}">
                     <StackPanel>
                         <TextBlock Text="{Binding StockControlUnitPricesLabel}" Style="{StaticResource SectionHeaderStyle}"/>
                         
@@ -1553,7 +1554,7 @@
                 </Border>
 
                 <!-- Product Batches Section -->
-                <Border Name="ProductBatchesSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                <Border x:Name="ProductBatchesSection" Style="{StaticResource FormSectionStyle}">
                     <StackPanel>
                         <Grid Margin="0,0,0,15">
                             <TextBlock Text="Product Batches" 

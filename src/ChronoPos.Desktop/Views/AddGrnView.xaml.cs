@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -10,49 +12,123 @@ namespace ChronoPos.Desktop.Views
     /// </summary>
     public partial class AddGrnView : UserControl
     {
-        private Button? _currentSelectedButton;
+        private Dictionary<Border, Button> _sectionButtonMap;
+        private bool _isScrolling = false;
 
         public AddGrnView()
         {
             InitializeComponent();
             
-            // Set default selected section
-            ShowSection("GrnHeader");
-            SetSelectedButton(GrnHeaderButton);
+            _sectionButtonMap = new Dictionary<Border, Button>();
+
+            // Set default selected section after controls are loaded
+            Loaded += (s, e) =>
+            {
+                // Map sections to buttons after UI is loaded
+                var grnHeaderSection = this.FindName("GrnHeaderSection") as Border;
+                var grnItemsSection = this.FindName("GrnItemsSection") as Border;
+                var summarySection = this.FindName("SummarySection") as Border;
+                var grnHeaderButton = this.FindName("GrnHeaderButton") as Button;
+                var grnItemsButton = this.FindName("GrnItemsButton") as Button;
+                var summaryButton = this.FindName("SummaryButton") as Button;
+
+                if (grnHeaderSection != null && grnHeaderButton != null)
+                    _sectionButtonMap[grnHeaderSection] = grnHeaderButton;
+                if (grnItemsSection != null && grnItemsButton != null)
+                    _sectionButtonMap[grnItemsSection] = grnItemsButton;
+                if (summarySection != null && summaryButton != null)
+                    _sectionButtonMap[summarySection] = summaryButton;
+
+                if (grnHeaderButton != null)
+                    SetSelectedButton(grnHeaderButton);
+            };
         }
 
         private void SidebarButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button)
+            if (sender is Button button && button.Tag is string sectionName)
             {
-                var sectionName = button.Tag?.ToString();
-                if (!string.IsNullOrEmpty(sectionName))
-                {
-                    ShowSection(sectionName);
-                    SetSelectedButton(button);
-                }
+                ScrollToSection(sectionName);
             }
         }
 
-        private void ShowSection(string sectionName)
+        /// <summary>
+        /// Scroll to a specific section smoothly
+        /// </summary>
+        private void ScrollToSection(string sectionName)
         {
-            // Hide all sections first
-            GrnHeaderSection.Visibility = Visibility.Collapsed;
-            GrnItemsSection.Visibility = Visibility.Collapsed;
-            SummarySection.Visibility = Visibility.Collapsed;
-
-            // Show the selected section
-            switch (sectionName)
+            Border? targetSection = sectionName switch
             {
-                case "GrnHeader":
-                    GrnHeaderSection.Visibility = Visibility.Visible;
-                    break;
-                case "GrnItems":
-                    GrnItemsSection.Visibility = Visibility.Visible;
-                    break;
-                case "Summary":
-                    SummarySection.Visibility = Visibility.Visible;
-                    break;
+                "GrnHeader" => this.FindName("GrnHeaderSection") as Border,
+                "GrnItems" => this.FindName("GrnItemsSection") as Border,
+                "Summary" => this.FindName("SummarySection") as Border,
+                _ => null
+            };
+
+            var scrollViewer = this.FindName("MainScrollViewer") as ScrollViewer;
+            if (targetSection != null && scrollViewer != null)
+            {
+                _isScrolling = true;
+                var transform = targetSection.TransformToAncestor(scrollViewer);
+                var position = transform.Transform(new Point(0, 0));
+                scrollViewer.ScrollToVerticalOffset(position.Y + scrollViewer.VerticalOffset - 20);
+                
+                // Re-enable scroll tracking after a short delay
+                Dispatcher.InvokeAsync(async () =>
+                {
+                    await System.Threading.Tasks.Task.Delay(100);
+                    _isScrolling = false;
+                    UpdateActiveButton();
+                });
+            }
+        }
+
+        /// <summary>
+        /// Handle scroll events to update active section button
+        /// </summary>
+        private void ScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (!_isScrolling)
+            {
+                UpdateActiveButton();
+            }
+        }
+
+        /// <summary>
+        /// Update which button is active based on scroll position
+        /// </summary>
+        private void UpdateActiveButton()
+        {
+            var scrollViewer = this.FindName("MainScrollViewer") as ScrollViewer;
+            if (scrollViewer == null) return;
+
+            var viewportTop = scrollViewer.VerticalOffset;
+            var viewportMiddle = viewportTop + (scrollViewer.ViewportHeight / 3);
+
+            Border? activeSection = null;
+            double closestDistance = double.MaxValue;
+
+            foreach (var section in _sectionButtonMap.Keys)
+            {
+                try
+                {
+                    var transform = section.TransformToAncestor(scrollViewer);
+                    var position = transform.Transform(new Point(0, 0));
+                    var sectionTop = position.Y + scrollViewer.VerticalOffset;
+                    var distance = Math.Abs(sectionTop - viewportMiddle);
+
+                    if (distance < closestDistance)
+                    {
+                        closestDistance = distance;
+                        activeSection = section;
+                    }
+                }
+                catch { }
+            }
+
+            if (activeSection != null && _sectionButtonMap.TryGetValue(activeSection, out var button))
+            {
+                SetSelectedButton(button);
             }
         }
 
@@ -65,7 +141,6 @@ namespace ChronoPos.Desktop.Views
 
             // Set the clicked button as selected
             selectedButton.SetValue(IsSelectedProperty, true);
-            _currentSelectedButton = selectedButton;
         }
 
         // Dependency property for button selection state

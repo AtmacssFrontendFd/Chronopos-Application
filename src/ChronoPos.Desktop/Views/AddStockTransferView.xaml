@@ -411,14 +411,16 @@
                 </Grid.RowDefinitions>
                 
                 <!-- Scrollable Content -->
-                <ScrollViewer Grid.Row="0" 
+                <ScrollViewer x:Name="MainScrollViewer"
+                              Grid.Row="0" 
                               VerticalScrollBarVisibility="Auto" 
                               HorizontalScrollBarVisibility="Disabled"
+                              ScrollChanged="ScrollViewer_ScrollChanged"
                               Padding="0,0,0,0">
                     <StackPanel>
 
                         <!-- Transfer Header Section -->
-                        <Border Name="TransferHeaderSection" Style="{StaticResource FormSectionStyle}">
+                        <Border Name="TransferHeaderSection" Style="{StaticResource FormSectionStyle}" Margin="20,20,20,10">
                             <StackPanel>
                                 <TextBlock Text="{Binding TransferHeaderTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                                 
@@ -493,7 +495,7 @@
                         </Border>
 
                         <!-- Transfer Items Section -->
-                        <Border Name="TransferItemsSection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                        <Border Name="TransferItemsSection" Style="{StaticResource FormSectionStyle}" Margin="20,10,20,10">
                             <StackPanel>
                                 <Grid Margin="0,0,0,15">
                                     <Grid.ColumnDefinitions>
@@ -713,7 +715,7 @@
                         </Border>
 
                         <!-- Summary Section -->
-                        <Border Name="SummarySection" Style="{StaticResource FormSectionStyle}" Visibility="Collapsed">
+                        <Border Name="SummarySection" Style="{StaticResource FormSectionStyle}" Margin="20,10,20,20">
                             <StackPanel>
                                 <TextBlock Text="{Binding SummaryTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                                 
