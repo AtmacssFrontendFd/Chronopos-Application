@@ -91,6 +91,36 @@
                         Margin="0,0,10,0"/>
                 </StackPanel>
 
+                <!-- Import Button -->
+                <Button Background="{DynamicResource Success}"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Padding="12,8"
+                        Margin="5"
+                        FontWeight="SemiBold"
+                        Command="{Binding ImportCommand}"
+                        Visibility="{Binding CanImportCustomer, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📥" FontSize="16" Margin="0,0,5,0"/>
+                        <TextBlock Text="Import"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Export Button -->
+                <Button Background="{DynamicResource Success}"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Padding="12,8"
+                        Margin="5"
+                        FontWeight="SemiBold"
+                        Command="{Binding ExportCommand}"
+                        Visibility="{Binding CanExportCustomer, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📤" FontSize="16" Margin="0,0,5,0"/>
+                        <TextBlock Text="Export"/>
+                    </StackPanel>
+                </Button>
+
                 <!-- Add Customer Button -->
                 <Button Content="Add Customer"
                         Background="{DynamicResource Primary}"

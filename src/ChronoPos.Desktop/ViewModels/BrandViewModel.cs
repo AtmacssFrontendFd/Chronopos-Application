@@ -5,8 +5,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
+using System.Text;
 using System.Windows.Data;
 using System.Windows;
+using Microsoft.Win32;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -52,6 +55,12 @@ public partial class BrandViewModel : ObservableObject
 
     [ObservableProperty]
     private bool canDeleteBrand = false;
+
+    [ObservableProperty]
+    private bool canImportBrand = false;
+
+    [ObservableProperty]
+    private bool canExportBrand = false;
 
     private readonly ICollectionView _filteredBrandsView;
 
@@ -291,6 +300,211 @@ public partial class BrandViewModel : ObservableObject
         StatusMessage = "Filters cleared.";
     }
 
+    [RelayCommand]
+    private async Task ExportAsync()
+    {
+        try
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                FileName = $"Brands_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+                DefaultExt = ".csv"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Exporting brands...";
+
+                var csv = new StringBuilder();
+                csv.AppendLine("Id,Name,NameArabic,Description,LogoUrl,IsActive");
+
+                foreach (var brand in Brands)
+                {
+                    csv.AppendLine($"{brand.Id}," +
+                                 $"\"{brand.Name}\"," +
+                                 $"\"{brand.NameArabic ?? ""}\"," +
+                                 $"\"{brand.Description ?? ""}\"," +
+                                 $"\"{brand.LogoUrl ?? ""}\"," +
+                                 $"{brand.IsActive}");
+                }
+
+                await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
+                StatusMessage = $"Exported {Brands.Count} brands successfully";
+                MessageBox.Show($"Exported {Brands.Count} brands to:\n{saveFileDialog.FileName}", 
+                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error exporting brands: {ex.Message}";
+            MessageBox.Show($"Error exporting brands: {ex.Message}", "Export Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ImportAsync()
+    {
+        try
+        {
+            // Show dialog with Download Template and Upload File options
+            var result = MessageBox.Show(
+                "Would you like to download a template first?\n\n" +
+                "• Click 'Yes' to download the CSV template\n" +
+                "• Click 'No' to upload your file directly\n" +
+                "• Click 'Cancel' to exit",
+                "Import Brands",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Cancel)
+                return;
+
+            if (result == MessageBoxResult.Yes)
+            {
+                // Download Template
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    FileName = "Brands_Template.csv",
+                    DefaultExt = ".csv"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    var templateCsv = new StringBuilder();
+                    templateCsv.AppendLine("Id,Name,NameAr,Description,IsActive");
+                    templateCsv.AppendLine("0,Sample Brand,العلامة التجارية النموذجية,Sample brand description,true");
+                    templateCsv.AppendLine("0,Nike,نايكي,Sports brand,true");
+
+                    await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
+                    MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
+                        "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                return;
+            }
+
+            // Upload File
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                DefaultExt = ".csv"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Importing brands...";
+
+                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                if (lines.Length <= 1)
+                {
+                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                int successCount = 0;
+                int errorCount = 0;
+                var errors = new StringBuilder();
+
+                // Skip header row
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    try
+                    {
+                        var line = lines[i];
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        var values = ParseCsvLine(line);
+                        if (values.Length < 6)
+                        {
+                            errorCount++;
+                            errors.AppendLine($"Line {i + 1}: Invalid format (expected 6 columns)");
+                            continue;
+                        }
+
+                        var createDto = new CreateBrandDto
+                        {
+                            Name = values[1].Trim('"'),
+                            NameArabic = string.IsNullOrWhiteSpace(values[2].Trim('"')) ? null : values[2].Trim('"'),
+                            Description = string.IsNullOrWhiteSpace(values[3].Trim('"')) ? null : values[3].Trim('"'),
+                            LogoUrl = string.IsNullOrWhiteSpace(values[4].Trim('"')) ? null : values[4].Trim('"'),
+                            IsActive = bool.Parse(values[5])
+                        };
+
+                        await _brandService.CreateAsync(createDto);
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errorCount++;
+                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                    }
+                }
+
+                await LoadBrandsAsync();
+
+                var message = $"Import completed:\n✓ {successCount} brands imported successfully";
+                if (errorCount > 0)
+                {
+                    message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                }
+
+                MessageBox.Show(message, "Import Complete", 
+                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                
+                StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error importing brands: {ex.Message}";
+            MessageBox.Show($"Error importing brands: {ex.Message}", "Import Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private string[] ParseCsvLine(string line)
+    {
+        var values = new List<string>();
+        var currentValue = new StringBuilder();
+        bool inQuotes = false;
+
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+
+            if (c == '"')
+            {
+                inQuotes = !inQuotes;
+                currentValue.Append(c);
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                values.Add(currentValue.ToString());
+                currentValue.Clear();
+            }
+            else
+            {
+                currentValue.Append(c);
+            }
+        }
+
+        values.Add(currentValue.ToString());
+        return values.ToArray();
+    }
+
     private void InitializePermissions()
     {
         try
@@ -298,6 +512,8 @@ public partial class BrandViewModel : ObservableObject
             CanCreateBrand = _currentUserService.HasPermission(ScreenNames.BRAND, TypeMatrix.CREATE);
             CanEditBrand = _currentUserService.HasPermission(ScreenNames.BRAND, TypeMatrix.UPDATE);
             CanDeleteBrand = _currentUserService.HasPermission(ScreenNames.BRAND, TypeMatrix.DELETE);
+            CanImportBrand = _currentUserService.HasPermission(ScreenNames.BRAND, TypeMatrix.IMPORT);
+            CanExportBrand = _currentUserService.HasPermission(ScreenNames.BRAND, TypeMatrix.EXPORT);
         }
         catch (Exception)
         {
@@ -305,6 +521,8 @@ public partial class BrandViewModel : ObservableObject
             CanCreateBrand = false;
             CanEditBrand = false;
             CanDeleteBrand = false;
+            CanImportBrand = false;
+            CanExportBrand = false;
         }
     }
 

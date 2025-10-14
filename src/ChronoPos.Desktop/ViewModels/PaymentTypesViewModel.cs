@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -11,6 +13,7 @@ using ChronoPos.Application.Constants;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.ViewModels;
 using ChronoPos.Infrastructure.Services;
+using Microsoft.Win32;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -91,6 +94,12 @@ public partial class PaymentTypesViewModel : ObservableObject
 
     [ObservableProperty]
     private bool canDeletePaymentType = false;
+
+    [ObservableProperty]
+    private bool canImportPaymentType = false;
+
+    [ObservableProperty]
+    private bool canExportPaymentType = false;
 
     /// <summary>
     /// Side panel view model
@@ -293,6 +302,248 @@ public partial class PaymentTypesViewModel : ObservableObject
         SearchText = string.Empty;
     }
 
+    /// <summary>
+    /// Command to export payment types to CSV
+    /// </summary>
+    [RelayCommand]
+    private async Task ExportAsync()
+    {
+        try
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                FileName = $"PaymentTypes_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+                DefaultExt = ".csv"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Exporting payment types...";
+
+                var csv = new StringBuilder();
+                csv.AppendLine("Id,Name,PaymentCode,NameAr,Status,ChangeAllowed,CustomerRequired,MarkTransactionAsPaid,ShortcutKey,IsRefundable,IsSplitAllowed");
+
+                foreach (var paymentType in PaymentTypes)
+                {
+                    csv.AppendLine($"{paymentType.Id}," +
+                                 $"\"{paymentType.Name}\"," +
+                                 $"\"{paymentType.PaymentCode}\"," +
+                                 $"\"{paymentType.NameAr ?? ""}\"," +
+                                 $"{paymentType.Status}," +
+                                 $"{paymentType.ChangeAllowed}," +
+                                 $"{paymentType.CustomerRequired}," +
+                                 $"{paymentType.MarkTransactionAsPaid}," +
+                                 $"\"{paymentType.ShortcutKey ?? ""}\"," +
+                                 $"{paymentType.IsRefundable}," +
+                                 $"{paymentType.IsSplitAllowed}");
+                }
+
+                await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
+                StatusMessage = $"Exported {PaymentTypes.Count} payment types successfully";
+                MessageBox.Show($"Exported {PaymentTypes.Count} payment types to:\n{saveFileDialog.FileName}", 
+                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error exporting payment types: {ex.Message}";
+            MessageBox.Show($"Error exporting payment types: {ex.Message}", "Export Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Command to import payment types from CSV
+    /// </summary>
+    [RelayCommand]
+    private async Task ImportAsync()
+    {
+        try
+        {
+            // Show dialog with options: Download Template or Upload File
+            var result = MessageBox.Show(
+                "Would you like to:\n\n" +
+                "• Click 'Yes' to Download Template (sample CSV file)\n" +
+                "• Click 'No' to Upload File (import from existing CSV)\n" +
+                "• Click 'Cancel' to go back",
+                "Import Payment Types",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Cancel)
+                return;
+
+            if (result == MessageBoxResult.Yes)
+            {
+                // Download Template
+                await DownloadTemplateAsync();
+                return;
+            }
+
+            // Upload File (No option)
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                DefaultExt = ".csv"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Importing payment types...";
+
+                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                if (lines.Length <= 1)
+                {
+                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                int successCount = 0;
+                int errorCount = 0;
+                var errors = new StringBuilder();
+
+                // Skip header row
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    try
+                    {
+                        var line = lines[i];
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        var values = ParseCsvLine(line);
+                        if (values.Length < 10)
+                        {
+                            errorCount++;
+                            errors.AppendLine($"Line {i + 1}: Invalid format (expected 10 columns)");
+                            continue;
+                        }
+
+                        var createDto = new CreatePaymentTypeDto
+                        {
+                            Name = values[0].Trim('"'),
+                            PaymentCode = values[1].Trim('"'),
+                            NameAr = string.IsNullOrWhiteSpace(values[2].Trim('"')) ? null : values[2].Trim('"'),
+                            Status = bool.Parse(values[3]),
+                            ChangeAllowed = bool.Parse(values[4]),
+                            CustomerRequired = bool.Parse(values[5]),
+                            MarkTransactionAsPaid = bool.Parse(values[6]),
+                            ShortcutKey = string.IsNullOrWhiteSpace(values[7].Trim('"')) ? null : values[7].Trim('"'),
+                            IsRefundable = bool.Parse(values[8]),
+                            IsSplitAllowed = bool.Parse(values[9]),
+                            CreatedBy = 1 // TODO: Get from current user
+                        };
+
+                        await _paymentTypeService.CreateAsync(createDto);
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errorCount++;
+                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                    }
+                }
+
+                await LoadPaymentTypesAsync();
+
+                var message = $"Import completed:\n✓ {successCount} payment types imported successfully";
+                if (errorCount > 0)
+                {
+                    message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                }
+
+                MessageBox.Show(message, "Import Complete", 
+                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                
+                StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error importing payment types: {ex.Message}";
+            MessageBox.Show($"Error importing payment types: {ex.Message}", "Import Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Download CSV template for payment types
+    /// </summary>
+    private async Task DownloadTemplateAsync()
+    {
+        try
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                FileName = "PaymentTypes_Template.csv",
+                DefaultExt = ".csv"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                var csv = new StringBuilder();
+                csv.AppendLine("Name,PaymentCode,NameAr,Status,ChangeAllowed,CustomerRequired,MarkTransactionAsPaid,ShortcutKey,IsRefundable,IsSplitAllowed");
+                csv.AppendLine("\"Cash\",\"CASH\",\"نقد\",True,True,False,True,\"F1\",True,True");
+                csv.AppendLine("\"Credit Card\",\"CC\",\"بطاقة الائتمان\",True,False,False,True,\"F2\",False,False");
+                csv.AppendLine("\"Bank Transfer\",\"BANK\",\"تحويل بنكي\",True,False,True,False,\"\",True,False");
+
+                await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
+                MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nYou can now fill in your data and import it.", 
+                    "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error downloading template: {ex.Message}", "Download Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// Parse CSV line handling quoted values
+    /// </summary>
+    private string[] ParseCsvLine(string line)
+    {
+        var values = new List<string>();
+        var currentValue = new StringBuilder();
+        bool inQuotes = false;
+
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+
+            if (c == '"')
+            {
+                inQuotes = !inQuotes;
+                currentValue.Append(c);
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                values.Add(currentValue.ToString());
+                currentValue.Clear();
+            }
+            else
+            {
+                currentValue.Append(c);
+            }
+        }
+
+        values.Add(currentValue.ToString());
+        return values.ToArray();
+    }
+
     #endregion
 
     #region Private Methods
@@ -380,12 +631,16 @@ public partial class PaymentTypesViewModel : ObservableObject
             CanCreatePaymentType = _currentUserService.HasPermission(ScreenNames.PAYMENT_TYPES, TypeMatrix.CREATE);
             CanEditPaymentType = _currentUserService.HasPermission(ScreenNames.PAYMENT_TYPES, TypeMatrix.UPDATE);
             CanDeletePaymentType = _currentUserService.HasPermission(ScreenNames.PAYMENT_TYPES, TypeMatrix.DELETE);
+            CanImportPaymentType = _currentUserService.HasPermission(ScreenNames.PAYMENT_TYPES, TypeMatrix.IMPORT);
+            CanExportPaymentType = _currentUserService.HasPermission(ScreenNames.PAYMENT_TYPES, TypeMatrix.EXPORT);
         }
         catch (Exception)
         {
             CanCreatePaymentType = false;
             CanEditPaymentType = false;
             CanDeletePaymentType = false;
+            CanImportPaymentType = false;
+            CanExportPaymentType = false;
         }
     }
 

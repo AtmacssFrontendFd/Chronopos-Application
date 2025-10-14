@@ -7,7 +7,10 @@ using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.ViewModels;
 using ChronoPos.Desktop.Views;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Text;
 using System.Windows;
+using Microsoft.Win32;
 
 namespace ChronoPos.Desktop.ViewModels
 {
@@ -55,6 +58,12 @@ namespace ChronoPos.Desktop.ViewModels
 
         [ObservableProperty]
         private bool canDeleteProductAttribute = false;
+
+        [ObservableProperty]
+        private bool canImportProductAttribute = false;
+
+        [ObservableProperty]
+        private bool canExportProductAttribute = false;
 
         public string AttributeCountText 
         { 
@@ -483,6 +492,219 @@ namespace ChronoPos.Desktop.ViewModels
             }
         }
 
+        /// <summary>
+        /// Command to export product attributes to CSV
+        /// </summary>
+        [RelayCommand]
+        private async Task ExportAsync()
+        {
+            try
+            {
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    FileName = $"ProductAttributes_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+                    DefaultExt = ".csv"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    IsLoading = true;
+                    StatusMessage = "Exporting product attributes...";
+
+                    var csv = new StringBuilder();
+                    csv.AppendLine("AttributeName,AttributeNameAr,Status");
+
+                    foreach (var attr in AttributeValues)
+                    {
+                        csv.AppendLine($"\"{attr.AttributeName}\"," +
+                                     $"\"{attr.AttributeNameAr ?? ""}\"," +
+                                     $"{attr.Status}");
+                    }
+
+                    await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
+                    StatusMessage = $"Exported {AttributeValues.Count} attributes successfully";
+                    MessageBox.Show($"Exported {AttributeValues.Count} attributes to:\n{saveFileDialog.FileName}", 
+                        "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error exporting attributes: {ex.Message}";
+                MessageBox.Show($"Error exporting attributes: {ex.Message}", "Export Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        /// <summary>
+        /// Command to import product attributes from CSV
+        /// </summary>
+        [RelayCommand]
+        private async Task ImportAsync()
+        {
+            try
+            {
+                // Show dialog with Download Template and Upload File options
+                var result = MessageBox.Show(
+                    "Would you like to download a template first?\n\n" +
+                    "• Click 'Yes' to download the CSV template\n" +
+                    "• Click 'No' to upload your file directly\n" +
+                    "• Click 'Cancel' to exit",
+                    "Import Product Attributes",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Cancel)
+                    return;
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    // Download Template
+                    var saveFileDialog = new SaveFileDialog
+                    {
+                        Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                        FileName = "ProductAttributes_Template.csv",
+                        DefaultExt = ".csv"
+                    };
+
+                    if (saveFileDialog.ShowDialog() == true)
+                    {
+                        var templateCsv = new StringBuilder();
+                        templateCsv.AppendLine("AttributeName,AttributeNameAr,Status");
+                        templateCsv.AppendLine("\"Size\",\"الحجم\",true");
+                        templateCsv.AppendLine("\"Color\",\"اللون\",true");
+                        templateCsv.AppendLine("\"Material\",\"المادة\",true");
+
+                        await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
+                        MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
+                            "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    return;
+                }
+
+                // Upload File
+                var openFileDialog = new OpenFileDialog
+                {
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    DefaultExt = ".csv"
+                };
+
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    IsLoading = true;
+                    StatusMessage = "Importing product attributes...";
+
+                    var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                    if (lines.Length <= 1)
+                    {
+                        MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
+                            MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    int successCount = 0;
+                    int errorCount = 0;
+                    var errors = new StringBuilder();
+
+                    // Skip header row
+                    for (int i = 1; i < lines.Length; i++)
+                    {
+                        try
+                        {
+                            var line = lines[i];
+                            if (string.IsNullOrWhiteSpace(line)) continue;
+
+                            var values = ParseCsvLine(line);
+                            if (values.Length < 5)
+                            {
+                                errorCount++;
+                                errors.AppendLine($"Line {i + 1}: Invalid format (expected 5 columns)");
+                                continue;
+                            }
+
+                            var createDto = new ProductAttributeDto
+                            {
+                                Name = values[0].Trim('"'),
+                                NameAr = string.IsNullOrWhiteSpace(values[1].Trim('"')) ? null : values[1].Trim('"'),
+                                Type = values[2].Trim('"'),
+                                IsRequired = bool.Parse(values[3]),
+                                Status = values[4].Trim('"'),
+                                CreatedBy = 1 // TODO: Get from current user
+                            };
+
+                            await _attributeService.AddAttributeAsync(createDto);
+                            successCount++;
+                        }
+                        catch (Exception ex)
+                        {
+                            errorCount++;
+                            errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                        }
+                    }
+
+                    await LoadAttributesAsync();
+
+                    var message = $"Import completed:\n✓ {successCount} attributes imported successfully";
+                    if (errorCount > 0)
+                    {
+                        message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                    }
+
+                    MessageBox.Show(message, "Import Complete", 
+                        MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                    
+                    StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error importing attributes: {ex.Message}";
+                MessageBox.Show($"Error importing attributes: {ex.Message}", "Import Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        /// <summary>
+        /// Parse CSV line handling quoted values
+        /// </summary>
+        private string[] ParseCsvLine(string line)
+        {
+            var values = new List<string>();
+            var currentValue = new StringBuilder();
+            bool inQuotes = false;
+
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
+
+                if (c == '"')
+                {
+                    inQuotes = !inQuotes;
+                    currentValue.Append(c);
+                }
+                else if (c == ',' && !inQuotes)
+                {
+                    values.Add(currentValue.ToString());
+                    currentValue.Clear();
+                }
+                else
+                {
+                    currentValue.Append(c);
+                }
+            }
+
+            values.Add(currentValue.ToString());
+            return values.ToArray();
+        }
+
         private void InitializePermissions()
         {
             try
@@ -490,12 +712,16 @@ namespace ChronoPos.Desktop.ViewModels
                 CanCreateProductAttribute = _currentUserService.HasPermission(ScreenNames.PRODUCT_ATTRIBUTES, TypeMatrix.CREATE);
                 CanEditProductAttribute = _currentUserService.HasPermission(ScreenNames.PRODUCT_ATTRIBUTES, TypeMatrix.UPDATE);
                 CanDeleteProductAttribute = _currentUserService.HasPermission(ScreenNames.PRODUCT_ATTRIBUTES, TypeMatrix.DELETE);
+                CanImportProductAttribute = _currentUserService.HasPermission(ScreenNames.PRODUCT_ATTRIBUTES, TypeMatrix.IMPORT);
+                CanExportProductAttribute = _currentUserService.HasPermission(ScreenNames.PRODUCT_ATTRIBUTES, TypeMatrix.EXPORT);
             }
             catch (Exception)
             {
                 CanCreateProductAttribute = false;
                 CanEditProductAttribute = false;
                 CanDeleteProductAttribute = false;
+                CanImportProductAttribute = false;
+                CanExportProductAttribute = false;
             }
         }
     }

@@ -166,6 +166,28 @@
                         Margin="0,0,10,0"/>
                 </StackPanel>
 
+                <!-- Import Button -->
+                <Button Style="{StaticResource ActionButtonStyle}"
+                        Command="{Binding ImportCommand}"
+                        Visibility="{Binding CanImportUom, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Margin="0,0,10,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📥" FontSize="16" Margin="0,0,5,0"/>
+                        <TextBlock Text="Import"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Export Button -->
+                <Button Style="{StaticResource ActionButtonStyle}"
+                        Command="{Binding ExportCommand}"
+                        Visibility="{Binding CanExportUom, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Margin="0,0,10,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📤" FontSize="16" Margin="0,0,5,0"/>
+                        <TextBlock Text="Export"/>
+                    </StackPanel>
+                </Button>
+
                 <!-- Add UOM Button -->
                 <Button Content="Add UOM"
                         Style="{StaticResource ActionButtonStyle}"

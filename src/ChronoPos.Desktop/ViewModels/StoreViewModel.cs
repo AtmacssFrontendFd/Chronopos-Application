@@ -7,6 +7,9 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Data;
 using System.Windows;
+using System.IO;
+using System.Text;
+using Microsoft.Win32;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -52,6 +55,12 @@ public partial class StoreViewModel : ObservableObject
     [ObservableProperty]
     private bool canDeleteStore = false;
 
+    [ObservableProperty]
+    private bool canImportStore = false;
+
+    [ObservableProperty]
+    private bool canExportStore = false;
+
     private readonly ICollectionView _filteredStoresView;
 
     public ICollectionView FilteredStores => _filteredStoresView;
@@ -83,6 +92,8 @@ public partial class StoreViewModel : ObservableObject
         SetAsDefaultCommand = new AsyncRelayCommand<StoreDto?>(SetAsDefaultAsync);
         BackCommand = new RelayCommand(GoBack);
         CloseSidePanelCommand = new RelayCommand(CloseSidePanel);
+        ExportCommand = new AsyncRelayCommand(ExportAsync);
+        ImportCommand = new AsyncRelayCommand(ImportAsync);
 
         // Subscribe to search text changes
         PropertyChanged += OnPropertyChanged;
@@ -102,6 +113,8 @@ public partial class StoreViewModel : ObservableObject
     public IAsyncRelayCommand<StoreDto?> SetAsDefaultCommand { get; }
     public RelayCommand BackCommand { get; }
     public RelayCommand CloseSidePanelCommand { get; }
+    public IAsyncRelayCommand ExportCommand { get; }
+    public IAsyncRelayCommand ImportCommand { get; }
 
     private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -333,12 +346,203 @@ public partial class StoreViewModel : ObservableObject
             CanCreateStore = _currentUserService.HasPermission(ScreenNames.SHOP, TypeMatrix.CREATE);
             CanEditStore = _currentUserService.HasPermission(ScreenNames.SHOP, TypeMatrix.UPDATE);
             CanDeleteStore = _currentUserService.HasPermission(ScreenNames.SHOP, TypeMatrix.DELETE);
+            CanImportStore = _currentUserService.HasPermission(ScreenNames.SHOP, TypeMatrix.IMPORT);
+            CanExportStore = _currentUserService.HasPermission(ScreenNames.SHOP, TypeMatrix.EXPORT);
         }
         catch (Exception)
         {
             CanCreateStore = false;
             CanEditStore = false;
             CanDeleteStore = false;
+            CanImportStore = false;
+            CanExportStore = false;
         }
+    }
+
+    private async Task ExportAsync()
+    {
+        try
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                FileName = "Stores_Export.csv",
+                DefaultExt = ".csv"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                var stores = await _storeService.GetAllAsync();
+
+                var csv = new StringBuilder();
+                csv.AppendLine("Name,Address,PhoneNumber,Email,ManagerName,IsActive,IsDefault");
+
+                foreach (var store in stores)
+                {
+                    csv.AppendLine($"\"{store.Name}\",\"{store.Address}\",\"{store.PhoneNumber}\",\"{store.Email}\",\"{store.ManagerName}\",\"{store.IsActive}\",\"{store.IsDefault}\"");
+                }
+
+                await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
+                MessageBox.Show($"Successfully exported {stores.Count()} stores to:\n{saveFileDialog.FileName}",
+                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error exporting stores: {ex.Message}", "Export Error",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task ImportAsync()
+    {
+        var result = MessageBox.Show(
+            "Would you like to download a template file first?\n\n" +
+            "Click 'Yes' to download template\n" +
+            "Click 'No' to upload your file\n" +
+            "Click 'Cancel' to abort",
+            "Import Stores",
+            MessageBoxButton.YesNoCancel,
+            MessageBoxImage.Question);
+
+        if (result == MessageBoxResult.Cancel)
+            return;
+
+        if (result == MessageBoxResult.Yes)
+        {
+            // Download Template
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                FileName = "Stores_Template.csv",
+                DefaultExt = ".csv"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                var templateCsv = new StringBuilder();
+                templateCsv.AppendLine("Name,Address,PhoneNumber,Email,ManagerName,IsActive,IsDefault");
+                templateCsv.AppendLine("Main Store,123 Main Street,+1234567890,main@store.com,John Doe,True,True");
+                templateCsv.AppendLine("Branch Store,456 Oak Avenue,+1234567891,branch@store.com,Jane Smith,True,False");
+
+                await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
+                MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.",
+                    "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            return;
+        }
+
+        // Upload File
+        var openFileDialog = new OpenFileDialog
+        {
+            Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+            DefaultExt = ".csv"
+        };
+
+        if (openFileDialog.ShowDialog() == true)
+        {
+            IsLoading = true;
+            try
+            {
+                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                if (lines.Length < 2)
+                {
+                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                int successCount = 0;
+                int errorCount = 0;
+                var errors = new StringBuilder();
+
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    try
+                    {
+                        var values = ParseCsvLine(lines[i]);
+                        if (values.Length < 7)
+                        {
+                            errorCount++;
+                            errors.AppendLine($"Line {i + 1}: Invalid format (expected 7 columns)");
+                            continue;
+                        }
+
+                        var createDto = new CreateStoreDto
+                        {
+                            Name = values[0].Trim('"'),
+                            Address = string.IsNullOrWhiteSpace(values[1].Trim('"')) ? null : values[1].Trim('"'),
+                            PhoneNumber = string.IsNullOrWhiteSpace(values[2].Trim('"')) ? null : values[2].Trim('"'),
+                            Email = string.IsNullOrWhiteSpace(values[3].Trim('"')) ? null : values[3].Trim('"'),
+                            ManagerName = string.IsNullOrWhiteSpace(values[4].Trim('"')) ? null : values[4].Trim('"'),
+                            IsActive = bool.Parse(values[5]),
+                            IsDefault = bool.Parse(values[6])
+                        };
+
+                        await _storeService.CreateAsync(createDto);
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errorCount++;
+                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                    }
+                }
+
+                await LoadStoresAsync();
+
+                var message = $"Import completed!\n\nSuccessfully imported: {successCount}\nErrors: {errorCount}";
+                if (errorCount > 0)
+                {
+                    message += $"\n\nError details:\n{errors}";
+                }
+
+                MessageBox.Show(message, "Import Complete",
+                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error importing stores: {ex.Message}", "Import Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+    }
+
+    private string[] ParseCsvLine(string line)
+    {
+        var values = new List<string>();
+        var currentValue = new StringBuilder();
+        bool inQuotes = false;
+
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+
+            if (c == '"')
+            {
+                inQuotes = !inQuotes;
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                values.Add(currentValue.ToString());
+                currentValue.Clear();
+            }
+            else
+            {
+                currentValue.Append(c);
+            }
+        }
+
+        values.Add(currentValue.ToString());
+        return values.ToArray();
     }
 }

@@ -4,11 +4,14 @@ using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Text;
 using System.Windows;
 using ChronoPos.Desktop.Services;
 using InfrastructureServices = ChronoPos.Infrastructure.Services;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using Microsoft.Win32;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -174,6 +177,12 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private bool canDeleteDiscount = false;
+
+    [ObservableProperty]
+    private bool canImportDiscount = false;
+
+    [ObservableProperty]
+    private bool canExportDiscount = false;
 
     #endregion
 
@@ -485,6 +494,234 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
     }
 }
 
+    /// <summary>
+    /// Command to export discounts to CSV
+    /// </summary>
+    [RelayCommand]
+    private async Task ExportAsync()
+    {
+        try
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                FileName = $"Discounts_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+                DefaultExt = ".csv"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Exporting discounts...";
+
+                var csv = new StringBuilder();
+                csv.AppendLine("Id,DiscountName,DiscountCode,DiscountType,DiscountValue,StartDate,EndDate,IsActive,MinPurchaseAmount,MaxDiscountAmount,Priority,IsStackable,Description");
+
+                foreach (var discount in Discounts)
+                {
+                    csv.AppendLine($"{discount.Id}," +
+                                 $"\"{discount.DiscountName}\"," +
+                                 $"\"{discount.DiscountCode}\"," +
+                                 $"\"{discount.DiscountType}\"," +
+                                 $"{discount.DiscountValue}," +
+                                 $"{discount.StartDate:yyyy-MM-dd}," +
+                                 $"{discount.EndDate:yyyy-MM-dd}," +
+                                 $"{discount.IsActive}," +
+                                 $"{discount.MinPurchaseAmount}," +
+                                 $"{discount.MaxDiscountAmount}," +
+                                 $"{discount.Priority}," +
+                                 $"{discount.IsStackable}," +
+                                 $"\"{discount.DiscountDescription ?? ""}\"");
+                }
+
+                await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
+                StatusMessage = $"Exported {Discounts.Count} discounts successfully";
+                MessageBox.Show($"Exported {Discounts.Count} discounts to:\n{saveFileDialog.FileName}", 
+                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error exporting discounts: {ex.Message}";
+            MessageBox.Show($"Error exporting discounts: {ex.Message}", "Export Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Command to import discounts from CSV
+    /// </summary>
+    [RelayCommand]
+    private async Task ImportAsync()
+    {
+        try
+        {
+            // Show dialog with Download Template and Upload File options
+            var result = MessageBox.Show(
+                "Would you like to download a template first?\n\n" +
+                "• Click 'Yes' to download the CSV template\n" +
+                "• Click 'No' to upload your file directly\n" +
+                "• Click 'Cancel' to exit",
+                "Import Discounts",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Cancel)
+                return;
+
+            if (result == MessageBoxResult.Yes)
+            {
+                // Download Template
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    FileName = "Discounts_Template.csv",
+                    DefaultExt = ".csv"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    var templateCsv = new StringBuilder();
+                    templateCsv.AppendLine("Id,DiscountName,DiscountCode,DiscountType,DiscountValue,StartDate,EndDate,IsActive,Description");
+                    templateCsv.AppendLine("0,Sample Discount,SAVE10,Percentage,10,2024-01-01,2024-12-31,true,Sample 10% discount");
+                    templateCsv.AppendLine("0,Holiday Sale,HOLIDAY25,Percentage,25,2024-12-01,2024-12-31,true,25% off for holidays");
+
+                    await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
+                    MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
+                        "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                return;
+            }
+
+            // Upload File
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                DefaultExt = ".csv"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Importing discounts...";
+
+                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                if (lines.Length <= 1)
+                {
+                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                int successCount = 0;
+                int errorCount = 0;
+                var errors = new StringBuilder();
+
+                // Skip header row
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    try
+                    {
+                        var line = lines[i];
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        var values = ParseCsvLine(line);
+                        if (values.Length < 13)
+                        {
+                            errorCount++;
+                            errors.AppendLine($"Line {i + 1}: Invalid format (expected 13 columns)");
+                            continue;
+                        }
+
+                        var createDto = new CreateDiscountDto
+                        {
+                            DiscountName = values[1].Trim('"'),
+                            DiscountCode = values[2].Trim('"'),
+                            DiscountType = Enum.Parse<ChronoPos.Domain.Enums.DiscountType>(values[3].Trim('"')),
+                            DiscountValue = decimal.Parse(values[4]),
+                            StartDate = DateTime.Parse(values[5]),
+                            EndDate = DateTime.Parse(values[6]),
+                        IsActive = bool.Parse(values[7]),
+                        MinPurchaseAmount = string.IsNullOrWhiteSpace(values[8]) ? null : decimal.Parse(values[8]),
+                        MaxDiscountAmount = string.IsNullOrWhiteSpace(values[9]) ? null : decimal.Parse(values[9]),
+                        Priority = int.Parse(values[10]),
+                        IsStackable = bool.Parse(values[11]),
+                        DiscountDescription = values[12].Trim('"'),
+                        ApplicableOn = ChronoPos.Domain.Enums.DiscountApplicableOn.Order, // Default to Order level discount
+                        CreatedBy = 1 // TODO: Get from current user
+                    };                        await _discountService.CreateAsync(createDto);
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errorCount++;
+                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                    }
+                }
+
+                await RefreshData();
+
+                var message = $"Import completed:\n✓ {successCount} discounts imported successfully";
+                if (errorCount > 0)
+                {
+                    message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                }
+
+                MessageBox.Show(message, "Import Complete", 
+                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                
+                StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error importing discounts: {ex.Message}";
+            MessageBox.Show($"Error importing discounts: {ex.Message}", "Import Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Parse CSV line handling quoted values
+    /// </summary>
+    private string[] ParseCsvLine(string line)
+    {
+        var values = new List<string>();
+        var currentValue = new StringBuilder();
+        bool inQuotes = false;
+
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+
+            if (c == '"')
+            {
+                inQuotes = !inQuotes;
+                currentValue.Append(c);
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                values.Add(currentValue.ToString());
+                currentValue.Clear();
+            }
+            else
+            {
+                currentValue.Append(c);
+            }
+        }
+
+        values.Add(currentValue.ToString());
+        return values.ToArray();
+    }
+
     #endregion
 
     #region Private Methods
@@ -730,12 +967,16 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
             CanCreateDiscount = _currentUserService.HasPermission(ScreenNames.DISCOUNTS, TypeMatrix.CREATE);
             CanEditDiscount = _currentUserService.HasPermission(ScreenNames.DISCOUNTS, TypeMatrix.UPDATE);
             CanDeleteDiscount = _currentUserService.HasPermission(ScreenNames.DISCOUNTS, TypeMatrix.DELETE);
+            CanImportDiscount = _currentUserService.HasPermission(ScreenNames.DISCOUNTS, TypeMatrix.IMPORT);
+            CanExportDiscount = _currentUserService.HasPermission(ScreenNames.DISCOUNTS, TypeMatrix.EXPORT);
         }
         catch (Exception)
         {
             CanCreateDiscount = false;
             CanEditDiscount = false;
             CanDeleteDiscount = false;
+            CanImportDiscount = false;
+            CanExportDiscount = false;
         }
     }
 

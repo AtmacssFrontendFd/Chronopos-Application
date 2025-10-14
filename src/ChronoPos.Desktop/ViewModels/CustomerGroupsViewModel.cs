@@ -4,9 +4,12 @@ using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using Microsoft.Win32;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -60,6 +63,12 @@ public partial class CustomerGroupsViewModel : ObservableObject
 
     [ObservableProperty]
     private bool canDeleteCustomerGroup = false;
+
+    [ObservableProperty]
+    private bool canImportCustomerGroup = false;
+
+    [ObservableProperty]
+    private bool canExportCustomerGroup = false;
 
     /// <summary>
     /// Text for the active filter toggle button
@@ -301,6 +310,226 @@ public partial class CustomerGroupsViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Command to export customer groups to CSV
+    /// </summary>
+    [RelayCommand]
+    private async Task ExportAsync()
+    {
+        try
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                FileName = $"CustomerGroups_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+                DefaultExt = ".csv"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Exporting customer groups...";
+
+                var csv = new StringBuilder();
+                csv.AppendLine("Id,Name,NameAr,SellingPriceTypeId,DiscountId,DiscountValue,DiscountMaxValue,IsPercentage,Status");
+
+                foreach (var group in CustomerGroups)
+                {
+                    csv.AppendLine($"{group.Id}," +
+                                 $"\"{group.Name}\"," +
+                                 $"\"{group.NameAr ?? ""}\"," +
+                                 $"{group.SellingPriceTypeId}," +
+                                 $"{group.DiscountId}," +
+                                 $"{group.DiscountValue}," +
+                                 $"{group.DiscountMaxValue}," +
+                                 $"{group.IsPercentage}," +
+                                 $"\"{group.Status}\"");
+                }
+
+                await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
+                StatusMessage = $"Exported {CustomerGroups.Count} customer groups successfully";
+                MessageBox.Show($"Exported {CustomerGroups.Count} customer groups to:\n{saveFileDialog.FileName}", 
+                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error exporting customer groups: {ex.Message}";
+            MessageBox.Show($"Error exporting customer groups: {ex.Message}", "Export Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Command to import customer groups from CSV
+    /// </summary>
+    [RelayCommand]
+    private async Task ImportAsync()
+    {
+        try
+        {
+            // Show dialog with Download Template and Upload File options
+            var result = MessageBox.Show(
+                "Would you like to download a template first?\n\n" +
+                "• Click 'Yes' to download the CSV template\n" +
+                "• Click 'No' to upload your file directly\n" +
+                "• Click 'Cancel' to exit",
+                "Import Customer Groups",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Cancel)
+                return;
+
+            if (result == MessageBoxResult.Yes)
+            {
+                // Download Template
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    FileName = "CustomerGroups_Template.csv",
+                    DefaultExt = ".csv"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    var templateCsv = new StringBuilder();
+                    templateCsv.AppendLine("Id,Name,NameAr,SellingPriceTypeId,DiscountId,DiscountValue,DiscountMaxValue,IsPercentage,Status");
+                    templateCsv.AppendLine("0,VIP Customers,العملاء المميزين,1,1,10,100,true,Active");
+                    templateCsv.AppendLine("0,Wholesale,الجملة,2,2,15,500,true,Active");
+
+                    await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
+                    MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
+                        "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                return;
+            }
+
+            // Upload File
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                DefaultExt = ".csv"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Importing customer groups...";
+
+                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                if (lines.Length <= 1)
+                {
+                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                int successCount = 0;
+                int errorCount = 0;
+                var errors = new StringBuilder();
+
+                // Skip header row
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    try
+                    {
+                        var line = lines[i];
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        var values = ParseCsvLine(line);
+                        if (values.Length < 9)
+                        {
+                            errorCount++;
+                            errors.AppendLine($"Line {i + 1}: Invalid format (expected 9 columns)");
+                            continue;
+                        }
+
+                        var createDto = new CreateCustomerGroupDto
+                        {
+                            Name = values[1].Trim('"'),
+                            NameAr = string.IsNullOrWhiteSpace(values[2].Trim('"')) ? null : values[2].Trim('"'),
+                            SellingPriceTypeId = string.IsNullOrWhiteSpace(values[3]) ? null : long.Parse(values[3]),
+                            DiscountId = string.IsNullOrWhiteSpace(values[4]) ? null : int.Parse(values[4]),
+                            DiscountValue = string.IsNullOrWhiteSpace(values[5]) ? null : decimal.Parse(values[5]),
+                            DiscountMaxValue = string.IsNullOrWhiteSpace(values[6]) ? null : decimal.Parse(values[6]),
+                            IsPercentage = bool.Parse(values[7]),
+                            Status = values[8].Trim('"')
+                        };
+
+                        await _customerGroupService.CreateAsync(createDto);
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errorCount++;
+                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                    }
+                }
+
+                await LoadCustomerGroupsAsync();
+
+                var message = $"Import completed:\n✓ {successCount} customer groups imported successfully";
+                if (errorCount > 0)
+                {
+                    message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                }
+
+                MessageBox.Show(message, "Import Complete", 
+                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                
+                StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error importing customer groups: {ex.Message}";
+            MessageBox.Show($"Error importing customer groups: {ex.Message}", "Import Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Parse CSV line handling quoted values
+    /// </summary>
+    private string[] ParseCsvLine(string line)
+    {
+        var values = new List<string>();
+        var currentValue = new StringBuilder();
+        bool inQuotes = false;
+
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+
+            if (c == '"')
+            {
+                inQuotes = !inQuotes;
+                currentValue.Append(c);
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                values.Add(currentValue.ToString());
+                currentValue.Clear();
+            }
+            else
+            {
+                currentValue.Append(c);
+            }
+        }
+
+        values.Add(currentValue.ToString());
+        return values.ToArray();
+    }
+
     private void InitializePermissions()
     {
         try
@@ -308,12 +537,16 @@ public partial class CustomerGroupsViewModel : ObservableObject
             CanCreateCustomerGroup = _currentUserService.HasPermission(ScreenNames.CUSTOMER_GROUPS, TypeMatrix.CREATE);
             CanEditCustomerGroup = _currentUserService.HasPermission(ScreenNames.CUSTOMER_GROUPS, TypeMatrix.UPDATE);
             CanDeleteCustomerGroup = _currentUserService.HasPermission(ScreenNames.CUSTOMER_GROUPS, TypeMatrix.DELETE);
+            CanImportCustomerGroup = _currentUserService.HasPermission(ScreenNames.CUSTOMER_GROUPS, TypeMatrix.IMPORT);
+            CanExportCustomerGroup = _currentUserService.HasPermission(ScreenNames.CUSTOMER_GROUPS, TypeMatrix.EXPORT);
         }
         catch (Exception)
         {
             CanCreateCustomerGroup = false;
             CanEditCustomerGroup = false;
             CanDeleteCustomerGroup = false;
+            CanImportCustomerGroup = false;
+            CanExportCustomerGroup = false;
         }
     }
 }
