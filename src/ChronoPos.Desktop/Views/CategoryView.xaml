@@ -237,12 +237,36 @@
                                VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <!-- Add Category Button -->
-                <Button Grid.Column="1"
-                        Content="+ Add Category"
-                        Style="{StaticResource ActionButtonStyle}"
-                        Command="{Binding AddCategoryCommand}"
-                        Visibility="{Binding CanCreateCategory, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <!-- Action Buttons -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <!-- Import Button -->
+                    <Button Style="{StaticResource SuccessButtonStyle}"
+                            Command="{Binding ImportCommand}"
+                            Visibility="{Binding CanImportCategory, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📥" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="Import"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Export Button -->
+                    <Button Style="{StaticResource SuccessButtonStyle}"
+                            Command="{Binding ExportCommand}"
+                            Visibility="{Binding CanExportCategory, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📤" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="Export"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Add Category Button -->
+                    <Button Content="+ Add Category"
+                            Style="{StaticResource ActionButtonStyle}"
+                            Command="{Binding AddCategoryCommand}"
+                            Visibility="{Binding CanCreateCategory, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                </StackPanel>
             </Grid>
 
             <!-- Search and Filters -->

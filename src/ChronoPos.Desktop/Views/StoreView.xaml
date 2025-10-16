@@ -166,6 +166,20 @@
                         Margin="0,0,10,0"/>
                 </StackPanel>
 
+                <!-- Import Button -->
+                <Button Content="📥 Import"
+                        Style="{StaticResource ActionButtonStyle}"
+                        Command="{Binding ImportCommand}"
+                        Visibility="{Binding CanImportStore, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Margin="0,0,10,0"/>
+
+                <!-- Export Button -->
+                <Button Content="📤 Export"
+                        Style="{StaticResource ActionButtonStyle}"
+                        Command="{Binding ExportCommand}"
+                        Visibility="{Binding CanExportStore, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Margin="0,0,10,0"/>
+
                 <!-- Add Store Button -->
                 <Button Content="Add Store"
                         Style="{StaticResource ActionButtonStyle}"

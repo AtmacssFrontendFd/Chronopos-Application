@@ -117,32 +117,6 @@ namespace ChronoPos.Desktop.Views
             _viewModel.StartHostConnectionCommand.Execute(null);
         }
 
-        private void LoadLicenseFile_Click(object sender, RoutedEventArgs e)
-        {
-            var openFileDialog = new OpenFileDialog
-            {
-                Filter = "ChronoPOS License Files (*.chronopos-license)|*.chronopos-license|Text Files (*.txt)|*.txt|All Files (*.*)|*.*",
-                Title = "Select License File"
-            };
-
-            if (openFileDialog.ShowDialog() == true)
-            {
-                try
-                {
-                    var licenseContent = File.ReadAllText(openFileDialog.FileName);
-                    _viewModel.LicenseKeyInput = licenseContent.Trim();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(
-                        $"Failed to load license file: {ex.Message}",
-                        "Error",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
-                }
-            }
-        }
-
         protected override void OnClosed(EventArgs e)
         {
             if (_cameraPreviewControl != null)

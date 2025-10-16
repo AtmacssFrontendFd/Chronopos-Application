@@ -1,8 +1,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
+using Microsoft.Win32;
 using ChronoPos.Desktop.Models.Licensing;
 using ChronoPos.Desktop.Services;
 
@@ -328,9 +330,60 @@ namespace ChronoPos.Desktop.ViewModels
         }
 
         [RelayCommand]
+        private void SaveSalesKeyToFile()
+        {
+            try
+            {
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "Text Files (*.txt)|*.txt|ChronoPOS Sales Key (*.chronopos-saleskey)|*.chronopos-saleskey|All Files (*.*)|*.*",
+                    DefaultExt = "txt",
+                    FileName = $"ChronoPOS-SalesKey-{DateTime.Now:yyyyMMdd-HHmmss}.txt",
+                    Title = "Save Sales Key"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    File.WriteAllText(saveFileDialog.FileName, GeneratedSalesKey);
+                    StatusMessage = $"Sales key saved to: {Path.GetFileName(saveFileDialog.FileName)}";
+                    Task.Delay(5000).ContinueWith(_ => StatusMessage = string.Empty);
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Failed to save sales key: {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
         private void ProceedToLicenseActivation()
         {
             CurrentStep = 5; // License activation
+        }
+
+        [RelayCommand]
+        private void LoadLicenseFromFile()
+        {
+            try
+            {
+                var openFileDialog = new OpenFileDialog
+                {
+                    Filter = "Text Files (*.txt)|*.txt|ChronoPOS License Files (*.chronopos-license)|*.chronopos-license|All Files (*.*)|*.*",
+                    Title = "Select License File"
+                };
+
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    var licenseContent = File.ReadAllText(openFileDialog.FileName);
+                    LicenseKeyInput = licenseContent.Trim();
+                    StatusMessage = $"License loaded from: {Path.GetFileName(openFileDialog.FileName)}";
+                    Task.Delay(3000).ContinueWith(_ => StatusMessage = string.Empty);
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Failed to load license file: {ex.Message}";
+            }
         }
 
         [RelayCommand]

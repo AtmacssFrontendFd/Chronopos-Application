@@ -166,6 +166,94 @@
                         Margin="0,0,10,0"/>
                 </StackPanel>
 
+                <!-- Import Button -->
+                <Button Command="{Binding ImportCommand}"
+                        Visibility="{Binding CanImportPriceType, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Margin="0,0,10,0"
+                        MinWidth="110"
+                        Height="36"
+                        Padding="10,6"
+                        Cursor="Hand">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="{DynamicResource Success}"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="6">
+                                            <ContentPresenter HorizontalAlignment="Center" 
+                                                            VerticalAlignment="Center"
+                                                            Margin="{TemplateBinding Padding}"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource SuccessDark}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource SuccessDarker}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📥" FontSize="16" Margin="0,0,6,0"/>
+                        <TextBlock Text="Import" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Export Button -->
+                <Button Command="{Binding ExportCommand}"
+                        Visibility="{Binding CanExportPriceType, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Margin="0,0,10,0"
+                        MinWidth="110"
+                        Height="36"
+                        Padding="10,6"
+                        Cursor="Hand">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="{DynamicResource Info}"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="6">
+                                            <ContentPresenter HorizontalAlignment="Center" 
+                                                            VerticalAlignment="Center"
+                                                            Margin="{TemplateBinding Padding}"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource InfoDark}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource InfoDarker}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📤" FontSize="16" Margin="0,0,6,0"/>
+                        <TextBlock Text="Export" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
                 <!-- Add Price Type Button -->
                 <Button Content="Add Price Type"
                         Style="{StaticResource ActionButtonStyle}"

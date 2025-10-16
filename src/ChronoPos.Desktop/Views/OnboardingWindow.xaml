@@ -705,38 +705,82 @@
                                                TextWrapping="Wrap"/>
                                 </Border>
 
-                                <Button Content="📋 Copy Sales Key"
-                                        Command="{Binding CopySalesKeyCommand}"
-                                        Height="45"
-                                        Background="#0078D4"
-                                        Foreground="White"
-                                        BorderThickness="0"
-                                        FontSize="14"
-                                        FontWeight="SemiBold"
-                                        Cursor="Hand"
-                                        Margin="0,0,0,30">
-                                    <Button.Style>
-                                        <Style TargetType="Button">
-                                            <Setter Property="Background" Value="#0078D4"/>
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="Button">
-                                                        <Border Background="{TemplateBinding Background}" 
-                                                                CornerRadius="6"
-                                                                BorderThickness="0">
-                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                        </Border>
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                            <Style.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter Property="Background" Value="#106EBE"/>
-                                                </Trigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                </Button>
+                                <!-- Action Buttons -->
+                                <Grid Margin="0,0,0,30">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Copy Button -->
+                                    <Button Grid.Column="0"
+                                            Content="📋 Copy to Clipboard"
+                                            Command="{Binding CopySalesKeyCommand}"
+                                            Height="45"
+                                            Background="#0078D4"
+                                            Foreground="White"
+                                            BorderThickness="0"
+                                            FontSize="14"
+                                            FontWeight="SemiBold"
+                                            Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Background" Value="#0078D4"/>
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border Background="{TemplateBinding Background}" 
+                                                                    CornerRadius="6"
+                                                                    BorderThickness="0">
+                                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#106EBE"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+
+                                    <!-- Download Button -->
+                                    <Button Grid.Column="2"
+                                            Content="💾 Download as .txt"
+                                            Command="{Binding SaveSalesKeyToFileCommand}"
+                                            Height="45"
+                                            Background="#107C10"
+                                            Foreground="White"
+                                            BorderThickness="0"
+                                            FontSize="14"
+                                            FontWeight="SemiBold"
+                                            Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Background" Value="#107C10"/>
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border Background="{TemplateBinding Background}" 
+                                                                    CornerRadius="6"
+                                                                    BorderThickness="0">
+                                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#0E6A0E"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </Grid>
 
                                 <Border Background="{DynamicResource WarningColorLight}"
                                         BorderBrush="{DynamicResource WarningColor}"
@@ -750,8 +794,11 @@
                                                    Margin="0,0,0,10"/>
                                         <TextBlock TextWrapping="Wrap"
                                                    Foreground="{DynamicResource TextPrimary}">
-                                            Send this sales key to your admin to receive your license activation file. 
-                                            Keep this key secure - it is bound to this specific machine.
+                                            <Run Text="1. Download or copy this sales key"/>
+                                            <LineBreak/>
+                                            <Run Text="2. Send it to your admin to receive a license file (.txt)"/>
+                                            <LineBreak/>
+                                            <Run Text="3. Keep this key secure - it is bound to this specific machine"/>
                                         </TextBlock>
                                     </StackPanel>
                                 </Border>
@@ -783,7 +830,7 @@
                                 Padding="30"
                                 MaxWidth="700">
                             <StackPanel>
-                                <TextBlock Text="Paste or load your license file:" 
+                                <TextBlock Text="Enter your license key:" 
                                            FontSize="16" 
                                            Foreground="{DynamicResource TextSecondary}"
                                            Margin="0,0,0,15"/>
@@ -802,16 +849,53 @@
                                          FontSize="12"
                                          Margin="0,0,0,20"/>
 
-                                <Button Content="📂 Load License File"
-                                        Click="LoadLicenseFile_Click"
-                                        Height="45"
-                                        Background="{DynamicResource CardBackground}"
-                                        Foreground="{DynamicResource TextPrimary}"
-                                        BorderBrush="{DynamicResource BorderLight}"
-                                        BorderThickness="2"
-                                        FontSize="14"
-                                        FontWeight="Medium"
-                                        Cursor="Hand"/>
+                                <TextBlock Text="— OR —" 
+                                           FontSize="14" 
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,20"/>
+
+                                <Button Content="📂 Load License from File (.txt)"
+                                        Command="{Binding LoadLicenseFromFileCommand}"
+                                        Height="50"
+                                        Background="#0078D4"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        FontSize="15"
+                                        FontWeight="SemiBold"
+                                        Cursor="Hand">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="#0078D4"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}" 
+                                                                CornerRadius="6"
+                                                                BorderThickness="0">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#106EBE"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+
+                                <!-- Status Message -->
+                                <TextBlock Text="{Binding StatusMessage}"
+                                           Foreground="{DynamicResource SuccessColor}"
+                                           FontSize="14"
+                                           FontWeight="Medium"
+                                           Margin="0,15,0,0"
+                                           Visibility="{Binding StatusMessage, Converter={StaticResource StrToVis}}"
+                                           TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>
 

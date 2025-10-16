@@ -166,6 +166,28 @@
                         Margin="0,0,10,0"/>
                 </StackPanel>
 
+                <!-- Import Button -->
+                <Button Style="{StaticResource ActionButtonStyle}"
+                        Command="{Binding ImportCommand}"
+                        Visibility="{Binding CanImportProductGroup, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Margin="0,0,10,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📥 " FontSize="16" VerticalAlignment="Center"/>
+                        <TextBlock Text="Import" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Export Button -->
+                <Button Style="{StaticResource ActionButtonStyle}"
+                        Command="{Binding ExportCommand}"
+                        Visibility="{Binding CanExportProductGroup, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Margin="0,0,10,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📤 " FontSize="16" VerticalAlignment="Center"/>
+                        <TextBlock Text="Export" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
                 <!-- Add Product Group Button -->
                 <Button Content="Add Product Group"
                         Style="{StaticResource ActionButtonStyle}"

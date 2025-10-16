@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -11,6 +13,7 @@ using ChronoPos.Application.Constants;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.ViewModels;
 using ChronoPos.Infrastructure.Services;
+using Microsoft.Win32;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -91,6 +94,12 @@ public partial class TaxTypesViewModel : ObservableObject
 
     [ObservableProperty]
     private bool canDeleteTaxRate = false;
+
+    [ObservableProperty]
+    private bool canImportTaxRate = false;
+
+    [ObservableProperty]
+    private bool canExportTaxRate = false;
 
     /// <summary>
     /// Side panel view model
@@ -326,6 +335,267 @@ public partial class TaxTypesViewModel : ObservableObject
         SearchText = string.Empty;
     }
 
+    /// <summary>
+    /// Command to export tax types to CSV
+    /// </summary>
+    [RelayCommand]
+    private async Task ExportAsync()
+    {
+        try
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                FileName = $"TaxRates_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+                DefaultExt = ".csv"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Exporting tax rates...";
+
+                var csv = new StringBuilder();
+                csv.AppendLine("Id,Name,Description,Value,IsPercentage,IncludedInPrice,AppliesToBuying,AppliesToSelling,CalculationOrder,IsActive");
+
+                foreach (var taxType in TaxTypes)
+                {
+                    csv.AppendLine($"{taxType.Id}," +
+                                 $"\"{taxType.Name}\"," +
+                                 $"\"{taxType.Description ?? ""}\"," +
+                                 $"{taxType.Value}," +
+                                 $"{taxType.IsPercentage}," +
+                                 $"{taxType.IncludedInPrice}," +
+                                 $"{taxType.AppliesToBuying}," +
+                                 $"{taxType.AppliesToSelling}," +
+                                 $"{taxType.CalculationOrder}," +
+                                 $"{taxType.IsActive}");
+                }
+
+                await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
+                StatusMessage = $"Exported {TaxTypes.Count} tax rates successfully";
+                MessageBox.Show($"Exported {TaxTypes.Count} tax rates to:\n{saveFileDialog.FileName}", 
+                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error exporting tax rates: {ex.Message}";
+            MessageBox.Show($"Error exporting tax rates: {ex.Message}", "Export Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Command to import tax types from CSV
+    /// </summary>
+    [RelayCommand]
+    private async Task ImportAsync()
+    {
+        try
+        {
+            // Show dialog with Download Template and Upload File options
+            var result = MessageBox.Show(
+                "Would you like to download a template first?\n\n" +
+                "• Click 'Yes' to download the CSV template\n" +
+                "• Click 'No' to upload your file directly\n" +
+                "• Click 'Cancel' to exit",
+                "Import Tax Rates",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Cancel)
+                return;
+
+            if (result == MessageBoxResult.Yes)
+            {
+                // Download Template
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    FileName = "TaxRates_Template.csv",
+                    DefaultExt = ".csv"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    var templateCsv = new StringBuilder();
+                    templateCsv.AppendLine("Name,Description,Value,IsPercentage,IncludedInPrice,AppliesToBuying,AppliesToSelling,CalculationOrder,IsActive");
+                    templateCsv.AppendLine("Sample Tax,Sample description,5,true,false,true,true,1,true");
+                    templateCsv.AppendLine("VAT 15%,Value Added Tax,15,true,false,false,true,2,true");
+
+                    await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
+                    MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
+                        "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                return;
+            }
+
+            // Upload File
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                DefaultExt = ".csv"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Importing tax rates...";
+
+                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                if (lines.Length <= 1)
+                {
+                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                int successCount = 0;
+                int errorCount = 0;
+                var errors = new StringBuilder();
+
+                // Skip header row
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    try
+                    {
+                        var line = lines[i];
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        var values = ParseCsvLine(line);
+                        if (values.Length < 9)
+                        {
+                            errorCount++;
+                            errors.AppendLine($"Line {i + 1}: Invalid format (expected 9 columns)");
+                            continue;
+                        }
+
+                        var taxTypeDto = new TaxTypeDto
+                        {
+                            Name = values[0].Trim('"'),
+                            Description = string.IsNullOrWhiteSpace(values[1].Trim('"')) ? null : values[1].Trim('"'),
+                            Value = decimal.Parse(values[2]),
+                            IsPercentage = bool.Parse(values[3]),
+                            IncludedInPrice = bool.Parse(values[4]),
+                            AppliesToBuying = bool.Parse(values[5]),
+                            AppliesToSelling = bool.Parse(values[6]),
+                            CalculationOrder = int.Parse(values[7]),
+                            IsActive = bool.Parse(values[8])
+                        };
+
+                        await _taxTypeService.CreateTaxTypeAsync(taxTypeDto);
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errorCount++;
+                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                    }
+                }
+
+                await LoadTaxTypesAsync();
+
+                var message = $"Import completed:\n✓ {successCount} tax rates imported successfully";
+                if (errorCount > 0)
+                {
+                    message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                }
+
+                MessageBox.Show(message, "Import Complete", 
+                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                
+                StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error importing tax rates: {ex.Message}";
+            MessageBox.Show($"Error importing tax rates: {ex.Message}", "Import Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Command to download CSV template for importing tax rates
+    /// </summary>
+    [RelayCommand]
+    private async Task DownloadTemplateAsync()
+    {
+        try
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                FileName = $"TaxRates_Template.csv",
+                DefaultExt = ".csv"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                StatusMessage = "Generating template...";
+
+                var csv = new StringBuilder();
+                csv.AppendLine("Id,Name,Description,Value,IsPercentage,IncludedInPrice,AppliesToBuying,AppliesToSelling,CalculationOrder,IsActive");
+                csv.AppendLine("1,\"VAT 5%\",\"Value Added Tax 5%\",5.00,true,false,false,true,1,true");
+                csv.AppendLine("2,\"VAT 15%\",\"Value Added Tax 15%\",15.00,true,false,false,true,2,true");
+                csv.AppendLine("3,\"Import Tax\",\"Import Tax Fixed\",100.00,false,false,true,false,3,true");
+
+                await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
+                StatusMessage = "Template downloaded successfully";
+                MessageBox.Show($"Template file downloaded to:\n{saveFileDialog.FileName}\n\nYou can now fill in your data and import it.", 
+                    "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error downloading template: {ex.Message}";
+            MessageBox.Show($"Error downloading template: {ex.Message}", "Template Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// Parse CSV line handling quoted values
+    /// </summary>
+    private string[] ParseCsvLine(string line)
+    {
+        var values = new List<string>();
+        var currentValue = new StringBuilder();
+        bool inQuotes = false;
+
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+
+            if (c == '"')
+            {
+                inQuotes = !inQuotes;
+                currentValue.Append(c);
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                values.Add(currentValue.ToString());
+                currentValue.Clear();
+            }
+            else
+            {
+                currentValue.Append(c);
+            }
+        }
+
+        values.Add(currentValue.ToString());
+        return values.ToArray();
+    }
+
     #endregion
 
     #region Private Methods
@@ -394,12 +664,16 @@ public partial class TaxTypesViewModel : ObservableObject
             CanCreateTaxRate = _currentUserService.HasPermission(ScreenNames.TAX_RATES, TypeMatrix.CREATE);
             CanEditTaxRate = _currentUserService.HasPermission(ScreenNames.TAX_RATES, TypeMatrix.UPDATE);
             CanDeleteTaxRate = _currentUserService.HasPermission(ScreenNames.TAX_RATES, TypeMatrix.DELETE);
+            CanImportTaxRate = _currentUserService.HasPermission(ScreenNames.TAX_RATES, TypeMatrix.IMPORT);
+            CanExportTaxRate = _currentUserService.HasPermission(ScreenNames.TAX_RATES, TypeMatrix.EXPORT);
         }
         catch (Exception)
         {
             CanCreateTaxRate = false;
             CanEditTaxRate = false;
             CanDeleteTaxRate = false;
+            CanImportTaxRate = false;
+            CanExportTaxRate = false;
         }
     }
 

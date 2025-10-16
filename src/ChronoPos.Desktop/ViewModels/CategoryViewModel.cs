@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using ChronoPos.Application.Interfaces;
@@ -9,6 +11,7 @@ using ChronoPos.Desktop.ViewModels;
 using ChronoPos.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 using System;
 using ChronoPos.Desktop.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -61,6 +64,12 @@ namespace ChronoPos.Desktop.ViewModels
         [ObservableProperty]
         private bool canDeleteCategory = false;
 
+        [ObservableProperty]
+        private bool canImportCategory = false;
+
+        [ObservableProperty]
+        private bool canExportCategory = false;
+
         public CategoryViewModel(
             IProductService productService,
             IDiscountService discountService,
@@ -87,6 +96,8 @@ namespace ChronoPos.Desktop.ViewModels
             AddSubCategoryCommand = new RelayCommand<CategoryHierarchyItem?>(ShowAddSubCategoryPanel);
             FilterCommand = new AsyncRelayCommand(FilterCategoriesAsync);
             RefreshDataCommand = new AsyncRelayCommand(LoadCategoriesAsync);
+            ImportCommand = new AsyncRelayCommand(ImportAsync);
+            ExportCommand = new AsyncRelayCommand(ExportAsync);
 
             // Subscribe to property changes for search
             PropertyChanged += OnPropertyChanged;
@@ -104,6 +115,8 @@ namespace ChronoPos.Desktop.ViewModels
         public RelayCommand<CategoryHierarchyItem?> AddSubCategoryCommand { get; }
         public IAsyncRelayCommand FilterCommand { get; }
         public IAsyncRelayCommand RefreshDataCommand { get; }
+        public IAsyncRelayCommand ImportCommand { get; }
+        public IAsyncRelayCommand ExportCommand { get; }
 
         #endregion
 
@@ -473,6 +486,8 @@ namespace ChronoPos.Desktop.ViewModels
                 CanCreateCategory = _currentUserService.HasPermission(ScreenNames.CATEGORY, TypeMatrix.CREATE);
                 CanEditCategory = _currentUserService.HasPermission(ScreenNames.CATEGORY, TypeMatrix.UPDATE);
                 CanDeleteCategory = _currentUserService.HasPermission(ScreenNames.CATEGORY, TypeMatrix.DELETE);
+                CanImportCategory = _currentUserService.HasPermission(ScreenNames.CATEGORY, TypeMatrix.IMPORT);
+                CanExportCategory = _currentUserService.HasPermission(ScreenNames.CATEGORY, TypeMatrix.EXPORT);
             }
             catch (Exception)
             {
@@ -480,7 +495,219 @@ namespace ChronoPos.Desktop.ViewModels
                 CanCreateCategory = false;
                 CanEditCategory = false;
                 CanDeleteCategory = false;
+                CanImportCategory = false;
+                CanExportCategory = false;
             }
+        }
+
+        private async Task ExportAsync()
+        {
+            try
+            {
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    FileName = $"Categories_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+                    DefaultExt = ".csv"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    IsLoading = true;
+                    StatusMessage = "Exporting categories...";
+
+                    var allCategories = await _productService.GetAllCategoriesAsync();
+                    var csv = new StringBuilder();
+                    csv.AppendLine("Id,Name,NameArabic,Description,IsActive,ParentCategoryId,ParentCategoryName,DisplayOrder,ProductCount");
+
+                    foreach (var category in allCategories)
+                    {
+                        csv.AppendLine($"{category.Id}," +
+                                     $"\"{category.Name}\"," +
+                                     $"\"{category.NameArabic ?? ""}\"," +
+                                     $"\"{category.Description ?? ""}\"," +
+                                     $"{category.IsActive}," +
+                                     $"{category.ParentCategoryId?.ToString() ?? ""}," +
+                                     $"\"{category.ParentCategoryName ?? ""}\"," +
+                                     $"{category.DisplayOrder}," +
+                                     $"{category.ProductCount}");
+                    }
+
+                    await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
+                    StatusMessage = $"Exported {allCategories.Count()} categories successfully";
+                    MessageBox.Show($"Exported {allCategories.Count()} categories to:\n{saveFileDialog.FileName}", 
+                        "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error exporting categories: {ex.Message}";
+                MessageBox.Show($"Error exporting categories: {ex.Message}", "Export Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                _logger?.LogError(ex, "Error exporting categories");
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        private async Task ImportAsync()
+        {
+            try
+            {
+                // Show dialog with Download Template and Upload File options
+                var result = MessageBox.Show(
+                    "Would you like to download a template first?\n\n" +
+                    "• Click 'Yes' to download the CSV template\n" +
+                    "• Click 'No' to upload your file directly\n" +
+                    "• Click 'Cancel' to exit",
+                    "Import Categories",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Cancel)
+                    return;
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    // Download Template
+                    var saveFileDialog = new SaveFileDialog
+                    {
+                        Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                        FileName = "Categories_Template.csv",
+                        DefaultExt = ".csv"
+                    };
+
+                    if (saveFileDialog.ShowDialog() == true)
+                    {
+                        var templateCsv = new StringBuilder();
+                        templateCsv.AppendLine("Id,Name,NameAr,Description,IsActive");
+                        templateCsv.AppendLine("0,Sample Category,الفئة النموذجية,Sample category description,true");
+                        templateCsv.AppendLine("0,Electronics,الإلكترونيات,Electronic devices and accessories,true");
+
+                        await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
+                        MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
+                            "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    return;
+                }
+
+                // Upload File
+                var openFileDialog = new OpenFileDialog
+                {
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    DefaultExt = ".csv"
+                };
+
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    IsLoading = true;
+                    StatusMessage = "Importing categories...";
+
+                    var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                    if (lines.Length <= 1)
+                    {
+                        MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
+                            MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    int successCount = 0;
+                    int errorCount = 0;
+                    var errors = new StringBuilder();
+
+                    // Skip header row
+                    for (int i = 1; i < lines.Length; i++)
+                    {
+                        try
+                        {
+                            var line = lines[i];
+                            if (string.IsNullOrWhiteSpace(line)) continue;
+
+                            var values = ParseCsvLine(line);
+                            if (values.Length < 9)
+                            {
+                                errorCount++;
+                                errors.AppendLine($"Line {i + 1}: Invalid format (expected 9 columns)");
+                                continue;
+                            }
+
+                            var categoryDto = new CategoryDto
+                            {
+                                Name = values[1].Trim('"'),
+                                NameArabic = values[2].Trim('"'),
+                                Description = values[3].Trim('"'),
+                                IsActive = bool.Parse(values[4]),
+                                ParentCategoryId = string.IsNullOrWhiteSpace(values[5]) ? null : int.Parse(values[5]),
+                                DisplayOrder = int.Parse(values[7])
+                            };
+
+                            await _productService.CreateCategoryAsync(categoryDto);
+                            successCount++;
+                        }
+                        catch (Exception ex)
+                        {
+                            errorCount++;
+                            errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                        }
+                    }
+
+                    await LoadCategoriesAsync();
+
+                    var message = $"Import completed:\n✓ {successCount} categories imported successfully";
+                    if (errorCount > 0)
+                    {
+                        message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                    }
+
+                    MessageBox.Show(message, "Import Complete", 
+                        MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                    
+                    StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error importing categories: {ex.Message}";
+                MessageBox.Show($"Error importing categories: {ex.Message}", "Import Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                _logger?.LogError(ex, "Error importing categories");
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        private string[] ParseCsvLine(string line)
+        {
+            var values = new List<string>();
+            var currentValue = new StringBuilder();
+            bool inQuotes = false;
+
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
+
+                if (c == '"')
+                {
+                    inQuotes = !inQuotes;
+                    currentValue.Append(c);
+                }
+                else if (c == ',' && !inQuotes)
+                {
+                    values.Add(currentValue.ToString());
+                    currentValue.Clear();
+                }
+                else
+                {
+                    currentValue.Append(c);
+                }
+            }
+
+            values.Add(currentValue.ToString());
+            return values.ToArray();
         }
 
         #endregion

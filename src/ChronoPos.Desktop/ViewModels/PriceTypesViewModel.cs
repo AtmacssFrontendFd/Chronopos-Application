@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -10,6 +12,7 @@ using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Constants;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Infrastructure.Services;
+using Microsoft.Win32;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -92,6 +95,12 @@ public partial class PriceTypesViewModel : ObservableObject
 
     [ObservableProperty]
     private bool canDeletePriceType = false;
+
+    [ObservableProperty]
+    private bool canImportPriceType = false;
+
+    [ObservableProperty]
+    private bool canExportPriceType = false;
 
     /// <summary>
     /// Side panel view model
@@ -304,6 +313,258 @@ public partial class PriceTypesViewModel : ObservableObject
         OnPropertyChanged(nameof(FilteredPriceTypes));
     }
 
+    /// <summary>
+    /// Command to export price types to CSV
+    /// </summary>
+    [RelayCommand]
+    private async Task ExportAsync()
+    {
+        try
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                FileName = $"PriceTypes_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+                DefaultExt = ".csv"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Exporting price types...";
+
+                var csv = new StringBuilder();
+                csv.AppendLine("Id,TypeName,ArabicName,Description,Status");
+
+                foreach (var priceType in PriceTypes)
+                {
+                    csv.AppendLine($"{priceType.Id}," +
+                                 $"\"{priceType.TypeName}\"," +
+                                 $"\"{priceType.ArabicName}\"," +
+                                 $"\"{priceType.Description ?? ""}\"," +
+                                 $"{priceType.Status}");
+                }
+
+                await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
+                StatusMessage = $"Exported {PriceTypes.Count} price types successfully";
+                MessageBox.Show($"Exported {PriceTypes.Count} price types to:\n{saveFileDialog.FileName}", 
+                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error exporting price types: {ex.Message}";
+            MessageBox.Show($"Error exporting price types: {ex.Message}", "Export Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Command to import price types from CSV
+    /// </summary>
+    [RelayCommand]
+    private async Task ImportAsync()
+    {
+        try
+        {
+            // Show dialog with Download Template and Upload File options
+            var result = MessageBox.Show(
+                "Would you like to download a template first?\n\n" +
+                "• Click 'Yes' to download the CSV template\n" +
+                "• Click 'No' to upload your file directly\n" +
+                "• Click 'Cancel' to exit",
+                "Import Price Types",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Cancel)
+                return;
+
+            if (result == MessageBoxResult.Yes)
+            {
+                // Download Template
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    FileName = "PriceTypes_Template.csv",
+                    DefaultExt = ".csv"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    var templateCsv = new StringBuilder();
+                    templateCsv.AppendLine("TypeName,TypeNameAr,Description,IsActive");
+                    templateCsv.AppendLine("Sample Price Type,نوع السعر النموذجي,Sample description,true");
+                    templateCsv.AppendLine("Retail Price,سعر التجزئة,Standard retail pricing,true");
+
+                    await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
+                    MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
+                        "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                return;
+            }
+
+            // Upload File
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                DefaultExt = ".csv"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Importing price types...";
+
+                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                if (lines.Length <= 1)
+                {
+                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                int successCount = 0;
+                int errorCount = 0;
+                var errors = new StringBuilder();
+
+                // Skip header row
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    try
+                    {
+                        var line = lines[i];
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        var values = ParseCsvLine(line);
+                        if (values.Length < 4)
+                        {
+                            errorCount++;
+                            errors.AppendLine($"Line {i + 1}: Invalid format (expected 4 columns)");
+                            continue;
+                        }
+
+                        var createDto = new CreateSellingPriceTypeDto
+                        {
+                            TypeName = values[0].Trim('"'),
+                            ArabicName = values[1].Trim('"'),
+                            Description = string.IsNullOrWhiteSpace(values[2].Trim('"')) ? null : values[2].Trim('"'),
+                            Status = bool.Parse(values[3]),
+                            CreatedBy = 1 // TODO: Get from current user
+                        };
+
+                        await _sellingPriceTypeService.CreateAsync(createDto);
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errorCount++;
+                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                    }
+                }
+
+                await LoadPriceTypesAsync();
+
+                var message = $"Import completed:\n✓ {successCount} price types imported successfully";
+                if (errorCount > 0)
+                {
+                    message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                }
+
+                MessageBox.Show(message, "Import Complete", 
+                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                
+                StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error importing price types: {ex.Message}";
+            MessageBox.Show($"Error importing price types: {ex.Message}", "Import Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Command to download CSV template for importing price types
+    /// </summary>
+    [RelayCommand]
+    private async Task DownloadTemplateAsync()
+    {
+        try
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                FileName = $"PriceTypes_Template.csv",
+                DefaultExt = ".csv"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                StatusMessage = "Generating template...";
+
+                var csv = new StringBuilder();
+                csv.AppendLine("Id,TypeName,TypeNameAr,Description,IsActive");
+                csv.AppendLine("1,\"Retail\",\"تجزئة\",\"Standard retail price\",true");
+                csv.AppendLine("2,\"Wholesale\",\"جملة\",\"Bulk purchase price\",true");
+                csv.AppendLine("3,\"VIP\",\"في آي بي\",\"Special customer price\",true");
+
+                await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
+                StatusMessage = "Template downloaded successfully";
+                MessageBox.Show($"Template file downloaded to:\n{saveFileDialog.FileName}\n\nYou can now fill in your data and import it.", 
+                    "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error downloading template: {ex.Message}";
+            MessageBox.Show($"Error downloading template: {ex.Message}", "Template Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// Parse CSV line handling quoted values
+    /// </summary>
+    private string[] ParseCsvLine(string line)
+    {
+        var values = new List<string>();
+        var currentValue = new StringBuilder();
+        bool inQuotes = false;
+
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+
+            if (c == '"')
+            {
+                inQuotes = !inQuotes;
+                currentValue.Append(c);
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                values.Add(currentValue.ToString());
+                currentValue.Clear();
+            }
+            else
+            {
+                currentValue.Append(c);
+            }
+        }
+
+        values.Add(currentValue.ToString());
+        return values.ToArray();
+    }
+
     #endregion
 
     #region Public Properties
@@ -456,12 +717,16 @@ public partial class PriceTypesViewModel : ObservableObject
             CanCreatePriceType = _currentUserService.HasPermission(ScreenNames.PRICE_TYPES, TypeMatrix.CREATE);
             CanEditPriceType = _currentUserService.HasPermission(ScreenNames.PRICE_TYPES, TypeMatrix.UPDATE);
             CanDeletePriceType = _currentUserService.HasPermission(ScreenNames.PRICE_TYPES, TypeMatrix.DELETE);
+            CanImportPriceType = _currentUserService.HasPermission(ScreenNames.PRICE_TYPES, TypeMatrix.IMPORT);
+            CanExportPriceType = _currentUserService.HasPermission(ScreenNames.PRICE_TYPES, TypeMatrix.EXPORT);
         }
         catch (Exception)
         {
             CanCreatePriceType = false;
             CanEditPriceType = false;
             CanDeletePriceType = false;
+            CanImportPriceType = false;
+            CanExportPriceType = false;
         }
     }
 

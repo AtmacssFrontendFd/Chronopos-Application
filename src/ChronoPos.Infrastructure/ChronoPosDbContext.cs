@@ -92,6 +92,10 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.RolePermission> RolePermissions { get; set; }
     public DbSet<Domain.Entities.UserPermissionOverride> UserPermissionOverrides { get; set; }
 
+    // Restaurant management entities
+    public DbSet<Domain.Entities.RestaurantTable> RestaurantTables { get; set; }
+    public DbSet<Domain.Entities.Reservation> Reservations { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -2314,6 +2318,73 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 .WithMany()
                 .HasForeignKey(gri => gri.UomId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Configure RestaurantTable entity
+        modelBuilder.Entity<Domain.Entities.RestaurantTable>(entity =>
+        {
+            entity.ToTable("restaurant_tables");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.TableNumber).IsRequired().HasMaxLength(10).HasColumnName("table_number");
+            entity.Property(e => e.Capacity).IsRequired().HasColumnName("capacity");
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("available").HasColumnName("status");
+            entity.Property(e => e.Location).HasMaxLength(50).HasColumnName("location");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+
+            // Unique constraint on table number
+            entity.HasIndex(e => e.TableNumber).IsUnique();
+
+            // Index on status for quick filtering
+            entity.HasIndex(e => e.Status);
+        });
+
+        // Configure Reservation entity
+        modelBuilder.Entity<Domain.Entities.Reservation>(entity =>
+        {
+            entity.ToTable("reservation");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CustomerId).IsRequired().HasColumnName("customer_id");
+            entity.Property(e => e.TableId).IsRequired().HasColumnName("table_id");
+            entity.Property(e => e.NumberOfPersons).IsRequired().HasColumnName("number_of_persons");
+            entity.Property(e => e.ReservationDate).IsRequired().HasColumnName("reservation_date");
+            entity.Property(e => e.ReservationTime).IsRequired().HasColumnName("reservation_time");
+            entity.Property(e => e.DepositFee).HasPrecision(10, 2).HasDefaultValue(0).HasColumnName("deposit_fee");
+            entity.Property(e => e.PaymentTypeId).HasColumnName("payment_type_id");
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("waiting").HasColumnName("status");
+            entity.Property(e => e.Notes).HasColumnName("notes");
+            entity.Property(e => e.IsDeleted).IsRequired().HasDefaultValue(false).HasColumnName("is_deleted");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("updated_at");
+
+            // Foreign key relationship with Customer
+            entity.HasOne(r => r.Customer)
+                  .WithMany()
+                  .HasForeignKey(r => r.CustomerId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Foreign key relationship with RestaurantTable
+            entity.HasOne(r => r.Table)
+                  .WithMany(t => t.Reservations)
+                  .HasForeignKey(r => r.TableId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Foreign key relationship with PaymentType (nullable)
+            entity.HasOne(r => r.PaymentType)
+                  .WithMany()
+                  .HasForeignKey(r => r.PaymentTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.CustomerId);
+            entity.HasIndex(e => e.TableId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.ReservationDate);
+            entity.HasIndex(e => e.IsDeleted);
+            entity.HasIndex(e => new { e.TableId, e.ReservationDate });
         });
     }
 }
