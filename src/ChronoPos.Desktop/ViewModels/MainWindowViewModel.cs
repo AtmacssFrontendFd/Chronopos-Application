@@ -2020,6 +2020,9 @@ public partial class MainWindowViewModel : ObservableObject
                     case "Shop":
                         _ = ShowStore();
                         break;
+                    case "Currency":
+                        _ = ShowCurrency();
+                        break;
                     default:
                         StatusMessage = $"Navigation to {moduleType} module not implemented yet";
                         break;
@@ -2286,6 +2289,48 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error loading brand management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowCurrency()
+    {
+        // TODO: Add permission check when CURRENCY is added to ScreenNames
+        // For now, allow access (permissions default to true in CurrencyViewModel)
+
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Currency Management";
+        StatusMessage = "Loading currency management...";
+        
+        try
+        {
+            // Create the CurrencyViewModel with all required services and navigation callback
+            var currencyViewModel = new CurrencyViewModel(
+                _serviceProvider.GetRequiredService<ICurrencyService>(),
+                _currentUserService,
+                navigateBack: () => ShowAddOptionsCommand.Execute(null)
+            );
+
+            // Create the CurrencyView and set its DataContext
+            var currencyView = new CurrencyView
+            {
+                DataContext = currencyViewModel
+            };
+
+            CurrentView = currencyView;
+            StatusMessage = "Currency management loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading currency management: {ex.Message}";
             var errorContent = new System.Windows.Controls.TextBlock
             {
                 Text = $"Error: {ex.Message}",

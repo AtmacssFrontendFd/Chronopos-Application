@@ -1316,6 +1316,14 @@ public class LanguageSeedingService : ILanguageSeedingService
                 }
             },
             {
+                "add_options.currency",
+                new Dictionary<string, string>
+                {
+                    { "en", "Currency" },
+                    { "ur", "کرنسی" }
+                }
+            },
+            {
                 "add_options.product_attributes",
                 new Dictionary<string, string>
                 {

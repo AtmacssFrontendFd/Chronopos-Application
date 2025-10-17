@@ -171,6 +171,12 @@ public partial class AddOptionsViewModel : ObservableObject
     [ObservableProperty]
     private bool _isWarehousesVisible = true;
 
+    /// <summary>
+    /// Visibility flag for Currency module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isCurrencyVisible = true;
+
     #endregion
 
     #region Commands
@@ -370,7 +376,8 @@ public partial class AddOptionsViewModel : ObservableObject
                     new { Type = "UOM", TitleKey = "add_options.uom", CountLabel = "UOMs", Count = await GetUOMCountAsync(), IsVisible = IsUomVisible },
                     new { Type = "Shop", TitleKey = "add_options.shop", CountLabel = "Shops", Count = await GetShopCountAsync(), IsVisible = IsShopVisible },
                     new { Type = "CustomerGroups", TitleKey = "add_options.customer_groups", CountLabel = "Groups", Count = await GetCustomerGroupsCountAsync(), IsVisible = IsCustomerGroupsVisible },
-                    new { Type = "Discounts", TitleKey = "add_options.discounts", CountLabel = "Discounts", Count = await GetDiscountsCountAsync(), IsVisible = IsDiscountsVisible }
+                    new { Type = "Discounts", TitleKey = "add_options.discounts", CountLabel = "Discounts", Count = await GetDiscountsCountAsync(), IsVisible = IsDiscountsVisible },
+                    new { Type = "Currency", TitleKey = "add_options.currency", CountLabel = "Currencies", Count = await GetCurrencyCountAsync(), IsVisible = IsCurrencyVisible }
                 };
 
                 // Add modules to collection - Only add visible modules
@@ -621,6 +628,32 @@ public partial class AddOptionsViewModel : ObservableObject
     {
         await Task.Delay(50);
         return 31;
+    }
+
+    private async Task<int> GetCurrencyCountAsync()
+    {
+        try
+        {
+            // Get the Currency service from the service provider if available
+            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
+            if (serviceProvider != null)
+            {
+                var currencyService = serviceProvider.GetService<ICurrencyService>();
+                if (currencyService != null)
+                {
+                    var currencies = await currencyService.GetAllAsync();
+                    return currencies.Count();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting Currency count: {ex.Message}");
+        }
+        
+        // Fallback to mock data
+        await Task.Delay(50);
+        return 6; // Mock count (USD, EUR, GBP, AED, SAR, INR)
     }
 
     #endregion

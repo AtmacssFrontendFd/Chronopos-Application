@@ -83,6 +83,9 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IBrandRepository, BrandRepository>();
                     LogMessage("BrandRepository registered as Transient");
                     
+                    services.AddTransient<ICurrencyRepository, CurrencyRepository>();
+                    LogMessage("CurrencyRepository registered as Transient");
+                    
                     // Register Permission repositories
                     services.AddTransient<IPermissionRepository, PermissionRepository>();
                     LogMessage("PermissionRepository registered as Transient");
@@ -174,6 +177,9 @@ public partial class App : System.Windows.Application
                     
                     services.AddTransient<IBrandService, BrandService>();
                     LogMessage("BrandService registered as Transient");
+                    
+                    services.AddTransient<ICurrencyService, CurrencyService>();
+                    LogMessage("CurrencyService registered as Transient");
                     
                     // Register Permission services
                     services.AddTransient<IPermissionService, PermissionService>();

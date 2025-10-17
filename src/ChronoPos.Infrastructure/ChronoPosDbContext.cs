@@ -35,6 +35,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.TaxType> TaxTypes { get; set; }
     public DbSet<Domain.Entities.Brand> Brands { get; set; }
     public DbSet<Domain.Entities.ProductImage> ProductImages { get; set; }
+    public DbSet<Domain.Entities.Currency> Currencies { get; set; }
     
     // Stock management entities
     public DbSet<Domain.Entities.StockTransaction> StockTransactions { get; set; }
@@ -308,6 +309,22 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
 
             // Unique constraint on name
             entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        // Configure Currency entity
+        modelBuilder.Entity<Domain.Entities.Currency>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CurrencyName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.CurrencyCode).IsRequired().HasMaxLength(10);
+            entity.Property(e => e.Symbol).IsRequired().HasMaxLength(10);
+            entity.Property(e => e.ExchangeRate).HasPrecision(10, 4).HasDefaultValue(1.0000m);
+            entity.Property(e => e.IsDefault).HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Unique constraint on currency code
+            entity.HasIndex(e => e.CurrencyCode).IsUnique();
         });
 
         // Configure ProductImage entity
@@ -1765,7 +1782,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
         // Seed Languages
         modelBuilder.Entity<Domain.Entities.Language>().HasData(
             new Domain.Entities.Language { Id = 1, LanguageName = "English", LanguageCode = "en", IsRtl = false, Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.Language { Id = 2, LanguageName = "اردو", LanguageCode = "ur", IsRtl = true, Status = "Active", CreatedBy = "System", CreatedAt = baseDate }
+            new Domain.Entities.Language { Id = 2, LanguageName = "العربية", LanguageCode = "ar", IsRtl = true, Status = "Active", CreatedBy = "System", CreatedAt = baseDate }
         );
 
         // Seed Language Keywords
@@ -1846,7 +1863,45 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
 
             // UI Buttons
             new Domain.Entities.LanguageKeyword { Id = 48, Key = "btn.back", Description = "Back button" },
-            new Domain.Entities.LanguageKeyword { Id = 49, Key = "btn.refresh", Description = "Refresh button" }
+            new Domain.Entities.LanguageKeyword { Id = 49, Key = "btn.refresh", Description = "Refresh button" },
+
+            // Login Screen
+            new Domain.Entities.LanguageKeyword { Id = 127, Key = "login.title", Description = "Login screen title" },
+            new Domain.Entities.LanguageKeyword { Id = 128, Key = "login.subtitle", Description = "Login screen subtitle" },
+            new Domain.Entities.LanguageKeyword { Id = 129, Key = "login.username", Description = "Username label" },
+            new Domain.Entities.LanguageKeyword { Id = 130, Key = "login.password", Description = "Password label" },
+            new Domain.Entities.LanguageKeyword { Id = 131, Key = "login.username_placeholder", Description = "Username placeholder text" },
+            new Domain.Entities.LanguageKeyword { Id = 132, Key = "login.password_placeholder", Description = "Password placeholder text" },
+            new Domain.Entities.LanguageKeyword { Id = 133, Key = "login.remember_me", Description = "Remember me checkbox" },
+            new Domain.Entities.LanguageKeyword { Id = 134, Key = "login.forgot_password", Description = "Forgot password link" },
+            new Domain.Entities.LanguageKeyword { Id = 135, Key = "login.button", Description = "Login button text" },
+            new Domain.Entities.LanguageKeyword { Id = 136, Key = "login.error_username_required", Description = "Username required error message" },
+            new Domain.Entities.LanguageKeyword { Id = 137, Key = "login.error_password_required", Description = "Password required error message" },
+            new Domain.Entities.LanguageKeyword { Id = 138, Key = "login.error_invalid_credentials", Description = "Invalid credentials error message" },
+            new Domain.Entities.LanguageKeyword { Id = 139, Key = "login.password_reset_success", Description = "Password reset success message" },
+
+            // Forgot Password Screen
+            new Domain.Entities.LanguageKeyword { Id = 140, Key = "forgot_password.title", Description = "Reset password screen title" },
+            new Domain.Entities.LanguageKeyword { Id = 141, Key = "forgot_password.subtitle", Description = "Reset password screen subtitle" },
+            new Domain.Entities.LanguageKeyword { Id = 142, Key = "forgot_password.license_file", Description = "License file label" },
+            new Domain.Entities.LanguageKeyword { Id = 143, Key = "forgot_password.new_password", Description = "New password label" },
+            new Domain.Entities.LanguageKeyword { Id = 144, Key = "forgot_password.confirm_password", Description = "Confirm password label" },
+            new Domain.Entities.LanguageKeyword { Id = 145, Key = "forgot_password.back_to_login", Description = "Back to login button" },
+            new Domain.Entities.LanguageKeyword { Id = 146, Key = "forgot_password.reset_button", Description = "Reset password button" },
+            new Domain.Entities.LanguageKeyword { Id = 147, Key = "forgot_password.browse_button", Description = "Browse license file button" },
+            new Domain.Entities.LanguageKeyword { Id = 148, Key = "forgot_password.success_message", Description = "Password reset success message" },
+            new Domain.Entities.LanguageKeyword { Id = 149, Key = "forgot_password.error_license_required", Description = "License file required error" },
+            new Domain.Entities.LanguageKeyword { Id = 150, Key = "forgot_password.error_password_required", Description = "New password required error" },
+            new Domain.Entities.LanguageKeyword { Id = 151, Key = "forgot_password.error_confirm_password_required", Description = "Confirm password required error" },
+            new Domain.Entities.LanguageKeyword { Id = 152, Key = "forgot_password.error_passwords_mismatch", Description = "Passwords mismatch error" },
+            new Domain.Entities.LanguageKeyword { Id = 153, Key = "forgot_password.error_password_too_short", Description = "Password too short error" },
+            new Domain.Entities.LanguageKeyword { Id = 154, Key = "forgot_password.error_invalid_license", Description = "Invalid license format error" },
+            new Domain.Entities.LanguageKeyword { Id = 155, Key = "forgot_password.error_license_machine_mismatch", Description = "License machine mismatch error" },
+            new Domain.Entities.LanguageKeyword { Id = 156, Key = "forgot_password.error_license_expired", Description = "License expired error" },
+            new Domain.Entities.LanguageKeyword { Id = 157, Key = "forgot_password.error_license_sales_key_mismatch", Description = "License sales key mismatch error" },
+            new Domain.Entities.LanguageKeyword { Id = 158, Key = "forgot_password.verify_license_button", Description = "Verify license button text" },
+            new Domain.Entities.LanguageKeyword { Id = 159, Key = "forgot_password.license_verified_message", Description = "License verified success message" },
+            new Domain.Entities.LanguageKeyword { Id = 160, Key = "forgot_password.error_license_not_verified", Description = "License not verified error message" }
         );
 
         // Seed Users (required by many entities with CreatedBy/UpdatedBy)
@@ -2069,7 +2124,83 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             new Domain.Entities.LabelTranslation { Id = 131, LanguageId = 2, TranslationKey = "settings.client_settings", Value = "کلائنٹ کی ترتیبات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
             new Domain.Entities.LabelTranslation { Id = 132, LanguageId = 2, TranslationKey = "settings.global_settings", Value = "عالمی ترتیبات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
             new Domain.Entities.LabelTranslation { Id = 133, LanguageId = 2, TranslationKey = "settings.others", Value = "دیگر", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 134, LanguageId = 2, TranslationKey = "settings.services", Value = "خدمات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate }
+            new Domain.Entities.LabelTranslation { Id = 134, LanguageId = 2, TranslationKey = "settings.services", Value = "خدمات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+
+            // Login Screen - English
+            new Domain.Entities.LabelTranslation { Id = 200, LanguageId = 1, TranslationKey = "login.title", Value = "Login!", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 201, LanguageId = 1, TranslationKey = "login.subtitle", Value = "Please enter your credentials below to continue", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 202, LanguageId = 1, TranslationKey = "login.username", Value = "Username", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 203, LanguageId = 1, TranslationKey = "login.password", Value = "Password", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 204, LanguageId = 1, TranslationKey = "login.username_placeholder", Value = "Enter your username", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 205, LanguageId = 1, TranslationKey = "login.password_placeholder", Value = "Enter your password", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 206, LanguageId = 1, TranslationKey = "login.remember_me", Value = "Remember me", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 207, LanguageId = 1, TranslationKey = "login.forgot_password", Value = "Forgot Password?", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 208, LanguageId = 1, TranslationKey = "login.button", Value = "Login", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 209, LanguageId = 1, TranslationKey = "login.error_username_required", Value = "Please enter your username or email.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 210, LanguageId = 1, TranslationKey = "login.error_password_required", Value = "Please enter your password.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 211, LanguageId = 1, TranslationKey = "login.error_invalid_credentials", Value = "Invalid username or password.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 224, LanguageId = 1, TranslationKey = "login.password_reset_success", Value = "Password has been reset successfully! Please login with your new password.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+
+            // Login Screen - Arabic
+            new Domain.Entities.LabelTranslation { Id = 212, LanguageId = 2, TranslationKey = "login.title", Value = "تسجيل الدخول!", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 213, LanguageId = 2, TranslationKey = "login.subtitle", Value = "الرجاء إدخال بيانات الاعتماد أدناه للمتابعة", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 214, LanguageId = 2, TranslationKey = "login.username", Value = "اسم المستخدم", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 215, LanguageId = 2, TranslationKey = "login.password", Value = "كلمة المرور", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 216, LanguageId = 2, TranslationKey = "login.username_placeholder", Value = "أدخل اسم المستخدم", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 217, LanguageId = 2, TranslationKey = "login.password_placeholder", Value = "أدخل كلمة المرور", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 218, LanguageId = 2, TranslationKey = "login.remember_me", Value = "تذكرني", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 219, LanguageId = 2, TranslationKey = "login.forgot_password", Value = "نسيت كلمة المرور؟", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 220, LanguageId = 2, TranslationKey = "login.button", Value = "تسجيل الدخول", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 221, LanguageId = 2, TranslationKey = "login.error_username_required", Value = "الرجاء إدخال اسم المستخدم أو البريد الإلكتروني.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 222, LanguageId = 2, TranslationKey = "login.error_password_required", Value = "الرجاء إدخال كلمة المرور.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 223, LanguageId = 2, TranslationKey = "login.error_invalid_credentials", Value = "اسم المستخدم أو كلمة المرور غير صحيحة.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 225, LanguageId = 2, TranslationKey = "login.password_reset_success", Value = "تم إعادة تعيين كلمة المرور بنجاح! يرجى تسجيل الدخول بكلمة المرور الجديدة.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+
+            // Forgot Password Screen - English
+            new Domain.Entities.LabelTranslation { Id = 226, LanguageId = 1, TranslationKey = "forgot_password.title", Value = "Reset Password", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 227, LanguageId = 1, TranslationKey = "forgot_password.subtitle", Value = "Please provide your license file and set a new password", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 228, LanguageId = 1, TranslationKey = "forgot_password.license_file", Value = "License File", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 229, LanguageId = 1, TranslationKey = "forgot_password.new_password", Value = "New Password", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 230, LanguageId = 1, TranslationKey = "forgot_password.confirm_password", Value = "Confirm Password", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 231, LanguageId = 1, TranslationKey = "forgot_password.back_to_login", Value = "← Back to Login", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 232, LanguageId = 1, TranslationKey = "forgot_password.reset_button", Value = "Reset Password", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 233, LanguageId = 1, TranslationKey = "forgot_password.browse_button", Value = "Browse...", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 234, LanguageId = 1, TranslationKey = "forgot_password.success_message", Value = "Password has been reset successfully!", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 235, LanguageId = 1, TranslationKey = "forgot_password.error_license_required", Value = "Please select a license file.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 236, LanguageId = 1, TranslationKey = "forgot_password.error_password_required", Value = "Please enter a new password.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 237, LanguageId = 1, TranslationKey = "forgot_password.error_confirm_password_required", Value = "Please confirm your new password.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 238, LanguageId = 1, TranslationKey = "forgot_password.error_passwords_mismatch", Value = "Passwords do not match.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 239, LanguageId = 1, TranslationKey = "forgot_password.error_password_too_short", Value = "Password must be at least 6 characters long.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 240, LanguageId = 1, TranslationKey = "forgot_password.error_invalid_license", Value = "Invalid license file format.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 241, LanguageId = 1, TranslationKey = "forgot_password.error_license_machine_mismatch", Value = "License is not valid for this machine.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 242, LanguageId = 1, TranslationKey = "forgot_password.error_license_expired", Value = "License has expired. Please contact support.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 243, LanguageId = 1, TranslationKey = "forgot_password.error_license_sales_key_mismatch", Value = "License does not match the sales key for this machine.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 262, LanguageId = 1, TranslationKey = "forgot_password.verify_license_button", Value = "Verify License", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 263, LanguageId = 1, TranslationKey = "forgot_password.license_verified_message", Value = "License verified successfully. You can now set a new password.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 264, LanguageId = 1, TranslationKey = "forgot_password.error_license_not_verified", Value = "Please verify your license first.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+
+            // Forgot Password Screen - Arabic
+            new Domain.Entities.LabelTranslation { Id = 244, LanguageId = 2, TranslationKey = "forgot_password.title", Value = "إعادة تعيين كلمة المرور", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 245, LanguageId = 2, TranslationKey = "forgot_password.subtitle", Value = "يرجى تقديم ملف الترخيص الخاص بك وتعيين كلمة مرور جديدة", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 246, LanguageId = 2, TranslationKey = "forgot_password.license_file", Value = "ملف الترخيص", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 247, LanguageId = 2, TranslationKey = "forgot_password.new_password", Value = "كلمة المرور الجديدة", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 248, LanguageId = 2, TranslationKey = "forgot_password.confirm_password", Value = "تأكيد كلمة المرور", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 249, LanguageId = 2, TranslationKey = "forgot_password.back_to_login", Value = "← العودة لتسجيل الدخول", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 250, LanguageId = 2, TranslationKey = "forgot_password.reset_button", Value = "إعادة تعيين كلمة المرور", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 251, LanguageId = 2, TranslationKey = "forgot_password.browse_button", Value = "تصفح...", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 252, LanguageId = 2, TranslationKey = "forgot_password.success_message", Value = "تم إعادة تعيين كلمة المرور بنجاح!", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 253, LanguageId = 2, TranslationKey = "forgot_password.error_license_required", Value = "يرجى تحديد ملف ترخيص.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 254, LanguageId = 2, TranslationKey = "forgot_password.error_password_required", Value = "يرجى إدخال كلمة مرور جديدة.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 255, LanguageId = 2, TranslationKey = "forgot_password.error_confirm_password_required", Value = "يرجى تأكيد كلمة المرور الجديدة.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 256, LanguageId = 2, TranslationKey = "forgot_password.error_passwords_mismatch", Value = "كلمات المرور غير متطابقة.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 257, LanguageId = 2, TranslationKey = "forgot_password.error_password_too_short", Value = "يجب أن تكون كلمة المرور 6 أحرف على الأقل.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 258, LanguageId = 2, TranslationKey = "forgot_password.error_invalid_license", Value = "تنسيق ملف ترخيص غير صالح.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 259, LanguageId = 2, TranslationKey = "forgot_password.error_license_machine_mismatch", Value = "الترخيص غير صالح لهذا الجهاز.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 260, LanguageId = 2, TranslationKey = "forgot_password.error_license_expired", Value = "انتهت صلاحية الترخيص. يرجى الاتصال بالدعم.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 261, LanguageId = 2, TranslationKey = "forgot_password.error_license_sales_key_mismatch", Value = "الترخيص لا يتطابق مع مفتاح المبيعات لهذا الجهاز.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 265, LanguageId = 2, TranslationKey = "forgot_password.verify_license_button", Value = "تحقق من الترخيص", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 266, LanguageId = 2, TranslationKey = "forgot_password.license_verified_message", Value = "تم التحقق من الترخيص بنجاح. يمكنك الآن تعيين كلمة مرور جديدة.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 267, LanguageId = 2, TranslationKey = "forgot_password.error_license_not_verified", Value = "يرجى التحقق من الترخيص الخاص بك أولاً.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate }
         );
 
         // Seed Brands
@@ -2111,6 +2242,76 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 NameArabic = "عام", 
                 Description = "Generic brand for unbranded products",
                 LogoUrl = "/images/brands/generic-logo.png",
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            }
+        );
+
+        // Seed Currencies
+        modelBuilder.Entity<Domain.Entities.Currency>().HasData(
+            new Domain.Entities.Currency 
+            { 
+                Id = 1, 
+                CurrencyName = "US Dollar", 
+                CurrencyCode = "USD", 
+                Symbol = "$",
+                ExchangeRate = 1.0000m,
+                IsDefault = true,
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Currency 
+            { 
+                Id = 2, 
+                CurrencyName = "Euro", 
+                CurrencyCode = "EUR", 
+                Symbol = "€",
+                ExchangeRate = 0.92m,
+                IsDefault = false,
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Currency 
+            { 
+                Id = 3, 
+                CurrencyName = "British Pound", 
+                CurrencyCode = "GBP", 
+                Symbol = "£",
+                ExchangeRate = 0.79m,
+                IsDefault = false,
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Currency 
+            { 
+                Id = 4, 
+                CurrencyName = "UAE Dirham", 
+                CurrencyCode = "AED", 
+                Symbol = "د.إ",
+                ExchangeRate = 3.67m,
+                IsDefault = false,
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Currency 
+            { 
+                Id = 5, 
+                CurrencyName = "Saudi Riyal", 
+                CurrencyCode = "SAR", 
+                Symbol = "﷼",
+                ExchangeRate = 3.75m,
+                IsDefault = false,
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Currency 
+            { 
+                Id = 6, 
+                CurrencyName = "Indian Rupee", 
+                CurrencyCode = "INR", 
+                Symbol = "₹",
+                ExchangeRate = 83.12m,
+                IsDefault = false,
                 CreatedAt = baseDate, 
                 UpdatedAt = baseDate 
             }
