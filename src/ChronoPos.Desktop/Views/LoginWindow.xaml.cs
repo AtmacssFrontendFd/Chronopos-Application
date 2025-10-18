@@ -130,9 +130,9 @@ namespace ChronoPos.Desktop.Views
                     // Hash the password
                     var hashedPassword = HashPassword(password);
 
-                    // Try to find user by email first, then by any match
+                    // Find user by username
                     var user = await dbContext.Users
-                        .Where(u => !u.Deleted && u.Email.ToLower() == UsernameTextBox.Text.ToLower())
+                        .Where(u => !u.Deleted && u.Username.ToLower() == UsernameTextBox.Text.ToLower())
                         .FirstOrDefaultAsync();
 
                     if (user == null)
@@ -157,7 +157,7 @@ namespace ChronoPos.Desktop.Views
                         ClearSavedUsername();
                     }
 
-                    LogMessage($">>> Login successful for user: {user.Email} (ID: {user.Id})");
+                    LogMessage($">>> Login successful for user: {user.Username} (ID: {user.Id})");
                     LoggedInUserId = user.Id;
                     LogMessage($">>> Setting DialogResult = true");
                     DialogResult = true;
