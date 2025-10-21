@@ -157,6 +157,13 @@ public partial class App : System.Windows.Application
                     
                     services.AddTransient<IGoodsReplaceItemRepository, GoodsReplaceItemRepository>();
                     LogMessage("GoodsReplaceItemRepository registered as Transient");
+                    
+                    // Register Reservation repositories
+                    services.AddTransient<IReservationRepository, ReservationRepository>();
+                    LogMessage("ReservationRepository registered as Transient");
+                    
+                    services.AddTransient<IRestaurantTableRepository, RestaurantTableRepository>();
+                    LogMessage("RestaurantTableRepository registered as Transient");
 
                     // Register Product Attribute repositories
                     services.AddTransient<IProductAttributeRepository, ProductAttributeRepository>();
@@ -247,6 +254,13 @@ public partial class App : System.Windows.Application
                     // Register PaymentType service
                     services.AddTransient<IPaymentTypeService, PaymentTypeService>();
                     LogMessage("PaymentTypeService registered as Transient");
+                    
+                    // Register Reservation services
+                    services.AddTransient<IReservationService, ReservationService>();
+                    LogMessage("ReservationService registered as Transient");
+                    
+                    services.AddTransient<IRestaurantTableService, RestaurantTableService>();
+                    LogMessage("RestaurantTableService registered as Transient");
                     
                     // Register logging service
                     services.AddSingleton<ILoggingService, ApplicationLoggingService>();

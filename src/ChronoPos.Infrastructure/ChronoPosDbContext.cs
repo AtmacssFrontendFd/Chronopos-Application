@@ -2317,6 +2317,158 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             }
         );
 
+        // Seed Restaurant Tables
+        modelBuilder.Entity<Domain.Entities.RestaurantTable>().HasData(
+            // Ground Floor Tables
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 1, 
+                TableNumber = "T-01", 
+                Capacity = 2, 
+                Location = "Ground Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 2, 
+                TableNumber = "T-02", 
+                Capacity = 4, 
+                Location = "Ground Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 3, 
+                TableNumber = "T-03", 
+                Capacity = 4, 
+                Location = "Ground Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 4, 
+                TableNumber = "T-04", 
+                Capacity = 6, 
+                Location = "Ground Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 5, 
+                TableNumber = "T-05", 
+                Capacity = 2, 
+                Location = "Ground Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 6, 
+                TableNumber = "T-06", 
+                Capacity = 8, 
+                Location = "Ground Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            // First Floor Tables
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 7, 
+                TableNumber = "T-11", 
+                Capacity = 2, 
+                Location = "First Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 8, 
+                TableNumber = "T-12", 
+                Capacity = 4, 
+                Location = "First Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 9, 
+                TableNumber = "T-13", 
+                Capacity = 4, 
+                Location = "First Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 10, 
+                TableNumber = "T-14", 
+                Capacity = 6, 
+                Location = "First Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 11, 
+                TableNumber = "T-15", 
+                Capacity = 2, 
+                Location = "First Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            // Outdoor Patio Tables
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 12, 
+                TableNumber = "T-P1", 
+                Capacity = 4, 
+                Location = "Outdoor Patio", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 13, 
+                TableNumber = "T-P2", 
+                Capacity = 4, 
+                Location = "Outdoor Patio", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 14, 
+                TableNumber = "T-P3", 
+                Capacity = 6, 
+                Location = "Outdoor Patio", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            // VIP Room Tables
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 15, 
+                TableNumber = "T-VIP1", 
+                Capacity = 10, 
+                Location = "VIP Room", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 16, 
+                TableNumber = "T-VIP2", 
+                Capacity = 12, 
+                Location = "VIP Room", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            }
+        );
+
         // TODO: ProductImage seed data removed to fix auto-increment issue
         // Explicit IDs in HasData() conflict with ValueGeneratedOnAdd()
         // Consider using a data seeding service instead

@@ -2802,11 +2802,22 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ShowReservation()
+    private async Task ShowReservation()
     {
+        AppLogger.LogInfo("===== ShowReservation command invoked =====", filename: "reservation");
+        
+        // Check if already on Reservation page to avoid unnecessary recreation
+        if (SelectedPage == "Reservation" && CurrentView is ReservationView)
+        {
+            AppLogger.LogInfo("Already on Reservation page, skipping recreation", filename: "reservation");
+            return;
+        }
+        
         // Check permission using UMAC - Allow if user has ANY permission (Create, Edit, Delete, Import, Export, View, Print)
+        AppLogger.LogInfo("Checking reservation screen permissions...", filename: "reservation");
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.RESERVATION))
         {
+            AppLogger.LogWarning("User does not have permission to access Reservation screen", filename: "reservation");
             MessageBox.Show(
                 "You don't have permission to access the Reservation screen.",
                 "Access Denied",
@@ -2814,19 +2825,65 @@ public partial class MainWindowViewModel : ObservableObject
                 MessageBoxImage.Warning);
             return;
         }
+        AppLogger.LogInfo("Permission check passed", filename: "reservation");
 
         SelectedPage = "Reservation";
-        CurrentPageTitle = "Reservation Management";
-        StatusMessage = "Reservation interface loaded";
+        AppLogger.LogInfo($"SelectedPage set to: {SelectedPage}", filename: "reservation");
         
-        var reservationContent = new System.Windows.Controls.TextBlock
+        CurrentPageTitle = await _databaseLocalizationService.GetTranslationAsync("nav_reservation") ?? "Reservation";
+        AppLogger.LogInfo($"CurrentPageTitle set to: {CurrentPageTitle}", filename: "reservation");
+        
+        StatusMessage = "Loading reservation management...";
+        AppLogger.LogInfo("StatusMessage set to: Loading reservation management...", filename: "reservation");
+        
+        try
         {
-            Text = "Reservation Management\n(Customer reservation interface will be implemented here)",
-            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-            VerticalAlignment = System.Windows.VerticalAlignment.Center,
-            FontSize = 16
-        };
-        CurrentView = reservationContent;
+            AppLogger.LogInfo("Creating ReservationTimelineViewModel...", filename: "reservation");
+            
+            // Create the ReservationTimelineViewModel with all required services
+            var reservationTimelineViewModel = new ReservationTimelineViewModel(
+                _serviceProvider.GetRequiredService<IReservationService>(),
+                _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ICurrentUserService>(),
+                _serviceProvider.GetRequiredService<IPaymentTypeService>()
+            );
+            AppLogger.LogInfo("ReservationTimelineViewModel created successfully", filename: "reservation");
+
+            // Create the ReservationView and set DataContext (following same pattern as ManagementView)
+            AppLogger.LogInfo("Creating ReservationView...", filename: "reservation");
+            var reservationView = new ReservationView
+            {
+                DataContext = reservationTimelineViewModel
+            };
+            AppLogger.LogInfo($"ReservationView created successfully. View type: {reservationView.GetType().FullName}", filename: "reservation");
+            AppLogger.LogInfo($"DataContext set to ViewModel type: {reservationView.DataContext?.GetType().FullName ?? "null"}", filename: "reservation");
+
+            AppLogger.LogInfo($"Setting CurrentView to ReservationView. Previous CurrentView: {CurrentView?.GetType().FullName ?? "null"}", filename: "reservation");
+            CurrentView = reservationView;
+            AppLogger.LogInfo($"CurrentView updated. New CurrentView type: {CurrentView?.GetType().FullName ?? "null"}", filename: "reservation");
+            
+            StatusMessage = "Reservation management loaded successfully";
+            AppLogger.LogInfo("===== ShowReservation completed successfully =====", filename: "reservation");
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("ShowReservation failed", ex, filename: "reservation");
+            StatusMessage = $"Error loading reservation management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}\n\nPlease ensure all required services are registered.",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 14,
+                Foreground = System.Windows.Media.Brushes.Red,
+                TextWrapping = System.Windows.TextWrapping.Wrap,
+                Margin = new System.Windows.Thickness(20)
+            };
+            CurrentView = errorContent;
+            AppLogger.LogInfo("Error view displayed to user", filename: "reservation");
+        }
     }
 
     [RelayCommand]

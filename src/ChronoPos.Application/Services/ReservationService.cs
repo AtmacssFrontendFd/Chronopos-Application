@@ -1,5 +1,6 @@
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.Logging;
 using ChronoPos.Domain.Entities;
 using ChronoPos.Domain.Interfaces;
 
@@ -95,8 +96,15 @@ public class ReservationService : IReservationService
     /// <returns>Collection of reservation DTOs for the date</returns>
     public async Task<IEnumerable<ReservationDto>> GetByDateAsync(DateTime date)
     {
+        AppLogger.LogInfo($"[Service] GetByDateAsync called with date: {date:yyyy-MM-dd}", filename: "reservation");
         var reservations = await _reservationRepository.GetByDateAsync(date);
-        return reservations.Select(MapToDto);
+        var dtos = reservations.Select(MapToDto).ToList();
+        AppLogger.LogInfo($"[Service] Mapped {dtos.Count} reservations to DTOs", filename: "reservation");
+        if (dtos.Any())
+        {
+            AppLogger.LogInfo($"[Service] First DTO: ID={dtos[0].Id}, CustomerName={dtos[0].CustomerName}, TableNumber={dtos[0].TableNumber}, ReservationDateTime={dtos[0].ReservationDateTime}", filename: "reservation");
+        }
+        return dtos;
     }
 
     /// <summary>
@@ -447,6 +455,71 @@ public class ReservationService : IReservationService
     {
         var reservations = await _reservationRepository.GetReservationsWithDetailsAsync();
         return reservations.Select(MapToDto);
+    }
+
+    /// <summary>
+    /// Gets reservations for a specific date and location (floor)
+    /// </summary>
+    /// <param name="date">Reservation date</param>
+    /// <param name="location">Table location/floor</param>
+    /// <returns>Collection of reservation DTOs for the date and location</returns>
+    public async Task<IEnumerable<ReservationDto>> GetByDateAndLocationAsync(DateTime date, string location)
+    {
+        var reservations = await _reservationRepository.GetByDateAsync(date);
+        var filtered = reservations.Where(r => 
+            !r.IsDeleted && 
+            r.Table?.Location?.Equals(location, StringComparison.OrdinalIgnoreCase) == true);
+        return filtered.Select(MapToDto);
+    }
+
+    /// <summary>
+    /// Gets reservations by date with table details for timeline grid
+    /// Includes only active reservations with full table information
+    /// </summary>
+    /// <param name="date">Reservation date</param>
+    /// <param name="location">Optional location/floor filter</param>
+    /// <returns>Collection of reservation DTOs optimized for timeline display</returns>
+    public async Task<IEnumerable<ReservationDto>> GetReservationsForTimelineAsync(DateTime date, string? location = null)
+    {
+        AppLogger.LogInfo($"[Service] GetReservationsForTimelineAsync called - Date: {date:yyyy-MM-dd}, Location: {location ?? "All"}", filename: "reservation");
+        
+        var reservations = await _reservationRepository.GetReservationsWithDetailsAsync();
+        AppLogger.LogInfo($"[Service] GetReservationsWithDetailsAsync returned {reservations.Count()} reservations", filename: "reservation");
+        
+        var filtered = reservations.Where(r => 
+            !r.IsDeleted && 
+            r.ReservationDate.Date == date.Date &&
+            r.Status != "cancelled");
+        
+        var afterDateFilter = filtered.ToList();
+        AppLogger.LogInfo($"[Service] After date filter: {afterDateFilter.Count} reservations for {date.Date:yyyy-MM-dd}", filename: "reservation");
+
+        // Filter by location only if a specific location is provided (not "All Locations")
+        if (!string.IsNullOrEmpty(location) && location != "All Locations")
+        {
+            filtered = afterDateFilter.Where(r => 
+                r.Table?.Location?.Equals(location, StringComparison.OrdinalIgnoreCase) == true);
+            AppLogger.LogInfo($"[Service] After location filter '{location}': {filtered.Count()} reservations", filename: "reservation");
+        }
+        else
+        {
+            filtered = afterDateFilter;
+            AppLogger.LogInfo($"[Service] No location filter applied (showing all locations): {afterDateFilter.Count} reservations", filename: "reservation");
+        }
+
+        var result = filtered
+            .OrderBy(r => r.Table?.TableNumber)
+            .ThenBy(r => r.ReservationTime)
+            .Select(MapToDto)
+            .ToList();
+        
+        AppLogger.LogInfo($"[Service] Returning {result.Count} reservations for timeline", filename: "reservation");
+        if (result.Any())
+        {
+            AppLogger.LogInfo($"[Service] First timeline reservation: ID={result[0].Id}, Customer={result[0].CustomerName}, Table={result[0].TableNumber}, DateTime={result[0].ReservationDateTime}", filename: "reservation");
+        }
+        
+        return result;
     }
 
     /// <summary>
