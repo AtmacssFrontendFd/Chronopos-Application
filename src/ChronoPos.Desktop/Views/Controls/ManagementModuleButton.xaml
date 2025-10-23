@@ -1,0 +1,183 @@
+<UserControl x:Class="ChronoPos.Desktop.Views.Controls.ManagementModuleButton"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" 
+             d:DesignHeight="140" d:DesignWidth="180"
+             FlowDirection="LeftToRight">
+    
+    <Button Command="{Binding Command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            CommandParameter="{Binding ModuleType, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            Background="Transparent"
+            BorderBrush="Transparent"
+            BorderThickness="0"
+            Padding="0"
+            Margin="2"
+            Width="120"
+            Height="120"
+            FontFamily="{DynamicResource PoppinsFontFallback}"
+            Cursor="Hand">
+        
+        <Button.Template>
+            <ControlTemplate TargetType="Button">
+                <Border x:Name="ButtonBorder"
+                        Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderLight}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="{DynamicResource DefaultPaddingThickness}">
+                    
+                    <ContentPresenter HorizontalAlignment="Stretch" 
+                                      VerticalAlignment="Stretch" />
+                </Border>
+                
+                <ControlTemplate.Triggers>
+                    <!-- Selected state trigger - highest priority -->
+                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                        <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource Primary}" />
+                        <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource Primary}" />
+                    </DataTrigger>
+                    
+                    <!-- Normal/unselected state uses ButtonBackground -->
+                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
+                        <Setter TargetName="ButtonBorder" Property="Background" Value="{Binding ButtonBackground, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                    </DataTrigger>
+                    
+                    <!-- Hover and pressed triggers - only when not selected -->
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False"/>
+                            <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+                        <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                    </MultiDataTrigger>
+                    
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False"/>
+                            <Condition Binding="{Binding IsPressed, RelativeSource={RelativeSource Self}}" Value="True"/>
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+                    </MultiDataTrigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Button.Template>
+        
+        <!-- Main Layout with Canvas for absolute positioning -->
+        <Canvas>
+            <!-- Icon positioned absolutely at top-right -->
+            <Border Background="{Binding IconBackground, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    Width="40"
+                    Height="40"
+                    CornerRadius="8"
+                    Canvas.Right="2"
+                    Canvas.Top="2">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 4 small squares -->
+                    <Rectangle x:Name="Icon1" Grid.Row="0" Grid.Column="0" Fill="Black" Width="12" Height="12" RadiusX="2" RadiusY="2">
+                        <Rectangle.Style>
+                            <Style TargetType="Rectangle">
+                                <Setter Property="Fill" Value="Black"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                        <Setter Property="Fill" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Rectangle.Style>
+                    </Rectangle>
+                    <Rectangle x:Name="Icon2" Grid.Row="0" Grid.Column="1" Fill="Black" Width="12" Height="12" RadiusX="2" RadiusY="2">
+                        <Rectangle.Style>
+                            <Style TargetType="Rectangle">
+                                <Setter Property="Fill" Value="Black"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                        <Setter Property="Fill" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Rectangle.Style>
+                    </Rectangle>
+                    <Rectangle x:Name="Icon3" Grid.Row="1" Grid.Column="0" Fill="Black" Width="12" Height="12" RadiusX="2" RadiusY="2">
+                        <Rectangle.Style>
+                            <Style TargetType="Rectangle">
+                                <Setter Property="Fill" Value="Black"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                        <Setter Property="Fill" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Rectangle.Style>
+                    </Rectangle>
+                    <Rectangle x:Name="Icon4" Grid.Row="1" Grid.Column="1" Fill="Black" Width="12" Height="12" RadiusX="2" RadiusY="2">
+                        <Rectangle.Style>
+                            <Style TargetType="Rectangle">
+                                <Setter Property="Fill" Value="Black"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                        <Setter Property="Fill" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Rectangle.Style>
+                    </Rectangle>
+                </Grid>
+            </Border>
+
+            <!-- Text positioned absolutely at bottom-left -->
+            <StackPanel Canvas.Left="2" 
+                        Canvas.Bottom="2"
+                        MaxWidth="100">
+                <!-- Module Title -->
+                <TextBlock Text="{Binding ModuleTitle, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                           FontSize="{DynamicResource FontSizeSmall}"
+                           FontWeight="SemiBold"
+                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                           TextAlignment="Left"
+                           TextWrapping="Wrap"
+                           Margin="0,0,0,2">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                    <Setter Property="Foreground" Value="White"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                
+                <!-- Item Count -->
+                <TextBlock FontSize="{DynamicResource FontSizeVerySmall}"
+                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                           TextAlignment="Left">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                    <Setter Property="Foreground" Value="White"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                    <Run Text="{Binding ItemCount, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    <Run Text="{Binding ItemCountLabel, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                </TextBlock>
+            </StackPanel>
+        </Canvas>
+    </Button>
+</UserControl>

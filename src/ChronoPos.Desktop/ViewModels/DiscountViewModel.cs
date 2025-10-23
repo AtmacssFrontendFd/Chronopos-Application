@@ -1,0 +1,994 @@
+using ChronoPos.Application.Constants;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.DTOs;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Text;
+using System.Windows;
+using ChronoPos.Desktop.Services;
+using InfrastructureServices = ChronoPos.Infrastructure.Services;
+using System.Windows.Controls;
+using System.Windows.Documents;
+using Microsoft.Win32;
+
+namespace ChronoPos.Desktop.ViewModels;
+
+/// <summary>
+/// ViewModel for comprehensive discount management with full settings integration
+/// </summary>
+public partial class DiscountViewModel : ObservableObject, IDisposable
+{
+    #region Fields
+    
+    private readonly IDiscountService _discountService;
+    private readonly IProductService _productService;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly object? _categoryService; // ICategoryService when available
+    private readonly object? _customerService; // ICustomerService when available
+    private readonly object? _storeService; // IStoreService when available
+    private readonly Action? _navigateToAddDiscount;
+    private readonly Action<DiscountDto>? _navigateToEditDiscount;
+    private readonly Action? _navigateBack;
+    
+    // Settings services
+    private readonly IThemeService _themeService;
+    private readonly IZoomService _zoomService;
+    private readonly ILocalizationService _localizationService;
+    private readonly IColorSchemeService _colorSchemeService;
+    private readonly ILayoutDirectionService _layoutDirectionService;
+    private readonly IFontService _fontService;
+    private readonly InfrastructureServices.IDatabaseLocalizationService _databaseLocalizationService;
+    
+    #endregion
+
+    #region Observable Properties
+
+    [ObservableProperty]
+    private ObservableCollection<DiscountDto> discounts = new();
+
+    [ObservableProperty]
+    private ObservableCollection<DiscountDto> filteredDiscounts = new();
+
+    [ObservableProperty]
+    private DiscountDto? selectedDiscount;
+
+    [ObservableProperty]
+    private string searchText = string.Empty;
+
+    [ObservableProperty]
+    private string selectedSearchType = "Discount Name";
+
+    [ObservableProperty]
+    private bool isLoading = false;
+
+    [ObservableProperty]
+    private string statusMessage = "Ready";
+
+    [ObservableProperty]
+    private bool isDiscountFormVisible = false;
+
+    [ObservableProperty]
+    private bool isEditMode = false;
+
+    [ObservableProperty]
+    private DiscountDto currentDiscount = new();
+
+    // Settings properties
+    [ObservableProperty]
+    private string _currentTheme = "Light";
+
+    [ObservableProperty]
+    private int _currentZoom = 100;
+
+    [ObservableProperty]
+    private string _currentLanguage = "English";
+
+    [ObservableProperty]
+    private double _currentFontSize = 14;
+
+    [ObservableProperty]
+    private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
+
+    // Translated UI Properties
+    [ObservableProperty]
+    private string _pageTitle = "Discount Management";
+
+    [ObservableProperty]
+    private string _backButtonText = "Back";
+
+    [ObservableProperty]
+    private string _refreshButtonText = "Refresh";
+
+    [ObservableProperty]
+    private string _addNewDiscountButtonText = "Add Discount";
+
+    [ObservableProperty]
+    private string _searchPlaceholder = "Search discounts...";
+
+    [ObservableProperty]
+    private string _searchTypeDiscountName = "Discount Name";
+
+    [ObservableProperty]
+    private string _searchTypeDiscountCode = "Discount Code";
+
+    [ObservableProperty]
+    private string _showingDiscountsFormat = "Showing {0} discounts";
+
+    [ObservableProperty]
+    private string _itemsCountText = "discounts";
+
+    // Table Column Headers
+    [ObservableProperty]
+    private string _columnDiscountName = "Discount Name";
+
+    [ObservableProperty]
+    private string _columnDiscountCode = "Discount Code";
+
+    [ObservableProperty]
+    private string _columnDiscountType = "Type";
+
+    [ObservableProperty]
+    private string _columnDiscountValue = "Value";
+
+    [ObservableProperty]
+    private string _columnStartDate = "Start Date";
+
+    [ObservableProperty]
+    private string _columnEndDate = "End Date";
+
+    [ObservableProperty]
+    private string _columnStatus = "Status";
+
+    [ObservableProperty]
+    private string _columnActions = "Actions";
+
+    // Action Tooltips
+    [ObservableProperty]
+    private string _editDiscountTooltip = "Edit Discount";
+
+    [ObservableProperty]
+    private string _deleteDiscountTooltip = "Delete Discount";
+
+    [ObservableProperty]
+    private string _activateDiscountTooltip = "Activate Discount";
+
+    [ObservableProperty]
+    private string _deactivateDiscountTooltip = "Deactivate Discount";
+
+    // Computed Properties
+    public bool HasDiscounts => FilteredDiscounts?.Count > 0;
+    
+    public int TotalDiscounts => Discounts?.Count ?? 0;
+
+    // Sidepanel Properties
+    [ObservableProperty]
+    private bool _isSidePanelVisible = false;
+
+    [ObservableProperty]
+    private DiscountSidePanelViewModel? _sidePanelViewModel;
+
+    [ObservableProperty]
+    private bool canCreateDiscount = false;
+
+    [ObservableProperty]
+    private bool canEditDiscount = false;
+
+    [ObservableProperty]
+    private bool canDeleteDiscount = false;
+
+    [ObservableProperty]
+    private bool canImportDiscount = false;
+
+    [ObservableProperty]
+    private bool canExportDiscount = false;
+
+    #endregion
+
+    #region Constructor
+
+    /// <summary>
+    /// Constructor with all required services
+    /// </summary>
+    public DiscountViewModel(
+        IDiscountService discountService,
+        IProductService productService,
+        ICurrentUserService currentUserService,
+        IThemeService themeService,
+        IZoomService zoomService,
+        ILocalizationService localizationService,
+        IColorSchemeService colorSchemeService,
+        ILayoutDirectionService layoutDirectionService,
+        IFontService fontService,
+        InfrastructureServices.IDatabaseLocalizationService databaseLocalizationService,
+        Action? navigateToAddDiscount = null,
+        Action<DiscountDto>? navigateToEditDiscount = null,
+        Action? navigateBack = null)
+    {
+        _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
+        _productService = productService ?? throw new ArgumentNullException(nameof(productService));
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
+        _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
+        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        _colorSchemeService = colorSchemeService ?? throw new ArgumentNullException(nameof(colorSchemeService));
+        _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
+        _fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
+        _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
+        
+        _navigateToAddDiscount = navigateToAddDiscount;
+        _navigateToEditDiscount = navigateToEditDiscount;
+        _navigateBack = navigateBack;
+
+        // Initialize permissions
+        InitializePermissions();
+
+        // Initialize current settings
+        InitializeCurrentSettings();
+        
+        // Subscribe to property changes
+        PropertyChanged += OnPropertyChanged;
+        
+        // Load data
+        _ = Task.Run(LoadDiscountsAsync);
+        
+        // Load translations
+        _ = Task.Run(LoadTranslationsAsync);
+    }
+
+    #endregion
+
+    #region Commands
+
+    [RelayCommand]
+    private async Task RefreshData()
+    {
+        IsLoading = true;
+        StatusMessage = "Refreshing discount data...";
+        
+        try
+        {
+            await LoadDiscountsAsync();
+            StatusMessage = "Discount data refreshed successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error refreshing data: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private void NavigateBack()
+    {
+        _navigateBack?.Invoke();
+    }
+
+    [RelayCommand]
+    private void AddDiscount()
+    {
+        ShowSidePanelForNewDiscount();
+    }
+
+    [RelayCommand]
+    private async Task EditDiscount(DiscountDto? discount)
+    {
+        if (discount != null)
+        {
+            await ShowSidePanelForEditDiscount(discount);
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteDiscount(DiscountDto? discount)
+    {
+        if (discount == null) return;
+
+        var result = MessageBox.Show(
+            $"Are you sure you want to delete the discount '{discount.DiscountName}'?",
+            "Confirm Delete",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (result == MessageBoxResult.Yes)
+        {
+            try
+            {
+                IsLoading = true;
+                StatusMessage = "Deleting discount...";
+                
+                await _discountService.DeleteAsync(discount.Id);
+                await LoadDiscountsAsync();
+                
+                StatusMessage = "Discount deleted successfully";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error deleting discount: {ex.Message}";
+                MessageBox.Show($"Error deleting discount: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+    }
+
+    [RelayCommand]
+    private async Task ToggleDiscountStatus(DiscountDto? discount)
+    {
+        if (discount == null) return;
+
+        try
+        {
+            IsLoading = true;
+            StatusMessage = discount.IsActive ? "Deactivating discount..." : "Activating discount...";
+            
+            // Get the full discount with selections before updating
+            var fullDiscount = await _discountService.GetByIdAsync(discount.Id);
+            if (fullDiscount == null)
+            {
+                StatusMessage = "Error: Discount not found";
+                return;
+            }
+            
+            // Update the status
+            fullDiscount.IsActive = !fullDiscount.IsActive;
+            
+            await _discountService.UpdateAsync(fullDiscount.Id, new UpdateDiscountDto
+            {
+                DiscountName = fullDiscount.DiscountName,
+                DiscountNameAr = fullDiscount.DiscountNameAr,
+                DiscountDescription = fullDiscount.DiscountDescription,
+                DiscountCode = fullDiscount.DiscountCode,
+                DiscountType = fullDiscount.DiscountType,
+                DiscountValue = fullDiscount.DiscountValue,
+                MaxDiscountAmount = fullDiscount.MaxDiscountAmount,
+                MinPurchaseAmount = fullDiscount.MinPurchaseAmount,
+                StartDate = fullDiscount.StartDate,
+                EndDate = fullDiscount.EndDate,
+                ApplicableOn = fullDiscount.ApplicableOn,
+                SelectedProductIds = fullDiscount.SelectedProductIds ?? new List<int>(),
+                SelectedCategoryIds = fullDiscount.SelectedCategoryIds ?? new List<int>(),
+                Priority = fullDiscount.Priority,
+                IsStackable = fullDiscount.IsStackable,
+                IsActive = fullDiscount.IsActive,
+                StoreId = fullDiscount.StoreId,
+                CurrencyCode = fullDiscount.CurrencyCode
+            });
+            
+            // Update the local discount object for UI refresh
+            discount.IsActive = fullDiscount.IsActive;
+            
+            await LoadDiscountsAsync();
+            
+            StatusMessage = fullDiscount.IsActive ? "Discount activated successfully" : "Discount deactivated successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error updating discount status: {ex.Message}";
+            MessageBox.Show($"Error updating discount status: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private void FilterActive()
+    {
+        var activeDiscounts = Discounts.Where(d => d.IsActive);
+        FilteredDiscounts.Clear();
+        foreach (var discount in activeDiscounts)
+        {
+            FilteredDiscounts.Add(discount);
+        }
+        StatusMessage = $"Showing {FilteredDiscounts.Count} active discounts";
+    }
+
+    [RelayCommand]
+    private void ClearFilters()
+    {
+        SearchText = string.Empty;
+        FilterDiscounts();
+        StatusMessage = $"Showing all {FilteredDiscounts.Count} discounts";
+    }
+
+    [RelayCommand]
+    private void Refresh()
+    {
+        _ = Task.Run(RefreshData);
+    }
+
+    [RelayCommand]
+    private void Back()
+    {
+        NavigateBack();
+    }
+
+    [RelayCommand]
+    private void ToggleActive(DiscountDto? discount)
+    {
+        _ = Task.Run(() => ToggleDiscountStatus(discount));
+    }
+
+    [RelayCommand]
+    private void PrintCoupon(DiscountDto? discount)
+{
+    if (discount == null) return;
+
+    try
+    {
+        // Create a styled FlowDocument
+        var document = new FlowDocument
+        {
+            FontFamily = new System.Windows.Media.FontFamily("Segoe UI"),
+            FontSize = 14,
+            PagePadding = new Thickness(40),
+            TextAlignment = TextAlignment.Center
+        };
+
+        // Border container
+        var border = new Border
+        {
+            BorderBrush = System.Windows.Media.Brushes.Black,
+            BorderThickness = new Thickness(2),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(20),
+            Margin = new Thickness(10)
+        };
+
+        // Stack content inside
+        var stackPanel = new StackPanel();
+
+        // Title
+        var title = new Paragraph(new Run("DISCOUNT COUPON"))
+        {
+            FontSize = 20,
+            FontWeight = FontWeights.Bold,
+            TextAlignment = TextAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 20)
+        };
+        stackPanel.Children.Add(new TextBlock
+        {
+            Text = "DISCOUNT COUPON",
+            FontSize = 24,
+            FontWeight = FontWeights.Bold,
+            Foreground = System.Windows.Media.Brushes.DarkBlue,
+            TextAlignment = TextAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 20)
+        });
+
+        // Details
+        stackPanel.Children.Add(new TextBlock { Text = $" {discount.DiscountName}", FontSize = 16, Margin = new Thickness(0, 5, 0, 5) });
+        stackPanel.Children.Add(new TextBlock { Text = $"Code: {discount.DiscountCode}", FontSize = 16, Margin = new Thickness(0, 5, 0, 5) });
+        stackPanel.Children.Add(new TextBlock { Text = $"Value: {discount.FormattedDiscountValue}", FontSize = 16, Margin = new Thickness(0, 5, 0, 5) });
+        stackPanel.Children.Add(new TextBlock { Text = $"{discount.DiscountDescription}", FontSize = 14, FontStyle = FontStyles.Italic, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 10) });
+        stackPanel.Children.Add(new TextBlock { Text = $"Valid: {discount.StartDate:MM/dd/yyyy} - {discount.EndDate:MM/dd/yyyy}", FontSize = 14, Margin = new Thickness(0, 5, 0, 15) });
+        stackPanel.Children.Add(new TextBlock { Text = "Terms and conditions apply", FontSize = 12, Foreground = System.Windows.Media.Brushes.Gray });
+
+        border.Child = stackPanel;
+
+        // Convert Border into BlockUIContainer
+        var container = new BlockUIContainer(border);
+        document.Blocks.Add(container);
+
+        // Print
+        var printDialog = new System.Windows.Controls.PrintDialog();
+        if (printDialog.ShowDialog() == true)
+        {
+            var paginator = ((IDocumentPaginatorSource)document).DocumentPaginator;
+            printDialog.PrintDocument(paginator, $"Discount Coupon - {discount.DiscountCode}");
+            StatusMessage = $"Coupon printed for {discount.DiscountName}";
+        }
+    }
+    catch (Exception ex)
+    {
+        StatusMessage = $"Error printing coupon: {ex.Message}";
+        MessageBox.Show($"Error printing coupon: {ex.Message}", "Print Error", MessageBoxButton.OK, MessageBoxImage.Error);
+    }
+}
+
+    /// <summary>
+    /// Command to export discounts to CSV
+    /// </summary>
+    [RelayCommand]
+    private async Task ExportAsync()
+    {
+        try
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                FileName = $"Discounts_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+                DefaultExt = ".csv"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Exporting discounts...";
+
+                var csv = new StringBuilder();
+                csv.AppendLine("Id,DiscountName,DiscountCode,DiscountType,DiscountValue,StartDate,EndDate,IsActive,MinPurchaseAmount,MaxDiscountAmount,Priority,IsStackable,Description");
+
+                foreach (var discount in Discounts)
+                {
+                    csv.AppendLine($"{discount.Id}," +
+                                 $"\"{discount.DiscountName}\"," +
+                                 $"\"{discount.DiscountCode}\"," +
+                                 $"\"{discount.DiscountType}\"," +
+                                 $"{discount.DiscountValue}," +
+                                 $"{discount.StartDate:yyyy-MM-dd}," +
+                                 $"{discount.EndDate:yyyy-MM-dd}," +
+                                 $"{discount.IsActive}," +
+                                 $"{discount.MinPurchaseAmount}," +
+                                 $"{discount.MaxDiscountAmount}," +
+                                 $"{discount.Priority}," +
+                                 $"{discount.IsStackable}," +
+                                 $"\"{discount.DiscountDescription ?? ""}\"");
+                }
+
+                await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
+                StatusMessage = $"Exported {Discounts.Count} discounts successfully";
+                MessageBox.Show($"Exported {Discounts.Count} discounts to:\n{saveFileDialog.FileName}", 
+                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error exporting discounts: {ex.Message}";
+            MessageBox.Show($"Error exporting discounts: {ex.Message}", "Export Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Command to import discounts from CSV
+    /// </summary>
+    [RelayCommand]
+    private async Task ImportAsync()
+    {
+        try
+        {
+            // Show dialog with Download Template and Upload File options
+            var result = MessageBox.Show(
+                "Would you like to download a template first?\n\n" +
+                "• Click 'Yes' to download the CSV template\n" +
+                "• Click 'No' to upload your file directly\n" +
+                "• Click 'Cancel' to exit",
+                "Import Discounts",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Cancel)
+                return;
+
+            if (result == MessageBoxResult.Yes)
+            {
+                // Download Template
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    FileName = "Discounts_Template.csv",
+                    DefaultExt = ".csv"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    var templateCsv = new StringBuilder();
+                    templateCsv.AppendLine("Id,DiscountName,DiscountCode,DiscountType,DiscountValue,StartDate,EndDate,IsActive,Description");
+                    templateCsv.AppendLine("0,Sample Discount,SAVE10,Percentage,10,2024-01-01,2024-12-31,true,Sample 10% discount");
+                    templateCsv.AppendLine("0,Holiday Sale,HOLIDAY25,Percentage,25,2024-12-01,2024-12-31,true,25% off for holidays");
+
+                    await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
+                    MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
+                        "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                return;
+            }
+
+            // Upload File
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                DefaultExt = ".csv"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Importing discounts...";
+
+                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                if (lines.Length <= 1)
+                {
+                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                int successCount = 0;
+                int errorCount = 0;
+                var errors = new StringBuilder();
+
+                // Skip header row
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    try
+                    {
+                        var line = lines[i];
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        var values = ParseCsvLine(line);
+                        if (values.Length < 13)
+                        {
+                            errorCount++;
+                            errors.AppendLine($"Line {i + 1}: Invalid format (expected 13 columns)");
+                            continue;
+                        }
+
+                        var createDto = new CreateDiscountDto
+                        {
+                            DiscountName = values[1].Trim('"'),
+                            DiscountCode = values[2].Trim('"'),
+                            DiscountType = Enum.Parse<ChronoPos.Domain.Enums.DiscountType>(values[3].Trim('"')),
+                            DiscountValue = decimal.Parse(values[4]),
+                            StartDate = DateTime.Parse(values[5]),
+                            EndDate = DateTime.Parse(values[6]),
+                        IsActive = bool.Parse(values[7]),
+                        MinPurchaseAmount = string.IsNullOrWhiteSpace(values[8]) ? null : decimal.Parse(values[8]),
+                        MaxDiscountAmount = string.IsNullOrWhiteSpace(values[9]) ? null : decimal.Parse(values[9]),
+                        Priority = int.Parse(values[10]),
+                        IsStackable = bool.Parse(values[11]),
+                        DiscountDescription = values[12].Trim('"'),
+                        ApplicableOn = ChronoPos.Domain.Enums.DiscountApplicableOn.Order, // Default to Order level discount
+                        CreatedBy = 1 // TODO: Get from current user
+                    };                        await _discountService.CreateAsync(createDto);
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errorCount++;
+                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                    }
+                }
+
+                await RefreshData();
+
+                var message = $"Import completed:\n✓ {successCount} discounts imported successfully";
+                if (errorCount > 0)
+                {
+                    message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                }
+
+                MessageBox.Show(message, "Import Complete", 
+                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                
+                StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error importing discounts: {ex.Message}";
+            MessageBox.Show($"Error importing discounts: {ex.Message}", "Import Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Parse CSV line handling quoted values
+    /// </summary>
+    private string[] ParseCsvLine(string line)
+    {
+        var values = new List<string>();
+        var currentValue = new StringBuilder();
+        bool inQuotes = false;
+
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+
+            if (c == '"')
+            {
+                inQuotes = !inQuotes;
+                currentValue.Append(c);
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                values.Add(currentValue.ToString());
+                currentValue.Clear();
+            }
+            else
+            {
+                currentValue.Append(c);
+            }
+        }
+
+        values.Add(currentValue.ToString());
+        return values.ToArray();
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    /// <summary>
+    /// Initialize current settings from services
+    /// </summary>
+    private void InitializeCurrentSettings()
+    {
+        CurrentTheme = _themeService.CurrentTheme.ToString();
+        CurrentZoom = (int)_zoomService.CurrentZoomPercentage;
+        CurrentLanguage = _localizationService.CurrentLanguage.ToString();
+        CurrentFontSize = GetCurrentFontSize();
+        CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
+            ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+    }
+
+    /// <summary>
+    /// Get current font size based on zoom and font settings
+    /// </summary>
+    private double GetCurrentFontSize()
+    {
+        var baseSize = _fontService.CurrentFontSize switch
+        {
+            FontSize.Small => 12,
+            FontSize.Medium => 14,
+            FontSize.Large => 16,
+            _ => 14
+        };
+        
+        return baseSize * (_zoomService.CurrentZoomPercentage / 100.0);
+    }
+
+    /// <summary>
+    /// Load all discounts from the service
+    /// </summary>
+    private async Task LoadDiscountsAsync()
+    {
+        try
+        {
+            IsLoading = true;
+            var discountList = await _discountService.GetAllAsync();
+            
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                Discounts.Clear();
+                foreach (var discount in discountList)
+                {
+                    Discounts.Add(discount);
+                }
+                
+                FilterDiscounts();
+                OnPropertyChanged(nameof(TotalDiscounts));
+            });
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading discounts: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Filter discounts based on search text and type
+    /// </summary>
+    private void FilterDiscounts()
+    {
+        if (string.IsNullOrWhiteSpace(SearchText))
+        {
+            FilteredDiscounts.Clear();
+            foreach (var discount in Discounts)
+            {
+                FilteredDiscounts.Add(discount);
+            }
+        }
+        else
+        {
+            var filtered = SelectedSearchType switch
+            {
+                "Discount Name" => Discounts.Where(d => d.DiscountName.Contains(SearchText, StringComparison.OrdinalIgnoreCase)),
+                "Discount Code" => Discounts.Where(d => d.DiscountCode.Contains(SearchText, StringComparison.OrdinalIgnoreCase)),
+                _ => Discounts.Where(d => d.DiscountName.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+            };
+
+            FilteredDiscounts.Clear();
+            foreach (var discount in filtered)
+            {
+                FilteredDiscounts.Add(discount);
+            }
+        }
+        
+        // Notify computed properties
+        OnPropertyChanged(nameof(HasDiscounts));
+        OnPropertyChanged(nameof(TotalDiscounts));
+    }
+
+    /// <summary>
+    /// Show sidepanel for creating a new discount
+    /// </summary>
+    private void ShowSidePanelForNewDiscount()
+    {
+        try
+        {
+            SidePanelViewModel?.Dispose();
+            
+            // Create the sidepanel ViewModel
+            SidePanelViewModel = new DiscountSidePanelViewModel(
+                _discountService,
+                _productService,
+                _categoryService,
+                _customerService,
+                _storeService,
+                _themeService,
+                _localizationService,
+                _layoutDirectionService,
+                _databaseLocalizationService,
+                onSaved: OnSidePanelSaved,
+                onCancelled: OnSidePanelCancelled
+            );
+            
+            IsSidePanelVisible = true;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error opening discount form: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Show sidepanel for editing an existing discount
+    /// </summary>
+    private async Task ShowSidePanelForEditDiscount(DiscountDto discount)
+    {
+        try
+        {
+            SidePanelViewModel?.Dispose();
+            
+            // Get the full discount data with product/category selections
+            var fullDiscountData = await _discountService.GetByIdAsync(discount.Id);
+            if (fullDiscountData == null)
+            {
+                MessageBox.Show($"Error: Could not load discount data for ID {discount.Id}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            
+            // Create the sidepanel ViewModel for editing
+            SidePanelViewModel = new DiscountSidePanelViewModel(
+                _discountService,
+                _productService,
+                _categoryService,
+                _customerService,
+                _storeService,
+                _themeService,
+                _localizationService,
+                _layoutDirectionService,
+                _databaseLocalizationService,
+                fullDiscountData,
+                onSaved: OnSidePanelSaved,
+                onCancelled: OnSidePanelCancelled
+            );
+            
+            IsSidePanelVisible = true;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error opening discount form: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Handle sidepanel saved event
+    /// </summary>
+    private async void OnSidePanelSaved(bool success)
+    {
+        if (success)
+        {
+            await LoadDiscountsAsync();
+        }
+        
+        IsSidePanelVisible = false;
+        SidePanelViewModel?.Dispose();
+        SidePanelViewModel = null;
+    }
+
+    /// <summary>
+    /// Handle sidepanel cancelled event
+    /// </summary>
+    private void OnSidePanelCancelled()
+    {
+        IsSidePanelVisible = false;
+        SidePanelViewModel?.Dispose();
+        SidePanelViewModel = null;
+    }
+
+    /// <summary>
+    /// Load translations from database
+    /// </summary>
+    private async Task LoadTranslationsAsync()
+    {
+        try
+        {
+            PageTitle = await _databaseLocalizationService.GetTranslationAsync("discount.page_title") ?? "Discount Management";
+            BackButtonText = await _databaseLocalizationService.GetTranslationAsync("common.back") ?? "Back";
+            RefreshButtonText = await _databaseLocalizationService.GetTranslationAsync("common.refresh") ?? "Refresh";
+            AddNewDiscountButtonText = await _databaseLocalizationService.GetTranslationAsync("discount.add_new") ?? "Add Discount";
+            SearchPlaceholder = await _databaseLocalizationService.GetTranslationAsync("discount.search_placeholder") ?? "Search discounts...";
+            
+            // Column headers
+            ColumnDiscountName = await _databaseLocalizationService.GetTranslationAsync("discount.column.name") ?? "Discount Name";
+            ColumnDiscountCode = await _databaseLocalizationService.GetTranslationAsync("discount.column.code") ?? "Discount Code";
+            ColumnDiscountType = await _databaseLocalizationService.GetTranslationAsync("discount.column.type") ?? "Type";
+            ColumnDiscountValue = await _databaseLocalizationService.GetTranslationAsync("discount.column.value") ?? "Value";
+            ColumnStartDate = await _databaseLocalizationService.GetTranslationAsync("discount.column.start_date") ?? "Start Date";
+            ColumnEndDate = await _databaseLocalizationService.GetTranslationAsync("discount.column.end_date") ?? "End Date";
+            ColumnStatus = await _databaseLocalizationService.GetTranslationAsync("discount.column.status") ?? "Status";
+            ColumnActions = await _databaseLocalizationService.GetTranslationAsync("common.actions") ?? "Actions";
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't throw - use default English text
+            System.Diagnostics.Debug.WriteLine($"Error loading translations: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Handle property changes for filtering
+    /// </summary>
+    private void OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SearchText) || e.PropertyName == nameof(SelectedSearchType))
+        {
+            FilterDiscounts();
+        }
+    }
+
+    private void InitializePermissions()
+    {
+        try
+        {
+            CanCreateDiscount = _currentUserService.HasPermission(ScreenNames.DISCOUNTS, TypeMatrix.CREATE);
+            CanEditDiscount = _currentUserService.HasPermission(ScreenNames.DISCOUNTS, TypeMatrix.UPDATE);
+            CanDeleteDiscount = _currentUserService.HasPermission(ScreenNames.DISCOUNTS, TypeMatrix.DELETE);
+            CanImportDiscount = _currentUserService.HasPermission(ScreenNames.DISCOUNTS, TypeMatrix.IMPORT);
+            CanExportDiscount = _currentUserService.HasPermission(ScreenNames.DISCOUNTS, TypeMatrix.EXPORT);
+        }
+        catch (Exception)
+        {
+            CanCreateDiscount = false;
+            CanEditDiscount = false;
+            CanDeleteDiscount = false;
+            CanImportDiscount = false;
+            CanExportDiscount = false;
+        }
+    }
+
+    #endregion
+
+    #region Dispose
+
+    public void Dispose()
+    {
+        PropertyChanged -= OnPropertyChanged;
+        GC.SuppressFinalize(this);
+    }
+
+    #endregion
+}

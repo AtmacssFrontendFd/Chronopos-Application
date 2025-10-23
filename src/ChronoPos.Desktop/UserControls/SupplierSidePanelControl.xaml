@@ -1,0 +1,727 @@
+<UserControl x:Class="ChronoPos.Desktop.UserControls.SupplierSidePanelControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="600"
+             Background="{DynamicResource CardBackground}"
+             FontFamily="{DynamicResource PoppinsFontFallback}">
+
+    <UserControl.Resources>
+        <!-- Converters -->
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+
+        <!-- Input Field Style - Compact -->
+        <Style x:Key="InputFieldStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                MinHeight="{TemplateBinding MinHeight}">
+                            <Grid>
+                                <ScrollViewer x:Name="PART_ContentHost" 
+                                            Margin="{TemplateBinding Padding}"
+                                            VerticalAlignment="Center"
+                                            VerticalContentAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryLight}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Label Style - Compact -->
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeExtraSmall}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+
+        <!-- ComboBox Style - Compact -->
+        <Style x:Key="CompactComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+        </Style>
+        
+        <!-- Section Header Style - Compact -->
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeMedium}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Margin" Value="0,8,0,12"/>
+        </Style>
+
+        <!-- Upload Button Style -->
+        <Style x:Key="UploadButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                MinHeight="{TemplateBinding MinHeight}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryDark}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource SurfaceBackground}"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource BorderLight}"
+                Padding="16,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="{Binding FormTitle}"
+                           FontSize="{DynamicResource FontSizeLarge}"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimary}"
+                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                           VerticalAlignment="Center"/>
+
+                <Button Grid.Column="1"
+                        Content="✕"
+                        Command="{Binding CloseSidePanelCommand}"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Foreground="{DynamicResource TextSecondary}"
+                        Cursor="Hand"
+                        Width="28"
+                        Height="28"
+                        ToolTip="Close"/>
+            </Grid>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+            <StackPanel>
+                <TextBlock Text="Company Information" Style="{StaticResource SectionHeaderStyle}"/>
+                
+                <!-- Company Name -->
+                <StackPanel Margin="0,0,0,14">
+                    <TextBlock Text="Company Name *" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingSupplier.CompanyName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" ToolTip="Enter company name"/>
+                </StackPanel>
+                
+                <!-- License Number and VAT/TRN in Grid -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="License Number" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.LicenseNumber, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter license number"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="VAT/TRN Number" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.VatTrnNumber, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter VAT/TRN number"/>
+                    </StackPanel>
+                </Grid>
+                
+                <!-- GSTIN and PAN in Grid -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="GSTIN" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.Gstin, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter GSTIN"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="PAN" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.Pan, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter PAN"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Website -->
+                <StackPanel Margin="0,0,0,14">
+                    <TextBlock Text="Website" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingSupplier.Website, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" ToolTip="Enter website URL"/>
+                </StackPanel>
+
+                <!-- Logo Upload Section -->
+                <StackPanel Margin="0,0,0,14">
+                    <TextBlock Text="Company Logo" Style="{StaticResource LabelStyle}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Logo Preview -->
+                        <Border Grid.Column="0"
+                                Width="80"
+                                Height="80"
+                                BorderBrush="{DynamicResource BorderLight}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Margin="0,0,12,0"
+                                Background="{DynamicResource SurfaceBackground}">
+                            <Grid>
+                                <!-- Placeholder when no logo -->
+                                <TextBlock Text="📷"
+                                          FontSize="32"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Foreground="{DynamicResource TextSecondary}"
+                                          Visibility="{Binding HasLogo, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                
+                                <!-- Logo Image -->
+                                <Image Source="{Binding EditingSupplier.LogoPicture}"
+                                       Stretch="Uniform"
+                                       Visibility="{Binding HasLogo, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Upload and Remove Buttons -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <Button Content="📁 Upload Logo"
+                                    Style="{StaticResource UploadButtonStyle}"
+                                    Command="{Binding UploadLogoCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    Margin="0,0,0,8"/>
+                            <Button Content="🗑 Remove Logo"
+                                    Style="{StaticResource UploadButtonStyle}"
+                                    Command="{Binding RemoveLogoCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    Visibility="{Binding HasLogo, Converter={StaticResource BoolToVisibilityConverter}}"
+                                    BorderBrush="{DynamicResource Error}"
+                                    Foreground="{DynamicResource Error}"/>
+                            <TextBlock Text="{Binding LogoFileName}"
+                                      FontSize="{DynamicResource FontSizeExtraSmall}"
+                                      Foreground="{DynamicResource TextSecondary}"
+                                      Margin="0,8,0,0"
+                                      TextTrimming="CharacterEllipsis"
+                                      Visibility="{Binding HasLogo, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+
+                <TextBlock Text="Contact Information" Style="{StaticResource SectionHeaderStyle}"/>
+                
+                <!-- Owner Name and Mobile in Grid -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Owner Name" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.OwnerName, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter owner name"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Owner Mobile" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.OwnerMobile, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter owner mobile"/>
+                    </StackPanel>
+                </Grid>
+                
+                <!-- Key Contact Name and Mobile in Grid -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Contact Person *" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.KeyContactName, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter key contact name"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Contact Mobile" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.KeyContactMobile, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter contact mobile"/>
+                    </StackPanel>
+                </Grid>
+                
+                <!-- Email and Contact Email in Grid -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Company Email" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.Email, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter company email"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Contact Email" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.KeyContactEmail, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter contact email"/>
+                    </StackPanel>
+                </Grid>
+                
+                <!-- Company Phone and Mobile in Grid -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Company Phone" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.CompanyPhoneNumber, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter company phone"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Mobile" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.Mobile, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter mobile number"/>
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock Text="Address Information" Style="{StaticResource SectionHeaderStyle}"/>
+                
+                <!-- Address Line 1 -->
+                <StackPanel Margin="0,0,0,14">
+                    <TextBlock Text="Address Line 1 *" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingSupplier.AddressLine1, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter address line 1"/>
+                </StackPanel>
+                
+                <!-- Address Line 2 -->
+                <StackPanel Margin="0,0,0,14">
+                    <TextBlock Text="Address Line 2" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding EditingSupplier.AddressLine2, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputFieldStyle}"
+                             ToolTip="Enter address line 2"/>
+                </StackPanel>
+                
+                <!-- Building and Area in Grid -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Building" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.Building, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter building"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Area" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.Area, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter area"/>
+                    </StackPanel>
+                </Grid>
+                
+                <!-- City and State in Grid -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- City -->
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="City" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.City, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter city"/>
+                    </StackPanel>
+
+                    <!-- State -->
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="State" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.State, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter state"/>
+                    </StackPanel>
+                </Grid>
+                
+                <!-- Country and PO Box in Grid -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Country" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.Country, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter country"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="PO Box" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.PoBox, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter PO Box"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Location Coordinates Section -->
+                <StackPanel Margin="0,0,0,14">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <TextBlock Grid.Column="0" 
+                                   Text="Location Coordinates" 
+                                   Style="{StaticResource LabelStyle}"
+                                   Margin="0,0,0,0"/>
+                        
+                        <Button Grid.Column="1"
+                                Content="📍 Pick on Map"
+                                Style="{StaticResource UploadButtonStyle}"
+                                Command="{Binding PickLocationCommand}"
+                                Padding="8,4"
+                                MinHeight="24"
+                                FontSize="{DynamicResource FontSizeExtraSmall}"
+                                ToolTip="Select location on map"/>
+                    </Grid>
+                    
+                    <!-- Latitude and Longitude in Grid -->
+                    <Grid Margin="0,6,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Latitude" 
+                                       FontSize="{DynamicResource FontSizeExtraSmall}"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Margin="0,0,0,4"/>
+                            <TextBox Text="{Binding EditingSupplier.LocationLatitude, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource InputFieldStyle}"
+                                     ToolTip="Enter latitude (e.g., 25.2048)"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Longitude" 
+                                       FontSize="{DynamicResource FontSizeExtraSmall}"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Margin="0,0,0,4"/>
+                            <TextBox Text="{Binding EditingSupplier.LocationLongitude, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource InputFieldStyle}"
+                                     ToolTip="Enter longitude (e.g., 55.2708)"/>
+                        </StackPanel>
+                    </Grid>
+                    
+                    <!-- Location Preview/Info -->
+                    <Border Margin="0,8,0,0"
+                            Padding="8"
+                            Background="{DynamicResource SurfaceBackground}"
+                            BorderBrush="{DynamicResource BorderLight}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Visibility="{Binding HasLocation, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock Text="📍 Location Set"
+                                       FontSize="{DynamicResource FontSizeExtraSmall}"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Primary}"
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"/>
+                            <TextBlock Text="{Binding LocationDisplayText}"
+                                       FontSize="{DynamicResource FontSizeExtraSmall}"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <TextBlock Text="Financial Information" Style="{StaticResource SectionHeaderStyle}"/>
+                
+                <!-- Credit Limit and Payment Terms in Grid -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Credit Limit -->
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Credit Limit" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.CreditLimit, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter credit limit"/>
+                    </StackPanel>
+
+                    <!-- Payment Terms -->
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Payment Terms" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.PaymentTerms, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter payment terms (e.g., Net 30)"/>
+                    </StackPanel>
+                </Grid>
+                
+                <!-- Opening Balance and Balance Type in Grid -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Opening Balance" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding EditingSupplier.OpeningBalance, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputFieldStyle}"
+                                 ToolTip="Enter opening balance"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Balance Type" Style="{StaticResource LabelStyle}"/>
+                        <ComboBox SelectedValue="{Binding EditingSupplier.BalanceType}"
+                                  Style="{StaticResource CompactComboBoxStyle}"
+                                  ToolTip="Select balance type">
+                            <ComboBoxItem Content="Credit" Tag="credit"/>
+                            <ComboBoxItem Content="Debit" Tag="debit"/>
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Status -->
+                <StackPanel Margin="0,0,0,14">
+                    <CheckBox Content="Is Active"
+                             IsChecked="{Binding EditingSupplier.IsActive}"
+                             FontSize="{DynamicResource FontSizeSmall}"
+                             FontFamily="{DynamicResource PoppinsFontFallback}"
+                             Foreground="{DynamicResource TextPrimary}"
+                             VerticalAlignment="Center"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" 
+                Background="{DynamicResource SurfaceBackground}"
+                BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource BorderLight}"
+                Padding="16,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Validation Messages -->
+                <TextBlock Grid.Column="0"
+                           Text="{Binding ValidationMessage}"
+                           FontSize="{DynamicResource FontSizeExtraSmall}"
+                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                           Foreground="{DynamicResource Error}"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap"
+                           Visibility="{Binding HasValidationErrors, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                <!-- Cancel Button -->
+                <Button Grid.Column="1"
+                        Content="Cancel"
+                        Command="{Binding CloseSidePanelCommand}"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource BorderLight}"
+                        Padding="14,8"
+                        Margin="0,0,8,0"
+                        MinHeight="36"
+                        Width="90"
+                        FontFamily="{DynamicResource PoppinsFontFallback}"
+                        FontSize="{DynamicResource FontSizeSmall}"
+                        Cursor="Hand">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="4"
+                                                MinHeight="{TemplateBinding MinHeight}">
+                                            <ContentPresenter HorizontalAlignment="Center" 
+                                                            VerticalAlignment="Center"
+                                                            Margin="{TemplateBinding Padding}"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <!-- Save Button -->
+                <Button Grid.Column="2"
+                        Content="Save"
+                        Command="{Binding SaveSupplierCommand}"
+                        Background="{DynamicResource Primary}"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Padding="14,8"
+                        MinHeight="36"
+                        Width="90"
+                        FontFamily="{DynamicResource PoppinsFontFallback}"
+                        FontSize="{DynamicResource FontSizeSmall}"
+                        Cursor="Hand">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="4"
+                                                MinHeight="{TemplateBinding MinHeight}">
+                                            <ContentPresenter HorizontalAlignment="Center" 
+                                                            VerticalAlignment="Center"
+                                                            Margin="{TemplateBinding Padding}"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource PrimaryDark}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource PrimaryDarker}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

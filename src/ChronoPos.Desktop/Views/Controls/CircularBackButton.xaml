@@ -1,0 +1,59 @@
+<UserControl x:Class="ChronoPos.Desktop.Views.Controls.CircularBackButton"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" 
+             d:DesignHeight="40" d:DesignWidth="40">
+    
+    <Button Command="{Binding Command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            CommandParameter="{Binding CommandParameter, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            Width="{Binding ButtonSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            Height="{Binding ButtonSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            Padding="0"
+            Margin="0"
+            FontFamily="{DynamicResource PoppinsFontFallback}"
+            Cursor="Hand"
+            VerticalAlignment="Center"
+            ToolTip="{Binding ButtonTooltip, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            BorderThickness="0">
+        
+        <Button.Template>
+            <ControlTemplate TargetType="Button">
+                <Border x:Name="ButtonBorder"
+                        Background="{Binding ButtonBackground, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        Width="{TemplateBinding Width}"
+                        Height="{TemplateBinding Height}"
+                        CornerRadius="{Binding ButtonCornerRadius, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        BorderThickness="{Binding ButtonBorderThickness, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        BorderBrush="{Binding ButtonBorderBrush, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                    
+                    <!-- Back Arrow Icon -->
+                    <TextBlock x:Name="IconText"
+                               Text="{Binding ButtonIcon, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                               FontSize="{Binding IconSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                               FontWeight="{Binding IconWeight, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                               Foreground="{Binding ButtonForeground, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               TextAlignment="Center"/>
+                </Border>
+                
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="ButtonBorder" Property="Background" 
+                                Value="{Binding ButtonHoverBackground, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                        <Setter TargetName="IconText" Property="Foreground" 
+                                Value="{Binding ButtonHoverForeground, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    </Trigger>
+                    <Trigger Property="IsPressed" Value="True">
+                        <Setter TargetName="ButtonBorder" Property="Background" 
+                                Value="{Binding ButtonPressedBackground, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                        <Setter TargetName="IconText" Property="Foreground" 
+                                Value="{Binding ButtonPressedForeground, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Button.Template>
+    </Button>
+</UserControl>

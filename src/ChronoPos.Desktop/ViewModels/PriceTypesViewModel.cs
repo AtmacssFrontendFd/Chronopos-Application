@@ -1,0 +1,734 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.IO;
+using System.Text;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using ChronoPos.Application.DTOs;
+using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.Constants;
+using ChronoPos.Desktop.Services;
+using ChronoPos.Infrastructure.Services;
+using Microsoft.Win32;
+
+namespace ChronoPos.Desktop.ViewModels;
+
+/// <summary>
+/// ViewModel for managing selling price types
+/// </summary>
+public partial class PriceTypesViewModel : ObservableObject
+{
+    #region Private Fields
+
+    private readonly ISellingPriceTypeService _sellingPriceTypeService;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly IThemeService _themeService;
+    private readonly IZoomService _zoomService;
+    private readonly ILocalizationService _localizationService;
+    private readonly IColorSchemeService _colorSchemeService;
+    private readonly ILayoutDirectionService _layoutDirectionService;
+    private readonly IFontService _fontService;
+    private readonly IDatabaseLocalizationService _databaseLocalizationService;
+
+    #endregion
+
+    #region Observable Properties
+
+    /// <summary>
+    /// Collection of selling price types
+    /// </summary>
+    [ObservableProperty]
+    private ObservableCollection<SellingPriceTypeDto> _priceTypes = new();
+
+    /// <summary>
+    /// Currently selected price type
+    /// </summary>
+    [ObservableProperty]
+    private SellingPriceTypeDto? _selectedPriceType;
+
+
+
+    /// <summary>
+    /// Whether the side panel is visible
+    /// </summary>
+    [ObservableProperty]
+    private bool _isSidePanelVisible = false;
+
+    /// <summary>
+    /// Loading indicator
+    /// </summary>
+    [ObservableProperty]
+    private bool _isLoading = false;
+
+    /// <summary>
+    /// Status message
+    /// </summary>
+    [ObservableProperty]
+    private string _statusMessage = string.Empty;
+
+    /// <summary>
+    /// Whether to show only active price types
+    /// </summary>
+    [ObservableProperty]
+    private bool _showActiveOnly = true;
+
+    /// <summary>
+    /// Search text for filtering price types
+    /// </summary>
+    [ObservableProperty]
+    private string _searchText = string.Empty;
+
+    /// <summary>
+    /// Current flow direction for UI
+    /// </summary>
+    [ObservableProperty]
+    private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
+
+    [ObservableProperty]
+    private bool canCreatePriceType = false;
+
+    [ObservableProperty]
+    private bool canEditPriceType = false;
+
+    [ObservableProperty]
+    private bool canDeletePriceType = false;
+
+    [ObservableProperty]
+    private bool canImportPriceType = false;
+
+    [ObservableProperty]
+    private bool canExportPriceType = false;
+
+    /// <summary>
+    /// Side panel view model
+    /// </summary>
+    [ObservableProperty]
+    private PriceTypeSidePanelViewModel? _sidePanelViewModel;
+
+    #endregion
+
+    #region Computed Properties
+
+    /// <summary>
+    /// Filtered collection of price types based on search text and active filter
+    /// </summary>
+    public IEnumerable<SellingPriceTypeDto> FilteredPriceTypes
+    {
+        get
+        {
+            var filtered = PriceTypes.AsEnumerable();
+
+            // Apply active filter
+            if (ShowActiveOnly)
+            {
+                filtered = filtered.Where(pt => pt.Status);
+            }
+
+            // Apply search filter
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                var searchLower = SearchText.ToLowerInvariant();
+                filtered = filtered.Where(pt => 
+                    (pt.TypeName?.ToLowerInvariant().Contains(searchLower) ?? false) ||
+                    (pt.ArabicName?.ToLowerInvariant().Contains(searchLower) ?? false) ||
+                    (pt.Description?.ToLowerInvariant().Contains(searchLower) ?? false));
+            }
+
+            return filtered;
+        }
+    }
+
+    /// <summary>
+    /// Whether there are any price types
+    /// </summary>
+    public bool HasPriceTypes => PriceTypes.Any();
+
+    /// <summary>
+    /// Total number of price types
+    /// </summary>
+    public int TotalPriceTypes => PriceTypes.Count;
+
+    #endregion
+
+    #region Property Changed Overrides
+
+    partial void OnSearchTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(FilteredPriceTypes));
+    }
+
+    partial void OnShowActiveOnlyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(FilteredPriceTypes));
+        OnPropertyChanged(nameof(HasPriceTypes));
+    }
+
+    partial void OnPriceTypesChanged(ObservableCollection<SellingPriceTypeDto> value)
+    {
+        OnPropertyChanged(nameof(FilteredPriceTypes));
+        OnPropertyChanged(nameof(HasPriceTypes));
+        OnPropertyChanged(nameof(TotalPriceTypes));
+    }
+
+    #endregion
+
+    #region Constructor
+
+    public PriceTypesViewModel(
+        ISellingPriceTypeService sellingPriceTypeService,
+        ICurrentUserService currentUserService,
+        IThemeService themeService,
+        IZoomService zoomService,
+        ILocalizationService localizationService,
+        IColorSchemeService colorSchemeService,
+        ILayoutDirectionService layoutDirectionService,
+        IFontService fontService,
+        IDatabaseLocalizationService databaseLocalizationService)
+    {
+        _sellingPriceTypeService = sellingPriceTypeService ?? throw new ArgumentNullException(nameof(sellingPriceTypeService));
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
+        _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
+        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        _colorSchemeService = colorSchemeService ?? throw new ArgumentNullException(nameof(colorSchemeService));
+        _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
+        _fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
+        _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
+
+        InitializePermissions();
+        
+        // Subscribe to layout direction changes
+        _layoutDirectionService.DirectionChanged += OnDirectionChanged;
+        CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
+            ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+
+        // Load initial data
+        _ = LoadPriceTypesAsync();
+    }
+
+    #endregion
+
+    #region Commands
+
+    /// <summary>
+    /// Command to add a new price type
+    /// </summary>
+    [RelayCommand]
+    private void AddPriceType()
+    {
+        SidePanelViewModel = new PriceTypeSidePanelViewModel(
+            _sellingPriceTypeService,
+            OnSidePanelSaved,
+            OnSidePanelCancelled);
+        
+        IsSidePanelVisible = true;
+        StatusMessage = "Ready to add new price type";
+    }
+
+    /// <summary>
+    /// Command to edit a price type
+    /// </summary>
+    [RelayCommand]
+    private void EditPriceType(SellingPriceTypeDto? priceType)
+    {
+        if (priceType != null)
+        {
+            SidePanelViewModel = new PriceTypeSidePanelViewModel(
+                _sellingPriceTypeService,
+                priceType,
+                OnSidePanelSaved,
+                OnSidePanelCancelled);
+            
+            IsSidePanelVisible = true;
+            StatusMessage = $"Editing '{priceType.TypeName}'";
+        }
+    }
+
+
+
+    /// <summary>
+    /// Command to delete a price type
+    /// </summary>
+    [RelayCommand]
+    private async Task DeletePriceTypeAsync(SellingPriceTypeDto? priceType)
+    {
+        if (priceType != null)
+        {
+            var result = MessageBox.Show(
+                $"Are you sure you want to delete '{priceType.TypeName}'?",
+                "Confirm Delete",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    IsLoading = true;
+                    StatusMessage = "Deleting price type...";
+
+                    await _sellingPriceTypeService.DeleteAsync(priceType.Id, 1); // TODO: Get user ID from context
+                    StatusMessage = "Price type deleted successfully";
+                    await LoadPriceTypesAsync();
+                }
+                catch (Exception ex)
+                {
+                    StatusMessage = $"Error deleting price type: {ex.Message}";
+                }
+                finally
+                {
+                    IsLoading = false;
+                }
+            }
+        }
+    }
+
+
+
+
+
+    /// <summary>
+    /// Command to filter active price types
+    /// </summary>
+    [RelayCommand]
+    private void FilterActive()
+    {
+        ShowActiveOnly = !ShowActiveOnly;
+        StatusMessage = ShowActiveOnly ? "Showing only active price types" : "Showing all price types";
+        OnPropertyChanged(nameof(FilteredPriceTypes));
+    }
+
+    /// <summary>
+    /// Command to clear filters
+    /// </summary>
+    [RelayCommand]
+    private void ClearFilters()
+    {
+        SearchText = string.Empty;
+        ShowActiveOnly = false;
+        StatusMessage = "Filters cleared";
+        OnPropertyChanged(nameof(FilteredPriceTypes));
+    }
+
+    /// <summary>
+    /// Command to export price types to CSV
+    /// </summary>
+    [RelayCommand]
+    private async Task ExportAsync()
+    {
+        try
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                FileName = $"PriceTypes_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+                DefaultExt = ".csv"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Exporting price types...";
+
+                var csv = new StringBuilder();
+                csv.AppendLine("Id,TypeName,ArabicName,Description,Status");
+
+                foreach (var priceType in PriceTypes)
+                {
+                    csv.AppendLine($"{priceType.Id}," +
+                                 $"\"{priceType.TypeName}\"," +
+                                 $"\"{priceType.ArabicName}\"," +
+                                 $"\"{priceType.Description ?? ""}\"," +
+                                 $"{priceType.Status}");
+                }
+
+                await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
+                StatusMessage = $"Exported {PriceTypes.Count} price types successfully";
+                MessageBox.Show($"Exported {PriceTypes.Count} price types to:\n{saveFileDialog.FileName}", 
+                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error exporting price types: {ex.Message}";
+            MessageBox.Show($"Error exporting price types: {ex.Message}", "Export Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Command to import price types from CSV
+    /// </summary>
+    [RelayCommand]
+    private async Task ImportAsync()
+    {
+        try
+        {
+            // Show dialog with Download Template and Upload File options
+            var result = MessageBox.Show(
+                "Would you like to download a template first?\n\n" +
+                "• Click 'Yes' to download the CSV template\n" +
+                "• Click 'No' to upload your file directly\n" +
+                "• Click 'Cancel' to exit",
+                "Import Price Types",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Cancel)
+                return;
+
+            if (result == MessageBoxResult.Yes)
+            {
+                // Download Template
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    FileName = "PriceTypes_Template.csv",
+                    DefaultExt = ".csv"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    var templateCsv = new StringBuilder();
+                    templateCsv.AppendLine("TypeName,TypeNameAr,Description,IsActive");
+                    templateCsv.AppendLine("Sample Price Type,نوع السعر النموذجي,Sample description,true");
+                    templateCsv.AppendLine("Retail Price,سعر التجزئة,Standard retail pricing,true");
+
+                    await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
+                    MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
+                        "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                return;
+            }
+
+            // Upload File
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                DefaultExt = ".csv"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Importing price types...";
+
+                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                if (lines.Length <= 1)
+                {
+                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                int successCount = 0;
+                int errorCount = 0;
+                var errors = new StringBuilder();
+
+                // Skip header row
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    try
+                    {
+                        var line = lines[i];
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        var values = ParseCsvLine(line);
+                        if (values.Length < 4)
+                        {
+                            errorCount++;
+                            errors.AppendLine($"Line {i + 1}: Invalid format (expected 4 columns)");
+                            continue;
+                        }
+
+                        var createDto = new CreateSellingPriceTypeDto
+                        {
+                            TypeName = values[0].Trim('"'),
+                            ArabicName = values[1].Trim('"'),
+                            Description = string.IsNullOrWhiteSpace(values[2].Trim('"')) ? null : values[2].Trim('"'),
+                            Status = bool.Parse(values[3]),
+                            CreatedBy = 1 // TODO: Get from current user
+                        };
+
+                        await _sellingPriceTypeService.CreateAsync(createDto);
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errorCount++;
+                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                    }
+                }
+
+                await LoadPriceTypesAsync();
+
+                var message = $"Import completed:\n✓ {successCount} price types imported successfully";
+                if (errorCount > 0)
+                {
+                    message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                }
+
+                MessageBox.Show(message, "Import Complete", 
+                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                
+                StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error importing price types: {ex.Message}";
+            MessageBox.Show($"Error importing price types: {ex.Message}", "Import Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Command to download CSV template for importing price types
+    /// </summary>
+    [RelayCommand]
+    private async Task DownloadTemplateAsync()
+    {
+        try
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                FileName = $"PriceTypes_Template.csv",
+                DefaultExt = ".csv"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                StatusMessage = "Generating template...";
+
+                var csv = new StringBuilder();
+                csv.AppendLine("Id,TypeName,TypeNameAr,Description,IsActive");
+                csv.AppendLine("1,\"Retail\",\"تجزئة\",\"Standard retail price\",true");
+                csv.AppendLine("2,\"Wholesale\",\"جملة\",\"Bulk purchase price\",true");
+                csv.AppendLine("3,\"VIP\",\"في آي بي\",\"Special customer price\",true");
+
+                await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
+                StatusMessage = "Template downloaded successfully";
+                MessageBox.Show($"Template file downloaded to:\n{saveFileDialog.FileName}\n\nYou can now fill in your data and import it.", 
+                    "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error downloading template: {ex.Message}";
+            MessageBox.Show($"Error downloading template: {ex.Message}", "Template Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// Parse CSV line handling quoted values
+    /// </summary>
+    private string[] ParseCsvLine(string line)
+    {
+        var values = new List<string>();
+        var currentValue = new StringBuilder();
+        bool inQuotes = false;
+
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+
+            if (c == '"')
+            {
+                inQuotes = !inQuotes;
+                currentValue.Append(c);
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                values.Add(currentValue.ToString());
+                currentValue.Clear();
+            }
+            else
+            {
+                currentValue.Append(c);
+            }
+        }
+
+        values.Add(currentValue.ToString());
+        return values.ToArray();
+    }
+
+    #endregion
+
+    #region Public Properties
+
+    /// <summary>
+    /// Action to navigate back
+    /// </summary>
+    public Action? GoBackAction { get; set; }
+
+    /// <summary>
+    /// Command for back navigation
+    /// </summary>
+    [RelayCommand]
+    private void Back()
+    {
+        GoBackAction?.Invoke();
+    }
+
+    /// <summary>
+    /// Command to refresh data
+    /// </summary>
+    [RelayCommand]
+    private async Task RefreshDataAsync()
+    {
+        await LoadPriceTypesAsync();
+    }
+
+    /// <summary>
+    /// Command to toggle active status
+    /// </summary>
+    [RelayCommand]
+    private async Task ToggleActiveAsync(SellingPriceTypeDto? priceType)
+    {
+        if (priceType != null)
+        {
+            try
+            {
+                var updateDto = new UpdateSellingPriceTypeDto
+                {
+                    Id = priceType.Id,
+                    TypeName = priceType.TypeName,
+                    ArabicName = priceType.ArabicName,
+                    Description = priceType.Description,
+                    Status = !priceType.Status,
+                    UpdatedBy = 1 // TODO: Get from current user context
+                };
+
+                await _sellingPriceTypeService.UpdateAsync(updateDto);
+                await LoadPriceTypesAsync();
+                StatusMessage = $"Price type {(updateDto.Status ? "activated" : "deactivated")} successfully";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error updating price type status: {ex.Message}";
+            }
+        }
+    }
+
+    /// <summary>
+    /// Command to view price type details
+    /// </summary>
+    [RelayCommand]
+    private void ViewPriceTypeDetails(SellingPriceTypeDto? priceType)
+    {
+        if (priceType != null)
+        {
+            StatusMessage = $"Viewing details for '{priceType.TypeName}'";
+            // TODO: Implement details view
+        }
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    /// <summary>
+    /// Load price types from the service
+    /// </summary>
+    private async Task LoadPriceTypesAsync()
+    {
+        try
+        {
+            IsLoading = true;
+            StatusMessage = "Loading price types...";
+
+            // Always load all price types, filtering is handled by FilteredPriceTypes property
+            var priceTypes = await _sellingPriceTypeService.GetAllAsync();
+
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                PriceTypes.Clear();
+                foreach (var priceType in priceTypes)
+                {
+                    PriceTypes.Add(priceType);
+                }
+            });
+            
+            // Force refresh of filtered collection
+            OnPropertyChanged(nameof(FilteredPriceTypes));
+
+            StatusMessage = $"Loaded {PriceTypes.Count} price types";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading price types: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Handle layout direction changes
+    /// </summary>
+    private void OnDirectionChanged(LayoutDirection direction)
+    {
+        CurrentFlowDirection = direction == LayoutDirection.RightToLeft 
+            ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+    }
+
+    /// <summary>
+    /// Callback when side panel saves
+    /// </summary>
+    private async void OnSidePanelSaved(bool success)
+    {
+        if (success)
+        {
+            IsSidePanelVisible = false;
+            SidePanelViewModel = null;
+            await LoadPriceTypesAsync();
+            StatusMessage = "Price type saved successfully";
+        }
+    }
+
+    /// <summary>
+    /// Callback when side panel is cancelled
+    /// </summary>
+    private void OnSidePanelCancelled()
+    {
+        IsSidePanelVisible = false;
+        SidePanelViewModel = null;
+        StatusMessage = "Operation cancelled";
+    }
+
+    private void InitializePermissions()
+    {
+        try
+        {
+            CanCreatePriceType = _currentUserService.HasPermission(ScreenNames.PRICE_TYPES, TypeMatrix.CREATE);
+            CanEditPriceType = _currentUserService.HasPermission(ScreenNames.PRICE_TYPES, TypeMatrix.UPDATE);
+            CanDeletePriceType = _currentUserService.HasPermission(ScreenNames.PRICE_TYPES, TypeMatrix.DELETE);
+            CanImportPriceType = _currentUserService.HasPermission(ScreenNames.PRICE_TYPES, TypeMatrix.IMPORT);
+            CanExportPriceType = _currentUserService.HasPermission(ScreenNames.PRICE_TYPES, TypeMatrix.EXPORT);
+        }
+        catch (Exception)
+        {
+            CanCreatePriceType = false;
+            CanEditPriceType = false;
+            CanDeletePriceType = false;
+            CanImportPriceType = false;
+            CanExportPriceType = false;
+        }
+    }
+
+    #endregion
+}

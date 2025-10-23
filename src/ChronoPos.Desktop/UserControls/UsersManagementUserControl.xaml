@@ -1,0 +1,359 @@
+<UserControl x:Class="ChronoPos.Desktop.UserControls.UsersManagementUserControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:userControls="clr-namespace:ChronoPos.Desktop.UserControls"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             mc:Ignorable="d"
+             FlowDirection="{Binding CurrentFlowDirection}"
+             FontFamily="{DynamicResource PoppinsFontFallback}">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
+    </UserControl.Resources>
+
+    <Grid>
+        <!-- Main Content Area -->
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header with Add Button -->
+            <Border Grid.Row="0"
+                    Background="{DynamicResource CardBackground}"
+                    BorderBrush="{DynamicResource BorderLight}"
+                    BorderThickness="0,0,0,1"
+                    Padding="30,20">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="User Management"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimary}"
+                               VerticalAlignment="Center"/>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <!-- Refresh Button -->
+                        <Button Content="↻ Refresh"
+                                Command="{Binding RefreshUsersCommand}"
+                                Background="Transparent"
+                                BorderBrush="{DynamicResource BorderLight}"
+                                BorderThickness="1"
+                                Foreground="{DynamicResource TextPrimary}"
+                                Padding="15,10"
+                                FontSize="14"
+                                FontWeight="SemiBold"
+                                Cursor="Hand"
+                                Margin="0,0,10,0">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="8"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+
+                        <!-- Add User Button -->
+                        <Button Content="+ Add User"
+                                Command="{Binding AddUserCommand}"
+                                Background="{DynamicResource Primary}"
+                                Foreground="White"
+                                BorderThickness="0"
+                                Padding="20,10"
+                                FontSize="14"
+                                FontWeight="SemiBold"
+                                Cursor="Hand">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            CornerRadius="8"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Users List -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="30">
+                <ItemsControl ItemsSource="{Binding Users}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{DynamicResource CardBackground}"
+                                    BorderBrush="{DynamicResource BorderLight}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="20"
+                                    Margin="0,0,0,15">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- User Header -->
+                                    <Grid Grid.Row="0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- User Info -->
+                                        <StackPanel Grid.Column="0">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Grid.Column="0"
+                                                           Text="{Binding FullName}"
+                                                           FontSize="18"
+                                                           FontWeight="Bold"
+                                                           Foreground="{DynamicResource TextPrimary}"
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,15,0"/>
+
+                                                <Border Grid.Column="1"
+                                                        Background="{DynamicResource Primary}"
+                                                        CornerRadius="12"
+                                                        Padding="10,5"
+                                                        VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding RolePermissionName}"
+                                                               FontSize="12"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="White"/>
+                                                </Border>
+                                            </Grid>
+
+                                            <TextBlock Text="{Binding Email}"
+                                                       FontSize="13"
+                                                       Foreground="{DynamicResource TextSecondary}"
+                                                       Margin="0,5,0,0"/>
+                                        </StackPanel>
+
+                                        <!-- Action Buttons -->
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                            <!-- Edit Button -->
+                                            <Button Command="{Binding DataContext.EditUserCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Cursor="Hand"
+                                                    Padding="10"
+                                                    ToolTip="Edit User"
+                                                    Margin="0,0,5,0">
+                                                <Path Data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+                                                      Fill="{DynamicResource Primary}"
+                                                      Stretch="Uniform"
+                                                      Width="18"
+                                                      Height="18"/>
+                                            </Button>
+
+                                            <!-- Delete Button -->
+                                            <Button Command="{Binding DataContext.DeleteUserCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Cursor="Hand"
+                                                    Padding="10"
+                                                    ToolTip="Delete User">
+                                                <Path Data="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                                                      Fill="#E53E3E"
+                                                      Stretch="Uniform"
+                                                      Width="18"
+                                                      Height="18"/>
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <!-- Permissions Section - Combined -->
+                                    <Border Grid.Row="1"
+                                            Background="{DynamicResource SurfaceBackground}"
+                                            CornerRadius="6"
+                                            Padding="15"
+                                            Margin="0,15,0,0">
+                                        <StackPanel>
+                                            <!-- All Permissions Header -->
+                                            <Grid Margin="0,0,0,10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                
+                                                <TextBlock Grid.Column="0"
+                                                           Text="All Permissions"
+                                                           FontSize="12"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextPrimary}"
+                                                           Margin="0,0,10,0"/>
+                                                
+                                                <!-- Role Permissions Count Badge -->
+                                                <Border Grid.Column="1"
+                                                        Background="{DynamicResource Primary}"
+                                                        CornerRadius="3"
+                                                        Padding="6,2"
+                                                        HorizontalAlignment="Left"
+                                                        VerticalAlignment="Center"
+                                                        Margin="0,0,5,0">
+                                                    <TextBlock Text="{Binding RolePermissions.Count, StringFormat='{}{0} permissions'}"
+                                                               FontSize="10"
+                                                               FontWeight="Medium"
+                                                               Foreground="White"/>
+                                                </Border>
+                                                
+                                                <!-- Permission Overrides Count Badge -->
+                                                <Border Grid.Column="2"
+                                                        Background="#F59E0B"
+                                                        CornerRadius="3"
+                                                        Padding="6,2"
+                                                        HorizontalAlignment="Left"
+                                                        VerticalAlignment="Center"
+                                                        Visibility="{Binding PermissionOverrides.Count, Converter={StaticResource CountToVisibilityConverter}}">
+                                                    <TextBlock Text="{Binding PermissionOverrides.Count, StringFormat='{}{0} overrides'}"
+                                                               FontSize="10"
+                                                               FontWeight="Medium"
+                                                               Foreground="White"/>
+                                                </Border>
+                                            </Grid>
+
+                                            <!-- Combined Permissions Chips -->
+                                            <WrapPanel Orientation="Horizontal">
+                                                <!-- Role Permissions Chips -->
+                                                <ItemsControl ItemsSource="{Binding RolePermissions}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <WrapPanel Orientation="Horizontal"/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Background="{DynamicResource Primary}"
+                                                                    CornerRadius="4"
+                                                                    Padding="8,4"
+                                                                    Margin="0,0,8,8">
+                                                                <TextBlock Text="{Binding ScreenName}"
+                                                                           FontSize="11"
+                                                                           FontWeight="Medium"
+                                                                           Foreground="White"/>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                
+                                                <!-- Permission Override Chips -->
+                                                <ItemsControl ItemsSource="{Binding PermissionOverrides}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <WrapPanel Orientation="Horizontal"/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border CornerRadius="4"
+                                                                    Padding="8,4"
+                                                                    Margin="0,0,8,8"
+                                                                    ToolTip="{Binding StatusTooltip}">
+                                                                <Border.Style>
+                                                                    <Style TargetType="Border">
+                                                                        <Setter Property="Background" Value="#10B981"/>
+                                                                        <!-- Active - Green -->
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding ValidityStatus}" Value="Scheduled">
+                                                                                <Setter Property="Background" Value="#3B82F6"/>
+                                                                                <!-- Scheduled - Blue -->
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding ValidityStatus}" Value="Expired">
+                                                                                <Setter Property="Background" Value="#6B7280"/>
+                                                                                <!-- Expired - Gray -->
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding ValidityStatus}" Value="Denied">
+                                                                                <Setter Property="Background" Value="#EF4444"/>
+                                                                                <!-- Denied - Red -->
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Border.Style>
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding StatusEmoji}"
+                                                                               FontSize="11"
+                                                                               Foreground="White"
+                                                                               Margin="0,0,4,0"/>
+                                                                    <TextBlock Text="{Binding PermissionName}"
+                                                                               FontSize="11"
+                                                                               FontWeight="Medium"
+                                                                               Foreground="White"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </WrapPanel>
+
+                                            <!-- No Permissions Message -->
+                                            <TextBlock FontSize="12"
+                                                       FontStyle="Italic"
+                                                       Foreground="{DynamicResource TextSecondary}"
+                                                       Margin="0,10,0,0">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="No permissions assigned"/>
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding RolePermissions.Count}" Value="0"/>
+                                                                    <Condition Binding="{Binding PermissionOverrides.Count}" Value="0"/>
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </MultiDataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Loading Indicator -->
+            <Border Grid.Row="1"
+                    Background="#AA000000"
+                    Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="Loading users..."
+                               FontSize="16"
+                               Foreground="White"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,10"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

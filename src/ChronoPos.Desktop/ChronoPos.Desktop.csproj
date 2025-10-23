@@ -1,0 +1,100 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    
+    <!-- Application Metadata for Professional Deployment -->
+    <AssemblyTitle>ChronoPos Desktop POS System</AssemblyTitle>
+    <AssemblyDescription>Professional Point of Sale System for Retail Businesses</AssemblyDescription>
+    <AssemblyCompany>ChronoPos Technologies</AssemblyCompany>
+    <AssemblyProduct>ChronoPos Desktop POS System</AssemblyProduct>
+    <AssemblyCopyright>Copyright © 2024 ChronoPos Technologies. All rights reserved.</AssemblyCopyright>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0-Release</InformationalVersion>
+    
+    <!-- Application Icon -->
+    <ApplicationIcon>Images\LogoImage.ico</ApplicationIcon>
+    
+    <!-- Deployment Configuration -->
+    <Win32Resource />
+    <StartupObject />
+    
+    <!-- Publishing Configuration -->
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+    <SelfContained Condition="'$(SelfContained)' == ''">true</SelfContained>
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishTrimmed>false</PublishTrimmed>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    
+    <!-- Performance Optimizations -->
+    <TieredCompilation>true</TieredCompilation>
+    <TieredCompilationQuickJit>true</TieredCompilationQuickJit>
+    <ReadyToRunUseCrossgen2>true</ReadyToRunUseCrossgen2>
+    
+    <!-- Security and Compatibility -->
+    <EnableComHosting>false</EnableComHosting>
+    <EnableCoreCLRTracing>false</EnableCoreCLRTracing>
+    <EventSourceSupport>false</EventSourceSupport>
+    <IncludeSymbols>false</IncludeSymbols>
+    <DebugType>none</DebugType>
+    <UseAppHost>true</UseAppHost>
+    
+    <!-- Installer Integration -->
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=ChronoPos.Desktop</PathMap>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ChronoPos.Application\ChronoPos.Application.csproj" />
+    <ProjectReference Include="..\ChronoPos.Infrastructure\ChronoPos.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="8.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AForge.Video" Version="2.2.5" />
+    <PackageReference Include="AForge.Video.DirectShow" Version="2.2.5" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.8" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.8">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="System.Management" Version="9.0.9" />
+    <PackageReference Include="ZXing.Net" Version="0.16.10" />
+    <PackageReference Include="ZXing.Net.Bindings.Windows.Compatibility" Version="0.16.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Images\**" />
+  </ItemGroup>
+
+</Project>

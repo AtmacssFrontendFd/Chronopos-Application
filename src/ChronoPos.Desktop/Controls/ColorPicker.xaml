@@ -1,0 +1,130 @@
+<UserControl x:Class="ChronoPos.Desktop.Controls.ColorPicker"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" 
+             Width="240" Height="180">
+
+    <UserControl.Resources>
+        <Style x:Key="ColorButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="25"/>
+            <Setter Property="Height" Value="25"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource TextSecondary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <TextBlock Text="{Binding ChooseColorLabel}" 
+                   FontWeight="SemiBold" 
+                   FontFamily="{DynamicResource PoppinsFontFallback}"
+                   FontSize="{DynamicResource FontSizeSmall}"
+                   Foreground="{DynamicResource TextPrimary}"
+                   Margin="0,0,0,10"/>
+        
+        <!-- Current Color Display -->
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock Text="{Binding SelectedColorLabel}" 
+                       VerticalAlignment="Center" 
+                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                       FontSize="{DynamicResource FontSizeSmall}"
+                       Foreground="{DynamicResource TextSecondary}"
+                       Margin="0,0,10,0"/>
+            <Border Width="30" Height="25" 
+                    Background="{Binding SelectedColor}" 
+                    BorderBrush="{DynamicResource BorderLight}" 
+                    BorderThickness="1" 
+                    CornerRadius="4"
+                    Margin="0,0,10,0"/>
+            <TextBox Text="{Binding SelectedColor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                     Width="80" 
+                     VerticalAlignment="Center"
+                     FontSize="{DynamicResource FontSizeVerySmall}"
+                     FontFamily="{DynamicResource PoppinsFontFallback}"
+                     Background="{DynamicResource SurfaceBackground}"
+                     Foreground="{DynamicResource TextSecondary}"
+                     BorderBrush="{DynamicResource BorderLight}"
+                     BorderThickness="1"
+                     Padding="4"/>
+        </StackPanel>
+
+        <!-- Color Palette -->
+        <WrapPanel Orientation="Horizontal" Width="220">
+            <!-- Red Shades -->
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FF0000" Command="{Binding SelectColorCommand}" CommandParameter="#FF0000"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FF4444" Command="{Binding SelectColorCommand}" CommandParameter="#FF4444"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FF6666" Command="{Binding SelectColorCommand}" CommandParameter="#FF6666"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FF9999" Command="{Binding SelectColorCommand}" CommandParameter="#FF9999"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FFCCCC" Command="{Binding SelectColorCommand}" CommandParameter="#FFCCCC"/>
+            
+            <!-- Orange Shades -->
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FF6600" Command="{Binding SelectColorCommand}" CommandParameter="#FF6600"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FF8833" Command="{Binding SelectColorCommand}" CommandParameter="#FF8833"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FFAA66" Command="{Binding SelectColorCommand}" CommandParameter="#FFAA66"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FFCC99" Command="{Binding SelectColorCommand}" CommandParameter="#FFCC99"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FFE6CC" Command="{Binding SelectColorCommand}" CommandParameter="#FFE6CC"/>
+            
+            <!-- Yellow Shades -->
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FFFF00" Command="{Binding SelectColorCommand}" CommandParameter="#FFFF00"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FFFF44" Command="{Binding SelectColorCommand}" CommandParameter="#FFFF44"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FFFF66" Command="{Binding SelectColorCommand}" CommandParameter="#FFFF66"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FFFF99" Command="{Binding SelectColorCommand}" CommandParameter="#FFFF99"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FFFFCC" Command="{Binding SelectColorCommand}" CommandParameter="#FFFFCC"/>
+            
+            <!-- Green Shades -->
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#00FF00" Command="{Binding SelectColorCommand}" CommandParameter="#00FF00"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#44FF44" Command="{Binding SelectColorCommand}" CommandParameter="#44FF44"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#66FF66" Command="{Binding SelectColorCommand}" CommandParameter="#66FF66"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#99FF99" Command="{Binding SelectColorCommand}" CommandParameter="#99FF99"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#CCFFCC" Command="{Binding SelectColorCommand}" CommandParameter="#CCFFCC"/>
+            
+            <!-- Blue Shades -->
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#0000FF" Command="{Binding SelectColorCommand}" CommandParameter="#0000FF"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#4444FF" Command="{Binding SelectColorCommand}" CommandParameter="#4444FF"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#6666FF" Command="{Binding SelectColorCommand}" CommandParameter="#6666FF"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#9999FF" Command="{Binding SelectColorCommand}" CommandParameter="#9999FF"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#CCCCFF" Command="{Binding SelectColorCommand}" CommandParameter="#CCCCFF"/>
+            
+            <!-- Purple Shades -->
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#8000FF" Command="{Binding SelectColorCommand}" CommandParameter="#8000FF"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#9944FF" Command="{Binding SelectColorCommand}" CommandParameter="#9944FF"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#B366FF" Command="{Binding SelectColorCommand}" CommandParameter="#B366FF"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#CC99FF" Command="{Binding SelectColorCommand}" CommandParameter="#CC99FF"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#E6CCFF" Command="{Binding SelectColorCommand}" CommandParameter="#E6CCFF"/>
+            
+            <!-- Gray Shades -->
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#000000" Command="{Binding SelectColorCommand}" CommandParameter="#000000"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#333333" Command="{Binding SelectColorCommand}" CommandParameter="#333333"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#666666" Command="{Binding SelectColorCommand}" CommandParameter="#666666"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#999999" Command="{Binding SelectColorCommand}" CommandParameter="#999999"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#CCCCCC" Command="{Binding SelectColorCommand}" CommandParameter="#CCCCCC"/>
+            
+            <!-- Special Colors -->
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FFC107" Command="{Binding SelectColorCommand}" CommandParameter="#FFC107"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#28A745" Command="{Binding SelectColorCommand}" CommandParameter="#28A745"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#17A2B8" Command="{Binding SelectColorCommand}" CommandParameter="#17A2B8"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#DC3545" Command="{Binding SelectColorCommand}" CommandParameter="#DC3545"/>
+            <Button Style="{StaticResource ColorButtonStyle}" Background="#FFFFFF" Command="{Binding SelectColorCommand}" CommandParameter="#FFFFFF"/>
+        </WrapPanel>
+    </StackPanel>
+</UserControl>
