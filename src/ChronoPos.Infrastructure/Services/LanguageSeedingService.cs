@@ -388,6 +388,14 @@ public class LanguageSeedingService : ILanguageSeedingService
                     { "ur", "اسٹاک کنٹرول اور یونٹ قیمتیں" }
                 }
             },
+            {
+                "modifier_groups_title",
+                new Dictionary<string, string>
+                {
+                    { "en", "Modifier Groups" },
+                    { "ur", "موڈیفائر گروپس" }
+                }
+            },
 
             // Basic Information Fields
             {
@@ -1345,6 +1353,14 @@ public class LanguageSeedingService : ILanguageSeedingService
                 {
                     { "en", "Product Grouping" },
                     { "ur", "پروڈکٹ گروپنگ" }
+                }
+            },
+            {
+                "add_options.product_modifiers",
+                new Dictionary<string, string>
+                {
+                    { "en", "Product Modifiers" },
+                    { "ur", "پروڈکٹ موڈیفائرز" }
                 }
             },
             {

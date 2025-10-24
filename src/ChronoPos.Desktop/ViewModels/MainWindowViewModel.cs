@@ -1113,6 +1113,89 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private void ShowProductModifiers()
+    {
+        ChronoPos.Desktop.Services.FileLogger.Log("🔧 ShowProductModifiers method started");
+        
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PRODUCT_ATTRIBUTES))
+        {
+            MessageBox.Show(
+                "You don't have permission to access Product Modifiers Management.",
+                "Access Denied",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Product Modifiers";
+        StatusMessage = "Loading product modifiers...";
+        
+        try
+        {
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Getting ProductModifierService and related services from DI container");
+            // Create the ProductModifierViewModel
+            var productModifierService = _serviceProvider.GetRequiredService<IProductModifierService>();
+            var productModifierGroupService = _serviceProvider.GetRequiredService<IProductModifierGroupService>();
+            var productModifierGroupItemService = _serviceProvider.GetRequiredService<IProductModifierGroupItemService>();
+            var taxTypeService = _serviceProvider.GetRequiredService<ITaxTypeService>();
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ Services retrieved successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Creating ProductModifierViewModel");
+            var productModifierViewModel = new ProductModifierViewModel(
+                productModifierService,
+                productModifierGroupService,
+                productModifierGroupItemService,
+                _currentUserService,
+                taxTypeService,
+                () => _ = ShowAddOptions() // Navigate back to Others
+            );
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ ProductModifierViewModel created successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Creating ProductModifierView");
+            // Create the view and set the ViewModel
+            var productModifierView = new ProductModifierView();
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ ProductModifierView created successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Setting DataContext");
+            productModifierView.DataContext = productModifierViewModel;
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ DataContext set successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Setting CurrentView");
+            CurrentView = productModifierView;
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ CurrentView set successfully");
+            
+            StatusMessage = "Product modifiers loaded successfully";
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ ShowProductModifiers completed successfully");
+        }
+        catch (Exception ex)
+        {
+            ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error in ShowProductModifiers: {ex.Message}");
+            ChronoPos.Desktop.Services.FileLogger.Log($"❌ ShowProductModifiers stack trace: {ex.StackTrace}");
+            StatusMessage = $"Error loading product modifiers: {ex.Message}";
+            
+            // Fallback to simple error display
+            var errorContent = new System.Windows.Controls.StackPanel();
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = "Product Modifiers", 
+                FontSize = 16, 
+                FontWeight = System.Windows.FontWeights.Bold,
+                Margin = new System.Windows.Thickness(0, 0, 0, 20) 
+            });
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = $"Error loading product modifiers: {ex.Message}",
+                FontSize = 12,
+                Foreground = System.Windows.Media.Brushes.Red,
+                Margin = new System.Windows.Thickness(0, 20, 0, 0)
+            });
+            
+            CurrentView = errorContent;
+        }
+    }
+
     private async Task ShowProductCombinations()
     {
         // Check permission using UMAC - Allow if user has ANY permission
@@ -1217,6 +1300,8 @@ public partial class MainWindowViewModel : ObservableObject
                 productUnitService,
                 skuGenerationService,
                 _serviceProvider.GetRequiredService<IProductBatchService>(),
+                _serviceProvider.GetRequiredService<IProductModifierGroupService>(),
+                _serviceProvider.GetRequiredService<IProductModifierLinkService>(),
                 themeService,
                 zoomService,
                 localizationService,
@@ -1294,6 +1379,8 @@ public partial class MainWindowViewModel : ObservableObject
                 productUnitService,
                 skuGenerationService,
                 _serviceProvider.GetRequiredService<IProductBatchService>(),
+                _serviceProvider.GetRequiredService<IProductModifierGroupService>(),
+                _serviceProvider.GetRequiredService<IProductModifierLinkService>(),
                 themeService,
                 zoomService,
                 localizationService,
@@ -1991,6 +2078,9 @@ public partial class MainWindowViewModel : ObservableObject
                         break;
                     case "ProductAttributes":
                         ShowProductAttributes();
+                        break;
+                    case "ProductModifiers":
+                        ShowProductModifiers();
                         break;
                     case "ProductCombinations":
                         _ = ShowProductCombinations();

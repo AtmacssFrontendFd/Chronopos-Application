@@ -97,6 +97,16 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.RestaurantTable> RestaurantTables { get; set; }
     public DbSet<Domain.Entities.Reservation> Reservations { get; set; }
 
+    // Order management entities
+    public DbSet<Domain.Entities.Order> Orders { get; set; }
+    public DbSet<Domain.Entities.OrderItem> OrderItems { get; set; }
+
+    // Product Modifier system entities
+    public DbSet<Domain.Entities.ProductModifier> ProductModifiers { get; set; }
+    public DbSet<Domain.Entities.ProductModifierGroup> ProductModifierGroups { get; set; }
+    public DbSet<Domain.Entities.ProductModifierGroupItem> ProductModifierGroupItems { get; set; }
+    public DbSet<Domain.Entities.ProductModifierLink> ProductModifierLinks { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -1612,6 +1622,96 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasIndex(e => e.DeletedAt);
         });
 
+        // Configure ProductModifier entity
+        modelBuilder.Entity<Domain.Entities.ProductModifier>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Price).HasPrecision(18, 4);
+            entity.Property(e => e.Cost).HasPrecision(18, 4);
+            entity.Property(e => e.Sku).HasMaxLength(100);
+            entity.Property(e => e.Barcode).HasMaxLength(100);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(pm => pm.TaxType)
+                  .WithMany()
+                  .HasForeignKey(pm => pm.TaxTypeId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(pm => pm.Creator)
+                  .WithMany()
+                  .HasForeignKey(pm => pm.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.Sku).IsUnique();
+            entity.HasIndex(e => e.Barcode).IsUnique();
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.TaxTypeId);
+        });
+
+        // Configure ProductModifierGroup entity
+        modelBuilder.Entity<Domain.Entities.ProductModifierGroup>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.SelectionType).IsRequired().HasMaxLength(50).HasDefaultValue("Multiple");
+            entity.Property(e => e.Required).IsRequired().HasDefaultValue(false);
+            entity.Property(e => e.MinSelections).IsRequired().HasDefaultValue(0);
+            entity.Property(e => e.MaxSelections);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(pmg => pmg.Creator)
+                  .WithMany()
+                  .HasForeignKey(pmg => pmg.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.SelectionType);
+        });
+
+        // Configure ProductModifierGroupItem entity
+        modelBuilder.Entity<Domain.Entities.ProductModifierGroupItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.PriceAdjustment).HasPrecision(18, 4).HasDefaultValue(0);
+            entity.Property(e => e.SortOrder).IsRequired().HasDefaultValue(0);
+            entity.Property(e => e.DefaultSelection).IsRequired().HasDefaultValue(false);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(pmgi => pmgi.Group)
+                  .WithMany(pmg => pmg.GroupItems)
+                  .HasForeignKey(pmgi => pmgi.GroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(pmgi => pmgi.Modifier)
+                  .WithMany()
+                  .HasForeignKey(pmgi => pmgi.ModifierId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Unique constraint on Group-Modifier combination
+            entity.HasIndex(e => new { e.GroupId, e.ModifierId }).IsUnique();
+
+            // Indexes
+            entity.HasIndex(e => e.GroupId);
+            entity.HasIndex(e => e.ModifierId);
+            entity.HasIndex(e => e.SortOrder);
+            entity.HasIndex(e => e.Status);
+        });
+
         // Seed initial data
         SeedData(modelBuilder);
     }
@@ -2738,6 +2838,239 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasIndex(e => e.ReservationDate);
             entity.HasIndex(e => e.IsDeleted);
             entity.HasIndex(e => new { e.TableId, e.ReservationDate });
+        });
+
+        // Configure Order entity
+        modelBuilder.Entity<Domain.Entities.Order>(entity =>
+        {
+            entity.ToTable("orders");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.TableId).HasColumnName("table_id");
+            entity.Property(e => e.CustomerId).HasColumnName("customer_id");
+            entity.Property(e => e.ReservationId).HasColumnName("reservation_id");
+            entity.Property(e => e.TotalAmount).HasPrecision(10, 2).HasDefaultValue(0.00m).HasColumnName("total_amount");
+            entity.Property(e => e.Discount).HasPrecision(10, 2).HasDefaultValue(0.00m).HasColumnName("discount");
+            entity.Property(e => e.PaymentTypeId).HasColumnName("payment_type_id");
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("pending").HasColumnName("status");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("updated_at");
+
+            // Ignore computed property
+            entity.Ignore(e => e.FinalAmount);
+
+            // Foreign key relationship with RestaurantTable (nullable)
+            entity.HasOne(o => o.Table)
+                  .WithMany()
+                  .HasForeignKey(o => o.TableId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Foreign key relationship with Customer (nullable)
+            entity.HasOne(o => o.Customer)
+                  .WithMany()
+                  .HasForeignKey(o => o.CustomerId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Foreign key relationship with Reservation (nullable)
+            entity.HasOne(o => o.Reservation)
+                  .WithMany()
+                  .HasForeignKey(o => o.ReservationId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Foreign key relationship with PaymentType (nullable)
+            entity.HasOne(o => o.PaymentType)
+                  .WithMany()
+                  .HasForeignKey(o => o.PaymentTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.TableId);
+            entity.HasIndex(e => e.CustomerId);
+            entity.HasIndex(e => e.ReservationId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CreatedAt);
+        });
+
+        // Configure OrderItem entity
+        modelBuilder.Entity<Domain.Entities.OrderItem>(entity =>
+        {
+            entity.ToTable("order_items");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.OrderId).IsRequired().HasColumnName("order_id");
+            entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.MenuItemId).HasColumnName("menu_item_id");
+            entity.Property(e => e.Quantity).IsRequired().HasColumnName("quantity");
+            entity.Property(e => e.Price).HasPrecision(10, 2).IsRequired().HasColumnName("price");
+            entity.Property(e => e.Notes).HasMaxLength(255).HasColumnName("notes");
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("pending").HasColumnName("status");
+
+            // Ignore computed property
+            entity.Ignore(e => e.LineTotal);
+
+            // Foreign key relationship with Order
+            entity.HasOne(oi => oi.Order)
+                  .WithMany(o => o.OrderItems)
+                  .HasForeignKey(oi => oi.OrderId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Foreign key relationship with Product (nullable)
+            entity.HasOne(oi => oi.Product)
+                  .WithMany()
+                  .HasForeignKey(oi => oi.ProductId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Note: MenuItem relationship will be added when MenuItem entity is created
+            // entity.HasOne(oi => oi.MenuItem)
+            //       .WithMany()
+            //       .HasForeignKey(oi => oi.MenuItemId)
+            //       .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.OrderId);
+            entity.HasIndex(e => e.ProductId);
+            entity.HasIndex(e => e.MenuItemId);
+            entity.HasIndex(e => e.Status);
+        });
+
+        // Configure ProductModifier entity
+        modelBuilder.Entity<Domain.Entities.ProductModifier>(entity =>
+        {
+            entity.ToTable("product_modifiers");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100).HasColumnName("name");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Price).HasPrecision(10, 2).HasDefaultValue(0.00m).HasColumnName("price");
+            entity.Property(e => e.Cost).HasPrecision(10, 2).HasDefaultValue(0.00m).HasColumnName("cost");
+            entity.Property(e => e.Sku).HasMaxLength(50).HasColumnName("sku");
+            entity.Property(e => e.Barcode).HasMaxLength(50).HasColumnName("barcode");
+            entity.Property(e => e.TaxTypeId).HasColumnName("tax_type_id");
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Active").HasColumnName("status");
+            entity.Property(e => e.CreatedBy).IsRequired().HasColumnName("created_by");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("updated_at");
+
+            // Foreign key relationship with TaxType (nullable)
+            entity.HasOne(m => m.TaxType)
+                  .WithMany()
+                  .HasForeignKey(m => m.TaxTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Foreign key relationship with User (creator)
+            entity.HasOne(m => m.Creator)
+                  .WithMany()
+                  .HasForeignKey(m => m.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.Sku).IsUnique();
+            entity.HasIndex(e => e.Barcode).IsUnique();
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.TaxTypeId);
+        });
+
+        // Configure ProductModifierGroup entity
+        modelBuilder.Entity<Domain.Entities.ProductModifierGroup>(entity =>
+        {
+            entity.ToTable("product_modifier_groups");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100).HasColumnName("name");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.SelectionType).IsRequired().HasMaxLength(20).HasDefaultValue("Multiple").HasColumnName("selection_type");
+            entity.Property(e => e.Required).HasDefaultValue(false).HasColumnName("required");
+            entity.Property(e => e.MinSelections).HasDefaultValue(0).HasColumnName("min_selections");
+            entity.Property(e => e.MaxSelections).HasColumnName("max_selections");
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Active").HasColumnName("status");
+            entity.Property(e => e.CreatedBy).IsRequired().HasColumnName("created_by");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("updated_at");
+
+            // Foreign key relationship with User (creator)
+            entity.HasOne(g => g.Creator)
+                  .WithMany()
+                  .HasForeignKey(g => g.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.SelectionType);
+            entity.HasIndex(e => e.Required);
+            entity.HasIndex(e => e.Status);
+        });
+
+        // Configure ProductModifierGroupItem entity
+        modelBuilder.Entity<Domain.Entities.ProductModifierGroupItem>(entity =>
+        {
+            entity.ToTable("product_modifier_group_items");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.GroupId).IsRequired().HasColumnName("group_id");
+            entity.Property(e => e.ModifierId).IsRequired().HasColumnName("modifier_id");
+            entity.Property(e => e.PriceAdjustment).HasPrecision(10, 2).HasDefaultValue(0.00m).HasColumnName("price_adjustment");
+            entity.Property(e => e.SortOrder).HasDefaultValue(0).HasColumnName("sort_order");
+            entity.Property(e => e.DefaultSelection).HasDefaultValue(false).HasColumnName("default_selection");
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Active").HasColumnName("status");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+
+            // Foreign key relationship with ProductModifierGroup
+            entity.HasOne(i => i.Group)
+                  .WithMany(g => g.GroupItems)
+                  .HasForeignKey(i => i.GroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Foreign key relationship with ProductModifier
+            entity.HasOne(i => i.Modifier)
+                  .WithMany(m => m.ModifierGroupItems)
+                  .HasForeignKey(i => i.ModifierId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.GroupId);
+            entity.HasIndex(e => e.ModifierId);
+            entity.HasIndex(e => e.SortOrder);
+            entity.HasIndex(e => e.Status);
+            
+            // Composite unique index to prevent duplicate modifier in same group
+            entity.HasIndex(e => new { e.GroupId, e.ModifierId }).IsUnique();
+        });
+
+        // Configure ProductModifierLink entity
+        modelBuilder.Entity<Domain.Entities.ProductModifierLink>(entity =>
+        {
+            entity.ToTable("product_modifier_links");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ProductId).IsRequired().HasColumnName("product_id");
+            entity.Property(e => e.ModifierGroupId).IsRequired().HasColumnName("modifier_group_id");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+
+            // Foreign key relationship with Product
+            entity.HasOne(l => l.Product)
+                  .WithMany()
+                  .HasForeignKey(l => l.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Foreign key relationship with ProductModifierGroup
+            entity.HasOne(l => l.ModifierGroup)
+                  .WithMany()
+                  .HasForeignKey(l => l.ModifierGroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.ProductId);
+            entity.HasIndex(e => e.ModifierGroupId);
+            
+            // Composite unique index to prevent duplicate links
+            entity.HasIndex(e => new { e.ProductId, e.ModifierGroupId }).IsUnique();
         });
     }
 }

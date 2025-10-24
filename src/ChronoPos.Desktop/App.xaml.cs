@@ -175,6 +175,19 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IProductCombinationItemRepository, ProductCombinationItemRepository>();
                     LogMessage("ProductCombinationItemRepository registered as Transient");
 
+                    // Register Product Modifier repositories
+                    services.AddTransient<IProductModifierRepository, ProductModifierRepository>();
+                    LogMessage("ProductModifierRepository registered as Transient");
+                    
+                    services.AddTransient<IProductModifierGroupRepository, ProductModifierGroupRepository>();
+                    LogMessage("ProductModifierGroupRepository registered as Transient");
+                    
+                    services.AddTransient<IProductModifierGroupItemRepository, ProductModifierGroupItemRepository>();
+                    LogMessage("ProductModifierGroupItemRepository registered as Transient");
+                    
+                    services.AddTransient<IProductModifierLinkRepository, ProductModifierLinkRepository>();
+                    LogMessage("ProductModifierLinkRepository registered as Transient");
+
                     // Register application services as Transient to ensure fresh DbContext instances
                     services.AddTransient<IProductService, ProductService>();
                     LogMessage("ProductService registered as Transient");
@@ -331,6 +344,19 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IProductCombinationItemService, ProductCombinationItemService>();
                     LogMessage("ProductCombinationItemService registered as Transient");
                     
+                    // Register Product Modifier services
+                    services.AddTransient<IProductModifierService, ProductModifierService>();
+                    LogMessage("ProductModifierService registered as Transient");
+                    
+                    services.AddTransient<IProductModifierGroupService, ProductModifierGroupService>();
+                    LogMessage("ProductModifierGroupService registered as Transient");
+                    
+                    services.AddTransient<IProductModifierGroupItemService, ProductModifierGroupItemService>();
+                    LogMessage("ProductModifierGroupItemService registered as Transient");
+                    
+                    services.AddTransient<IProductModifierLinkService, ProductModifierLinkService>();
+                    LogMessage("ProductModifierLinkService registered as Transient");
+                    
                     // Register theme service
                     services.AddSingleton<IThemeService, ThemeService>();
                     LogMessage("ThemeService registered");
@@ -431,6 +457,12 @@ public partial class App : System.Windows.Application
                     LogMessage("ProductAttributeViewModel registered as Transient");
                     services.AddTransient<ProductAttributeSidePanelViewModel>();
                     LogMessage("ProductAttributeSidePanelViewModel registered as Transient");
+                    services.AddTransient<ProductModifierViewModel>();
+                    LogMessage("ProductModifierViewModel registered as Transient");
+                    services.AddTransient<ProductModifierSidePanelViewModel>();
+                    LogMessage("ProductModifierSidePanelViewModel registered as Transient");
+                    services.AddTransient<ProductModifierGroupSidePanelViewModel>();
+                    LogMessage("ProductModifierGroupSidePanelViewModel registered as Transient");
                     services.AddTransient<UomViewModel>();
                     LogMessage("UomViewModel registered as Transient");
                     services.AddTransient<UomSidePanelViewModel>();

@@ -180,14 +180,25 @@ public partial class UsersManagementViewModel : ObservableObject
     [RelayCommand]
     private void EditUser(UserWithPermissionsModel userModel)
     {
-        // Convert back to UserDto for the side panel
+        // Convert back to UserDto for the side panel with ALL user data
         var userDto = new UserDto
         {
             Id = userModel.Id,
             FullName = userModel.FullName,
+            Username = userModel.Username,
             Email = userModel.Email,
+            PhoneNo = userModel.PhoneNo,
+            Address = userModel.Address,
             RolePermissionId = userModel.RolePermissionId ?? 0,
-            RolePermissionName = userModel.RolePermissionName
+            RolePermissionName = userModel.RolePermissionName,
+            ShopId = userModel.ShopId,
+            ChangeAccess = userModel.ChangeAccess,
+            ShiftTypeId = userModel.ShiftTypeId,
+            AdditionalDetails = userModel.AdditionalDetails,
+            UaeId = userModel.UaeId,
+            Dob = userModel.Dob,
+            NationalityStatus = userModel.NationalityStatus,
+            Salary = userModel.Salary
         };
 
         UserSidePanelViewModel = new UserSidePanelViewModel(

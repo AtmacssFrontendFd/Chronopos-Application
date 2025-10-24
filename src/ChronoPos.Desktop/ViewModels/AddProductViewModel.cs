@@ -30,6 +30,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     private readonly IProductUnitService _productUnitService;
     private readonly ISkuGenerationService _skuGenerationService;
     private readonly IProductBatchService _productBatchService;
+    private readonly IProductModifierGroupService _modifierGroupService;
+    private readonly IProductModifierLinkService _modifierLinkService;
     private readonly Action? _navigateBack;
     
     // Settings services
@@ -242,6 +244,16 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private BrandItemViewModel? selectedBrand;
 
+    // Modifier Groups properties
+    [ObservableProperty]
+    private ObservableCollection<ProductModifierGroupDto> availableModifierGroups = new();
+
+    [ObservableProperty]
+    private ProductModifierGroupDto? selectedModifierGroup;
+
+    [ObservableProperty]
+    private ObservableCollection<ProductModifierGroupDto> selectedModifierGroups = new();
+
     // Product Images properties
     [ObservableProperty]
     private ObservableCollection<ProductImageItemViewModel> productImages = new();
@@ -337,6 +349,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string attributesTitle = "Attributes";
     [ObservableProperty] private string unitPricesTitle = "Unit Prices";
     [ObservableProperty] private string productBatchesTitle = "Product Batches";
+    [ObservableProperty] private string modifierGroupsTitle = "Modifier Groups";
 
     // Form labels and inputs
     [ObservableProperty] private string codeLabel = "Code";
@@ -1030,6 +1043,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         IProductUnitService productUnitService,
         ISkuGenerationService skuGenerationService,
         IProductBatchService productBatchService,
+        IProductModifierGroupService modifierGroupService,
+        IProductModifierLinkService modifierLinkService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -1047,6 +1062,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         _productUnitService = productUnitService ?? throw new ArgumentNullException(nameof(productUnitService));
         _skuGenerationService = skuGenerationService ?? throw new ArgumentNullException(nameof(skuGenerationService));
         _productBatchService = productBatchService ?? throw new ArgumentNullException(nameof(productBatchService));
+        _modifierGroupService = modifierGroupService ?? throw new ArgumentNullException(nameof(modifierGroupService));
+        _modifierLinkService = modifierLinkService ?? throw new ArgumentNullException(nameof(modifierLinkService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -1120,7 +1137,11 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             await LoadBrandsAsync();
             FileLogger.Log($"✅ Loaded {AvailableBrands.Count} brands");
             
-            FileLogger.Log("📏 Loading units of measurement");
+            FileLogger.Log("� Loading modifier groups");
+            await LoadModifierGroupsAsync();
+            FileLogger.Log($"✅ Loaded {AvailableModifierGroups.Count} modifier groups");
+            
+            FileLogger.Log("�📏 Loading units of measurement");
             await LoadUnitsOfMeasurementAsync();
             FileLogger.Log($"✅ Loaded units of measurement");
 
@@ -1231,6 +1252,28 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
                 Description = "No brand selected"
             });
             SelectedBrand = AvailableBrands.FirstOrDefault();
+        }
+    }
+
+    private async Task LoadModifierGroupsAsync()
+    {
+        try
+        {
+            // Load active modifier groups from database
+            AvailableModifierGroups.Clear();
+            
+            var modifierGroups = await _modifierGroupService.GetActiveAsync();
+            foreach (var group in modifierGroups)
+            {
+                AvailableModifierGroups.Add(group);
+            }
+            
+            FileLogger.Log($"✅ Loaded {AvailableModifierGroups.Count} active modifier groups");
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"❌ Error loading modifier groups: {ex.Message}");
+            StatusMessage = $"Error loading modifier groups: {ex.Message}";
         }
     }
 
@@ -1511,6 +1554,30 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             // Note: No need to recalculate tax-inclusive price here since we already loaded 
             // the saved value from product.TaxInclusivePriceValue above
 
+            // Load modifier group links for edit mode
+            try
+            {
+                FileLogger.Log($"🔄 Loading modifier group links for product ID: {product.Id}");
+                SelectedModifierGroups.Clear();
+                
+                var productModifierLinks = await _modifierLinkService.GetByProductIdAsync(product.Id);
+                foreach (var link in productModifierLinks)
+                {
+                    var modifierGroup = AvailableModifierGroups.FirstOrDefault(mg => mg.Id == link.ModifierGroupId);
+                    if (modifierGroup != null && !SelectedModifierGroups.Any(mg => mg.Id == modifierGroup.Id))
+                    {
+                        SelectedModifierGroups.Add(modifierGroup);
+                    }
+                }
+                
+                FileLogger.Log($"✅ Loaded {SelectedModifierGroups.Count} modifier group links for edit mode");
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Log($"⚠️ Error loading modifier group links: {ex.Message}");
+                // Don't fail the entire operation if modifier groups can't be loaded
+            }
+
             // Load product batches for edit mode
             await LoadProductBatchesAsync();
 
@@ -1588,6 +1655,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         AttributesTitle = await GetTranslationAsync("Attributes", "Attributes");
         UnitPricesTitle = await GetTranslationAsync("UnitPrices", "Unit Prices");
         BarcodesTitle = await GetTranslationAsync("barcodes_section", "Barcodes & SKU");
+        ModifierGroupsTitle = await GetTranslationAsync("modifier_groups_title", "Modifier Groups");
 
         // Form labels - using the correct translation keys
         CodeLabel = await GetTranslationAsync("product_code_label", "Product Code");
@@ -2580,6 +2648,54 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
+    private void AddModifierGroup()
+    {
+        try
+        {
+            if (SelectedModifierGroup == null)
+            {
+                StatusMessage = "Please select a modifier group to add";
+                return;
+            }
+
+            // Check if already added
+            if (SelectedModifierGroups.Any(g => g.Id == SelectedModifierGroup.Id))
+            {
+                StatusMessage = $"Modifier group '{SelectedModifierGroup.Name}' is already added";
+                return;
+            }
+
+            SelectedModifierGroups.Add(SelectedModifierGroup);
+            StatusMessage = $"Modifier group '{SelectedModifierGroup.Name}' added successfully";
+            FileLogger.Log($"✅ Added modifier group: {SelectedModifierGroup.Name}");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error adding modifier group: {ex.Message}";
+            FileLogger.Log($"❌ Error adding modifier group: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    private void RemoveModifierGroup(ProductModifierGroupDto modifierGroup)
+    {
+        try
+        {
+            if (modifierGroup == null)
+                return;
+
+            SelectedModifierGroups.Remove(modifierGroup);
+            StatusMessage = $"Modifier group '{modifierGroup.Name}' removed";
+            FileLogger.Log($"✅ Removed modifier group: {modifierGroup.Name}");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error removing modifier group: {ex.Message}";
+            FileLogger.Log($"❌ Error removing modifier group: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
     private async Task SaveProduct()
     {
         try
@@ -2619,6 +2735,9 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
 
             // Save product barcodes if any
             await SaveProductBarcodes(savedProduct.Id);
+
+            // Save product modifier links if any
+            await SaveProductModifierLinks(savedProduct.Id);
 
             // Navigate back to product management
             _navigateBack?.Invoke();
@@ -3255,6 +3374,38 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             FileLogger.Log($"❌ Error handling product barcodes: {ex.Message}");
+            throw; // Re-throw to be handled by the calling method
+        }
+    }
+
+    private async Task SaveProductModifierLinks(int productId)
+    {
+        try
+        {
+            FileLogger.Log($"🔄 Saving {SelectedModifierGroups.Count} product modifier links for product ID: {productId}");
+            
+            // Delete existing links for this product
+            await _modifierLinkService.DeleteByProductIdAsync(productId);
+            FileLogger.Log($"🗑️ Deleted existing modifier links for product ID: {productId}");
+            
+            // Create new links
+            foreach (var modifierGroup in SelectedModifierGroups)
+            {
+                var linkDto = new CreateProductModifierLinkDto
+                {
+                    ProductId = productId,
+                    ModifierGroupId = modifierGroup.Id
+                };
+                
+                await _modifierLinkService.CreateAsync(linkDto);
+                FileLogger.Log($"✅ Created modifier link: Product {productId} -> Group {modifierGroup.Id} ({modifierGroup.Name})");
+            }
+            
+            FileLogger.Log($"✅ Product modifier links saved successfully for product ID: {productId}");
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"❌ Error saving product modifier links: {ex.Message}");
             throw; // Re-throw to be handled by the calling method
         }
     }

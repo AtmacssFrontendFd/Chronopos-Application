@@ -112,6 +112,12 @@ public partial class AddOptionsViewModel : ObservableObject
     private bool _isProductAttributesVisible = true;
 
     /// <summary>
+    /// Visibility flag for Product Modifiers module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isProductModifiersVisible = true;
+
+    /// <summary>
     /// Visibility flag for Product Combinations module
     /// </summary>
     [ObservableProperty]
@@ -307,6 +313,7 @@ public partial class AddOptionsViewModel : ObservableObject
             IsDiscountsVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.DISCOUNTS);
             IsUomVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.UOM);
             IsProductAttributesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRODUCT_ATTRIBUTES);
+            IsProductModifiersVisible = true; // TODO: Add ScreenNames.PRODUCT_MODIFIERS when permission constant is added
             IsProductCombinationsVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRODUCT_COMBINATIONS);
             IsProductGroupsVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRODUCT_GROUPING);
             IsPriceTypesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRICE_TYPES);
@@ -331,6 +338,7 @@ public partial class AddOptionsViewModel : ObservableObject
             IsDiscountsVisible = true;
             IsUomVisible = true;
             IsProductAttributesVisible = true;
+            IsProductModifiersVisible = true;
             IsProductCombinationsVisible = true;
             IsProductGroupsVisible = true;
             IsPriceTypesVisible = true;
@@ -366,6 +374,7 @@ public partial class AddOptionsViewModel : ObservableObject
                     new { Type = "Brand", TitleKey = "add_options.brand", CountLabel = "Brands", Count = await GetBrandCountAsync(), IsVisible = IsBrandVisible },
                     new { Type = "Category", TitleKey = "add_options.category", CountLabel = "Categories", Count = await GetCategoryCountAsync(), IsVisible = IsCategoryVisible },
                     new { Type = "ProductAttributes", TitleKey = "add_options.product_attributes", CountLabel = "Attributes", Count = await GetProductAttributesCountAsync(), IsVisible = IsProductAttributesVisible },
+                    new { Type = "ProductModifiers", TitleKey = "add_options.product_modifiers", CountLabel = "Modifiers", Count = await GetProductModifiersCountAsync(), IsVisible = IsProductModifiersVisible },
                     new { Type = "ProductCombinations", TitleKey = "add_options.product_combinations", CountLabel = "Combinations", Count = await GetProductCombinationsCountAsync(), IsVisible = IsProductCombinationsVisible },
                     new { Type = "ProductGrouping", TitleKey = "add_options.product_grouping", CountLabel = "Groups", Count = await GetProductGroupingCountAsync(), IsVisible = IsProductGroupsVisible },
                     new { Type = "PriceTypes", TitleKey = "add_options.price_types", CountLabel = "Price Types", Count = await GetPriceTypesCountAsync(), IsVisible = IsPriceTypesVisible },
@@ -469,6 +478,32 @@ public partial class AddOptionsViewModel : ObservableObject
     {
         await Task.Delay(50);
         return 67;
+    }
+
+    private async Task<int> GetProductModifiersCountAsync()
+    {
+        try
+        {
+            // Get the ProductModifier service from the service provider if available
+            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
+            if (serviceProvider != null)
+            {
+                var modifierService = serviceProvider.GetService<IProductModifierService>();
+                if (modifierService != null)
+                {
+                    var modifiers = await modifierService.GetAllAsync();
+                    return modifiers.Count();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting ProductModifier count: {ex.Message}");
+        }
+        
+        // Fallback to mock data
+        await Task.Delay(50);
+        return 0;
     }
 
     private async Task<int> GetProductCombinationsCountAsync()

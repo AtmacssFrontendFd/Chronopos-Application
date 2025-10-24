@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
 using ChronoPos.Desktop.Models.Licensing;
+using ChronoPos.Application.Logging;
 
 namespace ChronoPos.Desktop.Services
 {
@@ -86,17 +87,30 @@ namespace ChronoPos.Desktop.Services
         public bool IsLicenseValid()
         {
             var license = GetCurrentLicense();
-            if (license == null) return false;
+            if (license == null)
+            {
+                AppLogger.Log("License validation failed: No license found", "LicensingService", "licensing");
+                return false;
+            }
 
             // Check expiry
             if (license.ExpiryDate < DateTime.UtcNow)
+            {
+                AppLogger.Log($"License validation failed: License expired on {license.ExpiryDate:yyyy-MM-dd}", "LicensingService", "licensing");
                 return false;
+            }
 
             // Check machine fingerprint
             var currentFingerprint = MachineFingerprint.Generate();
             if (license.MachineFingerprint != currentFingerprint)
+            {
+                AppLogger.Log($"License validation failed: Machine fingerprint mismatch", "LicensingService", "licensing");
+                AppLogger.Log($"Expected fingerprint: {license.MachineFingerprint}", "DEBUG", "licensing");
+                AppLogger.Log($"Current fingerprint: {currentFingerprint}", "DEBUG", "licensing");
                 return false;
+            }
 
+            AppLogger.Log($"License validation successful. Expires: {license.ExpiryDate:yyyy-MM-dd}", "LicensingService", "licensing");
             return true;
         }
 
