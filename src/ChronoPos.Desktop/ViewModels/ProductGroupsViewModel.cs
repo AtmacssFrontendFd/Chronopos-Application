@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Constants;
+using ChronoPos.Desktop.Views.Dialogs;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -210,7 +211,12 @@ public partial class ProductGroupsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading product groups: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorDialog = new MessageDialog(
+                "Loading Error",
+                $"An error occurred while loading product groups:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
+            
             StatusMessage = "Error loading product groups";
         }
         finally
@@ -343,15 +349,22 @@ public partial class ProductGroupsViewModel : ObservableObject
     private async Task DeleteProductGroupAsync()
     {
         if (SelectedProductGroup == null)
+        {
+            var warningDialog = new MessageDialog(
+                "No Selection",
+                "Please select a product group to delete.",
+                MessageDialog.MessageType.Warning);
+            warningDialog.ShowDialog();
             return;
+        }
 
-        var result = MessageBox.Show(
-            $"Are you sure you want to delete product group '{SelectedProductGroup.Name}'?",
-            "Confirm Delete",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
-
-        if (result == MessageBoxResult.Yes)
+        var confirmDialog = new ConfirmationDialog(
+            "Delete Product Group",
+            $"Are you sure you want to delete product group '{SelectedProductGroup.Name}'?\n\nThis action cannot be undone.",
+            ConfirmationDialog.DialogType.Danger);
+        
+        var result = confirmDialog.ShowDialog();
+        if (result == true)
         {
             try
             {
@@ -359,12 +372,21 @@ public partial class ProductGroupsViewModel : ObservableObject
                 if (success)
                 {
                     await LoadProductGroupsAsync();
-                    MessageBox.Show("Product group deleted successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    
+                    var successDialog = new MessageDialog(
+                        "Success",
+                        "Product group deleted successfully.",
+                        MessageDialog.MessageType.Success);
+                    successDialog.ShowDialog();
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error deleting product group: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                var errorDialog = new MessageDialog(
+                    "Delete Error",
+                    $"An error occurred while deleting the product group:\n\n{ex.Message}",
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
             }
         }
     }
@@ -424,15 +446,23 @@ public partial class ProductGroupsViewModel : ObservableObject
 
                 await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
                 StatusMessage = $"Exported {ProductGroups.Count} product groups successfully";
-                MessageBox.Show($"Exported {ProductGroups.Count} product groups to:\n{saveFileDialog.FileName}", 
-                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                var successDialog = new MessageDialog(
+                    "Export Successful",
+                    $"Successfully exported {ProductGroups.Count} product groups to:\n\n{saveFileDialog.FileName}",
+                    MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error exporting product groups: {ex.Message}";
-            MessageBox.Show($"Error exporting product groups: {ex.Message}", "Export Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            
+            var errorDialog = new MessageDialog(
+                "Export Error",
+                $"An error occurred while exporting product groups:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -448,20 +478,14 @@ public partial class ProductGroupsViewModel : ObservableObject
     {
         try
         {
-            // Show dialog with Download Template and Upload File options
-            var result = MessageBox.Show(
-                "Would you like to download a template first?\n\n" +
-                "• Click 'Yes' to download the CSV template\n" +
-                "• Click 'No' to upload your file directly\n" +
-                "• Click 'Cancel' to exit",
-                "Import Product Groups",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Cancel)
+            // Show custom import dialog
+            var importDialog = new ImportDialog();
+            var dialogResult = importDialog.ShowDialog();
+            
+            if (dialogResult != true)
                 return;
 
-            if (result == MessageBoxResult.Yes)
+            if (importDialog.SelectedAction == ImportDialog.ImportAction.DownloadTemplate)
             {
                 // Download Template
                 var saveFileDialog = new SaveFileDialog
@@ -479,31 +503,40 @@ public partial class ProductGroupsViewModel : ObservableObject
                     templateCsv.AppendLine("Electronics,الكترونيات,Electronic items group,مجموعة الأجهزة الإلكترونية,,,Retail Price,ELEC,Active");
 
                     await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
-                    MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
-                        "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                    
+                    var successDialog = new MessageDialog(
+                        "Template Downloaded",
+                        $"Template downloaded successfully to:\n\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.",
+                        MessageDialog.MessageType.Success);
+                    successDialog.ShowDialog();
                 }
                 return;
             }
-
-            // Upload File
-            var openFileDialog = new OpenFileDialog
+            else if (importDialog.SelectedAction == ImportDialog.ImportAction.UploadFile)
             {
-                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
-                DefaultExt = ".csv"
-            };
-
-            if (openFileDialog.ShowDialog() == true)
-            {
-                IsLoading = true;
-                StatusMessage = "Importing product groups...";
-
-                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
-                if (lines.Length <= 1)
+                // Upload File
+                var openFileDialog = new OpenFileDialog
                 {
-                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    DefaultExt = ".csv"
+                };
+
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    IsLoading = true;
+                    StatusMessage = "Importing product groups...";
+
+                    var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                    if (lines.Length <= 1)
+                    {
+                        var warningDialog = new MessageDialog(
+                            "Import Error",
+                            "The CSV file is empty or contains only headers.",
+                            MessageDialog.MessageType.Warning);
+                        warningDialog.ShowDialog();
+                        IsLoading = false;
+                        return;
+                    }
 
                 int successCount = 0;
                 int errorCount = 0;
@@ -542,29 +575,51 @@ public partial class ProductGroupsViewModel : ObservableObject
                     catch (Exception ex)
                     {
                         errorCount++;
-                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                        var errorMessage = ex.Message;
+                        
+                        // Include inner exception details if available
+                        if (ex.InnerException != null)
+                        {
+                            errorMessage += $" | Inner: {ex.InnerException.Message}";
+                            
+                            // Go deeper if there's another inner exception
+                            if (ex.InnerException.InnerException != null)
+                            {
+                                errorMessage += $" | Details: {ex.InnerException.InnerException.Message}";
+                            }
+                        }
+                        
+                        errors.AppendLine($"Line {i + 1}: {errorMessage}");
                     }
                 }
 
-                await LoadProductGroupsAsync();
+                    await LoadProductGroupsAsync();
 
-                var message = $"Import completed:\n✓ {successCount} product groups imported successfully";
-                if (errorCount > 0)
-                {
-                    message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                    var message = $"Import completed:\n\n✓ {successCount} product groups imported successfully";
+                    if (errorCount > 0)
+                    {
+                        message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                    }
+
+                    var resultDialog = new MessageDialog(
+                        "Import Complete",
+                        message,
+                        errorCount > 0 ? MessageDialog.MessageType.Warning : MessageDialog.MessageType.Success);
+                    resultDialog.ShowDialog();
+                    
+                    StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
                 }
-
-                MessageBox.Show(message, "Import Complete", 
-                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
-                
-                StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error importing product groups: {ex.Message}";
-            MessageBox.Show($"Error importing product groups: {ex.Message}", "Import Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            
+            var errorDialog = new MessageDialog(
+                "Import Error",
+                $"An error occurred while importing product groups:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {

@@ -12,6 +12,7 @@ using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Constants;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.ViewModels;
+using ChronoPos.Desktop.Views.Dialogs;
 using ChronoPos.Infrastructure.Services;
 using Microsoft.Win32;
 
@@ -251,13 +252,13 @@ public partial class PaymentTypesViewModel : ObservableObject
     {
         if (paymentType != null)
         {
-            var result = MessageBox.Show(
-                $"Are you sure you want to delete the payment type '{paymentType.Name}'?",
-                "Confirm Delete",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
+            var confirmDialog = new ConfirmationDialog(
+                "Delete Payment Type",
+                $"Are you sure you want to delete the payment type '{paymentType.Name}'?\n\nThis action cannot be undone.",
+                ConfirmationDialog.DialogType.Danger);
+            
+            var result = confirmDialog.ShowDialog();
+            if (result == true)
             {
                 try
                 {
@@ -268,12 +269,22 @@ public partial class PaymentTypesViewModel : ObservableObject
                     
                     StatusMessage = "Payment type deleted successfully";
                     await LoadPaymentTypesAsync();
+                    
+                    var successDialog = new MessageDialog(
+                        "Success",
+                        "Payment type deleted successfully.",
+                        MessageDialog.MessageType.Success);
+                    successDialog.ShowDialog();
                 }
                 catch (Exception ex)
                 {
                     StatusMessage = $"Error deleting payment type: {ex.Message}";
-                    MessageBox.Show($"Error deleting payment type: {ex.Message}", "Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    
+                    var errorDialog = new MessageDialog(
+                        "Delete Error",
+                        $"An error occurred while deleting the payment type:\n\n{ex.Message}",
+                        MessageDialog.MessageType.Error);
+                    errorDialog.ShowDialog();
                 }
                 finally
                 {
@@ -323,12 +334,11 @@ public partial class PaymentTypesViewModel : ObservableObject
                 StatusMessage = "Exporting payment types...";
 
                 var csv = new StringBuilder();
-                csv.AppendLine("Id,Name,PaymentCode,NameAr,Status,ChangeAllowed,CustomerRequired,MarkTransactionAsPaid,ShortcutKey,IsRefundable,IsSplitAllowed");
+                csv.AppendLine("Name,PaymentCode,NameAr,Status,ChangeAllowed,CustomerRequired,MarkTransactionAsPaid,ShortcutKey,IsRefundable,IsSplitAllowed");
 
                 foreach (var paymentType in PaymentTypes)
                 {
-                    csv.AppendLine($"{paymentType.Id}," +
-                                 $"\"{paymentType.Name}\"," +
+                    csv.AppendLine($"\"{paymentType.Name}\"," +
                                  $"\"{paymentType.PaymentCode}\"," +
                                  $"\"{paymentType.NameAr ?? ""}\"," +
                                  $"{paymentType.Status}," +
@@ -342,15 +352,23 @@ public partial class PaymentTypesViewModel : ObservableObject
 
                 await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
                 StatusMessage = $"Exported {PaymentTypes.Count} payment types successfully";
-                MessageBox.Show($"Exported {PaymentTypes.Count} payment types to:\n{saveFileDialog.FileName}", 
-                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                var successDialog = new MessageDialog(
+                    "Export Successful",
+                    $"Successfully exported {PaymentTypes.Count} payment types to:\n\n{saveFileDialog.FileName}",
+                    MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error exporting payment types: {ex.Message}";
-            MessageBox.Show($"Error exporting payment types: {ex.Message}", "Export Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            
+            var errorDialog = new MessageDialog(
+                "Export Error",
+                $"An error occurred while exporting payment types:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -366,45 +384,44 @@ public partial class PaymentTypesViewModel : ObservableObject
     {
         try
         {
-            // Show dialog with options: Download Template or Upload File
-            var result = MessageBox.Show(
-                "Would you like to:\n\n" +
-                "• Click 'Yes' to Download Template (sample CSV file)\n" +
-                "• Click 'No' to Upload File (import from existing CSV)\n" +
-                "• Click 'Cancel' to go back",
-                "Import Payment Types",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Cancel)
+            // Show custom import dialog
+            var importDialog = new ImportDialog();
+            var dialogResult = importDialog.ShowDialog();
+            
+            if (dialogResult != true)
                 return;
 
-            if (result == MessageBoxResult.Yes)
+            if (importDialog.SelectedAction == ImportDialog.ImportAction.DownloadTemplate)
             {
                 // Download Template
                 await DownloadTemplateAsync();
                 return;
             }
-
-            // Upload File (No option)
-            var openFileDialog = new OpenFileDialog
+            else if (importDialog.SelectedAction == ImportDialog.ImportAction.UploadFile)
             {
-                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
-                DefaultExt = ".csv"
-            };
-
-            if (openFileDialog.ShowDialog() == true)
-            {
-                IsLoading = true;
-                StatusMessage = "Importing payment types...";
-
-                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
-                if (lines.Length <= 1)
+                // Upload File
+                var openFileDialog = new OpenFileDialog
                 {
-                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    DefaultExt = ".csv"
+                };
+
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    IsLoading = true;
+                    StatusMessage = "Importing payment types...";
+
+                    var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                    if (lines.Length <= 1)
+                    {
+                        var warningDialog = new MessageDialog(
+                            "Import Error",
+                            "The CSV file is empty or contains only headers.",
+                            MessageDialog.MessageType.Warning);
+                        warningDialog.ShowDialog();
+                        IsLoading = false;
+                        return;
+                    }
 
                 int successCount = 0;
                 int errorCount = 0;
@@ -447,29 +464,51 @@ public partial class PaymentTypesViewModel : ObservableObject
                     catch (Exception ex)
                     {
                         errorCount++;
-                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                        var errorMessage = ex.Message;
+                        
+                        // Include inner exception details if available
+                        if (ex.InnerException != null)
+                        {
+                            errorMessage += $" | Inner: {ex.InnerException.Message}";
+                            
+                            // Go deeper if there's another inner exception
+                            if (ex.InnerException.InnerException != null)
+                            {
+                                errorMessage += $" | Details: {ex.InnerException.InnerException.Message}";
+                            }
+                        }
+                        
+                        errors.AppendLine($"Line {i + 1}: {errorMessage}");
                     }
                 }
 
-                await LoadPaymentTypesAsync();
+                    await LoadPaymentTypesAsync();
 
-                var message = $"Import completed:\n✓ {successCount} payment types imported successfully";
-                if (errorCount > 0)
-                {
-                    message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                    var message = $"Import completed:\n\n✓ {successCount} payment types imported successfully";
+                    if (errorCount > 0)
+                    {
+                        message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                    }
+
+                    var resultDialog = new MessageDialog(
+                        "Import Complete",
+                        message,
+                        errorCount > 0 ? MessageDialog.MessageType.Warning : MessageDialog.MessageType.Success);
+                    resultDialog.ShowDialog();
+                    
+                    StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
                 }
-
-                MessageBox.Show(message, "Import Complete", 
-                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
-                
-                StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error importing payment types: {ex.Message}";
-            MessageBox.Show($"Error importing payment types: {ex.Message}", "Import Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            
+            var errorDialog = new MessageDialog(
+                "Import Error",
+                $"An error occurred while importing payment types:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -500,14 +539,21 @@ public partial class PaymentTypesViewModel : ObservableObject
                 csv.AppendLine("\"Bank Transfer\",\"BANK\",\"تحويل بنكي\",True,False,True,False,\"\",True,False");
 
                 await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
-                MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nYou can now fill in your data and import it.", 
-                    "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                var successDialog = new MessageDialog(
+                    "Template Downloaded",
+                    $"Template downloaded successfully to:\n\n{saveFileDialog.FileName}\n\nYou can now fill in your data and import it.",
+                    MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error downloading template: {ex.Message}", "Download Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorDialog = new MessageDialog(
+                "Download Error",
+                $"An error occurred while downloading template:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
     }
 

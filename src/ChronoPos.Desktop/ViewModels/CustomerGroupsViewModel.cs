@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
+using ChronoPos.Desktop.Views.Dialogs;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -217,25 +218,39 @@ public partial class CustomerGroupsViewModel : ObservableObject
     {
         if (customerGroup == null) return;
 
-        var result = MessageBox.Show(
-            $"Are you sure you want to delete the customer group '{customerGroup.Name}'?",
+        var confirmDialog = new ConfirmationDialog(
             "Confirm Delete",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            $"Are you sure you want to delete the customer group '{customerGroup.Name}'?\n\nThis action cannot be undone.",
+            ConfirmationDialog.DialogType.Danger);
 
-        if (result == MessageBoxResult.Yes)
+        if (confirmDialog.ShowDialog() == true)
         {
             try
             {
                 await _customerGroupService.DeleteAsync(customerGroup.Id);
                 await LoadCustomerGroupsAsync();
-                MessageBox.Show("Customer group deleted successfully", "Success", 
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                var successDialog = new MessageDialog(
+                    "Success",
+                    "Customer group deleted successfully!",
+                    MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error deleting customer group: {ex.Message}", "Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                var errorMessage = $"Failed to delete customer group.\n\nError: {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorMessage += $"\n\nInner: {ex.InnerException.Message}";
+                    if (ex.InnerException.InnerException != null)
+                        errorMessage += $"\n\nDetails: {ex.InnerException.InnerException.Message}";
+                }
+                
+                var errorDialog = new MessageDialog(
+                    "Delete Error",
+                    errorMessage,
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
             }
         }
     }
@@ -331,32 +346,51 @@ public partial class CustomerGroupsViewModel : ObservableObject
                 StatusMessage = "Exporting customer groups...";
 
                 var csv = new StringBuilder();
-                csv.AppendLine("Id,Name,NameAr,SellingPriceTypeId,DiscountId,DiscountValue,DiscountMaxValue,IsPercentage,Status");
+                // Export template without Id - 8 fields matching the form
+                csv.AppendLine("Name,NameAr,SellingPriceTypeId,DiscountId,DiscountValue,DiscountMaxValue,IsPercentage,Status");
 
                 foreach (var group in CustomerGroups)
                 {
-                    csv.AppendLine($"{group.Id}," +
-                                 $"\"{group.Name}\"," +
+                    var statusDisplay = group.Status == "Active" ? "Active" : "Inactive";
+                    var isPercentageDisplay = group.IsPercentage ? "Yes" : "No";
+                    
+                    csv.AppendLine($"\"{group.Name}\"," +
                                  $"\"{group.NameAr ?? ""}\"," +
-                                 $"{group.SellingPriceTypeId}," +
-                                 $"{group.DiscountId}," +
-                                 $"{group.DiscountValue}," +
-                                 $"{group.DiscountMaxValue}," +
-                                 $"{group.IsPercentage}," +
-                                 $"\"{group.Status}\"");
+                                 $"{group.SellingPriceTypeId ?? 0}," +
+                                 $"{group.DiscountId ?? 0}," +
+                                 $"{group.DiscountValue ?? 0}," +
+                                 $"{group.DiscountMaxValue ?? 0}," +
+                                 $"\"{isPercentageDisplay}\"," +
+                                 $"\"{statusDisplay}\"");
                 }
 
                 await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
                 StatusMessage = $"Exported {CustomerGroups.Count} customer groups successfully";
-                MessageBox.Show($"Exported {CustomerGroups.Count} customer groups to:\n{saveFileDialog.FileName}", 
-                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                var successDialog = new MessageDialog(
+                    "Export Successful",
+                    $"Successfully exported {CustomerGroups.Count} customer group(s) to:\n{saveFileDialog.FileName}",
+                    MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error exporting customer groups: {ex.Message}";
-            MessageBox.Show($"Error exporting customer groups: {ex.Message}", "Export Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            
+            var errorMessage = $"Failed to export customer groups.\n\nError: {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                errorMessage += $"\n\nInner: {ex.InnerException.Message}";
+                if (ex.InnerException.InnerException != null)
+                    errorMessage += $"\n\nDetails: {ex.InnerException.InnerException.Message}";
+            }
+            
+            var errorDialog = new MessageDialog(
+                "Export Error",
+                errorMessage,
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -370,45 +404,62 @@ public partial class CustomerGroupsViewModel : ObservableObject
     [RelayCommand]
     private async Task ImportAsync()
     {
-        try
+        var importDialog = new ImportDialog();
+        importDialog.ShowDialog();
+        
+        if (importDialog.SelectedAction == ImportDialog.ImportAction.None)
+            return;
+
+        if (importDialog.SelectedAction == ImportDialog.ImportAction.DownloadTemplate)
         {
-            // Show dialog with Download Template and Upload File options
-            var result = MessageBox.Show(
-                "Would you like to download a template first?\n\n" +
-                "• Click 'Yes' to download the CSV template\n" +
-                "• Click 'No' to upload your file directly\n" +
-                "• Click 'Cancel' to exit",
-                "Import Customer Groups",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Cancel)
-                return;
-
-            if (result == MessageBoxResult.Yes)
+            // Download Template
+            var saveFileDialog = new SaveFileDialog
             {
-                // Download Template
-                var saveFileDialog = new SaveFileDialog
-                {
-                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
-                    FileName = "CustomerGroups_Template.csv",
-                    DefaultExt = ".csv"
-                };
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                FileName = $"CustomerGroups_Template_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+                DefaultExt = ".csv"
+            };
 
-                if (saveFileDialog.ShowDialog() == true)
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                try
                 {
                     var templateCsv = new StringBuilder();
-                    templateCsv.AppendLine("Id,Name,NameAr,SellingPriceTypeId,DiscountId,DiscountValue,DiscountMaxValue,IsPercentage,Status");
-                    templateCsv.AppendLine("0,VIP Customers,العملاء المميزين,1,1,10,100,true,Active");
-                    templateCsv.AppendLine("0,Wholesale,الجملة,2,2,15,500,true,Active");
+                    templateCsv.AppendLine("Name,NameAr,SellingPriceTypeId,DiscountId,DiscountValue,DiscountMaxValue,IsPercentage,Status");
+                    templateCsv.AppendLine("VIP Customers,العملاء المميزين,0,0,10,100,Yes,Active");
+                    templateCsv.AppendLine("Wholesale,الجملة,0,0,15,500,Yes,Active");
+                    templateCsv.AppendLine("Retail,التجزئة,0,0,0,0,No,Active");
 
                     await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
-                    MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
-                        "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                    
+                    var successDialog = new MessageDialog(
+                        "Template Downloaded",
+                        $"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.",
+                        MessageDialog.MessageType.Success);
+                    successDialog.ShowDialog();
                 }
-                return;
+                catch (Exception ex)
+                {
+                    var errorMessage = $"Failed to download template.\n\nError: {ex.Message}";
+                    if (ex.InnerException != null)
+                    {
+                        errorMessage += $"\n\nInner: {ex.InnerException.Message}";
+                        if (ex.InnerException.InnerException != null)
+                            errorMessage += $"\n\nDetails: {ex.InnerException.InnerException.Message}";
+                    }
+                    
+                    var errorDialog = new MessageDialog(
+                        "Download Error",
+                        errorMessage,
+                        MessageDialog.MessageType.Error);
+                    errorDialog.ShowDialog();
+                }
             }
+            return;
+        }
 
+        if (importDialog.SelectedAction == ImportDialog.ImportAction.UploadFile)
+        {
             // Upload File
             var openFileDialog = new OpenFileDialog
             {
@@ -420,80 +471,243 @@ public partial class CustomerGroupsViewModel : ObservableObject
             {
                 IsLoading = true;
                 StatusMessage = "Importing customer groups...";
-
-                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
-                if (lines.Length <= 1)
+                
+                try
                 {
-                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                int successCount = 0;
-                int errorCount = 0;
-                var errors = new StringBuilder();
-
-                // Skip header row
-                for (int i = 1; i < lines.Length; i++)
-                {
-                    try
+                    // Reload customer groups to ensure we have the latest data for duplicate checking
+                    await LoadCustomerGroupsAsync();
+                    
+                    var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                    if (lines.Length < 2)
                     {
-                        var line = lines[i];
-                        if (string.IsNullOrWhiteSpace(line)) continue;
+                        var warningDialog = new MessageDialog(
+                            "Import Warning",
+                            "The CSV file is empty or contains only headers. Please add customer group data and try again.",
+                            MessageDialog.MessageType.Warning);
+                        warningDialog.ShowDialog();
+                        return;
+                    }
 
-                        var values = ParseCsvLine(line);
-                        if (values.Length < 9)
+                    // Validation phase - check all rows before importing
+                    var validationErrors = new StringBuilder();
+                    var validGroups = new List<CreateCustomerGroupDto>();
+                    var existingNames = CustomerGroups.Select(g => g.Name.ToLower()).ToHashSet();
+                    var newNames = new HashSet<string>();
+
+                    // Skip header row
+                    for (int i = 1; i < lines.Length; i++)
+                    {
+                        try
+                        {
+                            var line = lines[i];
+                            if (string.IsNullOrWhiteSpace(line)) continue;
+
+                            var values = ParseCsvLine(line);
+                            if (values.Length < 8)
+                            {
+                                validationErrors.AppendLine($"Line {i + 1}: Invalid format (expected 8 columns: Name,NameAr,SellingPriceTypeId,DiscountId,DiscountValue,DiscountMaxValue,IsPercentage,Status)");
+                                continue;
+                            }
+
+                            var name = values[0].Trim('"').Trim();
+                            var nameAr = values[1].Trim('"').Trim();
+                            var sellingPriceTypeIdStr = values[2].Trim();
+                            var discountIdStr = values[3].Trim();
+                            var discountValueStr = values[4].Trim();
+                            var discountMaxValueStr = values[5].Trim();
+                            var isPercentageStr = values[6].Trim('"').Trim();
+                            var status = values[7].Trim('"').Trim();
+
+                            // Validate required fields
+                            if (string.IsNullOrWhiteSpace(name))
+                            {
+                                validationErrors.AppendLine($"Line {i + 1}: Name is required");
+                                continue;
+                            }
+
+                            // Check for duplicate names in existing data
+                            if (existingNames.Contains(name.ToLower()))
+                            {
+                                validationErrors.AppendLine($"Line {i + 1}: Customer group name '{name}' already exists");
+                                continue;
+                            }
+
+                            // Check for duplicate names within the import file
+                            if (newNames.Contains(name.ToLower()))
+                            {
+                                validationErrors.AppendLine($"Line {i + 1}: Duplicate customer group name '{name}' in import file");
+                                continue;
+                            }
+
+                            // Validate IsPercentage format
+                            bool isPercentage;
+                            if (isPercentageStr.Equals("Yes", StringComparison.OrdinalIgnoreCase) || 
+                                isPercentageStr.Equals("True", StringComparison.OrdinalIgnoreCase))
+                                isPercentage = true;
+                            else if (isPercentageStr.Equals("No", StringComparison.OrdinalIgnoreCase) || 
+                                     isPercentageStr.Equals("False", StringComparison.OrdinalIgnoreCase))
+                                isPercentage = false;
+                            else
+                            {
+                                validationErrors.AppendLine($"Line {i + 1}: IsPercentage must be 'Yes', 'No', 'True', or 'False', found '{isPercentageStr}'");
+                                continue;
+                            }
+
+                            // Validate Status format
+                            if (!status.Equals("Active", StringComparison.OrdinalIgnoreCase) && 
+                                !status.Equals("Inactive", StringComparison.OrdinalIgnoreCase))
+                            {
+                                validationErrors.AppendLine($"Line {i + 1}: Status must be 'Active' or 'Inactive', found '{status}'");
+                                continue;
+                            }
+
+                            // Parse numeric values
+                            long? sellingPriceTypeId = null;
+                            if (!string.IsNullOrWhiteSpace(sellingPriceTypeIdStr) && sellingPriceTypeIdStr != "0")
+                            {
+                                if (!long.TryParse(sellingPriceTypeIdStr, out var tempId))
+                                {
+                                    validationErrors.AppendLine($"Line {i + 1}: Invalid SellingPriceTypeId '{sellingPriceTypeIdStr}'");
+                                    continue;
+                                }
+                                sellingPriceTypeId = tempId;
+                            }
+
+                            int? discountId = null;
+                            if (!string.IsNullOrWhiteSpace(discountIdStr) && discountIdStr != "0")
+                            {
+                                if (!int.TryParse(discountIdStr, out var tempId))
+                                {
+                                    validationErrors.AppendLine($"Line {i + 1}: Invalid DiscountId '{discountIdStr}'");
+                                    continue;
+                                }
+                                discountId = tempId;
+                            }
+
+                            decimal? discountValue = null;
+                            if (!string.IsNullOrWhiteSpace(discountValueStr) && discountValueStr != "0")
+                            {
+                                if (!decimal.TryParse(discountValueStr, out var tempValue))
+                                {
+                                    validationErrors.AppendLine($"Line {i + 1}: Invalid DiscountValue '{discountValueStr}'");
+                                    continue;
+                                }
+                                discountValue = tempValue;
+                            }
+
+                            decimal? discountMaxValue = null;
+                            if (!string.IsNullOrWhiteSpace(discountMaxValueStr) && discountMaxValueStr != "0")
+                            {
+                                if (!decimal.TryParse(discountMaxValueStr, out var tempValue))
+                                {
+                                    validationErrors.AppendLine($"Line {i + 1}: Invalid DiscountMaxValue '{discountMaxValueStr}'");
+                                    continue;
+                                }
+                                discountMaxValue = tempValue;
+                            }
+
+                            newNames.Add(name.ToLower());
+                            validGroups.Add(new CreateCustomerGroupDto
+                            {
+                                Name = name,
+                                NameAr = string.IsNullOrWhiteSpace(nameAr) ? null : nameAr,
+                                SellingPriceTypeId = sellingPriceTypeId,
+                                DiscountId = discountId,
+                                DiscountValue = discountValue,
+                                DiscountMaxValue = discountMaxValue,
+                                IsPercentage = isPercentage,
+                                Status = status
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            validationErrors.AppendLine($"Line {i + 1}: Validation error - {ex.Message}");
+                        }
+                    }
+
+                    // If validation errors exist, show them and abort
+                    if (validationErrors.Length > 0)
+                    {
+                        var errorDialog = new MessageDialog(
+                            "Validation Errors",
+                            $"Found {validationErrors.ToString().Split('\n').Length - 1} validation error(s). Please fix these issues and try again:\n\n{validationErrors}",
+                            MessageDialog.MessageType.Error);
+                        errorDialog.ShowDialog();
+                        return;
+                    }
+
+                    // Import phase - all validations passed
+                    int successCount = 0;
+                    int errorCount = 0;
+                    var importErrors = new StringBuilder();
+
+                    foreach (var group in validGroups)
+                    {
+                        try
+                        {
+                            await _customerGroupService.CreateAsync(group);
+                            successCount++;
+                        }
+                        catch (Exception ex)
                         {
                             errorCount++;
-                            errors.AppendLine($"Line {i + 1}: Invalid format (expected 9 columns)");
-                            continue;
+                            var errorMsg = $"Customer group '{group.Name}': {ex.Message}";
+                            if (ex.InnerException != null)
+                            {
+                                errorMsg += $" | Inner: {ex.InnerException.Message}";
+                                if (ex.InnerException.InnerException != null)
+                                    errorMsg += $" | Details: {ex.InnerException.InnerException.Message}";
+                            }
+                            importErrors.AppendLine(errorMsg);
                         }
-
-                        var createDto = new CreateCustomerGroupDto
-                        {
-                            Name = values[1].Trim('"'),
-                            NameAr = string.IsNullOrWhiteSpace(values[2].Trim('"')) ? null : values[2].Trim('"'),
-                            SellingPriceTypeId = string.IsNullOrWhiteSpace(values[3]) ? null : long.Parse(values[3]),
-                            DiscountId = string.IsNullOrWhiteSpace(values[4]) ? null : int.Parse(values[4]),
-                            DiscountValue = string.IsNullOrWhiteSpace(values[5]) ? null : decimal.Parse(values[5]),
-                            DiscountMaxValue = string.IsNullOrWhiteSpace(values[6]) ? null : decimal.Parse(values[6]),
-                            IsPercentage = bool.Parse(values[7]),
-                            Status = values[8].Trim('"')
-                        };
-
-                        await _customerGroupService.CreateAsync(createDto);
-                        successCount++;
                     }
-                    catch (Exception ex)
+
+                    await LoadCustomerGroupsAsync();
+
+                    // Show results
+                    if (errorCount == 0)
                     {
-                        errorCount++;
-                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                        var successDialog = new MessageDialog(
+                            "Import Successful",
+                            $"Successfully imported {successCount} customer group(s)!",
+                            MessageDialog.MessageType.Success);
+                        successDialog.ShowDialog();
                     }
+                    else
+                    {
+                        var message = $"Import completed with some errors:\n\nSuccessfully imported: {successCount}\nFailed: {errorCount}\n\nErrors:\n{importErrors}";
+                        var resultDialog = new MessageDialog(
+                            "Import Completed with Errors",
+                            message,
+                            MessageDialog.MessageType.Warning);
+                        resultDialog.ShowDialog();
+                    }
+                    
+                    StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
                 }
-
-                await LoadCustomerGroupsAsync();
-
-                var message = $"Import completed:\n✓ {successCount} customer groups imported successfully";
-                if (errorCount > 0)
+                catch (Exception ex)
                 {
-                    message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                    StatusMessage = $"Error importing customer groups: {ex.Message}";
+                    
+                    var errorMessage = $"Failed to import customer groups.\n\nError: {ex.Message}";
+                    if (ex.InnerException != null)
+                    {
+                        errorMessage += $"\n\nInner: {ex.InnerException.Message}";
+                        if (ex.InnerException.InnerException != null)
+                            errorMessage += $"\n\nDetails: {ex.InnerException.InnerException.Message}";
+                    }
+                    
+                    var errorDialog = new MessageDialog(
+                        "Import Error",
+                        errorMessage,
+                        MessageDialog.MessageType.Error);
+                    errorDialog.ShowDialog();
                 }
-
-                MessageBox.Show(message, "Import Complete", 
-                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
-                
-                StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
+                finally
+                {
+                    IsLoading = false;
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Error importing customer groups: {ex.Message}";
-            MessageBox.Show($"Error importing customer groups: {ex.Message}", "Import Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-        finally
-        {
-            IsLoading = false;
         }
     }
 

@@ -10,6 +10,7 @@ using System.Windows;
 using System.IO;
 using System.Text;
 using Microsoft.Win32;
+using ChronoPos.Desktop.Views.Dialogs;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -222,13 +223,12 @@ public partial class StoreViewModel : ObservableObject
     {
         if (store == null) return;
         
-        var result = MessageBox.Show(
-            $"Are you sure you want to delete the store '{store.Name}'?",
+        var confirmDialog = new ConfirmationDialog(
             "Confirm Delete",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            $"Are you sure you want to delete the store '{store.Name}'?",
+            ConfirmationDialog.DialogType.Danger);
             
-        if (result != MessageBoxResult.Yes) return;
+        if (confirmDialog.ShowDialog() != true) return;
         
         try
         {
@@ -240,15 +240,43 @@ public partial class StoreViewModel : ObservableObject
                 _filteredStoresView.Refresh();
                 OnPropertyChanged(nameof(HasStores));
                 OnPropertyChanged(nameof(TotalStores));
+                
+                var successDialog = new MessageDialog(
+                    "Success",
+                    $"Store '{store.Name}' deleted successfully!",
+                    MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
             else
             {
                 StatusMessage = $"Failed to delete store '{store.Name}'.";
+                
+                var errorDialog = new MessageDialog(
+                    "Error",
+                    $"Failed to delete store '{store.Name}'.",
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error deleting store: {ex.Message}";
+            
+            var errorMessage = $"Error deleting store: {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                errorMessage += $"\n\nInner: {ex.InnerException.Message}";
+                if (ex.InnerException.InnerException != null)
+                {
+                    errorMessage += $"\n\nDetails: {ex.InnerException.InnerException.Message}";
+                }
+            }
+            
+            var errorDialog = new MessageDialog(
+                "Error",
+                errorMessage,
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
     }
 
@@ -366,7 +394,7 @@ public partial class StoreViewModel : ObservableObject
             var saveFileDialog = new SaveFileDialog
             {
                 Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
-                FileName = "Stores_Export.csv",
+                FileName = $"Stores_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
                 DefaultExt = ".csv"
             };
 
@@ -376,22 +404,44 @@ public partial class StoreViewModel : ObservableObject
                 var stores = await _storeService.GetAllAsync();
 
                 var csv = new StringBuilder();
-                csv.AppendLine("Name,Address,PhoneNumber,Email,ManagerName,IsActive,IsDefault");
+                csv.AppendLine("Name,Address,PhoneNumber,Email,ManagerName,IsActive");
 
                 foreach (var store in stores)
                 {
-                    csv.AppendLine($"\"{store.Name}\",\"{store.Address}\",\"{store.PhoneNumber}\",\"{store.Email}\",\"{store.ManagerName}\",\"{store.IsActive}\",\"{store.IsDefault}\"");
+                    csv.AppendLine($"\"{store.Name}\"," +
+                                 $"\"{store.Address ?? ""}\"," +
+                                 $"\"{store.PhoneNumber ?? ""}\"," +
+                                 $"\"{store.Email ?? ""}\"," +
+                                 $"\"{store.ManagerName ?? ""}\"," +
+                                 $"{(store.IsActive ? "Active" : "Inactive")}");
                 }
 
                 await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
-                MessageBox.Show($"Successfully exported {stores.Count()} stores to:\n{saveFileDialog.FileName}",
-                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                var successDialog = new MessageDialog(
+                    "Export Successful",
+                    $"Successfully exported {stores.Count()} stores to:\n{saveFileDialog.FileName}",
+                    MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error exporting stores: {ex.Message}", "Export Error",
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorMessage = $"Error exporting stores: {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                errorMessage += $"\n\nInner: {ex.InnerException.Message}";
+                if (ex.InnerException.InnerException != null)
+                {
+                    errorMessage += $"\n\nDetails: {ex.InnerException.InnerException.Message}";
+                }
+            }
+            
+            var errorDialog = new MessageDialog(
+                "Export Error",
+                errorMessage,
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -401,118 +451,241 @@ public partial class StoreViewModel : ObservableObject
 
     private async Task ImportAsync()
     {
-        var result = MessageBox.Show(
-            "Would you like to download a template file first?\n\n" +
-            "Click 'Yes' to download template\n" +
-            "Click 'No' to upload your file\n" +
-            "Click 'Cancel' to abort",
-            "Import Stores",
-            MessageBoxButton.YesNoCancel,
-            MessageBoxImage.Question);
-
-        if (result == MessageBoxResult.Cancel)
+        var importDialog = new ImportDialog();
+        importDialog.ShowDialog();
+        
+        if (importDialog.SelectedAction == ImportDialog.ImportAction.None)
             return;
 
-        if (result == MessageBoxResult.Yes)
+        if (importDialog.SelectedAction == ImportDialog.ImportAction.DownloadTemplate)
         {
             // Download Template
             var saveFileDialog = new SaveFileDialog
             {
                 Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
-                FileName = "Stores_Template.csv",
+                FileName = $"Stores_Template_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
                 DefaultExt = ".csv"
             };
 
             if (saveFileDialog.ShowDialog() == true)
             {
-                var templateCsv = new StringBuilder();
-                templateCsv.AppendLine("Name,Address,PhoneNumber,Email,ManagerName,IsActive,IsDefault");
-                templateCsv.AppendLine("Main Store,123 Main Street,+1234567890,main@store.com,John Doe,True,True");
-                templateCsv.AppendLine("Branch Store,456 Oak Avenue,+1234567891,branch@store.com,Jane Smith,True,False");
+                try
+                {
+                    var templateCsv = new StringBuilder();
+                    templateCsv.AppendLine("Name,Address,PhoneNumber,Email,ManagerName,IsActive");
+                    templateCsv.AppendLine("Main Store,123 Main Street,+1234567890,main@store.com,John Doe,Active");
+                    templateCsv.AppendLine("Branch Store,456 Oak Avenue,+1234567891,branch@store.com,Jane Smith,Active");
+                    templateCsv.AppendLine("Warehouse,789 Industrial Blvd,+1234567892,warehouse@store.com,Mike Johnson,Inactive");
 
-                await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
-                MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.",
-                    "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                    await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
+                    
+                    var successDialog = new MessageDialog(
+                        "Template Downloaded",
+                        $"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.",
+                        MessageDialog.MessageType.Success);
+                    successDialog.ShowDialog();
+                }
+                catch (Exception ex)
+                {
+                    var errorMessage = $"Failed to download template.\n\nError: {ex.Message}";
+                    if (ex.InnerException != null)
+                    {
+                        errorMessage += $"\n\nInner: {ex.InnerException.Message}";
+                        if (ex.InnerException.InnerException != null)
+                            errorMessage += $"\n\nDetails: {ex.InnerException.InnerException.Message}";
+                    }
+                    
+                    var errorDialog = new MessageDialog(
+                        "Download Error",
+                        errorMessage,
+                        MessageDialog.MessageType.Error);
+                    errorDialog.ShowDialog();
+                }
             }
             return;
         }
 
-        // Upload File
-        var openFileDialog = new OpenFileDialog
+        if (importDialog.SelectedAction == ImportDialog.ImportAction.UploadFile)
         {
-            Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
-            DefaultExt = ".csv"
-        };
-
-        if (openFileDialog.ShowDialog() == true)
-        {
-            IsLoading = true;
-            try
+            // Upload File
+            var openFileDialog = new OpenFileDialog
             {
-                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
-                if (lines.Length < 2)
-                {
-                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                DefaultExt = ".csv"
+            };
 
-                int successCount = 0;
-                int errorCount = 0;
-                var errors = new StringBuilder();
-
-                for (int i = 1; i < lines.Length; i++)
+            if (openFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                try
                 {
-                    try
+                    // Reload stores to ensure we have the latest data for duplicate checking
+                    await LoadStoresAsync();
+                    
+                    var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                    if (lines.Length < 2)
                     {
-                        var values = ParseCsvLine(lines[i]);
-                        if (values.Length < 7)
+                        var warningDialog = new MessageDialog(
+                            "Import Warning",
+                            "The CSV file is empty or contains only headers. Please add store data and try again.",
+                            MessageDialog.MessageType.Warning);
+                        warningDialog.ShowDialog();
+                        return;
+                    }
+
+                    // Validation phase - check all rows before importing
+                    var validationErrors = new StringBuilder();
+                    var validStores = new List<CreateStoreDto>();
+                    var existingNames = Stores.Select(s => s.Name.ToLower()).ToHashSet();
+                    var newNames = new HashSet<string>();
+
+                    for (int i = 1; i < lines.Length; i++)
+                    {
+                        try
+                        {
+                            var values = ParseCsvLine(lines[i]);
+                            if (values.Length < 6)
+                            {
+                                validationErrors.AppendLine($"Line {i + 1}: Invalid format (expected 6 columns: Name,Address,PhoneNumber,Email,ManagerName,IsActive)");
+                                continue;
+                            }
+
+                            var name = values[0].Trim('"').Trim();
+                            var address = values[1].Trim('"').Trim();
+                            var phoneNumber = values[2].Trim('"').Trim();
+                            var email = values[3].Trim('"').Trim();
+                            var managerName = values[4].Trim('"').Trim();
+                            var isActiveStr = values[5].Trim('"').Trim();
+
+                            // Validate required fields
+                            if (string.IsNullOrWhiteSpace(name))
+                            {
+                                validationErrors.AppendLine($"Line {i + 1}: Name is required");
+                                continue;
+                            }
+
+                            // Check for duplicate names in existing data
+                            if (existingNames.Contains(name.ToLower()))
+                            {
+                                validationErrors.AppendLine($"Line {i + 1}: Store name '{name}' already exists");
+                                continue;
+                            }
+
+                            // Check for duplicate names within the import file
+                            if (newNames.Contains(name.ToLower()))
+                            {
+                                validationErrors.AppendLine($"Line {i + 1}: Duplicate store name '{name}' in import file");
+                                continue;
+                            }
+
+                            // Validate IsActive format
+                            bool isActive;
+                            if (isActiveStr.Equals("Active", StringComparison.OrdinalIgnoreCase))
+                                isActive = true;
+                            else if (isActiveStr.Equals("Inactive", StringComparison.OrdinalIgnoreCase))
+                                isActive = false;
+                            else
+                            {
+                                validationErrors.AppendLine($"Line {i + 1}: IsActive must be 'Active' or 'Inactive', found '{isActiveStr}'");
+                                continue;
+                            }
+
+                            newNames.Add(name.ToLower());
+                            validStores.Add(new CreateStoreDto
+                            {
+                                Name = name,
+                                Address = string.IsNullOrWhiteSpace(address) ? null : address,
+                                PhoneNumber = string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber,
+                                Email = string.IsNullOrWhiteSpace(email) ? null : email,
+                                ManagerName = string.IsNullOrWhiteSpace(managerName) ? null : managerName,
+                                IsActive = isActive,
+                                IsDefault = false // Never allow imports to set default store
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            validationErrors.AppendLine($"Line {i + 1}: Validation error - {ex.Message}");
+                        }
+                    }
+
+                    // If validation errors exist, show them and abort
+                    if (validationErrors.Length > 0)
+                    {
+                        var errorDialog = new MessageDialog(
+                            "Validation Errors",
+                            $"Found {validationErrors.ToString().Split('\n').Length - 1} validation error(s). Please fix these issues and try again:\n\n{validationErrors}",
+                            MessageDialog.MessageType.Error);
+                        errorDialog.ShowDialog();
+                        return;
+                    }
+
+                    // Import phase - all validations passed
+                    int successCount = 0;
+                    int errorCount = 0;
+                    var importErrors = new StringBuilder();
+
+                    foreach (var store in validStores)
+                    {
+                        try
+                        {
+                            await _storeService.CreateAsync(store);
+                            successCount++;
+                        }
+                        catch (Exception ex)
                         {
                             errorCount++;
-                            errors.AppendLine($"Line {i + 1}: Invalid format (expected 7 columns)");
-                            continue;
+                            var errorMsg = $"Store '{store.Name}': {ex.Message}";
+                            if (ex.InnerException != null)
+                            {
+                                errorMsg += $" | Inner: {ex.InnerException.Message}";
+                                if (ex.InnerException.InnerException != null)
+                                    errorMsg += $" | Details: {ex.InnerException.InnerException.Message}";
+                            }
+                            importErrors.AppendLine(errorMsg);
                         }
-
-                        var createDto = new CreateStoreDto
-                        {
-                            Name = values[0].Trim('"'),
-                            Address = string.IsNullOrWhiteSpace(values[1].Trim('"')) ? null : values[1].Trim('"'),
-                            PhoneNumber = string.IsNullOrWhiteSpace(values[2].Trim('"')) ? null : values[2].Trim('"'),
-                            Email = string.IsNullOrWhiteSpace(values[3].Trim('"')) ? null : values[3].Trim('"'),
-                            ManagerName = string.IsNullOrWhiteSpace(values[4].Trim('"')) ? null : values[4].Trim('"'),
-                            IsActive = bool.Parse(values[5]),
-                            IsDefault = bool.Parse(values[6])
-                        };
-
-                        await _storeService.CreateAsync(createDto);
-                        successCount++;
                     }
-                    catch (Exception ex)
+
+                    await LoadStoresAsync();
+
+                    // Show results
+                    if (errorCount == 0)
                     {
-                        errorCount++;
-                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                        var successDialog = new MessageDialog(
+                            "Import Successful",
+                            $"Successfully imported {successCount} store(s)!",
+                            MessageDialog.MessageType.Success);
+                        successDialog.ShowDialog();
+                    }
+                    else
+                    {
+                        var message = $"Import completed with some errors:\n\nSuccessfully imported: {successCount}\nFailed: {errorCount}\n\nErrors:\n{importErrors}";
+                        var resultDialog = new MessageDialog(
+                            "Import Completed with Errors",
+                            message,
+                            MessageDialog.MessageType.Warning);
+                        resultDialog.ShowDialog();
                     }
                 }
-
-                await LoadStoresAsync();
-
-                var message = $"Import completed!\n\nSuccessfully imported: {successCount}\nErrors: {errorCount}";
-                if (errorCount > 0)
+                catch (Exception ex)
                 {
-                    message += $"\n\nError details:\n{errors}";
+                    var errorMessage = $"Failed to import stores.\n\nError: {ex.Message}";
+                    if (ex.InnerException != null)
+                    {
+                        errorMessage += $"\n\nInner: {ex.InnerException.Message}";
+                        if (ex.InnerException.InnerException != null)
+                            errorMessage += $"\n\nDetails: {ex.InnerException.InnerException.Message}";
+                    }
+                    
+                    var errorDialog = new MessageDialog(
+                        "Import Error",
+                        errorMessage,
+                        MessageDialog.MessageType.Error);
+                    errorDialog.ShowDialog();
                 }
-
-                MessageBox.Show(message, "Import Complete",
-                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error importing stores: {ex.Message}", "Import Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            finally
-            {
-                IsLoading = false;
+                finally
+                {
+                    IsLoading = false;
+                }
             }
         }
     }
