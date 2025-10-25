@@ -1026,7 +1026,7 @@
                         </Button.Style>
                     </Button>
 
-                    <!-- Exchange Button -->
+                    <!-- Exchange Button (switched to lighter blue tones) -->
                     <Button Content="Exchange" 
                            Height="42"
                            FontSize="14"
@@ -1039,7 +1039,8 @@
                            Command="{Binding ExchangeCommand}">
                         <Button.Style>
                             <Style TargetType="Button">
-                                <Setter Property="Background" Value="#8B5CF6"/>
+                                <!-- Light blue background, hover slightly darker -->
+                                <Setter Property="Background" Value="#60A5FA"/>
                                 <Setter Property="Template">
                                     <Setter.Value>
                                         <ControlTemplate TargetType="Button">
@@ -1054,7 +1055,7 @@
                                 </Setter>
                                 <Style.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#7C3AED"/>
+                                        <Setter Property="Background" Value="#3B82F6"/>
                                     </Trigger>
                                 </Style.Triggers>
                             </Style>

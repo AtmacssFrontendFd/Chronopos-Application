@@ -882,7 +882,7 @@ public partial class TransactionViewModel : ObservableObject
                 Text = $"Exchange {exchangeNumber}",
                 FontSize = 24,
                 FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7C3AED")),
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#3B82F6")),
                 Margin = new Thickness(0, 0, 0, 20)
             };
             stackPanel.Children.Add(headerText);
@@ -1040,7 +1040,7 @@ public partial class TransactionViewModel : ObservableObject
             {
                 Content = "Print Receipt",
                 Height = 40,
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7C3AED")),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#3B82F6")),
                 Foreground = Brushes.White,
                 BorderThickness = new Thickness(0),
                 FontWeight = FontWeights.SemiBold,
@@ -1058,8 +1058,8 @@ public partial class TransactionViewModel : ObservableObject
                 Content = "Close",
                 Height = 40,
                 Background = Brushes.White,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7C3AED")),
-                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7C3AED")),
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#3B82F6")),
+                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#3B82F6")),
                 BorderThickness = new Thickness(2),
                 FontWeight = FontWeights.SemiBold,
                 Margin = new Thickness(5, 0, 0, 0),
@@ -1362,7 +1362,7 @@ public partial class TransactionViewModel : ObservableObject
                     TotalGivenCount = itemsGiven.Count,
                     Difference = exchange.TotalExchangedAmount,
                     Status = "Exchanged",
-                    StatusColor = "#7C3AED"
+                    StatusColor = "#3B82F6"
                 };
                 
                 ExchangeTransactions.Add(exchangeCard);
@@ -1382,11 +1382,11 @@ public partial class TransactionViewModel : ObservableObject
             "pending" or "draft" => "#F59E0B",          // Orange/Yellow
             "billed" => "#3B82F6",                      // Blue
             "cancelled" => "#EF4444",                   // Red
-            "hold" => "#8B5CF6",                        // Purple
+            "hold" => "#60A5FA",                        // Blue (replaced purple with lighter blue)
             "pending_payment" => "#F97316",             // Dark Orange
             "partial_payment" => "#06B6D4",             // Cyan
             "refunded" => "#DC2626",                    // Dark Red
-            "exchanged" => "#7C3AED",                   // Violet
+            "exchanged" => "#3B82F6",                   // Blue (replaced violet)
             _ => "#6B7280"                              // Gray
         };
     }
@@ -1634,7 +1634,7 @@ public partial class TransactionViewModel : ObservableObject
                             </Button>
                             
                             <!-- Exchange Button - for settled -->
-                            <Button Content='Exchange' Height='35' Margin='4,0,0,0' Background='#8B5CF6' Foreground='White' BorderThickness='0' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
+                            <Button Content='Exchange' Height='35' Margin='4,0,0,0' Background='#60A5FA' Foreground='White' BorderThickness='0' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
                                     Command='{Binding DataContext.ExchangeFromCardCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}'
                                     CommandParameter='{Binding TransactionId}'>
                                 <Button.Style>
@@ -1896,10 +1896,10 @@ public partial class TransactionViewModel : ObservableObject
                                 <Trigger Property='IsMouseOver' Value='True'>
                                     <Setter Property='Effect'>
                                         <Setter.Value>
-                                            <DropShadowEffect Color='#7C3AED' BlurRadius='15' ShadowDepth='3' Opacity='0.4'/>
+                                            <DropShadowEffect Color='#3B82F6' BlurRadius='15' ShadowDepth='3' Opacity='0.4'/>
                                         </Setter.Value>
                                     </Setter>
-                                    <Setter Property='BorderBrush' Value='#7C3AED'/>
+                                    <Setter Property='BorderBrush' Value='#3B82F6'/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -1921,7 +1921,7 @@ public partial class TransactionViewModel : ObservableObject
                         
                         <!-- Header: Exchange Number + Status Badge -->
                         <Grid Grid.Row='0'>
-                            <Border Background='#7C3AED' CornerRadius='8' Padding='10,5' HorizontalAlignment='Left'>
+                            <Border Background='#3B82F6' CornerRadius='8' Padding='10,5' HorizontalAlignment='Left'>
                                 <TextBlock Text='{Binding ExchangeNumber}' FontSize='13' FontWeight='Bold' Foreground='White'/>
                             </Border>
                             <Border Background='{Binding StatusColor}' CornerRadius='6' Padding='8,4' HorizontalAlignment='Right'>
@@ -1935,7 +1935,7 @@ public partial class TransactionViewModel : ObservableObject
                             <TextBlock FontSize='11' Foreground='#6B7280' Margin='0,4,0,0'>
                                 <Run Text='{Binding Date}'/> - <Run Text='{Binding Time}'/>
                             </TextBlock>
-                            <TextBlock FontSize='12' Foreground='#7C3AED' FontWeight='Medium' Margin='0,4,0,0'>
+                            <TextBlock FontSize='12' Foreground='#3B82F6' FontWeight='Medium' Margin='0,4,0,0'>
                                 <Run Text='Original Invoice: '/><Run Text='{Binding OriginalInvoice}'/>
                             </TextBlock>
                         </StackPanel>
@@ -1946,7 +1946,7 @@ public partial class TransactionViewModel : ObservableObject
                                 <TextBlock Text='Items Returned: ' FontSize='11' FontWeight='SemiBold' Foreground='#EF4444'/>
                                 <TextBlock Text='{Binding TotalReturnedCount}' FontSize='11' FontWeight='Bold' Foreground='#EF4444'/>
                             </StackPanel>
-                            <Button Content='View All' FontSize='10' FontWeight='SemiBold' Foreground='#7C3AED' Background='Transparent' 
+                            <Button Content='View All' FontSize='10' FontWeight='SemiBold' Foreground='#3B82F6' Background='Transparent' 
                                     BorderThickness='0' HorizontalAlignment='Right' Cursor='Hand' Padding='4,0'
                                     Command='{Binding DataContext.OpenExchangeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}'
                                     CommandParameter='{Binding ExchangeId}'>
@@ -1967,7 +1967,7 @@ public partial class TransactionViewModel : ObservableObject
                                                 <Setter Property='Visibility' Value='Visible'/>
                                             </DataTrigger>
                                             <Trigger Property='IsMouseOver' Value='True'>
-                                                <Setter Property='Foreground' Value='#6D28D9'/>
+                                                <Setter Property='Foreground' Value='#2563EB'/>
                                                 <Setter Property='TextBlock.TextDecorations' Value='Underline'/>
                                             </Trigger>
                                         </Style.Triggers>
@@ -2031,12 +2031,12 @@ public partial class TransactionViewModel : ObservableObject
                         <!-- Difference -->
                         <Grid Grid.Row='8' Margin='0,4,0,0'>
                             <TextBlock Text='Price Difference' FontSize='13' FontWeight='SemiBold' Foreground='#1F2937'/>
-                            <TextBlock Text='{Binding Difference, StringFormat=${0:N2}}' FontSize='15' FontWeight='Bold' Foreground='#7C3AED' HorizontalAlignment='Right'/>
+                            <TextBlock Text='{Binding Difference, StringFormat=${0:N2}}' FontSize='15' FontWeight='Bold' Foreground='#3B82F6' HorizontalAlignment='Right'/>
                         </Grid>
                         
                         <!-- Action Buttons -->
                         <UniformGrid Grid.Row='10' Columns='2' HorizontalAlignment='Stretch'>
-                            <Button Content='View Details' Height='35' Margin='0,0,4,0' Background='#7C3AED' Foreground='White' BorderThickness='0' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
+                            <Button Content='View Details' Height='35' Margin='0,0,4,0' Background='#3B82F6' Foreground='White' BorderThickness='0' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
                                     Command='{Binding DataContext.OpenExchangeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}'
                                     CommandParameter='{Binding ExchangeId}'>
                                 <Button.Style>
@@ -2052,13 +2052,13 @@ public partial class TransactionViewModel : ObservableObject
                                         </Setter>
                                         <Style.Triggers>
                                             <Trigger Property='IsMouseOver' Value='True'>
-                                                <Setter Property='Background' Value='#6D28D9'/>
+                                                <Setter Property='Background' Value='#2563EB'/>
                                             </Trigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Button.Style>
                             </Button>
-                            <Button Content='Print' Height='35' Margin='4,0,0,0' Background='White' BorderBrush='#7C3AED' BorderThickness='2' Foreground='#7C3AED' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
+                            <Button Content='Print' Height='35' Margin='4,0,0,0' Background='White' BorderBrush='#3B82F6' BorderThickness='2' Foreground='#3B82F6' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
                                     Command='{Binding DataContext.PrintExchangeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}'
                                     CommandParameter='{Binding ExchangeId}'>
                                 <Button.Style>
