@@ -10,9 +10,7 @@ namespace ChronoPos.Desktop.Models.Licensing
         public string PlanName { get; set; } = string.Empty;
         public decimal PlanPrice { get; set; }
         public int DurationInDays { get; set; }
-        public int SalespersonId { get; set; }
-        public string SalespersonName { get; set; } = string.Empty;
-        public string SalespersonEmail { get; set; } = string.Empty;
+        public string ApplicationName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime ExpiryDate { get; set; }
         public string BatchNumber { get; set; } = string.Empty;

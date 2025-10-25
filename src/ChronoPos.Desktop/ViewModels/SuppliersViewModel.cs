@@ -764,11 +764,11 @@ public partial class SuppliersViewModel : ObservableObject
     {
         try
         {
-            CanCreateSupplier = _currentUserService.HasPermission(ScreenNames.SUPPLIERS_ADD_OPTIONS, TypeMatrix.CREATE);
-            CanEditSupplier = _currentUserService.HasPermission(ScreenNames.SUPPLIERS_ADD_OPTIONS, TypeMatrix.UPDATE);
-            CanDeleteSupplier = _currentUserService.HasPermission(ScreenNames.SUPPLIERS_ADD_OPTIONS, TypeMatrix.DELETE);
-            CanImportSupplier = _currentUserService.HasPermission(ScreenNames.SUPPLIERS_ADD_OPTIONS, TypeMatrix.IMPORT);
-            CanExportSupplier = _currentUserService.HasPermission(ScreenNames.SUPPLIERS_ADD_OPTIONS, TypeMatrix.EXPORT);
+            CanCreateSupplier = _currentUserService.HasPermission(ScreenNames.SUPPLIERS, TypeMatrix.CREATE);
+            CanEditSupplier = _currentUserService.HasPermission(ScreenNames.SUPPLIERS, TypeMatrix.UPDATE);
+            CanDeleteSupplier = _currentUserService.HasPermission(ScreenNames.SUPPLIERS, TypeMatrix.DELETE);
+            CanImportSupplier = _currentUserService.HasPermission(ScreenNames.SUPPLIERS, TypeMatrix.IMPORT);
+            CanExportSupplier = _currentUserService.HasPermission(ScreenNames.SUPPLIERS, TypeMatrix.EXPORT);
         }
         catch (Exception)
         {

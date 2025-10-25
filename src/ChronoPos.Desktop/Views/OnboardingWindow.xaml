@@ -390,9 +390,9 @@
                                    TextWrapping="Wrap"/>
                     </StackPanel>
 
-                    <!-- Step 2: Salesperson Confirmation -->
+                    <!-- Step 2: Application Name & Plan Confirmation -->
                     <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=2}">
-                        <TextBlock Text="Step 2 of 6: Confirm Salesperson &amp; Plan" 
+                        <TextBlock Text="Step 2 of 6: Confirm Application Name &amp; Plan" 
                                    FontSize="24" 
                                    FontWeight="Bold" 
                                    Foreground="{DynamicResource TextPrimary}"
@@ -405,7 +405,7 @@
                                 Padding="30"
                                 MaxWidth="600">
                             <StackPanel>
-                                <TextBlock Text="Salesperson Information" 
+                                <TextBlock Text="Application Information" 
                                            FontSize="18" 
                                            FontWeight="Bold" 
                                            Foreground="{DynamicResource TextPrimary}"
@@ -418,20 +418,10 @@
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="10"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="10"/>
-                                        <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Name:" Foreground="{DynamicResource TextSecondary}"/>
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ScratchCardInfo.SalespersonName}" Foreground="{DynamicResource TextPrimary}" FontWeight="Medium"/>
-
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Email:" Foreground="{DynamicResource TextSecondary}"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ScratchCardInfo.SalespersonEmail}" Foreground="{DynamicResource TextPrimary}" FontWeight="Medium"/>
-
-                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Employee ID:" Foreground="{DynamicResource TextSecondary}"/>
-                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding ScratchCardInfo.SalespersonId}" Foreground="{DynamicResource TextPrimary}" FontWeight="Medium"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Application Name:" Foreground="{DynamicResource TextSecondary}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ScratchCardInfo.ApplicationName}" Foreground="{DynamicResource TextPrimary}" FontWeight="Medium"/>
                                 </Grid>
 
                                 <Border Height="1" Background="{DynamicResource BorderLight}" Margin="0,25"/>

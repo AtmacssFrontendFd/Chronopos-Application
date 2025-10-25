@@ -208,7 +208,8 @@ public partial class MainWindowViewModel : ObservableObject
             IsTransactionVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.TRANSACTION);
             IsManagementVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.BACK_OFFICE);
             IsReservationVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.RESERVATION);
-            IsOrderTableVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.ORDER_TABLE);
+            // IsOrderTableVisible = false; // ORDER_TABLE removed from ScreenNames - button removed from sidebar
+            IsOrderTableVisible = false; // ORDER_TABLE functionality removed
             IsReportsVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.REPORTS);
             IsSettingsVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.SETTINGS);
 
@@ -1121,6 +1122,12 @@ public partial class MainWindowViewModel : ObservableObject
                     case "Stock":
                         _ = ShowStockManagement();
                         break;
+                    case "CustomerManagement":
+                        _ = ShowCustomerManagement();
+                        break;
+                    case "SupplierManagement":
+                        _ = ShowSupplierManagement();
+                        break;
                     case "AddOptions":
                         _ = ShowAddOptions();
                         break;
@@ -1156,6 +1163,162 @@ public partial class MainWindowViewModel : ObservableObject
             errorContent.Children.Add(new System.Windows.Controls.TextBlock 
             { 
                 Text = $"Error loading management modules: {ex.Message}",
+                FontStyle = System.Windows.FontStyles.Italic,
+                Foreground = System.Windows.Media.Brushes.Red,
+                Margin = new System.Windows.Thickness(0, 20, 0, 0)
+            });
+            
+            CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowCustomerManagement()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Customer Management";
+        StatusMessage = "Loading customer management...";
+        
+        try
+        {
+            // Create the CustomerManagementViewModel with all required services
+            var customerManagementViewModel = new CustomerManagementViewModel(
+                _serviceProvider.GetRequiredService<IThemeService>(),
+                _serviceProvider.GetRequiredService<IZoomService>(),
+                _serviceProvider.GetRequiredService<ILocalizationService>(),
+                _serviceProvider.GetRequiredService<IColorSchemeService>(),
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
+                _serviceProvider.GetRequiredService<IFontService>(),
+                _serviceProvider.GetRequiredService<IDatabaseLocalizationService>(),
+                _currentUserService,
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ICustomerGroupService>()
+            );
+
+            // Set up navigation from customer management to specific modules
+            customerManagementViewModel.NavigateToModuleAction = (moduleType) =>
+            {
+                switch (moduleType)
+                {
+                    case "Customers":
+                        _ = ShowCustomers();
+                        break;
+                    case "CustomerGroups":
+                        _ = ShowCustomerGroups();
+                        break;
+                    default:
+                        StatusMessage = $"Navigation to {moduleType} not implemented yet";
+                        break;
+                }
+            };
+
+            // Set up back navigation
+            customerManagementViewModel.GoBackAction = () =>
+            {
+                ShowManagementCommand.Execute(null);
+            };
+
+            // Create the CustomerManagementView and set its DataContext
+            var customerManagementView = new CustomerManagementView
+            {
+                DataContext = customerManagementViewModel
+            };
+
+            CurrentView = customerManagementView;
+            StatusMessage = "Customer management loaded successfully";
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading customer management: {ex.Message}";
+            
+            // Fallback to simple error display
+            var errorContent = new System.Windows.Controls.StackPanel();
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = "Customer Management", 
+                FontSize = 16, 
+                FontWeight = System.Windows.FontWeights.Bold,
+                Margin = new System.Windows.Thickness(0, 0, 0, 10) 
+            });
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = $"Error loading customer management: {ex.Message}",
+                FontStyle = System.Windows.FontStyles.Italic,
+                Foreground = System.Windows.Media.Brushes.Red,
+                Margin = new System.Windows.Thickness(0, 20, 0, 0)
+            });
+            
+            CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowSupplierManagement()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Supplier Management";
+        StatusMessage = "Loading supplier management...";
+        
+        try
+        {
+            // Create the SupplierManagementViewModel with all required services
+            var supplierManagementViewModel = new SupplierManagementViewModel(
+                _serviceProvider.GetRequiredService<IThemeService>(),
+                _serviceProvider.GetRequiredService<IZoomService>(),
+                _serviceProvider.GetRequiredService<ILocalizationService>(),
+                _serviceProvider.GetRequiredService<IColorSchemeService>(),
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
+                _serviceProvider.GetRequiredService<IFontService>(),
+                _serviceProvider.GetRequiredService<IDatabaseLocalizationService>(),
+                _currentUserService,
+                _serviceProvider.GetRequiredService<ISupplierService>()
+            );
+
+            // Set up navigation from supplier management to specific modules
+            supplierManagementViewModel.NavigateToModuleAction = (moduleType) =>
+            {
+                switch (moduleType)
+                {
+                    case "Suppliers":
+                        _ = ShowSuppliers();
+                        break;
+                    default:
+                        StatusMessage = $"Navigation to {moduleType} not implemented yet";
+                        break;
+                }
+            };
+
+            // Set up back navigation
+            supplierManagementViewModel.GoBackAction = () =>
+            {
+                ShowManagementCommand.Execute(null);
+            };
+
+            // Create the SupplierManagementView and set its DataContext
+            var supplierManagementView = new SupplierManagementView
+            {
+                DataContext = supplierManagementViewModel
+            };
+
+            CurrentView = supplierManagementView;
+            StatusMessage = "Supplier management loaded successfully";
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading supplier management: {ex.Message}";
+            
+            // Fallback to simple error display
+            var errorContent = new System.Windows.Controls.StackPanel();
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = "Supplier Management", 
+                FontSize = 16, 
+                FontWeight = System.Windows.FontWeights.Bold,
+                Margin = new System.Windows.Thickness(0, 0, 0, 10) 
+            });
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = $"Error loading supplier management: {ex.Message}",
                 FontStyle = System.Windows.FontStyles.Italic,
                 Foreground = System.Windows.Media.Brushes.Red,
                 Margin = new System.Windows.Thickness(0, 20, 0, 0)
@@ -1328,7 +1491,7 @@ public partial class MainWindowViewModel : ObservableObject
         ChronoPos.Desktop.Services.FileLogger.Log("🔧 ShowProductModifiers method started");
         
         // Check permission using UMAC - Allow if user has ANY permission
-        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PRODUCT_ATTRIBUTES))
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PRODUCT_MODIFIERS))
         {
             MessageBox.Show(
                 "You don't have permission to access Product Modifiers Management.",
@@ -2312,15 +2475,6 @@ public partial class MainWindowViewModel : ObservableObject
                     case "TaxRates":
                         _ = ShowTaxTypes();
                         break;
-                    case "Customers":
-                        _ = ShowCustomers();
-                        break;
-                    case "CustomerGroups":
-                        _ = ShowCustomerGroups();
-                        break;
-                    case "Suppliers":
-                        _ = ShowSuppliers();
-                        break;
                     case "Shop":
                         _ = ShowStore();
                         break;
@@ -2606,8 +2760,16 @@ public partial class MainWindowViewModel : ObservableObject
 
     private async Task ShowCurrency()
     {
-        // TODO: Add permission check when CURRENCY is added to ScreenNames
-        // For now, allow access (permissions default to true in CurrencyViewModel)
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.CURRENCY))
+        {
+            MessageBox.Show(
+                "You don't have permission to access Currency Management.",
+                "Access Denied",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
 
         // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
         CurrentPageTitle = "Currency Management";
@@ -2878,7 +3040,7 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task ShowCustomers()
     {
         // Check permission using UMAC - Allow if user has ANY permission
-        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.CUSTOMERS_ADD_OPTIONS))
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.CUSTOMERS))
         {
             MessageBox.Show(
                 "You don't have permission to access Customer Management.",
@@ -2901,10 +3063,10 @@ public partial class MainWindowViewModel : ObservableObject
                 _currentUserService
             );
 
-            // Set up back navigation to return to Others
+            // Set up back navigation to return to Customer Management
             customersViewModel.GoBackAction = () =>
             {
-                ShowAddOptionsCommand.Execute(null);
+                _ = ShowCustomerManagement();
             };
 
             // Create the CustomersView and set its DataContext
@@ -2960,10 +3122,10 @@ public partial class MainWindowViewModel : ObservableObject
                 _currentUserService
             );
 
-            // Set up back navigation to return to Others
+            // Set up back navigation to return to Customer Management
             customerGroupsViewModel.GoBackAction = () =>
             {
-                ShowAddOptionsCommand.Execute(null);
+                _ = ShowCustomerManagement();
             };
 
             // Create the CustomerGroupsView and set its DataContext
@@ -3054,7 +3216,7 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task ShowSuppliers()
     {
         // Check permission using UMAC - Allow if user has ANY permission
-        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.SUPPLIERS_ADD_OPTIONS))
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.SUPPLIERS))
         {
             MessageBox.Show(
                 "You don't have permission to access Supplier Management.",
@@ -3076,10 +3238,10 @@ public partial class MainWindowViewModel : ObservableObject
                 _currentUserService
             );
 
-            // Set up back navigation to return to Others
+            // Set up back navigation to return to Supplier Management
             suppliersViewModel.GoBackAction = () =>
             {
-                ShowAddOptionsCommand.Execute(null);
+                _ = ShowSupplierManagement();
             };
 
             // Create the SuppliersView and set its DataContext
@@ -3191,33 +3353,35 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
-    private void ShowOrderTable()
-    {
-        // Check permission using UMAC - Allow if user has ANY permission (Create, Edit, Delete, Import, Export, View, Print)
-        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.ORDER_TABLE))
-        {
-            MessageBox.Show(
-                "You don't have permission to access the Order Table screen.",
-                "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-            return;
-        }
-
-        SelectedPage = "OrderTable";
-        CurrentPageTitle = "Order Table";
-        StatusMessage = "Order table loaded";
-        
-        var orderTableContent = new System.Windows.Controls.TextBlock
-        {
-            Text = "Order Table\n(Order history and management will be shown here)",
-            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-            VerticalAlignment = System.Windows.VerticalAlignment.Center,
-            FontSize = 16
-        };
-        CurrentView = orderTableContent;
-    }
+    // COMMENTED OUT: OrderTable removed from sidebar - screen constant removed from ScreenNames
+    // [RelayCommand]
+    // private void ShowOrderTable()
+    // {
+    //     // Check permission using UMAC - Allow if user has ANY permission (Create, Edit, Delete, Import, Export, View, Print)
+    //     // Note: ORDER_TABLE constant has been removed from ScreenNames.cs
+    //     // if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.ORDER_TABLE))
+    //     // {
+    //     //     MessageBox.Show(
+    //     //         "You don't have permission to access the Order Table screen.",
+    //     //         "Access Denied",
+    //     //         MessageBoxButton.OK,
+    //     //         MessageBoxImage.Warning);
+    //     //     return;
+    //     // }
+    //
+    //     SelectedPage = "OrderTable";
+    //     CurrentPageTitle = "Order Table";
+    //     StatusMessage = "Order table loaded";
+    //     
+    //     var orderTableContent = new System.Windows.Controls.TextBlock
+    //     {
+    //         Text = "Order Table\n(Order history and management will be shown here)",
+    //         HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+    //         VerticalAlignment = System.Windows.VerticalAlignment.Center,
+    //         FontSize = 16
+    //     };
+    //     CurrentView = orderTableContent;
+    // }
 
     [RelayCommand]
     private void ShowReports()
@@ -3250,6 +3414,17 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private async Task ShowSettings()
     {
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.SETTINGS))
+        {
+            MessageBox.Show(
+                "You don't have permission to access the Settings screen.",
+                "Access Denied",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
         SelectedPage = "Settings";
         CurrentPageTitle = await _databaseLocalizationService.GetTranslationAsync("nav_settings") ?? "Settings";
         StatusMessage = await _databaseLocalizationService.GetTranslationAsync("status_loading_settings") ?? "Loading settings...";
@@ -3330,6 +3505,17 @@ public partial class MainWindowViewModel : ObservableObject
     {
         AppLogger.Log("=== ShowUserSettings STARTED ===");
         
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.CLIENT_SETTINGS))
+        {
+            MessageBox.Show(
+                "You don't have permission to access User Settings.",
+                "Access Denied",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+        
         // Don't change SelectedPage - keep it as "Settings" so sidebar stays highlighted
         CurrentPageTitle = "User Settings";
         StatusMessage = "Loading user settings...";
@@ -3382,6 +3568,17 @@ public partial class MainWindowViewModel : ObservableObject
 
     private async Task ShowApplicationSettings()
     {
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.GLOBAL_SETTINGS))
+        {
+            MessageBox.Show(
+                "You don't have permission to access Application Settings.",
+                "Access Denied",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+        
         // Don't change SelectedPage - keep it as "Settings" so sidebar stays highlighted
         CurrentPageTitle = "Application Settings";
         StatusMessage = "Loading application settings...";
@@ -3415,6 +3612,17 @@ public partial class MainWindowViewModel : ObservableObject
 
     private async Task ShowPermissions()
     {
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PERMISSIONS))
+        {
+            MessageBox.Show(
+                "You don't have permission to access Permissions Management.",
+                "Access Denied",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+        
         // Don't change SelectedPage - keep it as "Settings" so sidebar stays highlighted
         CurrentPageTitle = "Permissions";
         StatusMessage = "Loading permissions...";
@@ -3452,6 +3660,17 @@ public partial class MainWindowViewModel : ObservableObject
 
     private async Task ShowRoles()
     {
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.ROLES))
+        {
+            MessageBox.Show(
+                "You don't have permission to access Roles Management.",
+                "Access Denied",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+        
         // Don't change SelectedPage - keep it as "Settings" so sidebar stays highlighted
         CurrentPageTitle = "Roles";
         StatusMessage = "Loading roles...";

@@ -319,9 +319,9 @@ public partial class AddOptionsViewModel : ObservableObject
             IsPriceTypesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRICE_TYPES);
             IsPaymentTypesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PAYMENT_TYPES);
             IsTaxRatesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.TAX_RATES);
-            IsCustomersVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS);
+            IsCustomersVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.CUSTOMERS);
             IsCustomerGroupsVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.CUSTOMER_GROUPS);
-            IsSuppliersVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.SUPPLIERS_ADD_OPTIONS);
+            IsSuppliersVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.SUPPLIERS);
             IsShopVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.SHOP);
             // Note: Warehouses doesn't have a screen constant, so keeping it visible by default
             IsWarehousesVisible = true;
@@ -368,7 +368,7 @@ public partial class AddOptionsViewModel : ObservableObject
                 var primaryColorBrush = GetPrimaryColorBrush();
                 var buttonBackgroundBrush = GetButtonBackgroundBrush();
 
-                // Create all 14 modules with visibility flags
+                // Create all 11 modules with visibility flags (removed Customer, CustomerGroups, and Suppliers)
                 var moduleData = new[]
                 {
                     new { Type = "Brand", TitleKey = "add_options.brand", CountLabel = "Brands", Count = await GetBrandCountAsync(), IsVisible = IsBrandVisible },
@@ -380,11 +380,8 @@ public partial class AddOptionsViewModel : ObservableObject
                     new { Type = "PriceTypes", TitleKey = "add_options.price_types", CountLabel = "Price Types", Count = await GetPriceTypesCountAsync(), IsVisible = IsPriceTypesVisible },
                     new { Type = "PaymentTypes", TitleKey = "add_options.payment_types", CountLabel = "Payment Types", Count = await GetPaymentTypesCountAsync(), IsVisible = IsPaymentTypesVisible },
                     new { Type = "TaxRates", TitleKey = "add_options.tax_rates", CountLabel = "Tax Rates", Count = await GetTaxRatesCountAsync(), IsVisible = IsTaxRatesVisible },
-                    new { Type = "Customers", TitleKey = "add_options.customer", CountLabel = "Customers", Count = await GetCustomerCountAsync(), IsVisible = IsCustomersVisible },
-                    new { Type = "Suppliers", TitleKey = "add_options.suppliers", CountLabel = "Suppliers", Count = await GetSuppliersCountAsync(), IsVisible = IsSuppliersVisible },
                     new { Type = "UOM", TitleKey = "add_options.uom", CountLabel = "UOMs", Count = await GetUOMCountAsync(), IsVisible = IsUomVisible },
                     new { Type = "Shop", TitleKey = "add_options.shop", CountLabel = "Shops", Count = await GetShopCountAsync(), IsVisible = IsShopVisible },
-                    new { Type = "CustomerGroups", TitleKey = "add_options.customer_groups", CountLabel = "Groups", Count = await GetCustomerGroupsCountAsync(), IsVisible = IsCustomerGroupsVisible },
                     new { Type = "Discounts", TitleKey = "add_options.discounts", CountLabel = "Discounts", Count = await GetDiscountsCountAsync(), IsVisible = IsDiscountsVisible },
                     new { Type = "Currency", TitleKey = "add_options.currency", CountLabel = "Currencies", Count = await GetCurrencyCountAsync(), IsVisible = IsCurrencyVisible }
                 };

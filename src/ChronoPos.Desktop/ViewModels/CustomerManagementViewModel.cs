@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -12,10 +11,10 @@ using ChronoPos.Infrastructure.Services;
 namespace ChronoPos.Desktop.ViewModels;
 
 /// <summary>
-/// ViewModel for the Management page with all settings integration
-/// Provides management modules with zoom-aware UI and multi-language support
+/// ViewModel for the Customer Management page
+/// Provides access to Customer and Customer Groups modules
 /// </summary>
-public partial class ManagementViewModel : ObservableObject
+public partial class CustomerManagementViewModel : ObservableObject
 {
     #region Private Fields
 
@@ -27,13 +26,15 @@ public partial class ManagementViewModel : ObservableObject
     private readonly IFontService _fontService;
     private readonly IDatabaseLocalizationService _databaseLocalizationService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ICustomerService _customerService;
+    private readonly ICustomerGroupService _customerGroupService;
 
     #endregion
 
     #region Observable Properties
 
     /// <summary>
-    /// Collection of management modules
+    /// Collection of customer management modules
     /// </summary>
     [ObservableProperty]
     private ObservableCollection<ManagementModuleInfo> _modules = new();
@@ -42,7 +43,7 @@ public partial class ManagementViewModel : ObservableObject
     /// Current page title with localization support
     /// </summary>
     [ObservableProperty]
-    private string _pageTitle = "Management";
+    private string _pageTitle = "Customer Management";
 
     /// <summary>
     /// Current theme (Light/Dark)
@@ -74,24 +75,6 @@ public partial class ManagementViewModel : ObservableObject
     [ObservableProperty]
     private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
 
-    /// <summary>
-    /// Visibility for Product Management module (based on UMAC permissions)
-    /// </summary>
-    [ObservableProperty]
-    private bool _isProductManagementVisible = true;
-
-    /// <summary>
-    /// Visibility for Stock Management module (based on UMAC permissions)
-    /// </summary>
-    [ObservableProperty]
-    private bool _isStockManagementVisible = true;
-
-    /// <summary>
-    /// Visibility for Others module (based on UMAC permissions) - Moved to Settings
-    /// </summary>
-    [ObservableProperty]
-    private bool _isAddOptionsVisible = true;
-
     #endregion
 
     #region Commands
@@ -102,7 +85,12 @@ public partial class ManagementViewModel : ObservableObject
     public Action<string>? NavigateToModuleAction { get; set; }
 
     /// <summary>
-    /// Command to navigate to a specific management module
+    /// Back navigation action (set by parent)
+    /// </summary>
+    public Action? GoBackAction { get; set; }
+
+    /// <summary>
+    /// Command to navigate to a specific customer module
     /// </summary>
     [RelayCommand]
     private void NavigateToModule(string moduleType)
@@ -120,6 +108,24 @@ public partial class ManagementViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Command to go back to previous screen
+    /// </summary>
+    [RelayCommand]
+    private void GoBack()
+    {
+        if (GoBackAction != null)
+        {
+            GoBackAction();
+        }
+        else
+        {
+            // Fallback for debug
+            MessageBox.Show("Going back to Management", "Navigation", 
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    /// <summary>
     /// Command to refresh module data
     /// </summary>
     [RelayCommand]
@@ -132,7 +138,7 @@ public partial class ManagementViewModel : ObservableObject
 
     #region Constructor
 
-    public ManagementViewModel(
+    public CustomerManagementViewModel(
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -140,7 +146,9 @@ public partial class ManagementViewModel : ObservableObject
         ILayoutDirectionService layoutDirectionService,
         IFontService fontService,
         IDatabaseLocalizationService databaseLocalizationService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ICustomerService customerService,
+        ICustomerGroupService customerGroupService)
     {
         _themeService = themeService;
         _zoomService = zoomService;
@@ -150,6 +158,8 @@ public partial class ManagementViewModel : ObservableObject
         _fontService = fontService;
         _databaseLocalizationService = databaseLocalizationService;
         _currentUserService = currentUserService;
+        _customerService = customerService;
+        _customerGroupService = customerGroupService;
 
         // Subscribe to settings changes
         _themeService.ThemeChanged += OnThemeChanged;
@@ -162,9 +172,6 @@ public partial class ManagementViewModel : ObservableObject
         // Initialize with current settings
         InitializeSettings();
         
-        // Initialize module visibility based on UMAC permissions
-        InitializeModuleVisibility();
-        
         // Load module data
         _ = LoadModuleDataAsync();
     }
@@ -172,29 +179,6 @@ public partial class ManagementViewModel : ObservableObject
     #endregion
 
     #region Private Methods
-
-    /// <summary>
-    /// Initialize module visibility based on UMAC permissions
-    /// Hides modules the user doesn't have any permission to access
-    /// </summary>
-    private void InitializeModuleVisibility()
-    {
-        try
-        {
-            // Check if user has ANY permission for each module
-            IsProductManagementVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PRODUCT_MANAGEMENT);
-            IsStockManagementVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.STOCK_MANAGEMENT);
-            IsAddOptionsVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.ADD_OPTIONS);
-        }
-        catch (Exception ex)
-        {
-            // Default to showing all modules if error occurs
-            System.Diagnostics.Debug.WriteLine($"Error initializing module visibility: {ex.Message}");
-            IsProductManagementVisible = true;
-            IsStockManagementVisible = true;
-            IsAddOptionsVisible = true;
-        }
-    }
 
     /// <summary>
     /// Initialize all settings with current values
@@ -217,11 +201,11 @@ public partial class ManagementViewModel : ObservableObject
     /// </summary>
     private async Task UpdatePageTitleAsync()
     {
-        PageTitle = await _databaseLocalizationService.GetTranslationAsync("nav.management");
+        PageTitle = await _databaseLocalizationService.GetTranslationAsync("management.customers") ?? "Customer Management";
     }
 
     /// <summary>
-    /// Load management module data with localized content
+    /// Load customer management module data with localized content
     /// </summary>
     private async Task LoadModuleDataAsync()
     {
@@ -232,33 +216,27 @@ public partial class ManagementViewModel : ObservableObject
         var primaryColorBrush = GetPrimaryColorBrush();
         var buttonBackgroundBrush = GetButtonBackgroundBrush();
 
-        // Create modules with localized content from database (4 modules - Payment and Service removed, CustomerManagement and SupplierManagement added)
+        // Create modules with localized content from database (2 modules)
         var moduleData = new[]
         {
-            new { Type = "Stock", TitleKey = "management.stock", CountLabel = "Items", Count = await GetStockCountAsync(), IsVisible = IsStockManagementVisible },
-            new { Type = "Product", TitleKey = "management.products", CountLabel = "Products", Count = await GetProductCountAsync(), IsVisible = IsProductManagementVisible },
-            new { Type = "CustomerManagement", TitleKey = "management.customers", CountLabel = "Customers", Count = await GetCustomerCountAsync(), IsVisible = true },
-            new { Type = "SupplierManagement", TitleKey = "management.supplier", CountLabel = "Suppliers", Count = await GetSupplierCountAsync(), IsVisible = true }
+            new { Type = "Customers", TitleKey = "add_options.customer", CountLabel = "Customers", Count = await GetCustomerCountAsync() },
+            new { Type = "CustomerGroups", TitleKey = "add_options.customer_groups", CountLabel = "Groups", Count = await GetCustomerGroupsCountAsync() }
         };
 
-        // Add modules to collection - All use the same primary color - Only add visible modules
+        // Add modules to collection
         for (int i = 0; i < moduleData.Length; i++)
         {
             var data = moduleData[i];
             
-            // Only add module if user has permission to see it
-            if (data.IsVisible)
+            Modules.Add(new ManagementModuleInfo
             {
-                Modules.Add(new ManagementModuleInfo
-                {
-                    ModuleType = data.Type,
-                    Title = await _databaseLocalizationService.GetTranslationAsync(data.TitleKey),
-                    ItemCount = data.Count,
-                    ItemCountLabel = data.CountLabel, // TODO: Make this dynamic too
-                    IconBackground = primaryColorBrush, // Same primary color for all icons
-                    ButtonBackground = buttonBackgroundBrush
-                });
-            }
+                ModuleType = data.Type,
+                Title = await _databaseLocalizationService.GetTranslationAsync(data.TitleKey) ?? data.Type,
+                ItemCount = data.Count,
+                ItemCountLabel = data.CountLabel,
+                IconBackground = primaryColorBrush,
+                ButtonBackground = buttonBackgroundBrush
+            });
         }
         
         // Reorder modules based on current direction after loading
@@ -266,7 +244,7 @@ public partial class ManagementViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Get module colors based on current color scheme - All icons use the same primary color
+    /// Get module colors based on current color scheme
     /// </summary>
     private Brush GetPrimaryColorBrush()
     {
@@ -284,66 +262,33 @@ public partial class ManagementViewModel : ObservableObject
             : new SolidColorBrush(Color.FromRgb(255, 255, 255)); // Light background
     }
 
-    /// <summary>
-    /// Get localized string using the localization service
-    /// </summary>
-    private string GetLocalizedString(string key)
-    {
-        try
-        {
-            return _localizationService.GetString(key);
-        }
-        catch
-        {
-            // Return the key if localization fails
-            return key;
-        }
-    }
-
-    /// <summary>
-    /// Update all localized strings
-    /// </summary>
-    private void UpdateLocalizedStrings()
-    {
-        PageTitle = GetLocalizedString("Management");
-        
-        // Refresh modules to update localized content
-        if (Modules.Any())
-        {
-            _ = LoadModuleDataAsync();
-        }
-    }
-
     #endregion
 
-    #region Data Loading Methods (Mock Implementation)
-
-    private async Task<int> GetStockCountAsync()
-    {
-        // TODO: Replace with actual data service call
-        await Task.Delay(10);
-        return 150;
-    }
-
-    private async Task<int> GetProductCountAsync()
-    {
-        // TODO: Replace with actual data service call
-        await Task.Delay(10);
-        return 75;
-    }
-
-    private async Task<int> GetSupplierCountAsync()
-    {
-        // TODO: Replace with actual data service call
-        await Task.Delay(10);
-        return 25;
-    }
+    #region Data Loading Methods
 
     private async Task<int> GetCustomerCountAsync()
     {
-        // TODO: Replace with actual data service call
-        await Task.Delay(10);
-        return 120;
+        try
+        {
+            var customers = await _customerService.GetAllCustomersAsync();
+            return customers.Count();
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private async Task<int> GetCustomerGroupsCountAsync()
+    {
+        try
+        {
+            return await _customerGroupService.GetCountAsync();
+        }
+        catch
+        {
+            return 0;
+        }
     }
 
     #endregion
@@ -370,7 +315,7 @@ public partial class ManagementViewModel : ObservableObject
     private void OnLanguageChanged(SupportedLanguage newLanguage)
     {
         CurrentLanguage = newLanguage.ToString();
-        UpdateLocalizedStrings();
+        _ = LoadModuleDataAsync();
     }
 
     private void OnPrimaryColorChanged(ColorOption newColor)
@@ -397,7 +342,7 @@ public partial class ManagementViewModel : ObservableObject
     private async void OnDatabaseLanguageChanged(object? sender, string newLanguageCode)
     {
         // Reload module data with new language and update page title
-        PageTitle = await _databaseLocalizationService.GetTranslationAsync("nav.management");
+        PageTitle = await _databaseLocalizationService.GetTranslationAsync("management.customers") ?? "Customer Management";
         await LoadModuleDataAsync();
     }
 
@@ -440,7 +385,7 @@ public partial class ManagementViewModel : ObservableObject
     /// <summary>
     /// Cleanup event subscriptions
     /// </summary>
-    ~ManagementViewModel()
+    ~CustomerManagementViewModel()
     {
         // Unsubscribe from events
         if (_themeService != null)
@@ -458,28 +403,4 @@ public partial class ManagementViewModel : ObservableObject
     }
 
     #endregion
-}
-
-/// <summary>
-/// Model class for management module information
-/// </summary>
-public partial class ManagementModuleInfo : ObservableObject
-{
-    [ObservableProperty]
-    private string _moduleType = string.Empty;
-
-    [ObservableProperty]
-    private string _title = string.Empty;
-
-    [ObservableProperty]
-    private int _itemCount;
-
-    [ObservableProperty]
-    private string _itemCountLabel = string.Empty;
-
-    [ObservableProperty]
-    private Brush _iconBackground = new SolidColorBrush(Colors.Blue);
-
-    [ObservableProperty]
-    private Brush _buttonBackground = new SolidColorBrush(Colors.White);
 }

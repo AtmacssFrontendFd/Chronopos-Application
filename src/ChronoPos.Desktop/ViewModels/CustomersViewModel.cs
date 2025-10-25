@@ -560,11 +560,11 @@ public partial class CustomersViewModel : ObservableObject
     {
         try
         {
-            CanCreateCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS, TypeMatrix.CREATE);
-            CanEditCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS, TypeMatrix.UPDATE);
-            CanDeleteCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS, TypeMatrix.DELETE);
-            CanImportCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS, TypeMatrix.IMPORT);
-            CanExportCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS, TypeMatrix.EXPORT);
+            CanCreateCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS, TypeMatrix.CREATE);
+            CanEditCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS, TypeMatrix.UPDATE);
+            CanDeleteCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS, TypeMatrix.DELETE);
+            CanImportCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS, TypeMatrix.IMPORT);
+            CanExportCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS, TypeMatrix.EXPORT);
         }
         catch (Exception)
         {
