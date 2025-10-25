@@ -1,3 +1,5 @@
+/* This C# code snippet defines a class named `StockTransfer` within the `ChronoPos.Domain.Entities`
+namespace. Here's a breakdown of what the code is doing: */
 using System.ComponentModel.DataAnnotations;
 
 namespace ChronoPos.Domain.Entities;

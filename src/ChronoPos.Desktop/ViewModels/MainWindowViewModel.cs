@@ -789,49 +789,41 @@ public partial class MainWindowViewModel : ObservableObject
         }
 
         SelectedPage = "Transactions";
-        CurrentPageTitle = await _databaseLocalizationService.GetTranslationAsync("nav_transactions") ?? "Transactions";
-        StatusMessage = await _databaseLocalizationService.GetTranslationAsync("status_transactions_loaded") ?? "Transactions interface loaded";
+        CurrentPageTitle = await _databaseLocalizationService.GetTranslationAsync("nav_transactions") ?? "Add Sales";
+        StatusMessage = await _databaseLocalizationService.GetTranslationAsync("status_transactions_loaded") ?? "Sales interface loaded";
         
-        var transactionsContent = new System.Windows.Controls.Grid();
-        transactionsContent.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(2, System.Windows.GridUnitType.Star) });
-        transactionsContent.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
-        
-        // Product selection area
-        var productAreaText = await _databaseLocalizationService.GetTranslationAsync("transactions_product_area") ?? "Product Selection Area\n(Products will be loaded here)";
-        var productArea = new System.Windows.Controls.Border
+        try
         {
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.LightGray),
-            CornerRadius = new System.Windows.CornerRadius(5),
-            Margin = new System.Windows.Thickness(0, 0, 10, 0),
-            Child = new System.Windows.Controls.TextBlock
+            // Create the AddSalesViewModel with all required services
+            var addSalesViewModel = new AddSalesViewModel(
+                _serviceProvider.GetRequiredService<IProductService>(),
+                _serviceProvider.GetRequiredService<ICategoryService>(),
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ITransactionService>(),
+                _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<ICurrentUserService>(),
+                _serviceProvider.GetRequiredService<IShiftService>(),
+                _serviceProvider.GetRequiredService<IDiscountService>(),
+                _serviceProvider.GetRequiredService<ITaxTypeService>(),
+                _serviceProvider.GetRequiredService<IRefundService>()
+            );
+
+            // Create the AddSalesView and set its DataContext
+            var addSalesView = new AddSalesView
             {
-                Text = productAreaText,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = System.Windows.VerticalAlignment.Center,
-                FontSize = 16
-            }
-        };
-        System.Windows.Controls.Grid.SetColumn(productArea, 0);
-        
-        // Cart area
-        var cartAreaText = await _databaseLocalizationService.GetTranslationAsync("transactions_cart_area") ?? "Transaction Cart\n(Cart items will be shown here)";
-        var cartArea = new System.Windows.Controls.Border
+                DataContext = addSalesViewModel
+            };
+
+            CurrentView = addSalesView;
+            
+            AppLogger.Log("Add Sales screen loaded successfully");
+        }
+        catch (Exception ex)
         {
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.LightBlue),
-            CornerRadius = new System.Windows.CornerRadius(5),
-            Child = new System.Windows.Controls.TextBlock
-            {
-                Text = cartAreaText,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = System.Windows.VerticalAlignment.Center,
-                FontSize = 16
-            }
-        };
-        System.Windows.Controls.Grid.SetColumn(cartArea, 1);
-        
-        transactionsContent.Children.Add(productArea);
-        transactionsContent.Children.Add(cartArea);
-        CurrentView = transactionsContent;
+            StatusMessage = "Error loading Add Sales screen";
+            AppLogger.LogError("Error loading Add Sales screen", ex);
+            MessageBox.Show($"Error loading Add Sales screen: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     [RelayCommand]
@@ -852,22 +844,238 @@ public partial class MainWindowViewModel : ObservableObject
         CurrentPageTitle = await _databaseLocalizationService.GetTranslationAsync("nav_transaction") ?? "Transaction";
         StatusMessage = "Transaction interface loaded";
         
-        // Transaction screen placeholder content
-        var transactionContent = new System.Windows.Controls.Border
+        // Create the TransactionViewModel with required services and navigation callbacks
+        try
         {
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.LightYellow),
-            CornerRadius = new System.Windows.CornerRadius(5),
-            Child = new System.Windows.Controls.TextBlock
+            var transactionViewModel = new TransactionViewModel(
+                _serviceProvider.GetRequiredService<ITransactionService>(),
+                _serviceProvider.GetRequiredService<IRefundService>(),
+                _serviceProvider.GetRequiredService<IExchangeService>(),
+                navigateToEditTransaction: async (transactionId) => await LoadTransactionForEdit(transactionId),
+                navigateToPayBill: async (transactionId) => await LoadTransactionForPayment(transactionId),
+                navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
+                navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId),
+                navigateToAddSales: async () => await ShowTransactions() // Fixed: ShowTransactions (plural) opens Add Sales screen
+            );
+
+            // Create the TransactionView and set its DataContext
+            var transactionView = new TransactionView
             {
-                Text = "Transaction Screen\n(Coming Soon)",
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = System.Windows.VerticalAlignment.Center,
-                FontSize = 24,
-                FontWeight = System.Windows.FontWeights.Bold
+                DataContext = transactionViewModel
+            };
+
+            CurrentView = transactionView;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading transaction screen: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async Task LoadTransactionForEdit(int transactionId)
+    {
+        try
+        {
+            // Load the transaction
+            var transactionService = _serviceProvider.GetRequiredService<ITransactionService>();
+            var transaction = await transactionService.GetByIdAsync(transactionId);
+            
+            if (transaction == null)
+            {
+                MessageBox.Show("Transaction not found!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
             }
-        };
-        
-        CurrentView = transactionContent;
+
+            // Create a fresh AddSalesViewModel
+            var addSalesViewModel = new AddSalesViewModel(
+                _serviceProvider.GetRequiredService<IProductService>(),
+                _serviceProvider.GetRequiredService<ICategoryService>(),
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ITransactionService>(),
+                _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<ICurrentUserService>(),
+                _serviceProvider.GetRequiredService<IShiftService>(),
+                _serviceProvider.GetRequiredService<IDiscountService>(),
+                _serviceProvider.GetRequiredService<ITaxTypeService>(),
+                _serviceProvider.GetRequiredService<IRefundService>()
+            );
+
+            // Create the AddSalesView and set its DataContext
+            var addSalesView = new AddSalesView
+            {
+                DataContext = addSalesViewModel
+            };
+
+            // Navigate to Add Sales screen first
+            SelectedPage = "Transactions";
+            CurrentPageTitle = "Edit Transaction";
+            CurrentView = addSalesView;
+            
+            // Load the transaction data for editing
+            await addSalesViewModel.LoadTransactionForEdit(transactionId);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading transaction for edit: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async Task LoadTransactionForPayment(int transactionId)
+    {
+        try
+        {
+            // Load the transaction
+            var transactionService = _serviceProvider.GetRequiredService<ITransactionService>();
+            var transaction = await transactionService.GetByIdAsync(transactionId);
+            
+            if (transaction == null)
+            {
+                MessageBox.Show("Transaction not found!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Create a fresh AddSalesViewModel
+            var addSalesViewModel = new AddSalesViewModel(
+                _serviceProvider.GetRequiredService<IProductService>(),
+                _serviceProvider.GetRequiredService<ICategoryService>(),
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ITransactionService>(),
+                _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<ICurrentUserService>(),
+                _serviceProvider.GetRequiredService<IShiftService>(),
+                _serviceProvider.GetRequiredService<IDiscountService>(),
+                _serviceProvider.GetRequiredService<ITaxTypeService>(),
+                _serviceProvider.GetRequiredService<IRefundService>()
+            );
+
+            // Create the AddSalesView and set its DataContext
+            var addSalesView = new AddSalesView
+            {
+                DataContext = addSalesViewModel
+            };
+
+            // Navigate to Add Sales screen first
+            SelectedPage = "Transactions";
+            CurrentPageTitle = "Payment";
+            CurrentView = addSalesView;
+            
+            // Load the transaction data for payment
+            await addSalesViewModel.LoadTransactionForPayment(transactionId);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading transaction for payment: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// Load transaction for refund processing
+    /// </summary>
+    public async Task LoadTransactionForRefund(int transactionId)
+    {
+        try
+        {
+            // Load the transaction
+            var transactionService = _serviceProvider.GetRequiredService<ITransactionService>();
+            var transaction = await transactionService.GetByIdAsync(transactionId);
+            
+            if (transaction == null)
+            {
+                MessageBox.Show("Transaction not found!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (transaction.Status.ToLower() != "settled")
+            {
+                MessageBox.Show("Only settled transactions can be refunded.", "Invalid Status", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Create a fresh AddSalesViewModel
+            var addSalesViewModel = new AddSalesViewModel(
+                _serviceProvider.GetRequiredService<IProductService>(),
+                _serviceProvider.GetRequiredService<ICategoryService>(),
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ITransactionService>(),
+                _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<ICurrentUserService>(),
+                _serviceProvider.GetRequiredService<IShiftService>(),
+                _serviceProvider.GetRequiredService<IDiscountService>(),
+                _serviceProvider.GetRequiredService<ITaxTypeService>(),
+                _serviceProvider.GetRequiredService<IRefundService>()
+            );
+
+            // Create the AddSalesView and set its DataContext
+            var addSalesView = new AddSalesView
+            {
+                DataContext = addSalesViewModel
+            };
+
+            // Navigate to Add Sales screen first
+            SelectedPage = "Transactions";
+            CurrentPageTitle = "Refund Transaction";
+            CurrentView = addSalesView;
+            
+            // Initialize the view model and then load transaction in refund mode
+            await addSalesViewModel.InitializeAsync();
+            await addSalesViewModel.LoadTransactionForRefund(transactionId);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading transaction for refund: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    public async Task LoadTransactionForExchange(int transactionId)
+    {
+        try
+        {
+            // Load the transaction
+            var transactionService = _serviceProvider.GetRequiredService<ITransactionService>();
+            var transaction = await transactionService.GetByIdAsync(transactionId);
+            
+            if (transaction == null)
+            {
+                MessageBox.Show("Transaction not found!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (transaction.Status.ToLower() != "settled")
+            {
+                MessageBox.Show("Only settled transactions can be exchanged.", "Invalid Status", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Create a fresh ExchangeSalesViewModel
+            var exchangeSalesViewModel = new ExchangeSalesViewModel(
+                _serviceProvider.GetRequiredService<ITransactionService>(),
+                _serviceProvider.GetRequiredService<IProductService>(),
+                _serviceProvider.GetRequiredService<IExchangeService>(),
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ICurrentUserService>(),
+                onExchangeComplete: async () => await ShowTransaction(),
+                onBack: async () => await ShowTransaction()
+            );
+
+            // Create the ExchangeSalesView and set its DataContext
+            var exchangeSalesView = new ExchangeSalesView
+            {
+                DataContext = exchangeSalesViewModel
+            };
+
+            // Navigate to Exchange screen
+            SelectedPage = "Transactions";
+            CurrentPageTitle = "Exchange Transaction";
+            CurrentView = exchangeSalesView;
+            
+            // Initialize the view model and then load transaction
+            await exchangeSalesViewModel.InitializeAsync();
+            await exchangeSalesViewModel.LoadTransaction(transactionId);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading transaction for exchange: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     [RelayCommand]
@@ -1115,6 +1323,89 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private void ShowProductModifiers()
+    {
+        ChronoPos.Desktop.Services.FileLogger.Log("🔧 ShowProductModifiers method started");
+        
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PRODUCT_ATTRIBUTES))
+        {
+            MessageBox.Show(
+                "You don't have permission to access Product Modifiers Management.",
+                "Access Denied",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Product Modifiers";
+        StatusMessage = "Loading product modifiers...";
+        
+        try
+        {
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Getting ProductModifierService and related services from DI container");
+            // Create the ProductModifierViewModel
+            var productModifierService = _serviceProvider.GetRequiredService<IProductModifierService>();
+            var productModifierGroupService = _serviceProvider.GetRequiredService<IProductModifierGroupService>();
+            var productModifierGroupItemService = _serviceProvider.GetRequiredService<IProductModifierGroupItemService>();
+            var taxTypeService = _serviceProvider.GetRequiredService<ITaxTypeService>();
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ Services retrieved successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Creating ProductModifierViewModel");
+            var productModifierViewModel = new ProductModifierViewModel(
+                productModifierService,
+                productModifierGroupService,
+                productModifierGroupItemService,
+                _currentUserService,
+                taxTypeService,
+                () => _ = ShowAddOptions() // Navigate back to Others
+            );
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ ProductModifierViewModel created successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Creating ProductModifierView");
+            // Create the view and set the ViewModel
+            var productModifierView = new ProductModifierView();
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ ProductModifierView created successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Setting DataContext");
+            productModifierView.DataContext = productModifierViewModel;
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ DataContext set successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Setting CurrentView");
+            CurrentView = productModifierView;
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ CurrentView set successfully");
+            
+            StatusMessage = "Product modifiers loaded successfully";
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ ShowProductModifiers completed successfully");
+        }
+        catch (Exception ex)
+        {
+            ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error in ShowProductModifiers: {ex.Message}");
+            ChronoPos.Desktop.Services.FileLogger.Log($"❌ ShowProductModifiers stack trace: {ex.StackTrace}");
+            StatusMessage = $"Error loading product modifiers: {ex.Message}";
+            
+            // Fallback to simple error display
+            var errorContent = new System.Windows.Controls.StackPanel();
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = "Product Modifiers", 
+                FontSize = 16, 
+                FontWeight = System.Windows.FontWeights.Bold,
+                Margin = new System.Windows.Thickness(0, 0, 0, 20) 
+            });
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = $"Error loading product modifiers: {ex.Message}",
+                FontSize = 12,
+                Foreground = System.Windows.Media.Brushes.Red,
+                Margin = new System.Windows.Thickness(0, 20, 0, 0)
+            });
+            
+            CurrentView = errorContent;
+        }
+    }
+
     private async Task ShowProductCombinations()
     {
         // Check permission using UMAC - Allow if user has ANY permission
@@ -1221,6 +1512,8 @@ public partial class MainWindowViewModel : ObservableObject
                 skuGenerationService,
                 _serviceProvider.GetRequiredService<IProductBatchService>(),
                 activeCurrencyService,
+                _serviceProvider.GetRequiredService<IProductModifierGroupService>(),
+                _serviceProvider.GetRequiredService<IProductModifierLinkService>(),
                 themeService,
                 zoomService,
                 localizationService,
@@ -1300,6 +1593,8 @@ public partial class MainWindowViewModel : ObservableObject
                 skuGenerationService,
                 _serviceProvider.GetRequiredService<IProductBatchService>(),
                 activeCurrencyService,
+                _serviceProvider.GetRequiredService<IProductModifierGroupService>(),
+                _serviceProvider.GetRequiredService<IProductModifierLinkService>(),
                 themeService,
                 zoomService,
                 localizationService,
@@ -1997,6 +2292,9 @@ public partial class MainWindowViewModel : ObservableObject
                         break;
                     case "ProductAttributes":
                         ShowProductAttributes();
+                        break;
+                    case "ProductModifiers":
+                        ShowProductModifiers();
                         break;
                     case "ProductCombinations":
                         _ = ShowProductCombinations();

@@ -19,11 +19,12 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
         <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
-    <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
-    <converters:TaxTypeDisplayConverter x:Key="TaxTypeDisplayConverter"/>
-    <converters:FlowDirectionToGridColumnConverter x:Key="FlowDirectionToGridColumnConverter"/>
+        <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
+        <converters:TaxTypeDisplayConverter x:Key="TaxTypeDisplayConverter"/>
+        <converters:FlowDirectionToGridColumnConverter x:Key="FlowDirectionToGridColumnConverter"/>
         <converters:DaysToExpiryConverter x:Key="DaysToExpiryConverter"/>
         <converters:BatchStatusToColorConverter x:Key="BatchStatusToColorConverter"/>
+        <converters:BoolToYesNoConverter x:Key="BoolToYesNoConverter"/>
         
         <!-- Clean Input Field Style (matching Currency panel) -->
         <Style x:Key="CleanInputStyle" TargetType="TextBox">
@@ -583,6 +584,12 @@
                             Name="ProductBatchesButton"
                             Style="{StaticResource SidebarButtonStyle}"
                             Tag="ProductBatches"
+                            Click="SidebarButton_Click"/>
+                    
+                    <Button Content="{Binding ModifierGroupsTitle}" 
+                            Name="ModifierGroupsButton"
+                            Style="{StaticResource SidebarButtonStyle}"
+                            Tag="ModifierGroups"
                             Click="SidebarButton_Click"/>
 
                 </StackPanel>
@@ -2078,6 +2085,129 @@
                             </DataGrid>
                             </Grid>
                         </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Modifier Groups Section -->
+                <Border x:Name="ModifierGroupsSection" Style="{StaticResource FormSectionStyle}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding ModifierGroupsTitle}" Style="{StaticResource SectionHeaderStyle}"/>
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Add Modifier Group -->
+                            <Grid Grid.Row="0" Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ComboBox Grid.Column="0"
+                                          ItemsSource="{Binding AvailableModifierGroups}"
+                                          SelectedItem="{Binding SelectedModifierGroup}"
+                                          DisplayMemberPath="Name"
+                                          Margin="0,0,8,0"
+                                          MinHeight="{DynamicResource ButtonHeight}"
+                                          Padding="{DynamicResource DefaultPaddingThickness}"
+                                          BorderBrush="{DynamicResource BorderLight}"
+                                          BorderThickness="1"
+                                          Background="{DynamicResource SurfaceBackground}"
+                                          Foreground="{DynamicResource TextSecondary}"
+                                          FontSize="{DynamicResource FontSizeSmall}"
+                                          FontFamily="{DynamicResource PoppinsFontFallback}"
+                                          FlowDirection="{Binding CurrentFlowDirection}">
+                                </ComboBox>
+
+                                <Button Grid.Column="1"
+                                        Content="Add"
+                                        Command="{Binding AddModifierGroupCommand}"
+                                        Style="{StaticResource FormButtonStyle}"
+                                        Background="{DynamicResource Primary}"
+                                        Foreground="White"
+                                        Width="80"/>
+                            </Grid>
+
+                            <!-- Selected Modifier Groups List -->
+                            <Border Grid.Row="1" 
+                                    BorderBrush="{DynamicResource BorderLight}" 
+                                    BorderThickness="1" 
+                                    CornerRadius="{DynamicResource BorderCornerRadius}"
+                                    Padding="8"
+                                    Background="{DynamicResource SectionBackground}">
+                                <Grid>
+                                    <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                                        <ItemsControl ItemsSource="{Binding SelectedModifierGroups}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{DynamicResource CardBackground}"
+                                                            BorderBrush="{DynamicResource BorderLight}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="4"
+                                                            Padding="12,8"
+                                                            Margin="0,0,0,8">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+
+                                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Name}"
+                                                                           Foreground="{DynamicResource TextPrimary}"
+                                                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                                           FontSize="{DynamicResource FontSizeMedium}"
+                                                                           FontWeight="SemiBold"/>
+                                                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                                    <TextBlock Text="{Binding SelectionType}"
+                                                                               Foreground="{DynamicResource TextSecondary}"
+                                                                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                                               FontSize="{DynamicResource FontSizeSmall}"/>
+                                                                    <TextBlock Text=" • " 
+                                                                               Foreground="{DynamicResource TextSecondary}"
+                                                                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                                               FontSize="{DynamicResource FontSizeSmall}"/>
+                                                                    <TextBlock Foreground="{DynamicResource TextSecondary}"
+                                                                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                                               FontSize="{DynamicResource FontSizeSmall}">
+                                                                        <Run Text="{Binding Required, Converter={StaticResource BoolToYesNoConverter}}"/>
+                                                                        <Run Text=" Required"/>
+                                                                    </TextBlock>
+                                                                </StackPanel>
+                                                            </StackPanel>
+
+                                                            <Button Grid.Column="1"
+                                                                    Command="{Binding DataContext.RemoveModifierGroupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                    CommandParameter="{Binding}"
+                                                                    ToolTip="Remove Modifier Group"
+                                                                    Style="{StaticResource CompactButtonStyle}"
+                                                                    Background="#C62828"
+                                                                    Foreground="White"
+                                                                    Width="32" Height="32"
+                                                                    Content="🗑️"
+                                                                    VerticalAlignment="Center"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+
+                                    <!-- No modifier groups message -->
+                                    <TextBlock Text="No modifier groups selected. Add modifier groups from the dropdown above."
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                                               FontSize="{DynamicResource FontSizeMedium}"
+                                               TextAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Padding="20"
+                                               Visibility="{Binding SelectedModifierGroups.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=0}"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
                     </StackPanel>
                 </Border>
 

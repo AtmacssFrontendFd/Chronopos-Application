@@ -1541,7 +1541,72 @@ CREATE TABLE `customers_groups` (
   `deleted_at` timestamp,
   `deleted_by` int
 );
+--reservation tables
 
+order table 
+CREATE TABLE `restaurant_tables` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT,
+  `table_number` VARCHAR(10),
+  `capacity` INT,
+  `status` ENUM('available','reserved','occupied','cleaning') DEFAULT 'available',
+  `location` VARCHAR(50) NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
+CREATE TABLE `reservation` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT,
+  `customer_id` INT,
+  `table_id` INT,
+  `number_of_persons` INT,
+  `reservation_date` DATE,
+  `reservation_time` TIME,
+  `deposit_fee` DECIMAL(10,2),
+  `payment_type_id` INT,
+  `status` ENUM('waiting','confirmed','cancelled','checked_in','completed') DEFAULT 'waiting',
+  `notes` TEXT,
+  `is_deleted` TINYINT(1) DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`),
+  FOREIGN KEY (`table_id`) REFERENCES `restaurant_tables`(`id`),
+  FOREIGN KEY (`payment_type_id`) REFERENCES `payment_types`(`id`)
+);
+
+CREATE TABLE `orders` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT,
+  `table_id` INT,
+  `customer_id` INT NULL,
+  `reservation_id` INT NULL,
+  `total_amount` DECIMAL(10,2) DEFAULT 0.00,
+  `discount` DECIMAL(10,2) DEFAULT 0.00,
+  `final_amount` DECIMAL(10,2) GENERATED ALWAYS AS (total_amount - discount) STORED,
+  `payment_type_id` INT NULL,
+  `status` ENUM('pending','in_progress','served','completed','cancelled') DEFAULT 'pending',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`table_id`) REFERENCES `restaurant_tables`(`id`),
+  FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`),
+  FOREIGN KEY (`reservation_id`) REFERENCES `reservation`(`id`),
+  FOREIGN KEY (`payment_type_id`) REFERENCES `payment_types`(`id`)
+);
+
+
+CREATE TABLE `order_items` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT,
+  `order_id` INT,
+  `product_id` INT,
+  `menu_item_id` INT,
+  `quantity` INT,
+  `price` DECIMAL(10,2),
+  `notes` VARCHAR(255) NULL,
+  `status` ENUM('pending','preparing','served','cancelled') DEFAULT 'pending',
+  FOREIGN KEY (`order_id`) REFERENCES `orders`(`id`),
+  FOREIGN KEY (`product_id`) REFERENCES `product`(`id`),
+  FOREIGN KEY (`menu_item_id`) REFERENCES `menu_items`(`id`)
+);
+ 
 
 
 --discounts tables
