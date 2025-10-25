@@ -1,0 +1,230 @@
+<UserControl x:Class="ChronoPos.Desktop.Views.TransactionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1400"
+             Background="{DynamicResource PageBackground}">
+    
+    <Grid Margin="15,10,15,10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Header -->
+            <RowDefinition Height="Auto"/> <!-- Tabs -->
+            <RowDefinition Height="10"/> <!-- Spacer -->
+            <RowDefinition Height="*"/> <!-- Content -->
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0">
+            <TextBlock Text="{Binding CurrentTabTitle}" 
+                      FontSize="24" 
+                      FontWeight="Bold"
+                      Foreground="{DynamicResource TextPrimary}"
+                      VerticalAlignment="Center"/>
+            
+            <StackPanel Orientation="Horizontal" 
+                       HorizontalAlignment="Right"
+                       VerticalAlignment="Center">
+                <!-- Add New Transaction Button -->
+                <Button Width="36" 
+                       Height="36"
+                       Margin="0,0,10,0"
+                       Background="#F59E0B"
+                       BorderThickness="0"
+                       Cursor="Hand"
+                       Command="{Binding CreateNewTransactionCommand}"
+                       ToolTip="Create New Transaction">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" 
+                                               CornerRadius="8">
+                                            <TextBlock Text="+" 
+                                                      FontSize="20" 
+                                                      FontWeight="Bold"
+                                                      Foreground="White"
+                                                      HorizontalAlignment="Center" 
+                                                      VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#D97706"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <!-- Search Box -->
+                <Border Background="White" 
+                       CornerRadius="8" 
+                       BorderBrush="{DynamicResource BorderLight}" 
+                       BorderThickness="1"
+                       Padding="10,6"
+                       Width="280">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <TextBox Grid.Column="0"
+                                Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                BorderThickness="0"
+                                Background="Transparent"
+                                Foreground="{DynamicResource TextPrimary}"
+                                VerticalAlignment="Center"
+                                FontSize="12"/>
+                        
+                        <TextBlock Grid.Column="1" 
+                                  Text="🔍" 
+                                  FontSize="14"
+                                  Foreground="{DynamicResource TextSecondary}"
+                                  VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </Grid>
+
+        <!-- Tabs -->
+        <StackPanel Grid.Row="1" 
+                   Orientation="Horizontal" 
+                   Margin="0,15,0,0">
+            <!-- Sales Tab -->
+            <Button Content="Sales" 
+                   Width="110" 
+                   Height="38"
+                   Margin="0,0,8,0"
+                   FontSize="13"
+                   FontWeight="SemiBold"
+                   Cursor="Hand"
+                   Command="{Binding SwitchToSalesCommand}">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Background" Value="White"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" 
+                                           BorderBrush="{TemplateBinding BorderBrush}"
+                                           BorderThickness="{TemplateBinding BorderThickness}"
+                                           CornerRadius="8">
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CurrentTab}" Value="Sales">
+                                <Setter Property="Background" Value="#F59E0B"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="BorderBrush" Value="#F59E0B"/>
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#FEF3C7"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+
+            <!-- Refund Tab -->
+            <Button Content="Refund" 
+                   Width="110" 
+                   Height="38"
+                   Margin="0,0,8,0"
+                   FontSize="13"
+                   FontWeight="SemiBold"
+                   Cursor="Hand"
+                   Command="{Binding SwitchToRefundCommand}">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Background" Value="White"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" 
+                                           BorderBrush="{TemplateBinding BorderBrush}"
+                                           BorderThickness="{TemplateBinding BorderThickness}"
+                                           CornerRadius="8">
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CurrentTab}" Value="Refund">
+                                <Setter Property="Background" Value="#F59E0B"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="BorderBrush" Value="#F59E0B"/>
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#FEF3C7"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+
+            <!-- Exchange Tab -->
+            <Button Content="Exchange" 
+                   Width="110" 
+                   Height="38"
+                   FontSize="13"
+                   FontWeight="SemiBold"
+                   Cursor="Hand"
+                   Command="{Binding SwitchToExchangeCommand}">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Background" Value="White"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" 
+                                           BorderBrush="{TemplateBinding BorderBrush}"
+                                           BorderThickness="{TemplateBinding BorderThickness}"
+                                           CornerRadius="8">
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CurrentTab}" Value="Exchange">
+                                <Setter Property="Background" Value="#F59E0B"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="BorderBrush" Value="#F59E0B"/>
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#FEF3C7"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </StackPanel>
+
+        <!-- Content Area -->
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+            <ContentControl Content="{Binding CurrentTabContent}"/>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

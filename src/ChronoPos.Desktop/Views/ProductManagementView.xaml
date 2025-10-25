@@ -14,6 +14,7 @@
     <UserControl.Resources>
         <!-- Converters -->
         <converters:FlowDirectionToGridColumnConverter x:Key="FlowDirectionToGridColumnConverter" />
+        <converters:CurrencyPriceConverter x:Key="CurrencyPriceConverter" />
         
         <!-- Category Button Style with Dynamic Resources -->
         <Style x:Key="CategoryButtonStyle" TargetType="Button">
@@ -763,7 +764,7 @@
 
                         <!-- Price -->
                         <DataGridTextColumn Header="Price" 
-                                          Binding="{Binding Price, StringFormat=C}" 
+                                          Binding="{Binding Price, Converter={StaticResource CurrencyPriceConverter}}" 
                                           Width="100">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">

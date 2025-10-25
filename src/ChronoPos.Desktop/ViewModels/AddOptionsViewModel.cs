@@ -112,6 +112,12 @@ public partial class AddOptionsViewModel : ObservableObject
     private bool _isProductAttributesVisible = true;
 
     /// <summary>
+    /// Visibility flag for Product Modifiers module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isProductModifiersVisible = true;
+
+    /// <summary>
     /// Visibility flag for Product Combinations module
     /// </summary>
     [ObservableProperty]
@@ -170,6 +176,12 @@ public partial class AddOptionsViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     private bool _isWarehousesVisible = true;
+
+    /// <summary>
+    /// Visibility flag for Currency module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isCurrencyVisible = true;
 
     #endregion
 
@@ -301,14 +313,15 @@ public partial class AddOptionsViewModel : ObservableObject
             IsDiscountsVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.DISCOUNTS);
             IsUomVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.UOM);
             IsProductAttributesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRODUCT_ATTRIBUTES);
+            IsProductModifiersVisible = true; // TODO: Add ScreenNames.PRODUCT_MODIFIERS when permission constant is added
             IsProductCombinationsVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRODUCT_COMBINATIONS);
             IsProductGroupsVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRODUCT_GROUPING);
             IsPriceTypesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRICE_TYPES);
             IsPaymentTypesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PAYMENT_TYPES);
             IsTaxRatesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.TAX_RATES);
-            IsCustomersVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS);
+            IsCustomersVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.CUSTOMERS);
             IsCustomerGroupsVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.CUSTOMER_GROUPS);
-            IsSuppliersVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.SUPPLIERS_ADD_OPTIONS);
+            IsSuppliersVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.SUPPLIERS);
             IsShopVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.SHOP);
             // Note: Warehouses doesn't have a screen constant, so keeping it visible by default
             IsWarehousesVisible = true;
@@ -325,6 +338,7 @@ public partial class AddOptionsViewModel : ObservableObject
             IsDiscountsVisible = true;
             IsUomVisible = true;
             IsProductAttributesVisible = true;
+            IsProductModifiersVisible = true;
             IsProductCombinationsVisible = true;
             IsProductGroupsVisible = true;
             IsPriceTypesVisible = true;
@@ -354,23 +368,22 @@ public partial class AddOptionsViewModel : ObservableObject
                 var primaryColorBrush = GetPrimaryColorBrush();
                 var buttonBackgroundBrush = GetButtonBackgroundBrush();
 
-                // Create all 14 modules with visibility flags
+                // Create all 11 modules with visibility flags (removed Customer, CustomerGroups, and Suppliers)
                 var moduleData = new[]
                 {
                     new { Type = "Brand", TitleKey = "add_options.brand", CountLabel = "Brands", Count = await GetBrandCountAsync(), IsVisible = IsBrandVisible },
                     new { Type = "Category", TitleKey = "add_options.category", CountLabel = "Categories", Count = await GetCategoryCountAsync(), IsVisible = IsCategoryVisible },
                     new { Type = "ProductAttributes", TitleKey = "add_options.product_attributes", CountLabel = "Attributes", Count = await GetProductAttributesCountAsync(), IsVisible = IsProductAttributesVisible },
+                    new { Type = "ProductModifiers", TitleKey = "add_options.product_modifiers", CountLabel = "Modifiers", Count = await GetProductModifiersCountAsync(), IsVisible = IsProductModifiersVisible },
                     new { Type = "ProductCombinations", TitleKey = "add_options.product_combinations", CountLabel = "Combinations", Count = await GetProductCombinationsCountAsync(), IsVisible = IsProductCombinationsVisible },
                     new { Type = "ProductGrouping", TitleKey = "add_options.product_grouping", CountLabel = "Groups", Count = await GetProductGroupingCountAsync(), IsVisible = IsProductGroupsVisible },
                     new { Type = "PriceTypes", TitleKey = "add_options.price_types", CountLabel = "Price Types", Count = await GetPriceTypesCountAsync(), IsVisible = IsPriceTypesVisible },
                     new { Type = "PaymentTypes", TitleKey = "add_options.payment_types", CountLabel = "Payment Types", Count = await GetPaymentTypesCountAsync(), IsVisible = IsPaymentTypesVisible },
                     new { Type = "TaxRates", TitleKey = "add_options.tax_rates", CountLabel = "Tax Rates", Count = await GetTaxRatesCountAsync(), IsVisible = IsTaxRatesVisible },
-                    new { Type = "Customers", TitleKey = "add_options.customer", CountLabel = "Customers", Count = await GetCustomerCountAsync(), IsVisible = IsCustomersVisible },
-                    new { Type = "Suppliers", TitleKey = "add_options.suppliers", CountLabel = "Suppliers", Count = await GetSuppliersCountAsync(), IsVisible = IsSuppliersVisible },
                     new { Type = "UOM", TitleKey = "add_options.uom", CountLabel = "UOMs", Count = await GetUOMCountAsync(), IsVisible = IsUomVisible },
                     new { Type = "Shop", TitleKey = "add_options.shop", CountLabel = "Shops", Count = await GetShopCountAsync(), IsVisible = IsShopVisible },
-                    new { Type = "CustomerGroups", TitleKey = "add_options.customer_groups", CountLabel = "Groups", Count = await GetCustomerGroupsCountAsync(), IsVisible = IsCustomerGroupsVisible },
-                    new { Type = "Discounts", TitleKey = "add_options.discounts", CountLabel = "Discounts", Count = await GetDiscountsCountAsync(), IsVisible = IsDiscountsVisible }
+                    new { Type = "Discounts", TitleKey = "add_options.discounts", CountLabel = "Discounts", Count = await GetDiscountsCountAsync(), IsVisible = IsDiscountsVisible },
+                    new { Type = "Currency", TitleKey = "add_options.currency", CountLabel = "Currencies", Count = await GetCurrencyCountAsync(), IsVisible = IsCurrencyVisible }
                 };
 
                 // Add modules to collection - Only add visible modules
@@ -462,6 +475,32 @@ public partial class AddOptionsViewModel : ObservableObject
     {
         await Task.Delay(50);
         return 67;
+    }
+
+    private async Task<int> GetProductModifiersCountAsync()
+    {
+        try
+        {
+            // Get the ProductModifier service from the service provider if available
+            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
+            if (serviceProvider != null)
+            {
+                var modifierService = serviceProvider.GetService<IProductModifierService>();
+                if (modifierService != null)
+                {
+                    var modifiers = await modifierService.GetAllAsync();
+                    return modifiers.Count();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting ProductModifier count: {ex.Message}");
+        }
+        
+        // Fallback to mock data
+        await Task.Delay(50);
+        return 0;
     }
 
     private async Task<int> GetProductCombinationsCountAsync()
@@ -621,6 +660,32 @@ public partial class AddOptionsViewModel : ObservableObject
     {
         await Task.Delay(50);
         return 31;
+    }
+
+    private async Task<int> GetCurrencyCountAsync()
+    {
+        try
+        {
+            // Get the Currency service from the service provider if available
+            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
+            if (serviceProvider != null)
+            {
+                var currencyService = serviceProvider.GetService<ICurrencyService>();
+                if (currencyService != null)
+                {
+                    var currencies = await currencyService.GetAllAsync();
+                    return currencies.Count();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting Currency count: {ex.Message}");
+        }
+        
+        // Fallback to mock data
+        await Task.Delay(50);
+        return 6; // Mock count (USD, EUR, GBP, AED, SAR, INR)
     }
 
     #endregion

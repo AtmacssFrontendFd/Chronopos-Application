@@ -67,6 +67,7 @@ public class UserService : IUserService
         var user = new User
         {
             FullName = createDto.FullName.Trim(),
+            Username = createDto.Username.Trim(),
             Email = createDto.Email.Trim().ToLower(),
             Password = hashedPassword,
             Role = createDto.Role?.Trim(),
@@ -106,6 +107,7 @@ public class UserService : IUserService
         }
 
         user.FullName = updateDto.FullName.Trim();
+        user.Username = updateDto.Username.Trim();
         user.Email = updateDto.Email.Trim().ToLower();
         user.Role = updateDto.Role?.Trim();
         user.PhoneNo = updateDto.PhoneNo?.Trim();
@@ -201,13 +203,13 @@ public class UserService : IUserService
 
         return MapToDto(user);
     }
-
     private UserDto MapToDto(User user)
     {
         return new UserDto
         {
             Id = user.Id,
             FullName = user.FullName,
+            Username = user.Username,
             Email = user.Email,
             Role = user.Role,
             PhoneNo = user.PhoneNo,

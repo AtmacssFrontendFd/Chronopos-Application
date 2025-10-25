@@ -97,4 +97,10 @@ public interface IRestaurantTableService
     /// <param name="status">New status</param>
     /// <returns>True if update was successful</returns>
     Task<bool> UpdateTableStatusAsync(int id, string status);
+
+    /// <summary>
+    /// Gets all unique floor locations from tables
+    /// </summary>
+    /// <returns>Collection of distinct location names</returns>
+    Task<IEnumerable<string>> GetDistinctLocationsAsync();
 }

@@ -208,7 +208,8 @@ public partial class MainWindowViewModel : ObservableObject
             IsTransactionVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.TRANSACTION);
             IsManagementVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.BACK_OFFICE);
             IsReservationVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.RESERVATION);
-            IsOrderTableVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.ORDER_TABLE);
+            // IsOrderTableVisible = false; // ORDER_TABLE removed from ScreenNames - button removed from sidebar
+            IsOrderTableVisible = false; // ORDER_TABLE functionality removed
             IsReportsVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.REPORTS);
             IsSettingsVisible = _currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.SETTINGS);
 
@@ -789,49 +790,41 @@ public partial class MainWindowViewModel : ObservableObject
         }
 
         SelectedPage = "Transactions";
-        CurrentPageTitle = await _databaseLocalizationService.GetTranslationAsync("nav_transactions") ?? "Transactions";
-        StatusMessage = await _databaseLocalizationService.GetTranslationAsync("status_transactions_loaded") ?? "Transactions interface loaded";
+        CurrentPageTitle = await _databaseLocalizationService.GetTranslationAsync("nav_transactions") ?? "Add Sales";
+        StatusMessage = await _databaseLocalizationService.GetTranslationAsync("status_transactions_loaded") ?? "Sales interface loaded";
         
-        var transactionsContent = new System.Windows.Controls.Grid();
-        transactionsContent.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(2, System.Windows.GridUnitType.Star) });
-        transactionsContent.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
-        
-        // Product selection area
-        var productAreaText = await _databaseLocalizationService.GetTranslationAsync("transactions_product_area") ?? "Product Selection Area\n(Products will be loaded here)";
-        var productArea = new System.Windows.Controls.Border
+        try
         {
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.LightGray),
-            CornerRadius = new System.Windows.CornerRadius(5),
-            Margin = new System.Windows.Thickness(0, 0, 10, 0),
-            Child = new System.Windows.Controls.TextBlock
+            // Create the AddSalesViewModel with all required services
+            var addSalesViewModel = new AddSalesViewModel(
+                _serviceProvider.GetRequiredService<IProductService>(),
+                _serviceProvider.GetRequiredService<ICategoryService>(),
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ITransactionService>(),
+                _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<ICurrentUserService>(),
+                _serviceProvider.GetRequiredService<IShiftService>(),
+                _serviceProvider.GetRequiredService<IDiscountService>(),
+                _serviceProvider.GetRequiredService<ITaxTypeService>(),
+                _serviceProvider.GetRequiredService<IRefundService>()
+            );
+
+            // Create the AddSalesView and set its DataContext
+            var addSalesView = new AddSalesView
             {
-                Text = productAreaText,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = System.Windows.VerticalAlignment.Center,
-                FontSize = 16
-            }
-        };
-        System.Windows.Controls.Grid.SetColumn(productArea, 0);
-        
-        // Cart area
-        var cartAreaText = await _databaseLocalizationService.GetTranslationAsync("transactions_cart_area") ?? "Transaction Cart\n(Cart items will be shown here)";
-        var cartArea = new System.Windows.Controls.Border
+                DataContext = addSalesViewModel
+            };
+
+            CurrentView = addSalesView;
+            
+            AppLogger.Log("Add Sales screen loaded successfully");
+        }
+        catch (Exception ex)
         {
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.LightBlue),
-            CornerRadius = new System.Windows.CornerRadius(5),
-            Child = new System.Windows.Controls.TextBlock
-            {
-                Text = cartAreaText,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = System.Windows.VerticalAlignment.Center,
-                FontSize = 16
-            }
-        };
-        System.Windows.Controls.Grid.SetColumn(cartArea, 1);
-        
-        transactionsContent.Children.Add(productArea);
-        transactionsContent.Children.Add(cartArea);
-        CurrentView = transactionsContent;
+            StatusMessage = "Error loading Add Sales screen";
+            AppLogger.LogError("Error loading Add Sales screen", ex);
+            MessageBox.Show($"Error loading Add Sales screen: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     [RelayCommand]
@@ -852,22 +845,238 @@ public partial class MainWindowViewModel : ObservableObject
         CurrentPageTitle = await _databaseLocalizationService.GetTranslationAsync("nav_transaction") ?? "Transaction";
         StatusMessage = "Transaction interface loaded";
         
-        // Transaction screen placeholder content
-        var transactionContent = new System.Windows.Controls.Border
+        // Create the TransactionViewModel with required services and navigation callbacks
+        try
         {
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.LightYellow),
-            CornerRadius = new System.Windows.CornerRadius(5),
-            Child = new System.Windows.Controls.TextBlock
+            var transactionViewModel = new TransactionViewModel(
+                _serviceProvider.GetRequiredService<ITransactionService>(),
+                _serviceProvider.GetRequiredService<IRefundService>(),
+                _serviceProvider.GetRequiredService<IExchangeService>(),
+                navigateToEditTransaction: async (transactionId) => await LoadTransactionForEdit(transactionId),
+                navigateToPayBill: async (transactionId) => await LoadTransactionForPayment(transactionId),
+                navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
+                navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId),
+                navigateToAddSales: async () => await ShowTransactions() // Fixed: ShowTransactions (plural) opens Add Sales screen
+            );
+
+            // Create the TransactionView and set its DataContext
+            var transactionView = new TransactionView
             {
-                Text = "Transaction Screen\n(Coming Soon)",
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = System.Windows.VerticalAlignment.Center,
-                FontSize = 24,
-                FontWeight = System.Windows.FontWeights.Bold
+                DataContext = transactionViewModel
+            };
+
+            CurrentView = transactionView;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading transaction screen: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async Task LoadTransactionForEdit(int transactionId)
+    {
+        try
+        {
+            // Load the transaction
+            var transactionService = _serviceProvider.GetRequiredService<ITransactionService>();
+            var transaction = await transactionService.GetByIdAsync(transactionId);
+            
+            if (transaction == null)
+            {
+                MessageBox.Show("Transaction not found!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
             }
-        };
-        
-        CurrentView = transactionContent;
+
+            // Create a fresh AddSalesViewModel
+            var addSalesViewModel = new AddSalesViewModel(
+                _serviceProvider.GetRequiredService<IProductService>(),
+                _serviceProvider.GetRequiredService<ICategoryService>(),
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ITransactionService>(),
+                _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<ICurrentUserService>(),
+                _serviceProvider.GetRequiredService<IShiftService>(),
+                _serviceProvider.GetRequiredService<IDiscountService>(),
+                _serviceProvider.GetRequiredService<ITaxTypeService>(),
+                _serviceProvider.GetRequiredService<IRefundService>()
+            );
+
+            // Create the AddSalesView and set its DataContext
+            var addSalesView = new AddSalesView
+            {
+                DataContext = addSalesViewModel
+            };
+
+            // Navigate to Add Sales screen first
+            SelectedPage = "Transactions";
+            CurrentPageTitle = "Edit Transaction";
+            CurrentView = addSalesView;
+            
+            // Load the transaction data for editing
+            await addSalesViewModel.LoadTransactionForEdit(transactionId);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading transaction for edit: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async Task LoadTransactionForPayment(int transactionId)
+    {
+        try
+        {
+            // Load the transaction
+            var transactionService = _serviceProvider.GetRequiredService<ITransactionService>();
+            var transaction = await transactionService.GetByIdAsync(transactionId);
+            
+            if (transaction == null)
+            {
+                MessageBox.Show("Transaction not found!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Create a fresh AddSalesViewModel
+            var addSalesViewModel = new AddSalesViewModel(
+                _serviceProvider.GetRequiredService<IProductService>(),
+                _serviceProvider.GetRequiredService<ICategoryService>(),
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ITransactionService>(),
+                _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<ICurrentUserService>(),
+                _serviceProvider.GetRequiredService<IShiftService>(),
+                _serviceProvider.GetRequiredService<IDiscountService>(),
+                _serviceProvider.GetRequiredService<ITaxTypeService>(),
+                _serviceProvider.GetRequiredService<IRefundService>()
+            );
+
+            // Create the AddSalesView and set its DataContext
+            var addSalesView = new AddSalesView
+            {
+                DataContext = addSalesViewModel
+            };
+
+            // Navigate to Add Sales screen first
+            SelectedPage = "Transactions";
+            CurrentPageTitle = "Payment";
+            CurrentView = addSalesView;
+            
+            // Load the transaction data for payment
+            await addSalesViewModel.LoadTransactionForPayment(transactionId);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading transaction for payment: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// Load transaction for refund processing
+    /// </summary>
+    public async Task LoadTransactionForRefund(int transactionId)
+    {
+        try
+        {
+            // Load the transaction
+            var transactionService = _serviceProvider.GetRequiredService<ITransactionService>();
+            var transaction = await transactionService.GetByIdAsync(transactionId);
+            
+            if (transaction == null)
+            {
+                MessageBox.Show("Transaction not found!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (transaction.Status.ToLower() != "settled")
+            {
+                MessageBox.Show("Only settled transactions can be refunded.", "Invalid Status", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Create a fresh AddSalesViewModel
+            var addSalesViewModel = new AddSalesViewModel(
+                _serviceProvider.GetRequiredService<IProductService>(),
+                _serviceProvider.GetRequiredService<ICategoryService>(),
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ITransactionService>(),
+                _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<ICurrentUserService>(),
+                _serviceProvider.GetRequiredService<IShiftService>(),
+                _serviceProvider.GetRequiredService<IDiscountService>(),
+                _serviceProvider.GetRequiredService<ITaxTypeService>(),
+                _serviceProvider.GetRequiredService<IRefundService>()
+            );
+
+            // Create the AddSalesView and set its DataContext
+            var addSalesView = new AddSalesView
+            {
+                DataContext = addSalesViewModel
+            };
+
+            // Navigate to Add Sales screen first
+            SelectedPage = "Transactions";
+            CurrentPageTitle = "Refund Transaction";
+            CurrentView = addSalesView;
+            
+            // Initialize the view model and then load transaction in refund mode
+            await addSalesViewModel.InitializeAsync();
+            await addSalesViewModel.LoadTransactionForRefund(transactionId);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading transaction for refund: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    public async Task LoadTransactionForExchange(int transactionId)
+    {
+        try
+        {
+            // Load the transaction
+            var transactionService = _serviceProvider.GetRequiredService<ITransactionService>();
+            var transaction = await transactionService.GetByIdAsync(transactionId);
+            
+            if (transaction == null)
+            {
+                MessageBox.Show("Transaction not found!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (transaction.Status.ToLower() != "settled")
+            {
+                MessageBox.Show("Only settled transactions can be exchanged.", "Invalid Status", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Create a fresh ExchangeSalesViewModel
+            var exchangeSalesViewModel = new ExchangeSalesViewModel(
+                _serviceProvider.GetRequiredService<ITransactionService>(),
+                _serviceProvider.GetRequiredService<IProductService>(),
+                _serviceProvider.GetRequiredService<IExchangeService>(),
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ICurrentUserService>(),
+                onExchangeComplete: async () => await ShowTransaction(),
+                onBack: async () => await ShowTransaction()
+            );
+
+            // Create the ExchangeSalesView and set its DataContext
+            var exchangeSalesView = new ExchangeSalesView
+            {
+                DataContext = exchangeSalesViewModel
+            };
+
+            // Navigate to Exchange screen
+            SelectedPage = "Transactions";
+            CurrentPageTitle = "Exchange Transaction";
+            CurrentView = exchangeSalesView;
+            
+            // Initialize the view model and then load transaction
+            await exchangeSalesViewModel.InitializeAsync();
+            await exchangeSalesViewModel.LoadTransaction(transactionId);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading transaction for exchange: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     [RelayCommand]
@@ -913,6 +1122,12 @@ public partial class MainWindowViewModel : ObservableObject
                     case "Stock":
                         _ = ShowStockManagement();
                         break;
+                    case "CustomerManagement":
+                        _ = ShowCustomerManagement();
+                        break;
+                    case "SupplierManagement":
+                        _ = ShowSupplierManagement();
+                        break;
                     case "AddOptions":
                         _ = ShowAddOptions();
                         break;
@@ -957,6 +1172,162 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private async Task ShowCustomerManagement()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Customer Management";
+        StatusMessage = "Loading customer management...";
+        
+        try
+        {
+            // Create the CustomerManagementViewModel with all required services
+            var customerManagementViewModel = new CustomerManagementViewModel(
+                _serviceProvider.GetRequiredService<IThemeService>(),
+                _serviceProvider.GetRequiredService<IZoomService>(),
+                _serviceProvider.GetRequiredService<ILocalizationService>(),
+                _serviceProvider.GetRequiredService<IColorSchemeService>(),
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
+                _serviceProvider.GetRequiredService<IFontService>(),
+                _serviceProvider.GetRequiredService<IDatabaseLocalizationService>(),
+                _currentUserService,
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ICustomerGroupService>()
+            );
+
+            // Set up navigation from customer management to specific modules
+            customerManagementViewModel.NavigateToModuleAction = (moduleType) =>
+            {
+                switch (moduleType)
+                {
+                    case "Customers":
+                        _ = ShowCustomers();
+                        break;
+                    case "CustomerGroups":
+                        _ = ShowCustomerGroups();
+                        break;
+                    default:
+                        StatusMessage = $"Navigation to {moduleType} not implemented yet";
+                        break;
+                }
+            };
+
+            // Set up back navigation
+            customerManagementViewModel.GoBackAction = () =>
+            {
+                ShowManagementCommand.Execute(null);
+            };
+
+            // Create the CustomerManagementView and set its DataContext
+            var customerManagementView = new CustomerManagementView
+            {
+                DataContext = customerManagementViewModel
+            };
+
+            CurrentView = customerManagementView;
+            StatusMessage = "Customer management loaded successfully";
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading customer management: {ex.Message}";
+            
+            // Fallback to simple error display
+            var errorContent = new System.Windows.Controls.StackPanel();
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = "Customer Management", 
+                FontSize = 16, 
+                FontWeight = System.Windows.FontWeights.Bold,
+                Margin = new System.Windows.Thickness(0, 0, 0, 10) 
+            });
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = $"Error loading customer management: {ex.Message}",
+                FontStyle = System.Windows.FontStyles.Italic,
+                Foreground = System.Windows.Media.Brushes.Red,
+                Margin = new System.Windows.Thickness(0, 20, 0, 0)
+            });
+            
+            CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowSupplierManagement()
+    {
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Supplier Management";
+        StatusMessage = "Loading supplier management...";
+        
+        try
+        {
+            // Create the SupplierManagementViewModel with all required services
+            var supplierManagementViewModel = new SupplierManagementViewModel(
+                _serviceProvider.GetRequiredService<IThemeService>(),
+                _serviceProvider.GetRequiredService<IZoomService>(),
+                _serviceProvider.GetRequiredService<ILocalizationService>(),
+                _serviceProvider.GetRequiredService<IColorSchemeService>(),
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
+                _serviceProvider.GetRequiredService<IFontService>(),
+                _serviceProvider.GetRequiredService<IDatabaseLocalizationService>(),
+                _currentUserService,
+                _serviceProvider.GetRequiredService<ISupplierService>()
+            );
+
+            // Set up navigation from supplier management to specific modules
+            supplierManagementViewModel.NavigateToModuleAction = (moduleType) =>
+            {
+                switch (moduleType)
+                {
+                    case "Suppliers":
+                        _ = ShowSuppliers();
+                        break;
+                    default:
+                        StatusMessage = $"Navigation to {moduleType} not implemented yet";
+                        break;
+                }
+            };
+
+            // Set up back navigation
+            supplierManagementViewModel.GoBackAction = () =>
+            {
+                ShowManagementCommand.Execute(null);
+            };
+
+            // Create the SupplierManagementView and set its DataContext
+            var supplierManagementView = new SupplierManagementView
+            {
+                DataContext = supplierManagementViewModel
+            };
+
+            CurrentView = supplierManagementView;
+            StatusMessage = "Supplier management loaded successfully";
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading supplier management: {ex.Message}";
+            
+            // Fallback to simple error display
+            var errorContent = new System.Windows.Controls.StackPanel();
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = "Supplier Management", 
+                FontSize = 16, 
+                FontWeight = System.Windows.FontWeights.Bold,
+                Margin = new System.Windows.Thickness(0, 0, 0, 10) 
+            });
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = $"Error loading supplier management: {ex.Message}",
+                FontStyle = System.Windows.FontStyles.Italic,
+                Foreground = System.Windows.Media.Brushes.Red,
+                Margin = new System.Windows.Thickness(0, 20, 0, 0)
+            });
+            
+            CurrentView = errorContent;
+        }
+    }
+
     [RelayCommand]
     private void ShowProductManagement()
     {
@@ -987,6 +1358,7 @@ public partial class MainWindowViewModel : ObservableObject
             var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
             var fontService = _serviceProvider.GetRequiredService<IFontService>();
             var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            var activeCurrencyService = _serviceProvider.GetRequiredService<IActiveCurrencyService>();
             
             var productManagementViewModel = new ProductManagementViewModel(
                 productService,
@@ -999,6 +1371,7 @@ public partial class MainWindowViewModel : ObservableObject
                 fontService,
                 databaseLocalizationService,
                 _currentUserService,
+                activeCurrencyService,
                 navigateToAddProduct: ShowAddProduct,  // Pass the ShowAddProduct method as delegate
                 navigateToEditProduct: async (product) => await ShowEditProduct(product),  // Pass the ShowEditProduct method as delegate
                 navigateBack: () => _ = ShowManagement()  // Async wrapper for back navigation
@@ -1113,6 +1486,89 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private void ShowProductModifiers()
+    {
+        ChronoPos.Desktop.Services.FileLogger.Log("🔧 ShowProductModifiers method started");
+        
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PRODUCT_MODIFIERS))
+        {
+            MessageBox.Show(
+                "You don't have permission to access Product Modifiers Management.",
+                "Access Denied",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Product Modifiers";
+        StatusMessage = "Loading product modifiers...";
+        
+        try
+        {
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Getting ProductModifierService and related services from DI container");
+            // Create the ProductModifierViewModel
+            var productModifierService = _serviceProvider.GetRequiredService<IProductModifierService>();
+            var productModifierGroupService = _serviceProvider.GetRequiredService<IProductModifierGroupService>();
+            var productModifierGroupItemService = _serviceProvider.GetRequiredService<IProductModifierGroupItemService>();
+            var taxTypeService = _serviceProvider.GetRequiredService<ITaxTypeService>();
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ Services retrieved successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Creating ProductModifierViewModel");
+            var productModifierViewModel = new ProductModifierViewModel(
+                productModifierService,
+                productModifierGroupService,
+                productModifierGroupItemService,
+                _currentUserService,
+                taxTypeService,
+                () => _ = ShowAddOptions() // Navigate back to Others
+            );
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ ProductModifierViewModel created successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Creating ProductModifierView");
+            // Create the view and set the ViewModel
+            var productModifierView = new ProductModifierView();
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ ProductModifierView created successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Setting DataContext");
+            productModifierView.DataContext = productModifierViewModel;
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ DataContext set successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Setting CurrentView");
+            CurrentView = productModifierView;
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ CurrentView set successfully");
+            
+            StatusMessage = "Product modifiers loaded successfully";
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ ShowProductModifiers completed successfully");
+        }
+        catch (Exception ex)
+        {
+            ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error in ShowProductModifiers: {ex.Message}");
+            ChronoPos.Desktop.Services.FileLogger.Log($"❌ ShowProductModifiers stack trace: {ex.StackTrace}");
+            StatusMessage = $"Error loading product modifiers: {ex.Message}";
+            
+            // Fallback to simple error display
+            var errorContent = new System.Windows.Controls.StackPanel();
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = "Product Modifiers", 
+                FontSize = 16, 
+                FontWeight = System.Windows.FontWeights.Bold,
+                Margin = new System.Windows.Thickness(0, 0, 0, 20) 
+            });
+            errorContent.Children.Add(new System.Windows.Controls.TextBlock 
+            { 
+                Text = $"Error loading product modifiers: {ex.Message}",
+                FontSize = 12,
+                Foreground = System.Windows.Media.Brushes.Red,
+                Margin = new System.Windows.Thickness(0, 20, 0, 0)
+            });
+            
+            CurrentView = errorContent;
+        }
+    }
+
     private async Task ShowProductCombinations()
     {
         // Check permission using UMAC - Allow if user has ANY permission
@@ -1206,6 +1662,7 @@ public partial class MainWindowViewModel : ObservableObject
             var discountService = _serviceProvider.GetRequiredService<IDiscountService>();
             var productUnitService = _serviceProvider.GetRequiredService<IProductUnitService>();
             var skuGenerationService = _serviceProvider.GetRequiredService<ISkuGenerationService>();
+            var activeCurrencyService = _serviceProvider.GetRequiredService<IActiveCurrencyService>();
             
             // Create ViewModel with navigation callback
             var addProductViewModel = new AddProductViewModel(
@@ -1217,6 +1674,9 @@ public partial class MainWindowViewModel : ObservableObject
                 productUnitService,
                 skuGenerationService,
                 _serviceProvider.GetRequiredService<IProductBatchService>(),
+                activeCurrencyService,
+                _serviceProvider.GetRequiredService<IProductModifierGroupService>(),
+                _serviceProvider.GetRequiredService<IProductModifierLinkService>(),
                 themeService,
                 zoomService,
                 localizationService,
@@ -1283,6 +1743,7 @@ public partial class MainWindowViewModel : ObservableObject
             var discountService = _serviceProvider.GetRequiredService<IDiscountService>();
             var productUnitService = _serviceProvider.GetRequiredService<IProductUnitService>();
             var skuGenerationService = _serviceProvider.GetRequiredService<ISkuGenerationService>();
+            var activeCurrencyService = _serviceProvider.GetRequiredService<IActiveCurrencyService>();
             
             // Create ViewModel with navigation callback
             var addProductViewModel = new AddProductViewModel(
@@ -1294,6 +1755,9 @@ public partial class MainWindowViewModel : ObservableObject
                 productUnitService,
                 skuGenerationService,
                 _serviceProvider.GetRequiredService<IProductBatchService>(),
+                activeCurrencyService,
+                _serviceProvider.GetRequiredService<IProductModifierGroupService>(),
+                _serviceProvider.GetRequiredService<IProductModifierLinkService>(),
                 themeService,
                 zoomService,
                 localizationService,
@@ -1992,6 +2456,9 @@ public partial class MainWindowViewModel : ObservableObject
                     case "ProductAttributes":
                         ShowProductAttributes();
                         break;
+                    case "ProductModifiers":
+                        ShowProductModifiers();
+                        break;
                     case "ProductCombinations":
                         _ = ShowProductCombinations();
                         break;
@@ -2008,17 +2475,11 @@ public partial class MainWindowViewModel : ObservableObject
                     case "TaxRates":
                         _ = ShowTaxTypes();
                         break;
-                    case "Customers":
-                        _ = ShowCustomers();
-                        break;
-                    case "CustomerGroups":
-                        _ = ShowCustomerGroups();
-                        break;
-                    case "Suppliers":
-                        _ = ShowSuppliers();
-                        break;
                     case "Shop":
                         _ = ShowStore();
+                        break;
+                    case "Currency":
+                        _ = ShowCurrency();
                         break;
                     default:
                         StatusMessage = $"Navigation to {moduleType} module not implemented yet";
@@ -2297,6 +2758,57 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private async Task ShowCurrency()
+    {
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.CURRENCY))
+        {
+            MessageBox.Show(
+                "You don't have permission to access Currency Management.",
+                "Access Denied",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
+        CurrentPageTitle = "Currency Management";
+        StatusMessage = "Loading currency management...";
+        
+        try
+        {
+            // Create the CurrencyViewModel with all required services and navigation callback
+            var currencyViewModel = new CurrencyViewModel(
+                _serviceProvider.GetRequiredService<ICurrencyService>(),
+                _currentUserService,
+                _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
+                navigateBack: () => ShowAddOptionsCommand.Execute(null)
+            );
+
+            // Create the CurrencyView and set its DataContext
+            var currencyView = new CurrencyView
+            {
+                DataContext = currencyViewModel
+            };
+
+            CurrentView = currencyView;
+            StatusMessage = "Currency management loaded successfully";
+            await Task.CompletedTask; // satisfy analyzer
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading currency management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
     private async Task ShowPaymentTypes()
     {
         // Check permission using UMAC - Allow if user has ANY permission
@@ -2528,7 +3040,7 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task ShowCustomers()
     {
         // Check permission using UMAC - Allow if user has ANY permission
-        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.CUSTOMERS_ADD_OPTIONS))
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.CUSTOMERS))
         {
             MessageBox.Show(
                 "You don't have permission to access Customer Management.",
@@ -2551,10 +3063,10 @@ public partial class MainWindowViewModel : ObservableObject
                 _currentUserService
             );
 
-            // Set up back navigation to return to Others
+            // Set up back navigation to return to Customer Management
             customersViewModel.GoBackAction = () =>
             {
-                ShowAddOptionsCommand.Execute(null);
+                _ = ShowCustomerManagement();
             };
 
             // Create the CustomersView and set its DataContext
@@ -2610,10 +3122,10 @@ public partial class MainWindowViewModel : ObservableObject
                 _currentUserService
             );
 
-            // Set up back navigation to return to Others
+            // Set up back navigation to return to Customer Management
             customerGroupsViewModel.GoBackAction = () =>
             {
-                ShowAddOptionsCommand.Execute(null);
+                _ = ShowCustomerManagement();
             };
 
             // Create the CustomerGroupsView and set its DataContext
@@ -2704,7 +3216,7 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task ShowSuppliers()
     {
         // Check permission using UMAC - Allow if user has ANY permission
-        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.SUPPLIERS_ADD_OPTIONS))
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.SUPPLIERS))
         {
             MessageBox.Show(
                 "You don't have permission to access Supplier Management.",
@@ -2726,10 +3238,10 @@ public partial class MainWindowViewModel : ObservableObject
                 _currentUserService
             );
 
-            // Set up back navigation to return to Others
+            // Set up back navigation to return to Supplier Management
             suppliersViewModel.GoBackAction = () =>
             {
-                ShowAddOptionsCommand.Execute(null);
+                _ = ShowSupplierManagement();
             };
 
             // Create the SuppliersView and set its DataContext
@@ -2757,11 +3269,22 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ShowReservation()
+    private async Task ShowReservation()
     {
+        AppLogger.LogInfo("===== ShowReservation command invoked =====", filename: "reservation");
+        
+        // Check if already on Reservation page to avoid unnecessary recreation
+        if (SelectedPage == "Reservation" && CurrentView is ReservationView)
+        {
+            AppLogger.LogInfo("Already on Reservation page, skipping recreation", filename: "reservation");
+            return;
+        }
+        
         // Check permission using UMAC - Allow if user has ANY permission (Create, Edit, Delete, Import, Export, View, Print)
+        AppLogger.LogInfo("Checking reservation screen permissions...", filename: "reservation");
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.RESERVATION))
         {
+            AppLogger.LogWarning("User does not have permission to access Reservation screen", filename: "reservation");
             MessageBox.Show(
                 "You don't have permission to access the Reservation screen.",
                 "Access Denied",
@@ -2769,48 +3292,96 @@ public partial class MainWindowViewModel : ObservableObject
                 MessageBoxImage.Warning);
             return;
         }
+        AppLogger.LogInfo("Permission check passed", filename: "reservation");
 
         SelectedPage = "Reservation";
-        CurrentPageTitle = "Reservation Management";
-        StatusMessage = "Reservation interface loaded";
+        AppLogger.LogInfo($"SelectedPage set to: {SelectedPage}", filename: "reservation");
         
-        var reservationContent = new System.Windows.Controls.TextBlock
+        CurrentPageTitle = await _databaseLocalizationService.GetTranslationAsync("nav_reservation") ?? "Reservation";
+        AppLogger.LogInfo($"CurrentPageTitle set to: {CurrentPageTitle}", filename: "reservation");
+        
+        StatusMessage = "Loading reservation management...";
+        AppLogger.LogInfo("StatusMessage set to: Loading reservation management...", filename: "reservation");
+        
+        try
         {
-            Text = "Reservation Management\n(Customer reservation interface will be implemented here)",
-            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-            VerticalAlignment = System.Windows.VerticalAlignment.Center,
-            FontSize = 16
-        };
-        CurrentView = reservationContent;
-    }
+            AppLogger.LogInfo("Creating ReservationTimelineViewModel...", filename: "reservation");
+            
+            // Create the ReservationTimelineViewModel with all required services
+            var reservationTimelineViewModel = new ReservationTimelineViewModel(
+                _serviceProvider.GetRequiredService<IReservationService>(),
+                _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ICurrentUserService>(),
+                _serviceProvider.GetRequiredService<IPaymentTypeService>()
+            );
+            AppLogger.LogInfo("ReservationTimelineViewModel created successfully", filename: "reservation");
 
-    [RelayCommand]
-    private void ShowOrderTable()
-    {
-        // Check permission using UMAC - Allow if user has ANY permission (Create, Edit, Delete, Import, Export, View, Print)
-        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.ORDER_TABLE))
-        {
-            MessageBox.Show(
-                "You don't have permission to access the Order Table screen.",
-                "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-            return;
+            // Create the ReservationView and set DataContext (following same pattern as ManagementView)
+            AppLogger.LogInfo("Creating ReservationView...", filename: "reservation");
+            var reservationView = new ReservationView
+            {
+                DataContext = reservationTimelineViewModel
+            };
+            AppLogger.LogInfo($"ReservationView created successfully. View type: {reservationView.GetType().FullName}", filename: "reservation");
+            AppLogger.LogInfo($"DataContext set to ViewModel type: {reservationView.DataContext?.GetType().FullName ?? "null"}", filename: "reservation");
+
+            AppLogger.LogInfo($"Setting CurrentView to ReservationView. Previous CurrentView: {CurrentView?.GetType().FullName ?? "null"}", filename: "reservation");
+            CurrentView = reservationView;
+            AppLogger.LogInfo($"CurrentView updated. New CurrentView type: {CurrentView?.GetType().FullName ?? "null"}", filename: "reservation");
+            
+            StatusMessage = "Reservation management loaded successfully";
+            AppLogger.LogInfo("===== ShowReservation completed successfully =====", filename: "reservation");
+            await Task.CompletedTask; // satisfy analyzer
         }
-
-        SelectedPage = "OrderTable";
-        CurrentPageTitle = "Order Table";
-        StatusMessage = "Order table loaded";
-        
-        var orderTableContent = new System.Windows.Controls.TextBlock
+        catch (Exception ex)
         {
-            Text = "Order Table\n(Order history and management will be shown here)",
-            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-            VerticalAlignment = System.Windows.VerticalAlignment.Center,
-            FontSize = 16
-        };
-        CurrentView = orderTableContent;
+            AppLogger.LogError("ShowReservation failed", ex, filename: "reservation");
+            StatusMessage = $"Error loading reservation management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}\n\nPlease ensure all required services are registered.",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 14,
+                Foreground = System.Windows.Media.Brushes.Red,
+                TextWrapping = System.Windows.TextWrapping.Wrap,
+                Margin = new System.Windows.Thickness(20)
+            };
+            CurrentView = errorContent;
+            AppLogger.LogInfo("Error view displayed to user", filename: "reservation");
+        }
     }
+
+    // COMMENTED OUT: OrderTable removed from sidebar - screen constant removed from ScreenNames
+    // [RelayCommand]
+    // private void ShowOrderTable()
+    // {
+    //     // Check permission using UMAC - Allow if user has ANY permission (Create, Edit, Delete, Import, Export, View, Print)
+    //     // Note: ORDER_TABLE constant has been removed from ScreenNames.cs
+    //     // if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.ORDER_TABLE))
+    //     // {
+    //     //     MessageBox.Show(
+    //     //         "You don't have permission to access the Order Table screen.",
+    //     //         "Access Denied",
+    //     //         MessageBoxButton.OK,
+    //     //         MessageBoxImage.Warning);
+    //     //     return;
+    //     // }
+    //
+    //     SelectedPage = "OrderTable";
+    //     CurrentPageTitle = "Order Table";
+    //     StatusMessage = "Order table loaded";
+    //     
+    //     var orderTableContent = new System.Windows.Controls.TextBlock
+    //     {
+    //         Text = "Order Table\n(Order history and management will be shown here)",
+    //         HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+    //         VerticalAlignment = System.Windows.VerticalAlignment.Center,
+    //         FontSize = 16
+    //     };
+    //     CurrentView = orderTableContent;
+    // }
 
     [RelayCommand]
     private void ShowReports()
@@ -2843,6 +3414,17 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private async Task ShowSettings()
     {
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.SETTINGS))
+        {
+            MessageBox.Show(
+                "You don't have permission to access the Settings screen.",
+                "Access Denied",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
         SelectedPage = "Settings";
         CurrentPageTitle = await _databaseLocalizationService.GetTranslationAsync("nav_settings") ?? "Settings";
         StatusMessage = await _databaseLocalizationService.GetTranslationAsync("status_loading_settings") ?? "Loading settings...";
@@ -2923,6 +3505,17 @@ public partial class MainWindowViewModel : ObservableObject
     {
         AppLogger.Log("=== ShowUserSettings STARTED ===");
         
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.CLIENT_SETTINGS))
+        {
+            MessageBox.Show(
+                "You don't have permission to access User Settings.",
+                "Access Denied",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+        
         // Don't change SelectedPage - keep it as "Settings" so sidebar stays highlighted
         CurrentPageTitle = "User Settings";
         StatusMessage = "Loading user settings...";
@@ -2975,6 +3568,17 @@ public partial class MainWindowViewModel : ObservableObject
 
     private async Task ShowApplicationSettings()
     {
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.GLOBAL_SETTINGS))
+        {
+            MessageBox.Show(
+                "You don't have permission to access Application Settings.",
+                "Access Denied",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+        
         // Don't change SelectedPage - keep it as "Settings" so sidebar stays highlighted
         CurrentPageTitle = "Application Settings";
         StatusMessage = "Loading application settings...";
@@ -3008,6 +3612,17 @@ public partial class MainWindowViewModel : ObservableObject
 
     private async Task ShowPermissions()
     {
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PERMISSIONS))
+        {
+            MessageBox.Show(
+                "You don't have permission to access Permissions Management.",
+                "Access Denied",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+        
         // Don't change SelectedPage - keep it as "Settings" so sidebar stays highlighted
         CurrentPageTitle = "Permissions";
         StatusMessage = "Loading permissions...";
@@ -3045,6 +3660,17 @@ public partial class MainWindowViewModel : ObservableObject
 
     private async Task ShowRoles()
     {
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.ROLES))
+        {
+            MessageBox.Show(
+                "You don't have permission to access Roles Management.",
+                "Access Denied",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+        
         // Don't change SelectedPage - keep it as "Settings" so sidebar stays highlighted
         CurrentPageTitle = "Roles";
         StatusMessage = "Loading roles...";

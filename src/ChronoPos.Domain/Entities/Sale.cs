@@ -33,7 +33,7 @@ public class Sale
     [Required]
     public PaymentMethod PaymentMethod { get; set; }
     
-    public SaleStatus Status { get; set; } = SaleStatus.Completed;
+    public SaleStatus Status { get; set; } = SaleStatus.Settled;
     
     [StringLength(500)]
     public string Notes { get; set; } = string.Empty;

@@ -232,15 +232,13 @@ public partial class ManagementViewModel : ObservableObject
         var primaryColorBrush = GetPrimaryColorBrush();
         var buttonBackgroundBrush = GetButtonBackgroundBrush();
 
-        // Create modules with localized content from database (6 modules - AddOptions moved to Settings)
+        // Create modules with localized content from database (4 modules - Payment and Service removed, CustomerManagement and SupplierManagement added)
         var moduleData = new[]
         {
             new { Type = "Stock", TitleKey = "management.stock", CountLabel = "Items", Count = await GetStockCountAsync(), IsVisible = IsStockManagementVisible },
             new { Type = "Product", TitleKey = "management.products", CountLabel = "Products", Count = await GetProductCountAsync(), IsVisible = IsProductManagementVisible },
-            new { Type = "Supplier", TitleKey = "management.supplier", CountLabel = "Suppliers", Count = await GetSupplierCountAsync(), IsVisible = true },
-            new { Type = "Customer", TitleKey = "management.customers", CountLabel = "Customers", Count = await GetCustomerCountAsync(), IsVisible = true },
-            new { Type = "Payment", TitleKey = "management.payment", CountLabel = "Transactions", Count = await GetPaymentCountAsync(), IsVisible = true },
-            new { Type = "Service", TitleKey = "management.service", CountLabel = "Services", Count = await GetServiceCountAsync(), IsVisible = true }
+            new { Type = "CustomerManagement", TitleKey = "management.customers", CountLabel = "Customers", Count = await GetCustomerCountAsync(), IsVisible = true },
+            new { Type = "SupplierManagement", TitleKey = "management.supplier", CountLabel = "Suppliers", Count = await GetSupplierCountAsync(), IsVisible = true }
         };
 
         // Add modules to collection - All use the same primary color - Only add visible modules
@@ -346,20 +344,6 @@ public partial class ManagementViewModel : ObservableObject
         // TODO: Replace with actual data service call
         await Task.Delay(10);
         return 120;
-    }
-
-    private async Task<int> GetPaymentCountAsync()
-    {
-        // TODO: Replace with actual data service call
-        await Task.Delay(10);
-        return 340;
-    }
-
-    private async Task<int> GetServiceCountAsync()
-    {
-        // TODO: Replace with actual data service call
-        await Task.Delay(10);
-        return 15;
     }
 
     #endregion

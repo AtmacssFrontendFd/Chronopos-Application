@@ -83,6 +83,9 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IBrandRepository, BrandRepository>();
                     LogMessage("BrandRepository registered as Transient");
                     
+                    services.AddTransient<ICurrencyRepository, CurrencyRepository>();
+                    LogMessage("CurrencyRepository registered as Transient");
+                    
                     // Register Permission repositories
                     services.AddTransient<IPermissionRepository, PermissionRepository>();
                     LogMessage("PermissionRepository registered as Transient");
@@ -154,6 +157,13 @@ public partial class App : System.Windows.Application
                     
                     services.AddTransient<IGoodsReplaceItemRepository, GoodsReplaceItemRepository>();
                     LogMessage("GoodsReplaceItemRepository registered as Transient");
+                    
+                    // Register Reservation repositories
+                    services.AddTransient<IReservationRepository, ReservationRepository>();
+                    LogMessage("ReservationRepository registered as Transient");
+                    
+                    services.AddTransient<IRestaurantTableRepository, RestaurantTableRepository>();
+                    LogMessage("RestaurantTableRepository registered as Transient");
 
                     // Register Product Attribute repositories
                     services.AddTransient<IProductAttributeRepository, ProductAttributeRepository>();
@@ -165,6 +175,50 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IProductCombinationItemRepository, ProductCombinationItemRepository>();
                     LogMessage("ProductCombinationItemRepository registered as Transient");
 
+                    // Register Product Modifier repositories
+                    services.AddTransient<IProductModifierRepository, ProductModifierRepository>();
+                    LogMessage("ProductModifierRepository registered as Transient");
+                    
+                    services.AddTransient<IProductModifierGroupRepository, ProductModifierGroupRepository>();
+                    LogMessage("ProductModifierGroupRepository registered as Transient");
+                    
+                    services.AddTransient<IProductModifierGroupItemRepository, ProductModifierGroupItemRepository>();
+                    LogMessage("ProductModifierGroupItemRepository registered as Transient");
+                    
+                    services.AddTransient<IProductModifierLinkRepository, ProductModifierLinkRepository>();
+                    LogMessage("ProductModifierLinkRepository registered as Transient");
+
+                    // Register Transaction repositories
+                    services.AddTransient<IShiftRepository, ShiftRepository>();
+                    LogMessage("ShiftRepository registered as Transient");
+                    
+                    services.AddTransient<IServiceChargeRepository, ServiceChargeRepository>();
+                    LogMessage("ServiceChargeRepository registered as Transient");
+                    
+                    services.AddTransient<ITransactionRepository, TransactionRepository>();
+                    LogMessage("TransactionRepository registered as Transient");
+                    
+                    services.AddTransient<ITransactionProductRepository, TransactionProductRepository>();
+                    LogMessage("TransactionProductRepository registered as Transient");
+                    
+                    services.AddTransient<ITransactionModifierRepository, TransactionModifierRepository>();
+                    LogMessage("TransactionModifierRepository registered as Transient");
+                    
+                    services.AddTransient<ITransactionServiceChargeRepository, TransactionServiceChargeRepository>();
+                    LogMessage("TransactionServiceChargeRepository registered as Transient");
+                    
+                    services.AddTransient<IRefundTransactionRepository, RefundTransactionRepository>();
+                    LogMessage("RefundTransactionRepository registered as Transient");
+                    
+                    services.AddTransient<IRefundTransactionProductRepository, RefundTransactionProductRepository>();
+                    LogMessage("RefundTransactionProductRepository registered as Transient");
+                    
+                    services.AddTransient<IExchangeTransactionRepository, ExchangeTransactionRepository>();
+                    LogMessage("ExchangeTransactionRepository registered as Transient");
+                    
+                    services.AddTransient<IExchangeTransactionProductRepository, ExchangeTransactionProductRepository>();
+                    LogMessage("ExchangeTransactionProductRepository registered as Transient");
+
                     // Register application services as Transient to ensure fresh DbContext instances
                     services.AddTransient<IProductService, ProductService>();
                     LogMessage("ProductService registered as Transient");
@@ -174,6 +228,9 @@ public partial class App : System.Windows.Application
                     
                     services.AddTransient<IBrandService, BrandService>();
                     LogMessage("BrandService registered as Transient");
+                    
+                    services.AddTransient<ICurrencyService, CurrencyService>();
+                    LogMessage("CurrencyService registered as Transient");
                     
                     // Register Permission services
                     services.AddTransient<IPermissionService, PermissionService>();
@@ -215,6 +272,10 @@ public partial class App : System.Windows.Application
                     services.AddTransient<ICustomerService, CustomerService>();
                     LogMessage("CustomerService registered as Transient");
                     
+                    // Register Category service
+                    services.AddTransient<ICategoryService, CategoryService>();
+                    LogMessage("CategoryService registered as Transient");
+                    
                     // Register CustomerGroup services
                     services.AddTransient<ICustomerGroupService, CustomerGroupService>();
                     LogMessage("CustomerGroupService registered as Transient");
@@ -241,6 +302,13 @@ public partial class App : System.Windows.Application
                     // Register PaymentType service
                     services.AddTransient<IPaymentTypeService, PaymentTypeService>();
                     LogMessage("PaymentTypeService registered as Transient");
+                    
+                    // Register Reservation services
+                    services.AddTransient<IReservationService, ReservationService>();
+                    LogMessage("ReservationService registered as Transient");
+                    
+                    services.AddTransient<IRestaurantTableService, RestaurantTableService>();
+                    LogMessage("RestaurantTableService registered as Transient");
                     
                     // Register logging service
                     services.AddSingleton<ILoggingService, ApplicationLoggingService>();
@@ -311,6 +379,35 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IProductCombinationItemService, ProductCombinationItemService>();
                     LogMessage("ProductCombinationItemService registered as Transient");
                     
+                    // Register Product Modifier services
+                    services.AddTransient<IProductModifierService, ProductModifierService>();
+                    LogMessage("ProductModifierService registered as Transient");
+                    
+                    services.AddTransient<IProductModifierGroupService, ProductModifierGroupService>();
+                    LogMessage("ProductModifierGroupService registered as Transient");
+                    
+                    services.AddTransient<IProductModifierGroupItemService, ProductModifierGroupItemService>();
+                    LogMessage("ProductModifierGroupItemService registered as Transient");
+                    
+                    services.AddTransient<IProductModifierLinkService, ProductModifierLinkService>();
+                    LogMessage("ProductModifierLinkService registered as Transient");
+                    
+                    // Register Transaction services
+                    services.AddTransient<IShiftService, ShiftService>();
+                    LogMessage("ShiftService registered as Transient");
+                    
+                    services.AddTransient<IServiceChargeService, ServiceChargeService>();
+                    LogMessage("ServiceChargeService registered as Transient");
+                    
+                    services.AddTransient<ITransactionService, TransactionService>();
+                    LogMessage("TransactionService registered as Transient");
+                    
+                    services.AddTransient<IRefundService, RefundService>();
+                    LogMessage("RefundService registered as Transient");
+                    
+                    services.AddTransient<IExchangeService, ExchangeService>();
+                    LogMessage("ExchangeService registered as Transient");
+                    
                     // Register theme service
                     services.AddSingleton<IThemeService, ThemeService>();
                     LogMessage("ThemeService registered");
@@ -343,6 +440,10 @@ public partial class App : System.Windows.Application
                     services.AddSingleton<IZoomService, ZoomService>();
                     LogMessage("ZoomService registered");
 
+                    // Register Active Currency service (Singleton for system-wide access)
+                    services.AddSingleton<IActiveCurrencyService, ActiveCurrencyService>();
+                    LogMessage("ActiveCurrencyService registered as Singleton");
+
                     // Register icon service
                     services.AddSingleton<IIconService, IconService>();
                     LogMessage("IconService registered");
@@ -372,6 +473,8 @@ public partial class App : System.Windows.Application
                     LogMessage("AddProductViewModel registered as Transient");
                     services.AddTransient<SalesViewModel>();
                     LogMessage("SalesViewModel registered as Transient");
+                    services.AddTransient<AddSalesViewModel>();
+                    LogMessage("AddSalesViewModel registered as Transient");
                     services.AddTransient<CustomersViewModel>();
                     LogMessage("CustomersViewModel registered as Transient");
                     services.AddTransient<CustomerSidePanelViewModel>();
@@ -411,6 +514,12 @@ public partial class App : System.Windows.Application
                     LogMessage("ProductAttributeViewModel registered as Transient");
                     services.AddTransient<ProductAttributeSidePanelViewModel>();
                     LogMessage("ProductAttributeSidePanelViewModel registered as Transient");
+                    services.AddTransient<ProductModifierViewModel>();
+                    LogMessage("ProductModifierViewModel registered as Transient");
+                    services.AddTransient<ProductModifierSidePanelViewModel>();
+                    LogMessage("ProductModifierSidePanelViewModel registered as Transient");
+                    services.AddTransient<ProductModifierGroupSidePanelViewModel>();
+                    LogMessage("ProductModifierGroupSidePanelViewModel registered as Transient");
                     services.AddTransient<UomViewModel>();
                     LogMessage("UomViewModel registered as Transient");
                     services.AddTransient<UomSidePanelViewModel>();
@@ -612,6 +721,32 @@ public partial class App : System.Windows.Application
         catch (Exception ex)
         {
             LogMessage($"  - Zoom service error: {ex.Message}");
+        }
+
+        // Initialize Active Currency service (async - needs to load from database)
+        try 
+        {
+            LogMessage("  - Initializing active currency service...");
+            var activeCurrencyService = _host.Services.GetRequiredService<IActiveCurrencyService>();
+            // Run async initialization synchronously (we're already on UI thread during startup)
+            var initTask = activeCurrencyService.InitializeAsync();
+            initTask.Wait();
+            if (initTask.Result)
+            {
+                LogMessage($"  - Active currency service initialized: {activeCurrencyService.CurrencyName} ({activeCurrencyService.CurrencySymbol}) ✓");
+            }
+            else
+            {
+                LogMessage("  - Active currency service initialized with fallback currency ⚠");
+            }
+            
+            // Initialize the currency converter
+            ChronoPos.Desktop.Converters.CurrencyPriceConverter.Initialize(_host.Services);
+            LogMessage("  - Currency price converter initialized ✓");
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"  - Active currency service error: {ex.Message}");
         }
         
         LogMessage(">>> All services initialized");

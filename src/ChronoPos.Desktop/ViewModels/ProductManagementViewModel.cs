@@ -23,6 +23,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
     private readonly Action<ProductDto>? _navigateToEditProduct;
     private readonly Action? _navigateBack;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IActiveCurrencyService _activeCurrencyService;
     
     // Settings services
     private readonly IThemeService _themeService;
@@ -276,6 +277,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
         IFontService fontService,
         InfrastructureServices.IDatabaseLocalizationService databaseLocalizationService,
         ICurrentUserService currentUserService,
+        IActiveCurrencyService activeCurrencyService,
         Action? navigateToAddProduct = null, 
         Action<ProductDto>? navigateToEditProduct = null,
         Action? navigateBack = null)
@@ -290,9 +292,13 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
         _fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
         _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
         _navigateToAddProduct = navigateToAddProduct;
         _navigateToEditProduct = navigateToEditProduct;
         _navigateBack = navigateBack;
+        
+        // Subscribe to currency changes
+        _activeCurrencyService.ActiveCurrencyChanged += OnCurrencyChanged;
         
         // Initialize permission-based visibility
         InitializePermissions();
@@ -1058,6 +1064,18 @@ private void DebugBindings()
         };
     }
 
+    /// <summary>
+    /// Handles currency change events - refreshes all product prices in the list
+    /// </summary>
+    private void OnCurrencyChanged(object? sender, CurrencyDto newCurrency)
+    {
+        // Refresh all products to show updated currency
+        OnPropertyChanged(nameof(FilteredProducts));
+        OnPropertyChanged(nameof(Products));
+        
+        FileLogger.Log($"💱 ProductManagement: Currency changed to {newCurrency.CurrencyCode}, product list refreshed");
+    }
+
     private void UpdateCurrentSettings()
     {
         CurrentTheme = _themeService.CurrentTheme.ToString();
@@ -1227,6 +1245,7 @@ private void DebugBindings()
             _layoutDirectionService.DirectionChanged -= OnLayoutDirectionChanged;
             _fontService.FontChanged -= OnFontChanged;
             _databaseLocalizationService.LanguageChanged -= OnDatabaseLanguageChanged;
+            _activeCurrencyService.ActiveCurrencyChanged -= OnCurrencyChanged;
         }
     }
 

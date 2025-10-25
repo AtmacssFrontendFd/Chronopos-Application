@@ -5,7 +5,7 @@ namespace ChronoPos.Desktop.Models.Licensing
     public class SalesKeyInfo
     {
         public string ScratchCardCode { get; set; } = string.Empty;
-        public int SalespersonId { get; set; }
+        public string ApplicationName { get; set; } = string.Empty;
         public CustomerInfo Customer { get; set; } = new CustomerInfo();
         public SystemInfo System { get; set; } = new SystemInfo();
         public DateTime CreatedAt { get; set; }

@@ -4,16 +4,22 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ChronoPos.Infrastructure;
+using ChronoPos.Infrastructure.Services;
 
 namespace ChronoPos.Desktop.Views
 {
     public partial class LoginWindow : Window
     {
         private readonly IServiceProvider _serviceProvider;
+        private readonly IDatabaseLocalizationService _localizationService;
+        private bool _isPasswordVisible = false;
+        private string _currentLanguageCode = "en";
+        
         public int LoggedInUserId { get; private set; }
 
         public LoginWindow(IServiceProvider serviceProvider)
@@ -25,9 +31,13 @@ namespace ChronoPos.Desktop.Views
                 LogMessage("LoginWindow InitializeComponent completed");
                 
                 _serviceProvider = serviceProvider;
+                _localizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
                 
                 // Add window closing handler
                 Closing += LoginWindow_Closing;
+                
+                // Load translations
+                _ = LoadTranslationsAsync();
                 
                 LoadSavedUsername();
                 UsernameTextBox.Focus();
@@ -42,7 +52,7 @@ namespace ChronoPos.Desktop.Views
             }
         }
 
-        private void LoginWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private void LoginWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             LogMessage($"LoginWindow is closing. DialogResult: {DialogResult}");
             
@@ -95,13 +105,16 @@ namespace ChronoPos.Desktop.Views
 
             if (string.IsNullOrWhiteSpace(UsernameTextBox.Text))
             {
-                ShowError("Please enter your username or email.");
+                ShowError(await _localizationService.GetTranslationAsync("login.error_username_required"));
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(PasswordBox.Password))
+            // Get password from whichever control is currently visible
+            var password = _isPasswordVisible ? PasswordTextBox.Text : PasswordBox.Password;
+            
+            if (string.IsNullOrWhiteSpace(password))
             {
-                ShowError("Please enter your password.");
+                ShowError(await _localizationService.GetTranslationAsync("login.error_password_required"));
                 return;
             }
 
@@ -115,22 +128,22 @@ namespace ChronoPos.Desktop.Views
                     var dbContext = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
 
                     // Hash the password
-                    var hashedPassword = HashPassword(PasswordBox.Password);
+                    var hashedPassword = HashPassword(password);
 
-                    // Try to find user by email first, then by any match
+                    // Find user by username
                     var user = await dbContext.Users
-                        .Where(u => !u.Deleted && u.Email.ToLower() == UsernameTextBox.Text.ToLower())
+                        .Where(u => !u.Deleted && u.Username.ToLower() == UsernameTextBox.Text.ToLower())
                         .FirstOrDefaultAsync();
 
                     if (user == null)
                     {
-                        ShowError("Invalid username or password.");
+                        ShowError(await _localizationService.GetTranslationAsync("login.error_invalid_credentials"));
                         return;
                     }
 
                     if (user.Password != hashedPassword)
                     {
-                        ShowError("Invalid username or password.");
+                        ShowError(await _localizationService.GetTranslationAsync("login.error_invalid_credentials"));
                         return;
                     }
 
@@ -144,7 +157,7 @@ namespace ChronoPos.Desktop.Views
                         ClearSavedUsername();
                     }
 
-                    LogMessage($">>> Login successful for user: {user.Email} (ID: {user.Id})");
+                    LogMessage($">>> Login successful for user: {user.Username} (ID: {user.Id})");
                     LoggedInUserId = user.Id;
                     LogMessage($">>> Setting DialogResult = true");
                     DialogResult = true;
@@ -234,6 +247,122 @@ namespace ChronoPos.Desktop.Views
             catch
             {
                 // Ignore errors
+            }
+        }
+
+        // Password visibility toggle
+        private void ShowPasswordButton_Click(object sender, RoutedEventArgs e)
+        {
+            _isPasswordVisible = !_isPasswordVisible;
+            
+            if (_isPasswordVisible)
+            {
+                // Show password as text
+                PasswordTextBox.Text = PasswordBox.Password;
+                PasswordBox.Visibility = Visibility.Collapsed;
+                PasswordTextBox.Visibility = Visibility.Visible;
+                PasswordTextBox.Focus();
+                PasswordTextBox.SelectionStart = PasswordTextBox.Text.Length;
+                ShowPasswordButton.Content = "🙈"; // Closed eye
+            }
+            else
+            {
+                // Hide password
+                PasswordBox.Password = PasswordTextBox.Text;
+                PasswordTextBox.Visibility = Visibility.Collapsed;
+                PasswordBox.Visibility = Visibility.Visible;
+                PasswordBox.Focus();
+                ShowPasswordButton.Content = "👁"; // Open eye
+            }
+        }
+
+        private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            if (!_isPasswordVisible)
+            {
+                // Sync password to hidden textbox
+                PasswordTextBox.Text = PasswordBox.Password;
+            }
+        }
+
+        private void PasswordTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_isPasswordVisible)
+            {
+                // Sync password to password box
+                PasswordBox.Password = PasswordTextBox.Text;
+            }
+        }
+
+        // Language toggle
+        private async void LanguageComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (LanguageComboBox.SelectedItem is ComboBoxItem selectedItem)
+            {
+                var languageCode = selectedItem.Tag?.ToString() ?? "en";
+                _currentLanguageCode = languageCode;
+                
+                await _localizationService.SetCurrentLanguageAsync(languageCode);
+                await LoadTranslationsAsync();
+                
+                // Update FlowDirection for RTL languages
+                if (languageCode == "ar")
+                {
+                    this.FlowDirection = FlowDirection.RightToLeft;
+                }
+                else
+                {
+                    this.FlowDirection = FlowDirection.LeftToRight;
+                }
+            }
+        }
+
+        private async void ForgotPasswordButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var forgotPasswordWindow = new ForgotPasswordWindow(_serviceProvider);
+                forgotPasswordWindow.Owner = this;
+                forgotPasswordWindow.ShowDialog();
+                
+                // If password was reset successfully, show a message
+                if (forgotPasswordWindow.IsPasswordResetSuccessful)
+                {
+                    ShowError(await _localizationService.GetTranslationAsync("login.password_reset_success") ?? "Password has been reset successfully! Please login with your new password.");
+                    // Clear the password fields
+                    PasswordBox.Password = string.Empty;
+                    PasswordTextBox.Text = string.Empty;
+                    UsernameTextBox.Focus();
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Unable to open password reset window: {ex.Message}");
+                LogMessage($"Error opening ForgotPasswordWindow: {ex.Message}");
+            }
+        }
+
+        private async Task LoadTranslationsAsync()
+        {
+            try
+            {
+                // Load translations from database
+                LoginTitleTextBlock.Text = await _localizationService.GetTranslationAsync("login.title");
+                LoginSubtitleTextBlock.Text = await _localizationService.GetTranslationAsync("login.subtitle");
+                UsernameLabelTextBlock.Text = await _localizationService.GetTranslationAsync("login.username");
+                PasswordLabelTextBlock.Text = await _localizationService.GetTranslationAsync("login.password");
+                UsernameTextBox.Tag = await _localizationService.GetTranslationAsync("login.username_placeholder");
+                PasswordTextBox.Tag = await _localizationService.GetTranslationAsync("login.password_placeholder");
+                RememberMeCheckBox.Content = await _localizationService.GetTranslationAsync("login.remember_me");
+                ForgotPasswordButton.Content = await _localizationService.GetTranslationAsync("login.forgot_password");
+                LoginButton.Content = await _localizationService.GetTranslationAsync("login.button");
+                
+                LogMessage($"Translations loaded for language: {_currentLanguageCode}");
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"Error loading translations: {ex.Message}");
+                // Keep default English text if translation fails
             }
         }
     }

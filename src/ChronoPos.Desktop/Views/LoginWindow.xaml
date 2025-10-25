@@ -2,23 +2,24 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="ChronoPos - Login" 
-        Height="800" 
-        Width="1200"
+        Height="720" 
+        Width="900"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource PageBackground}"
-        ResizeMode="NoResize">
+        Background="White"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True">
     
     <Window.Resources>
-        <!-- Proper Input TextBox Style -->
-        <Style x:Key="ProperInputTextBox" TargetType="TextBox">
-            <Setter Property="Height" Value="48"/>
+        <!-- Modern Input TextBox Style with Circular Border -->
+        <Style x:Key="ModernInputTextBox" TargetType="TextBox">
+            <Setter Property="Height" Value="50"/>
             <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Padding" Value="20,0"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="HorizontalAlignment" Value="Stretch"/>
-            <Setter Property="Background" Value="{StaticResource InputBackground}"/>
-            <Setter Property="Foreground" Value="{StaticResource PrimaryText}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderMedium}"/>
+            <Setter Property="Background" Value="#F5F5F5"/>
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -27,20 +28,30 @@
                                 Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8">
-                            <ScrollViewer x:Name="PART_ContentHost" 
-                                        Margin="{TemplateBinding Padding}"
-                                        VerticalAlignment="Center"
-                                        HorizontalScrollBarVisibility="Hidden"
-                                        VerticalScrollBarVisibility="Disabled"/>
+                                CornerRadius="25">
+                            <Grid>
+                                <ScrollViewer x:Name="PART_ContentHost" 
+                                            Margin="{TemplateBinding Padding}"
+                                            VerticalAlignment="Center"
+                                            HorizontalScrollBarVisibility="Hidden"
+                                            VerticalScrollBarVisibility="Disabled"/>
+                                <TextBlock x:Name="Placeholder"
+                                          Text="{TemplateBinding Tag}"
+                                          Foreground="#999999"
+                                          FontSize="14"
+                                          Margin="20,0"
+                                          VerticalAlignment="Center"
+                                          IsHitTestVisible="False"
+                                          Visibility="Collapsed"/>
+                            </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource ChronoPosGold}"/>
-                                <Setter TargetName="border" Property="BorderThickness" Value="2"/>
+                            <Trigger Property="Text" Value="">
+                                <Setter TargetName="Placeholder" Property="Visibility" Value="Visible"/>
                             </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource ChronoPosGold}"/>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FFB800"/>
+                                <Setter TargetName="border" Property="BorderThickness" Value="2"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -48,16 +59,15 @@
             </Setter>
         </Style>
         
-        <!-- Proper Input PasswordBox Style -->
-        <Style x:Key="ProperInputPasswordBox" TargetType="PasswordBox">
-            <Setter Property="Height" Value="48"/>
+        <!-- Modern Input PasswordBox Style with Circular Border -->
+        <Style x:Key="ModernInputPasswordBox" TargetType="PasswordBox">
+            <Setter Property="Height" Value="50"/>
             <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Padding" Value="20,0"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="HorizontalAlignment" Value="Stretch"/>
-            <Setter Property="Background" Value="{StaticResource InputBackground}"/>
-            <Setter Property="Foreground" Value="{StaticResource PrimaryText}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderMedium}"/>
+            <Setter Property="Background" Value="#F5F5F5"/>
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -66,7 +76,7 @@
                                 Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8">
+                                CornerRadius="25">
                             <ScrollViewer x:Name="PART_ContentHost" 
                                         Margin="{TemplateBinding Padding}"
                                         VerticalAlignment="Center"
@@ -75,173 +85,450 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsFocused" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource ChronoPosGold}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FFB800"/>
                                 <Setter TargetName="border" Property="BorderThickness" Value="2"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource ChronoPosGold}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Yellow Login Button Style with Circular Border -->
+        <Style x:Key="YellowLoginButton" TargetType="Button">
+            <Setter Property="Background" Value="#FFB800"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Height" Value="50"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="25">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E6A600"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#CC9500"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Modern Language ComboBox Style -->
+        <Style x:Key="LanguageComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#FFB800"/>
+            <Setter Property="BorderBrush" Value="#FFB800"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid x:Name="templateRoot" SnapsToDevicePixels="true">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition MinWidth="{DynamicResource {x:Static SystemParameters.VerticalScrollBarWidthKey}}" Width="0"/>
+                            </Grid.ColumnDefinitions>
+                            <Popup x:Name="PART_Popup" 
+                                   AllowsTransparency="true" 
+                                   Grid.ColumnSpan="2" 
+                                   IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" 
+                                   Margin="1" 
+                                   PopupAnimation="{DynamicResource {x:Static SystemParameters.ComboBoxPopupAnimationKey}}" 
+                                   Placement="Bottom">
+                                <Border x:Name="dropDownBorder" 
+                                        BorderBrush="#FFB800" 
+                                        BorderThickness="1" 
+                                        Background="White"
+                                        CornerRadius="8"
+                                        Margin="0,2,0,0"
+                                        MinWidth="{Binding ActualWidth, ElementName=templateRoot}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="Black" Opacity="0.2" BlurRadius="10" ShadowDepth="2"/>
+                                    </Border.Effect>
+                                    <ScrollViewer x:Name="DropDownScrollViewer">
+                                        <Grid x:Name="grid" RenderOptions.ClearTypeHint="Enabled">
+                                            <Canvas x:Name="canvas" HorizontalAlignment="Left" Height="0" VerticalAlignment="Top" Width="0">
+                                                <Rectangle x:Name="opaqueRect" Fill="{Binding Background, ElementName=dropDownBorder}" Height="{Binding ActualHeight, ElementName=dropDownBorder}" Width="{Binding ActualWidth, ElementName=dropDownBorder}"/>
+                                            </Canvas>
+                                            <ItemsPresenter x:Name="ItemsPresenter" KeyboardNavigation.DirectionalNavigation="Contained" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                        </Grid>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                            <ToggleButton x:Name="toggleButton" 
+                                          BorderBrush="{TemplateBinding BorderBrush}" 
+                                          BorderThickness="{TemplateBinding BorderThickness}" 
+                                          Background="{TemplateBinding Background}" 
+                                          Grid.ColumnSpan="2" 
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          Focusable="false"
+                                          ClickMode="Press">
+                                <ToggleButton.Style>
+                                    <Style TargetType="{x:Type ToggleButton}">
+                                        <Setter Property="OverridesDefaultStyle" Value="true"/>
+                                        <Setter Property="IsTabStop" Value="false"/>
+                                        <Setter Property="Focusable" Value="false"/>
+                                        <Setter Property="ClickMode" Value="Press"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="{x:Type ToggleButton}">
+                                                    <Border x:Name="templateRoot" 
+                                                            BorderBrush="{TemplateBinding BorderBrush}" 
+                                                            BorderThickness="{TemplateBinding BorderThickness}" 
+                                                            Background="{TemplateBinding Background}"
+                                                            CornerRadius="20"
+                                                            SnapsToDevicePixels="true">
+                                                        <Border x:Name="splitBorder" 
+                                                                BorderBrush="Transparent" 
+                                                                BorderThickness="1" 
+                                                                HorizontalAlignment="Right" 
+                                                                Margin="0" 
+                                                                SnapsToDevicePixels="true" 
+                                                                Width="30">
+                                                            <Path x:Name="arrow" 
+                                                                  Data="F1 M 0,0 L 2.667,2.66665 L 5.3334,0 L 5.3334,-1.78168 L 2.6667,0.88501 L0,-1.78168 L0,0 Z" 
+                                                                  Fill="#FFB800" 
+                                                                  HorizontalAlignment="Center" 
+                                                                  Margin="0" 
+                                                                  VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="true">
+                                                            <Setter Property="Background" TargetName="templateRoot" Value="#FFF9E5"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsPressed" Value="true">
+                                                            <Setter Property="Background" TargetName="templateRoot" Value="#FFE4B8"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ToggleButton.Style>
+                            </ToggleButton>
+                            <ContentPresenter x:Name="contentPresenter" 
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" 
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" 
+                                              Content="{TemplateBinding SelectionBoxItem}" 
+                                              ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" 
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                              IsHitTestVisible="false" 
+                                              Margin="{TemplateBinding Padding}" 
+                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="false">
+                                <Setter Property="Height" TargetName="dropDownBorder" Value="95"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsGrouping" Value="true"/>
+                                    <Condition Property="VirtualizingPanel.IsVirtualizingWhenGrouping" Value="false"/>
+                                </MultiTrigger.Conditions>
+                                <Setter Property="ScrollViewer.CanContentScroll" TargetName="DropDownScrollViewer" Value="false"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Padding" Value="12,8"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="ItemBorder"
+                                            Background="Transparent"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="ItemBorder" Property="Background" Value="#FFF9E5"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="ItemBorder" Property="Background" Value="#FFB800"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Link Button Style -->
+        <Style x:Key="LinkButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#FFB800"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="#E6A600"/>
+                    <Setter Property="TextBlock.TextDecorations" Value="Underline"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+    <Border Background="White"
+            CornerRadius="0"
+            BorderThickness="0">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-        <!-- Left Side - Branding -->
-        <Border Grid.Column="0" 
-                Background="{StaticResource ChronoPosGold}">
-            <StackPanel VerticalAlignment="Center" 
-                        HorizontalAlignment="Center"
-                        Margin="60">
-                <!-- Logo Icon -->
-                <Border Background="{StaticResource WhiteText}"
-                        Width="120"
-                        Height="120"
-                        CornerRadius="60"
-                        Margin="0,0,0,30">
-                    <Viewbox Width="70" Height="70">
-                        <TextBlock Text="&#xE719;" 
-                                   FontFamily="Segoe MDL2 Assets"
-                                   Foreground="{StaticResource ChronoPosGold}"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"/>
-                    </Viewbox>
-                </Border>
-
-                <TextBlock Text="ChronoPos" 
-                           FontSize="42" 
-                           FontWeight="Bold" 
-                           Foreground="{StaticResource WhiteText}"
-                           HorizontalAlignment="Center"
-                           Margin="0,0,0,10"/>
+            <!-- Top Bar with Language and Close Button -->
+            <Grid Grid.Row="0" Margin="0,25,35,0">
+                <!-- Language Selector -->
+                <ComboBox x:Name="LanguageComboBox"
+                          HorizontalAlignment="Right"
+                          Width="130"
+                          Height="38"
+                          Style="{StaticResource LanguageComboBoxStyle}"
+                          SelectedIndex="0"
+                          Margin="0,0,50,0"
+                          SelectionChanged="LanguageComboBox_SelectionChanged">
+                    <ComboBoxItem Content="English" Foreground="#FFB800" Tag="en"/>
+                    <ComboBoxItem Content="العربية" Foreground="#FFB800" Tag="ar"/>
+                </ComboBox>
                 
-                <TextBlock Text="Point of Sale System" 
-                           FontSize="18" 
-                           Foreground="{StaticResource WhiteText}"
-                           HorizontalAlignment="Center"
-                           Opacity="0.9"
-                           Margin="0,0,0,40"/>
-
-                <TextBlock Text="Professional retail management solution for modern businesses" 
-                           FontSize="14" 
-                           Foreground="{StaticResource WhiteText}"
-                           HorizontalAlignment="Center"
-                           TextAlignment="Center"
-                           TextWrapping="Wrap"
-                           Opacity="0.8"
-                           MaxWidth="300"/>
-            </StackPanel>
-        </Border>
-
-        <!-- Right Side - Login Form -->
-        <Border Grid.Column="1" 
-                Background="{StaticResource PageBackground}">
-            <StackPanel MaxWidth="500" 
-                        VerticalAlignment="Center" 
-                        HorizontalAlignment="Center" 
-                        Margin="60">
-                
-                <!-- Welcome Header -->
-                <TextBlock Text="Welcome Back!" 
-                           FontSize="36" 
-                           FontWeight="SemiBold" 
-                           Foreground="{StaticResource PrimaryText}"
-                           Margin="0,0,0,10"/>
-                
-                <TextBlock Text="Sign in to continue to ChronoPOS" 
-                           FontSize="15" 
-                           Foreground="{StaticResource SecondaryText}"
-                           Margin="0,0,0,45"/>
-
-                <!-- Username -->
-                <TextBlock Text="Username or Email" 
-                           Foreground="{StaticResource PrimaryText}"
-                           FontSize="14"
-                           FontWeight="Medium"
-                           Margin="0,0,0,10"/>
-                <TextBox x:Name="UsernameTextBox"
-                         Style="{StaticResource ProperInputTextBox}"
-                         Margin="0,0,0,22"
-                         KeyDown="Input_KeyDown"/>
-
-                <!-- Password -->
-                <TextBlock Text="Password" 
-                           Foreground="{StaticResource PrimaryText}"
-                           FontSize="14"
-                           FontWeight="Medium"
-                           Margin="0,0,0,10"/>
-                <PasswordBox x:Name="PasswordBox"
-                             Style="{StaticResource ProperInputPasswordBox}"
-                             Margin="0,0,0,18"
-                             KeyDown="Input_KeyDown"/>
-
-                <!-- Remember Me -->
-                <CheckBox x:Name="RememberMeCheckBox"
-                          Content="Remember me"
-                          Foreground="{StaticResource SecondaryText}"
-                          FontSize="13"
-                          Margin="0,0,0,25"/>
-
-                <!-- Error Message -->
-                <Border Background="#FEE2E2"
-                        BorderBrush="{StaticResource ErrorRed}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="14"
-                        Margin="0,0,0,20"
-                        Visibility="Collapsed"
-                        x:Name="ErrorBorder">
-                    <TextBlock x:Name="ErrorTextBlock"
-                               Foreground="{StaticResource ErrorRed}"
-                               FontSize="13"
-                               TextWrapping="Wrap"/>
-                </Border>
-
-                <!-- Login Button -->
-                <Button Content="Sign In"
-                        x:Name="LoginButton"
-                        Style="{StaticResource ChronoPosGoldButton}"
-                        HorizontalAlignment="Stretch"
-                        Margin="0,0,0,15"
-                        Click="LoginButton_Click"/>
-
                 <!-- Close Button -->
-                <Button Content="Exit Application"
-                        Style="{StaticResource ChronoPosSecondaryButton}"
-                        HorizontalAlignment="Stretch"
-                        Click="CloseButton_Click"/>
-            </StackPanel>
-        </Border>
+                <Button Content="✕"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Width="32"
+                        Height="32"
+                        FontSize="18"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="#999999"
+                        Cursor="Hand"
+                        Click="CloseButton_Click"
+                        ToolTip="Exit Application">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="4">
+                                            <ContentPresenter HorizontalAlignment="Center" 
+                                                            VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#F5F5F5"/>
+                                    <Setter Property="Foreground" Value="#333333"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
 
-        <!-- Loading Overlay -->
-        <Border Grid.ColumnSpan="2"
-                x:Name="LoadingOverlay"
-                Background="#CC000000"
-                Visibility="Collapsed">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                <Border Background="{StaticResource WhiteText}"
-                        CornerRadius="12"
-                        Padding="40,30">
-                    <StackPanel>
-                        <TextBlock Text="⏳" 
-                                   FontSize="48" 
-                                   HorizontalAlignment="Center" 
-                                   Margin="0,0,0,15"/>
-                        <TextBlock Text="Signing in..."
-                                   Foreground="{StaticResource PrimaryText}"
-                                   FontSize="16"
-                                   FontWeight="Medium"
-                                   HorizontalAlignment="Center"/>
+            <!-- Main Content -->
+            <Grid Grid.Row="1">
+                <StackPanel VerticalAlignment="Center" 
+                            HorizontalAlignment="Center"
+                            Width="520">
+                    
+                    <!-- Logo and Title -->
+                    <StackPanel HorizontalAlignment="Center" Margin="0,0,0,25">
+                        <!-- Logo -->
+                        <StackPanel Orientation="Horizontal" 
+                                    HorizontalAlignment="Center"
+                                    Margin="0,0,0,20">
+                            <Image Source="/Images/logo.png" 
+                                   Width="55" 
+                                   Height="55" 
+                                   Margin="0,0,12,0"
+                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <TextBlock Text="ChronoPOS" 
+                                       FontSize="36" 
+                                       FontWeight="Bold" 
+                                       Foreground="#FFB800"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
                     </StackPanel>
-                </Border>
-            </StackPanel>
-        </Border>
-    </Grid>
+
+                    <!-- Login Form Card -->
+                    <Border BorderBrush="#4A90E2"
+                            BorderThickness="3"
+                            CornerRadius="12"
+                            Padding="60,45"
+                            Background="White">
+                        <StackPanel>
+                            <!-- Login Title -->
+                            <TextBlock x:Name="LoginTitleTextBlock"
+                                       Text="Login!" 
+                                       FontSize="32" 
+                                       FontWeight="Bold" 
+                                       Foreground="#333333"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,10"/>
+                            
+                            <TextBlock x:Name="LoginSubtitleTextBlock"
+                                       Text="Please enter your credentials below to continue" 
+                                       FontSize="14" 
+                                       Foreground="#666666"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       Margin="0,0,0,35"/>
+
+                            <!-- Username Field -->
+                            <TextBlock x:Name="UsernameLabelTextBlock"
+                                       Text="Username" 
+                                       Foreground="#333333"
+                                       FontSize="14"
+                                       FontWeight="Medium"
+                                       Margin="0,0,0,10"/>
+                            <TextBox x:Name="UsernameTextBox"
+                                     Style="{StaticResource ModernInputTextBox}"
+                                     Tag="Enter your username"
+                                     Margin="0,0,0,25"
+                                     KeyDown="Input_KeyDown"/>
+
+                            <!-- Password Field -->
+                            <TextBlock x:Name="PasswordLabelTextBlock"
+                                       Text="Password" 
+                                       Foreground="#333333"
+                                       FontSize="14"
+                                       FontWeight="Medium"
+                                       Margin="0,0,0,10"/>
+                            <Grid Margin="0,0,0,20">
+                                <!-- Password Box (hidden when showing password) -->
+                                <PasswordBox x:Name="PasswordBox"
+                                             Style="{StaticResource ModernInputPasswordBox}"
+                                             KeyDown="Input_KeyDown"
+                                             PasswordChanged="PasswordBox_PasswordChanged"/>
+                                
+                                <!-- Password TextBox (visible when showing password) -->
+                                <TextBox x:Name="PasswordTextBox"
+                                         Style="{StaticResource ModernInputTextBox}"
+                                         Tag="Enter your password"
+                                         KeyDown="Input_KeyDown"
+                                         Visibility="Collapsed"
+                                         TextChanged="PasswordTextBox_TextChanged"/>
+                                
+                                <!-- Show/Hide Password Button -->
+                                <Button x:Name="ShowPasswordButton"
+                                        Content="👁"
+                                        Width="45"
+                                        Height="40"
+                                        HorizontalAlignment="Right"
+                                        Margin="0,5,8,5"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Foreground="#999999"
+                                        FontSize="18"
+                                        Cursor="Hand"
+                                        ToolTip="Show/Hide Password"
+                                        Click="ShowPasswordButton_Click"/>
+                            </Grid>
+
+                            <!-- Remember Me & Forgot Password -->
+                            <Grid Margin="0,0,0,30">
+                                <CheckBox x:Name="RememberMeCheckBox"
+                                          Content="Remember me"
+                                          Foreground="#666666"
+                                          FontSize="14"
+                                          HorizontalAlignment="Left"
+                                          VerticalAlignment="Center"/>
+                                <Button x:Name="ForgotPasswordButton"
+                                        Content="Forgot Password?"
+                                        Style="{StaticResource LinkButton}"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Click="ForgotPasswordButton_Click"/>
+                            </Grid>
+
+                            <!-- Error Message -->
+                            <Border Background="#FEE2E2"
+                                    BorderBrush="#EF4444"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="15"
+                                    Margin="0,0,0,20"
+                                    Visibility="Collapsed"
+                                    x:Name="ErrorBorder">
+                                <TextBlock x:Name="ErrorTextBlock"
+                                           Foreground="#DC2626"
+                                           FontSize="13"
+                                           TextWrapping="Wrap"/>
+                            </Border>
+
+                            <!-- Login Button -->
+                            <Button x:Name="LoginButton"
+                                    Content="Login"
+                                    Style="{StaticResource YellowLoginButton}"
+                                    Click="LoginButton_Click"
+                                    Margin="0,0,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+            </Grid>
+
+            <!-- Loading Overlay -->
+            <Border Grid.RowSpan="2"
+                    x:Name="LoadingOverlay"
+                    Background="#CC000000"
+                    Visibility="Collapsed">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Border Background="White"
+                            CornerRadius="8"
+                            Padding="40,30">
+                        <StackPanel>
+                            <TextBlock Text="⏳" 
+                                       FontSize="48" 
+                                       HorizontalAlignment="Center" 
+                                       Margin="0,0,0,15"/>
+                            <TextBlock Text="Signing in..."
+                                       Foreground="#333333"
+                                       FontSize="16"
+                                       FontWeight="Medium"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
 </Window>

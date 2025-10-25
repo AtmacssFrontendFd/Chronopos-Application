@@ -215,6 +215,7 @@ namespace ChronoPos.Desktop.Views
                     var adminUser = new User
                     {
                         FullName = FullNameTextBox.Text.Trim(),
+                        Username = UsernameTextBox.Text.Trim(),
                         Email = EmailTextBox.Text.Trim().ToLower(),
                         Password = HashPassword(PasswordBox.Password),
                         Role = "Company Owner",

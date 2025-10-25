@@ -6,6 +6,7 @@ using ChronoPos.Application.Constants;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.ViewModels;
 using ChronoPos.Desktop.Views;
+using ChronoPos.Desktop.Views.Dialogs;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Text;
@@ -349,31 +350,43 @@ namespace ChronoPos.Desktop.ViewModels
 
             try
             {
-                var result = MessageBox.Show(
+                var dialog = new ConfirmationDialog(
+                    "Delete Attribute Value",
                     $"Are you sure you want to delete the value '{attributeValue.Value}' from attribute '{attributeValue.AttributeName}'?\n\nThis action cannot be undone.",
-                    "Confirm Delete",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
+                    ConfirmationDialog.DialogType.Danger,
+                    "Delete",
+                    "Cancel");
 
-                if (result == MessageBoxResult.Yes)
-                {
-                    IsLoading = true;
-                    LoadingMessage = "Deleting attribute value...";
-                    
-                    await _attributeService.DeleteValueAsync(attributeValue.Id);
-                    
-                    StatusMessage = $"Deleted value: {attributeValue.Value}";
-                    ChronoPos.Desktop.Services.FileLogger.Log($"🗑️ Deleted attribute value: {attributeValue.Value}");
-                    
-                    await LoadAttributesAsync();
-                }
+                var result = dialog.ShowDialog();
+                if (result != true)
+                    return;
+
+                IsLoading = true;
+                LoadingMessage = "Deleting attribute value...";
+                
+                await _attributeService.DeleteValueAsync(attributeValue.Id);
+                
+                StatusMessage = $"Deleted value: {attributeValue.Value}";
+                ChronoPos.Desktop.Services.FileLogger.Log($"🗑️ Deleted attribute value: {attributeValue.Value}");
+                
+                await LoadAttributesAsync();
+                
+                var successDialog = new MessageDialog(
+                    "Success",
+                    $"Attribute value '{attributeValue.Value}' has been deleted successfully.",
+                    MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
             catch (Exception ex)
             {
                 StatusMessage = $"Error deleting attribute value: {ex.Message}";
                 ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error deleting attribute value: {ex.Message}");
-                MessageBox.Show($"Error deleting attribute value: {ex.Message}", "Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                
+                var errorDialog = new MessageDialog(
+                    "Delete Error",
+                    $"An error occurred while deleting the attribute value:\n\n{ex.Message}",
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
             }
             finally
             {
@@ -510,29 +523,38 @@ namespace ChronoPos.Desktop.ViewModels
                 if (saveFileDialog.ShowDialog() == true)
                 {
                     IsLoading = true;
-                    StatusMessage = "Exporting product attributes...";
+                    StatusMessage = "Exporting product attribute values...";
 
                     var csv = new StringBuilder();
-                    csv.AppendLine("AttributeName,AttributeNameAr,Status");
+                    csv.AppendLine("AttributeName,ValueName,ValueArabic,Status");
 
                     foreach (var attr in AttributeValues)
                     {
                         csv.AppendLine($"\"{attr.AttributeName}\"," +
-                                     $"\"{attr.AttributeNameAr ?? ""}\"," +
+                                     $"\"{attr.Value}\"," +
+                                     $"\"{attr.ValueAr ?? ""}\"," +
                                      $"{attr.Status}");
                     }
 
                     await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
                     StatusMessage = $"Exported {AttributeValues.Count} attributes successfully";
-                    MessageBox.Show($"Exported {AttributeValues.Count} attributes to:\n{saveFileDialog.FileName}", 
-                        "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                    
+                    var successDialog = new MessageDialog(
+                        "Export Successful",
+                        $"Successfully exported {AttributeValues.Count} attribute values to:\n\n{saveFileDialog.FileName}",
+                        MessageDialog.MessageType.Success);
+                    successDialog.ShowDialog();
                 }
             }
             catch (Exception ex)
             {
                 StatusMessage = $"Error exporting attributes: {ex.Message}";
-                MessageBox.Show($"Error exporting attributes: {ex.Message}", "Export Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                
+                var errorDialog = new MessageDialog(
+                    "Export Error",
+                    $"An error occurred while exporting attributes:\n\n{ex.Message}",
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
             }
             finally
             {
@@ -548,20 +570,14 @@ namespace ChronoPos.Desktop.ViewModels
         {
             try
             {
-                // Show dialog with Download Template and Upload File options
-                var result = MessageBox.Show(
-                    "Would you like to download a template first?\n\n" +
-                    "• Click 'Yes' to download the CSV template\n" +
-                    "• Click 'No' to upload your file directly\n" +
-                    "• Click 'Cancel' to exit",
-                    "Import Product Attributes",
-                    MessageBoxButton.YesNoCancel,
-                    MessageBoxImage.Question);
+                // Show custom import dialog
+                var importDialog = new ImportDialog();
+                var dialogResult = importDialog.ShowDialog();
 
-                if (result == MessageBoxResult.Cancel)
+                if (dialogResult != true || importDialog.SelectedAction == ImportDialog.ImportAction.None)
                     return;
 
-                if (result == MessageBoxResult.Yes)
+                if (importDialog.SelectedAction == ImportDialog.ImportAction.DownloadTemplate)
                 {
                     // Download Template
                     var saveFileDialog = new SaveFileDialog
@@ -574,14 +590,38 @@ namespace ChronoPos.Desktop.ViewModels
                     if (saveFileDialog.ShowDialog() == true)
                     {
                         var templateCsv = new StringBuilder();
-                        templateCsv.AppendLine("AttributeName,AttributeNameAr,Status");
-                        templateCsv.AppendLine("\"Size\",\"الحجم\",true");
-                        templateCsv.AppendLine("\"Color\",\"اللون\",true");
-                        templateCsv.AppendLine("\"Material\",\"المادة\",true");
+                        // Header with all fields (required fields marked with *)
+                        templateCsv.AppendLine("AttributeName*,ValueName*,ValueArabic,Status");
+                        // Sample data showing all fields
+                        templateCsv.AppendLine("\"Size\",\"Small\",\"صغير\",\"Active\"");
+                        templateCsv.AppendLine("\"Size\",\"Medium\",\"متوسط\",\"Active\"");
+                        templateCsv.AppendLine("\"Size\",\"Large\",\"كبير\",\"Active\"");
+                        templateCsv.AppendLine("\"Color\",\"Red\",\"أحمر\",\"Active\"");
+                        templateCsv.AppendLine("\"Color\",\"Blue\",\"أزرق\",\"Active\"");
+                        templateCsv.AppendLine("\"Color\",\"Green\",\"أخضر\",\"Inactive\"");
+                        templateCsv.AppendLine("\"Material\",\"Cotton\",\"قطن\",\"Active\"");
+                        templateCsv.AppendLine("\"Material\",\"Polyester\",\"بوليستر\",\"Active\"");
 
                         await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
-                        MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
-                            "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                        
+                        var successDialog = new MessageDialog(
+                            "Template Downloaded",
+                            $"Template downloaded successfully to:\n\n{saveFileDialog.FileName}\n\n" +
+                            "📝 TEMPLATE INSTRUCTIONS:\n\n" +
+                            "REQUIRED FIELDS (marked with *):\n" +
+                            "• AttributeName* - The attribute this value belongs to (e.g., Size, Color)\n" +
+                            "  → If attribute doesn't exist, it will be created automatically\n" +
+                            "• ValueName* - The specific value (e.g., Small, Red, Cotton)\n\n" +
+                            "OPTIONAL FIELDS:\n" +
+                            "• ValueArabic - Arabic translation of the value (leave empty if not needed)\n" +
+                            "• Status - 'Active' or 'Inactive' (default: Active)\n\n" +
+                            "⚠️ IMPORTANT:\n" +
+                            "- Required fields cannot be empty\n" +
+                            "- Import will fail for rows with missing required fields\n" +
+                            "- You can add multiple values for the same attribute\n\n" +
+                            "Please fill in your data and use the Import function to upload.",
+                            MessageDialog.MessageType.Success);
+                        successDialog.ShowDialog();
                     }
                     return;
                 }
@@ -601,14 +641,21 @@ namespace ChronoPos.Desktop.ViewModels
                     var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
                     if (lines.Length <= 1)
                     {
-                        MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
-                            MessageBoxButton.OK, MessageBoxImage.Warning);
+                        var warningDialog = new MessageDialog(
+                            "Import Error",
+                            "The CSV file is empty or contains only headers.",
+                            MessageDialog.MessageType.Warning);
+                        warningDialog.ShowDialog();
                         return;
                     }
 
                     int successCount = 0;
                     int errorCount = 0;
                     var errors = new StringBuilder();
+
+                    // Load existing attributes to find or create parent attributes
+                    var existingAttributesList = await _attributeService.GetAllAttributesAsync();
+                    var existingAttributes = existingAttributesList.ToDictionary(a => a.Name, a => a.Id, StringComparer.OrdinalIgnoreCase);
 
                     // Skip header row
                     for (int i = 1; i < lines.Length; i++)
@@ -619,43 +666,109 @@ namespace ChronoPos.Desktop.ViewModels
                             if (string.IsNullOrWhiteSpace(line)) continue;
 
                             var values = ParseCsvLine(line);
-                            if (values.Length < 5)
+                            if (values.Length < 4)
                             {
                                 errorCount++;
-                                errors.AppendLine($"Line {i + 1}: Invalid format (expected 5 columns)");
+                                errors.AppendLine($"Line {i + 1}: Invalid format (expected 4 columns: AttributeName,ValueName,ValueArabic,Status)");
                                 continue;
                             }
 
-                            var createDto = new ProductAttributeDto
+                            var attributeName = values[0].Trim('"').Trim();
+                            var valueName = values[1].Trim('"').Trim();
+                            var valueArabic = string.IsNullOrWhiteSpace(values[2].Trim('"')) ? null : values[2].Trim('"').Trim();
+                            var status = string.IsNullOrWhiteSpace(values[3].Trim('"')) ? "Active" : values[3].Trim('"').Trim();
+
+                            // Validate required fields
+                            if (string.IsNullOrWhiteSpace(attributeName))
                             {
-                                Name = values[0].Trim('"'),
-                                NameAr = string.IsNullOrWhiteSpace(values[1].Trim('"')) ? null : values[1].Trim('"'),
-                                Type = values[2].Trim('"'),
-                                IsRequired = bool.Parse(values[3]),
-                                Status = values[4].Trim('"'),
-                                CreatedBy = 1 // TODO: Get from current user
+                                errorCount++;
+                                errors.AppendLine($"Line {i + 1}: AttributeName is required and cannot be empty");
+                                continue;
+                            }
+
+                            if (string.IsNullOrWhiteSpace(valueName))
+                            {
+                                errorCount++;
+                                errors.AppendLine($"Line {i + 1}: ValueName is required and cannot be empty");
+                                continue;
+                            }
+
+                            // Get or create the parent attribute
+                            int attributeId;
+                            if (!existingAttributes.TryGetValue(attributeName, out attributeId))
+                            {
+                                // Create the parent attribute if it doesn't exist
+                                var newAttribute = new ProductAttributeDto
+                                {
+                                    Name = attributeName,
+                                    NameAr = null,
+                                    Type = "Text",
+                                    IsRequired = false,
+                                    Status = "Active",
+                                    CreatedBy = 1 // TODO: Get from current user
+                                };
+                                await _attributeService.AddAttributeAsync(newAttribute);
+                                
+                                // Re-fetch to get the ID since AddAttributeAsync doesn't return the created object
+                                var createdAttributes = await _attributeService.GetAllAttributesAsync();
+                                var createdAttribute = createdAttributes.FirstOrDefault(a => a.Name.Equals(attributeName, StringComparison.OrdinalIgnoreCase));
+                                if (createdAttribute != null)
+                                {
+                                    attributeId = createdAttribute.Id;
+                                    existingAttributes[attributeName] = attributeId;
+                                }
+                                else
+                                {
+                                    throw new Exception($"Failed to create attribute '{attributeName}'");
+                                }
+                            }
+
+                            // Create the attribute value
+                            var valueDto = new ProductAttributeValueDto
+                            {
+                                AttributeId = attributeId,
+                                Value = valueName,
+                                ValueAr = valueArabic,
+                                Status = status
                             };
 
-                            await _attributeService.AddAttributeAsync(createDto);
+                            await _attributeService.AddValueAsync(valueDto);
                             successCount++;
                         }
                         catch (Exception ex)
                         {
                             errorCount++;
-                            errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                            var errorMessage = ex.Message;
+                            
+                            // Include inner exception details if available
+                            if (ex.InnerException != null)
+                            {
+                                errorMessage += $" | Inner: {ex.InnerException.Message}";
+                                
+                                // Go deeper if there's another inner exception
+                                if (ex.InnerException.InnerException != null)
+                                {
+                                    errorMessage += $" | Details: {ex.InnerException.InnerException.Message}";
+                                }
+                            }
+                            
+                            errors.AppendLine($"Line {i + 1}: {errorMessage}");
                         }
                     }
 
                     await LoadAttributesAsync();
 
-                    var message = $"Import completed:\n✓ {successCount} attributes imported successfully";
+                    var message = $"Import completed:\n\n✓ {successCount} attribute values imported successfully";
                     if (errorCount > 0)
                     {
                         message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
                     }
 
-                    MessageBox.Show(message, "Import Complete", 
-                        MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                    var resultDialog = new MessageDialog(
+                        "Import Complete",
+                        message,
+                        errorCount > 0 ? MessageDialog.MessageType.Warning : MessageDialog.MessageType.Success);
+                    resultDialog.ShowDialog();
                     
                     StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
                 }
@@ -663,8 +776,12 @@ namespace ChronoPos.Desktop.ViewModels
             catch (Exception ex)
             {
                 StatusMessage = $"Error importing attributes: {ex.Message}";
-                MessageBox.Show($"Error importing attributes: {ex.Message}", "Import Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                
+                var errorDialog = new MessageDialog(
+                    "Import Error",
+                    $"An error occurred while importing attributes:\n\n{ex.Message}",
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
             }
             finally
             {

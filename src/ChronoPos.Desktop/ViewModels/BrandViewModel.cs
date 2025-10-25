@@ -10,6 +10,7 @@ using System.Text;
 using System.Windows.Data;
 using System.Windows;
 using Microsoft.Win32;
+using ChronoPos.Desktop.Views.Dialogs;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -218,13 +219,15 @@ public partial class BrandViewModel : ObservableObject
     {
         if (brand == null) return;
         
-        var result = MessageBox.Show(
-            $"Are you sure you want to delete the brand '{brand.Name}'?",
-            "Confirm Delete",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+        var dialog = new ConfirmationDialog(
+            "Delete Brand",
+            $"Are you sure you want to delete the brand '{brand.Name}'?\n\nThis action cannot be undone.",
+            ConfirmationDialog.DialogType.Danger,
+            "Delete",
+            "Cancel");
             
-        if (result != MessageBoxResult.Yes) return;
+        var result = dialog.ShowDialog();
+        if (result != true) return;
         
         try
         {
@@ -236,15 +239,31 @@ public partial class BrandViewModel : ObservableObject
                 _filteredBrandsView.Refresh();
                 OnPropertyChanged(nameof(HasBrands));
                 OnPropertyChanged(nameof(TotalBrands));
+                
+                var successDialog = new MessageDialog(
+                    "Success",
+                    $"Brand '{brand.Name}' has been deleted successfully.",
+                    MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
             else
             {
                 StatusMessage = $"Failed to delete brand '{brand.Name}'.";
+                var errorDialog = new MessageDialog(
+                    "Delete Failed",
+                    $"Failed to delete brand '{brand.Name}'. Please try again.",
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error deleting brand: {ex.Message}";
+            var errorDialog = new MessageDialog(
+                "Error",
+                $"An error occurred while deleting the brand:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
     }
 
@@ -318,12 +337,11 @@ public partial class BrandViewModel : ObservableObject
                 StatusMessage = "Exporting brands...";
 
                 var csv = new StringBuilder();
-                csv.AppendLine("Id,Name,NameArabic,Description,LogoUrl,IsActive");
+                csv.AppendLine("Name,NameArabic,Description,LogoUrl,IsActive");
 
                 foreach (var brand in Brands)
                 {
-                    csv.AppendLine($"{brand.Id}," +
-                                 $"\"{brand.Name}\"," +
+                    csv.AppendLine($"\"{brand.Name}\"," +
                                  $"\"{brand.NameArabic ?? ""}\"," +
                                  $"\"{brand.Description ?? ""}\"," +
                                  $"\"{brand.LogoUrl ?? ""}\"," +
@@ -332,15 +350,22 @@ public partial class BrandViewModel : ObservableObject
 
                 await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
                 StatusMessage = $"Exported {Brands.Count} brands successfully";
-                MessageBox.Show($"Exported {Brands.Count} brands to:\n{saveFileDialog.FileName}", 
-                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                var successDialog = new MessageDialog(
+                    "Export Successful",
+                    $"Successfully exported {Brands.Count} brands to:\n\n{saveFileDialog.FileName}",
+                    MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error exporting brands: {ex.Message}";
-            MessageBox.Show($"Error exporting brands: {ex.Message}", "Export Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorDialog = new MessageDialog(
+                "Export Error",
+                $"An error occurred while exporting brands:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -353,20 +378,14 @@ public partial class BrandViewModel : ObservableObject
     {
         try
         {
-            // Show dialog with Download Template and Upload File options
-            var result = MessageBox.Show(
-                "Would you like to download a template first?\n\n" +
-                "• Click 'Yes' to download the CSV template\n" +
-                "• Click 'No' to upload your file directly\n" +
-                "• Click 'Cancel' to exit",
-                "Import Brands",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question);
+            // Show custom import dialog
+            var importDialog = new ImportDialog();
+            var dialogResult = importDialog.ShowDialog();
 
-            if (result == MessageBoxResult.Cancel)
+            if (dialogResult != true || importDialog.SelectedAction == ImportDialog.ImportAction.None)
                 return;
 
-            if (result == MessageBoxResult.Yes)
+            if (importDialog.SelectedAction == ImportDialog.ImportAction.DownloadTemplate)
             {
                 // Download Template
                 var saveFileDialog = new SaveFileDialog
@@ -379,13 +398,17 @@ public partial class BrandViewModel : ObservableObject
                 if (saveFileDialog.ShowDialog() == true)
                 {
                     var templateCsv = new StringBuilder();
-                    templateCsv.AppendLine("Id,Name,NameAr,Description,IsActive");
-                    templateCsv.AppendLine("0,Sample Brand,العلامة التجارية النموذجية,Sample brand description,true");
-                    templateCsv.AppendLine("0,Nike,نايكي,Sports brand,true");
+                    templateCsv.AppendLine("Name,NameArabic,Description,LogoUrl,IsActive");
+                    templateCsv.AppendLine("Sample Brand,العلامة التجارية النموذجية,Sample brand description,,true");
+                    templateCsv.AppendLine("Nike,نايكي,Sports brand,,true");
 
                     await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
-                    MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
-                        "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                    
+                    var successDialog = new MessageDialog(
+                        "Template Downloaded",
+                        $"Template downloaded successfully to:\n\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.",
+                        MessageDialog.MessageType.Success);
+                    successDialog.ShowDialog();
                 }
                 return;
             }
@@ -405,8 +428,11 @@ public partial class BrandViewModel : ObservableObject
                 var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
                 if (lines.Length <= 1)
                 {
-                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    var warningDialog = new MessageDialog(
+                        "Import Error",
+                        "The CSV file is empty or contains only headers.",
+                        MessageDialog.MessageType.Warning);
+                    warningDialog.ShowDialog();
                     return;
                 }
 
@@ -423,20 +449,20 @@ public partial class BrandViewModel : ObservableObject
                         if (string.IsNullOrWhiteSpace(line)) continue;
 
                         var values = ParseCsvLine(line);
-                        if (values.Length < 6)
+                        if (values.Length < 5)
                         {
                             errorCount++;
-                            errors.AppendLine($"Line {i + 1}: Invalid format (expected 6 columns)");
+                            errors.AppendLine($"Line {i + 1}: Invalid format (expected 5 columns)");
                             continue;
                         }
 
                         var createDto = new CreateBrandDto
                         {
-                            Name = values[1].Trim('"'),
-                            NameArabic = string.IsNullOrWhiteSpace(values[2].Trim('"')) ? null : values[2].Trim('"'),
-                            Description = string.IsNullOrWhiteSpace(values[3].Trim('"')) ? null : values[3].Trim('"'),
-                            LogoUrl = string.IsNullOrWhiteSpace(values[4].Trim('"')) ? null : values[4].Trim('"'),
-                            IsActive = bool.Parse(values[5])
+                            Name = values[0].Trim('"'),
+                            NameArabic = string.IsNullOrWhiteSpace(values[1].Trim('"')) ? null : values[1].Trim('"'),
+                            Description = string.IsNullOrWhiteSpace(values[2].Trim('"')) ? null : values[2].Trim('"'),
+                            LogoUrl = string.IsNullOrWhiteSpace(values[3].Trim('"')) ? null : values[3].Trim('"'),
+                            IsActive = bool.Parse(values[4])
                         };
 
                         await _brandService.CreateAsync(createDto);
@@ -445,20 +471,37 @@ public partial class BrandViewModel : ObservableObject
                     catch (Exception ex)
                     {
                         errorCount++;
-                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                        var errorMessage = ex.Message;
+                        
+                        // Include inner exception details if available
+                        if (ex.InnerException != null)
+                        {
+                            errorMessage += $" | Inner: {ex.InnerException.Message}";
+                            
+                            // Go deeper if there's another inner exception
+                            if (ex.InnerException.InnerException != null)
+                            {
+                                errorMessage += $" | Details: {ex.InnerException.InnerException.Message}";
+                            }
+                        }
+                        
+                        errors.AppendLine($"Line {i + 1}: {errorMessage}");
                     }
                 }
 
                 await LoadBrandsAsync();
 
-                var message = $"Import completed:\n✓ {successCount} brands imported successfully";
+                var message = $"Import completed:\n\n✓ {successCount} brands imported successfully";
                 if (errorCount > 0)
                 {
                     message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
                 }
 
-                MessageBox.Show(message, "Import Complete", 
-                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                var resultDialog = new MessageDialog(
+                    "Import Complete",
+                    message,
+                    errorCount > 0 ? MessageDialog.MessageType.Warning : MessageDialog.MessageType.Success);
+                resultDialog.ShowDialog();
                 
                 StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
             }
@@ -466,8 +509,11 @@ public partial class BrandViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error importing brands: {ex.Message}";
-            MessageBox.Show($"Error importing brands: {ex.Message}", "Import Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorDialog = new MessageDialog(
+                "Import Error",
+                $"An error occurred while importing brands:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {

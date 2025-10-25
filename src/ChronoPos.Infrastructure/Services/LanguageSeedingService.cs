@@ -388,6 +388,14 @@ public class LanguageSeedingService : ILanguageSeedingService
                     { "ur", "اسٹاک کنٹرول اور یونٹ قیمتیں" }
                 }
             },
+            {
+                "modifier_groups_title",
+                new Dictionary<string, string>
+                {
+                    { "en", "Modifier Groups" },
+                    { "ur", "موڈیفائر گروپس" }
+                }
+            },
 
             // Basic Information Fields
             {
@@ -1316,6 +1324,14 @@ public class LanguageSeedingService : ILanguageSeedingService
                 }
             },
             {
+                "add_options.currency",
+                new Dictionary<string, string>
+                {
+                    { "en", "Currency" },
+                    { "ur", "کرنسی" }
+                }
+            },
+            {
                 "add_options.product_attributes",
                 new Dictionary<string, string>
                 {
@@ -1337,6 +1353,14 @@ public class LanguageSeedingService : ILanguageSeedingService
                 {
                     { "en", "Product Grouping" },
                     { "ur", "پروڈکٹ گروپنگ" }
+                }
+            },
+            {
+                "add_options.product_modifiers",
+                new Dictionary<string, string>
+                {
+                    { "en", "Product Modifiers" },
+                    { "ur", "پروڈکٹ موڈیفائرز" }
                 }
             },
             {

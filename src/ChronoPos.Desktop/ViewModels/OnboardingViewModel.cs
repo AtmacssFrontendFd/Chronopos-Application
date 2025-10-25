@@ -274,7 +274,7 @@ namespace ChronoPos.Desktop.ViewModels
                 var salesKeyInfo = new SalesKeyInfo
                 {
                     ScratchCardCode = ScratchCardInfo!.CardCode,
-                    SalespersonId = ScratchCardInfo.SalespersonId,
+                    ApplicationName = ScratchCardInfo.ApplicationName,
                     Customer = new CustomerInfo
                     {
                         BusinessName = BusinessName,
