@@ -987,6 +987,7 @@ public partial class MainWindowViewModel : ObservableObject
             var layoutDirectionService = _serviceProvider.GetRequiredService<ILayoutDirectionService>();
             var fontService = _serviceProvider.GetRequiredService<IFontService>();
             var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+            var activeCurrencyService = _serviceProvider.GetRequiredService<IActiveCurrencyService>();
             
             var productManagementViewModel = new ProductManagementViewModel(
                 productService,
@@ -999,6 +1000,7 @@ public partial class MainWindowViewModel : ObservableObject
                 fontService,
                 databaseLocalizationService,
                 _currentUserService,
+                activeCurrencyService,
                 navigateToAddProduct: ShowAddProduct,  // Pass the ShowAddProduct method as delegate
                 navigateToEditProduct: async (product) => await ShowEditProduct(product),  // Pass the ShowEditProduct method as delegate
                 navigateBack: () => _ = ShowManagement()  // Async wrapper for back navigation
@@ -1206,6 +1208,7 @@ public partial class MainWindowViewModel : ObservableObject
             var discountService = _serviceProvider.GetRequiredService<IDiscountService>();
             var productUnitService = _serviceProvider.GetRequiredService<IProductUnitService>();
             var skuGenerationService = _serviceProvider.GetRequiredService<ISkuGenerationService>();
+            var activeCurrencyService = _serviceProvider.GetRequiredService<IActiveCurrencyService>();
             
             // Create ViewModel with navigation callback
             var addProductViewModel = new AddProductViewModel(
@@ -1217,6 +1220,7 @@ public partial class MainWindowViewModel : ObservableObject
                 productUnitService,
                 skuGenerationService,
                 _serviceProvider.GetRequiredService<IProductBatchService>(),
+                activeCurrencyService,
                 themeService,
                 zoomService,
                 localizationService,
@@ -1283,6 +1287,7 @@ public partial class MainWindowViewModel : ObservableObject
             var discountService = _serviceProvider.GetRequiredService<IDiscountService>();
             var productUnitService = _serviceProvider.GetRequiredService<IProductUnitService>();
             var skuGenerationService = _serviceProvider.GetRequiredService<ISkuGenerationService>();
+            var activeCurrencyService = _serviceProvider.GetRequiredService<IActiveCurrencyService>();
             
             // Create ViewModel with navigation callback
             var addProductViewModel = new AddProductViewModel(
@@ -1294,6 +1299,7 @@ public partial class MainWindowViewModel : ObservableObject
                 productUnitService,
                 skuGenerationService,
                 _serviceProvider.GetRequiredService<IProductBatchService>(),
+                activeCurrencyService,
                 themeService,
                 zoomService,
                 localizationService,
@@ -2315,6 +2321,7 @@ public partial class MainWindowViewModel : ObservableObject
             var currencyViewModel = new CurrencyViewModel(
                 _serviceProvider.GetRequiredService<ICurrencyService>(),
                 _currentUserService,
+                _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
                 navigateBack: () => ShowAddOptionsCommand.Execute(null)
             );
 

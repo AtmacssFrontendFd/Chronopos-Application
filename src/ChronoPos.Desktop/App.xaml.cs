@@ -363,6 +363,10 @@ public partial class App : System.Windows.Application
                     services.AddSingleton<IZoomService, ZoomService>();
                     LogMessage("ZoomService registered");
 
+                    // Register Active Currency service (Singleton for system-wide access)
+                    services.AddSingleton<IActiveCurrencyService, ActiveCurrencyService>();
+                    LogMessage("ActiveCurrencyService registered as Singleton");
+
                     // Register icon service
                     services.AddSingleton<IIconService, IconService>();
                     LogMessage("IconService registered");
@@ -632,6 +636,32 @@ public partial class App : System.Windows.Application
         catch (Exception ex)
         {
             LogMessage($"  - Zoom service error: {ex.Message}");
+        }
+
+        // Initialize Active Currency service (async - needs to load from database)
+        try 
+        {
+            LogMessage("  - Initializing active currency service...");
+            var activeCurrencyService = _host.Services.GetRequiredService<IActiveCurrencyService>();
+            // Run async initialization synchronously (we're already on UI thread during startup)
+            var initTask = activeCurrencyService.InitializeAsync();
+            initTask.Wait();
+            if (initTask.Result)
+            {
+                LogMessage($"  - Active currency service initialized: {activeCurrencyService.CurrencyName} ({activeCurrencyService.CurrencySymbol}) ✓");
+            }
+            else
+            {
+                LogMessage("  - Active currency service initialized with fallback currency ⚠");
+            }
+            
+            // Initialize the currency converter
+            ChronoPos.Desktop.Converters.CurrencyPriceConverter.Initialize(_host.Services);
+            LogMessage("  - Currency price converter initialized ✓");
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"  - Active currency service error: {ex.Message}");
         }
         
         LogMessage(">>> All services initialized");

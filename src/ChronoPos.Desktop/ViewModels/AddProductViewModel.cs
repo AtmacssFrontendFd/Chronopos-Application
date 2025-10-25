@@ -10,6 +10,7 @@ using Microsoft.Win32;
 using System.Text.RegularExpressions;
 using System.IO;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Views.Dialogs;
 using InfrastructureServices = ChronoPos.Infrastructure.Services;
 using System.Globalization;
 
@@ -30,6 +31,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     private readonly IProductUnitService _productUnitService;
     private readonly ISkuGenerationService _skuGenerationService;
     private readonly IProductBatchService _productBatchService;
+    private readonly IActiveCurrencyService _activeCurrencyService;
     private readonly Action? _navigateBack;
     
     // Settings services
@@ -541,6 +543,92 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
 
     #endregion
 
+    #region Currency Formatted Properties
+
+    /// <summary>
+    /// Formatted selling price with active currency symbol and conversion
+    /// NOTE: Price is stored in base currency (AED), displayed in active currency
+    /// </summary>
+    public string FormattedPrice
+    {
+        get
+        {
+            var convertedPrice = _activeCurrencyService.ConvertFromBaseCurrency(Price);
+            return _activeCurrencyService.FormatPrice(convertedPrice);
+        }
+    }
+
+    /// <summary>
+    /// Formatted cost price with active currency symbol and conversion
+    /// NOTE: Cost is stored in base currency (AED), displayed in active currency
+    /// </summary>
+    public string FormattedCost
+    {
+        get
+        {
+            var convertedCost = _activeCurrencyService.ConvertFromBaseCurrency(Cost);
+            return _activeCurrencyService.FormatPrice(convertedCost);
+        }
+    }
+
+    /// <summary>
+    /// Formatted last purchase price with active currency symbol and conversion
+    /// NOTE: LastPurchasePrice is stored in base currency (AED), displayed in active currency
+    /// </summary>
+    public string FormattedLastPurchasePrice
+    {
+        get
+        {
+            var convertedPrice = _activeCurrencyService.ConvertFromBaseCurrency(LastPurchasePrice);
+            return _activeCurrencyService.FormatPrice(convertedPrice);
+        }
+    }
+
+    /// <summary>
+    /// Formatted tax inclusive price with active currency symbol and conversion
+    /// NOTE: Tax inclusive price is stored in base currency (AED), displayed in active currency
+    /// </summary>
+    public string FormattedTaxInclusivePrice
+    {
+        get
+        {
+            var convertedPrice = _activeCurrencyService.ConvertFromBaseCurrency(TaxInclusivePriceValue);
+            return _activeCurrencyService.FormatPrice(convertedPrice);
+        }
+    }
+
+    /// <summary>
+    /// Current active currency symbol
+    /// </summary>
+    public string CurrencySymbol => _activeCurrencyService.CurrencySymbol;
+
+    /// <summary>
+    /// Current active currency code
+    /// </summary>
+    public string CurrencyCode => _activeCurrencyService.CurrencyCode;
+
+    /// <summary>
+    /// Current active currency name
+    /// </summary>
+    public string CurrencyName => _activeCurrencyService.CurrencyName;
+
+    /// <summary>
+    /// Exchange rate information for display
+    /// </summary>
+    public string ExchangeRateInfo
+    {
+        get
+        {
+            if (_activeCurrencyService.CurrencyCode == "AED")
+            {
+                return "Base Currency";
+            }
+            return $"1 AED = {_activeCurrencyService.ExchangeRate:N4} {_activeCurrencyService.CurrencyCode}";
+        }
+    }
+
+    #endregion
+
     #region Barcode Management Classes
 
     public class BarcodeItemViewModel : ObservableObject
@@ -1030,6 +1118,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         IProductUnitService productUnitService,
         ISkuGenerationService skuGenerationService,
         IProductBatchService productBatchService,
+        IActiveCurrencyService activeCurrencyService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -1047,6 +1136,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         _productUnitService = productUnitService ?? throw new ArgumentNullException(nameof(productUnitService));
         _skuGenerationService = skuGenerationService ?? throw new ArgumentNullException(nameof(skuGenerationService));
         _productBatchService = productBatchService ?? throw new ArgumentNullException(nameof(productBatchService));
+        _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -1055,6 +1145,10 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         _fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
         _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
         _navigateBack = navigateBack;
+        
+        // Subscribe to currency change events
+        _activeCurrencyService.ActiveCurrencyChanged += OnCurrencyChanged;
+        FileLogger.Log($"💱 Subscribed to currency changes. Current: {_activeCurrencyService.CurrencySymbol} {_activeCurrencyService.CurrencyCode}");
         
         // Initialize with default values
         Code = GenerateNextCode();
@@ -1144,7 +1238,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             FileLogger.Log($"❌ ERROR in AddProductViewModel initialization: {ex.Message}");
             FileLogger.Log($"❌ Stack trace: {ex.StackTrace}");
             StatusMessage = $"Error loading data: {ex.Message}";
-            MessageBox.Show($"Failed to load data: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorDialog = new MessageDialog("Error", $"Failed to load data: {ex.Message}", MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -1947,6 +2042,7 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         // Unsubscribe from events to prevent memory leaks
+        _activeCurrencyService.ActiveCurrencyChanged -= OnCurrencyChanged;
         _localizationService.LanguageChanged -= OnLanguageChanged;
         _databaseLocalizationService.LanguageChanged -= OnDatabaseLanguageChanged;
         _layoutDirectionService.DirectionChanged -= OnLayoutDirectionChanged;
@@ -2002,7 +2098,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         if (!validationResult.IsValid)
         {
             StatusMessage = validationResult.ErrorMessage;
-            MessageBox.Show(validationResult.ErrorMessage, "Cannot Add Discount", MessageBoxButton.OK, MessageBoxImage.Warning);
+            var warningDialog = new MessageDialog("Cannot Add Discount", validationResult.ErrorMessage, MessageDialog.MessageType.Warning);
+            warningDialog.ShowDialog();
             return;
         }
         
@@ -2522,8 +2619,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
                 if (fileInfo.Length > 5 * 1024 * 1024)
                 {
                     FileLogger.Log($"⚠️ File too large: {fileInfo.Length} bytes");
-                    MessageBox.Show("Image file size cannot exceed 5MB. Please choose a smaller image.", 
-                        "File Too Large", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    var warningDialog = new MessageDialog("File Too Large", "Image file size cannot exceed 5MB. Please choose a smaller image.", MessageDialog.MessageType.Warning);
+                    warningDialog.ShowDialog();
                     return;
                 }
 
@@ -2568,7 +2665,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             FileLogger.Log($"❌ Error in ChooseImage: {ex.Message}");
-            MessageBox.Show($"Error selecting image: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorDialog = new MessageDialog("Error", $"Error selecting image: {ex.Message}", MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
     }
 
@@ -2604,14 +2702,16 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
                 productDto.Id = ProductId;
                 savedProduct = await _productService.UpdateProductAsync(productDto);
                 StatusMessage = "Product updated successfully!";
-                MessageBox.Show("Product updated successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                var successDialog = new MessageDialog("Success", "Product updated successfully!", MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
             else
             {
                 // Create new product
                 savedProduct = await _productService.CreateProductAsync(productDto);
                 StatusMessage = "Product saved successfully!";
-                MessageBox.Show("Product created successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                var successDialog = new MessageDialog("Success", "Product created successfully!", MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
 
             // Save product images if any
@@ -2627,7 +2727,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         {
             var operation = IsEditMode ? "updating" : "saving";
             StatusMessage = $"Error {operation} product: {ex.Message}";
-            MessageBox.Show($"Failed to {operation} product: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorDialog = new MessageDialog("Error", $"Failed to {operation} product: {ex.Message}", MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -2638,10 +2739,12 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void Cancel()
     {
-        var result = MessageBox.Show("Are you sure you want to cancel? All unsaved changes will be lost.", 
-            "Confirm Cancel", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        var confirmDialog = new ConfirmationDialog(
+            "Confirm Cancel",
+            "Are you sure you want to cancel? All unsaved changes will be lost.",
+            ConfirmationDialog.DialogType.Warning);
 
-        if (result == MessageBoxResult.Yes)
+        if (confirmDialog.ShowDialog() == true)
         {
             // Navigate back to product management
             _navigateBack?.Invoke();
@@ -2746,12 +2849,14 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             // Close the panel
             IsCategoryPanelOpen = false;
             
-            MessageBox.Show("Category saved successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            var successDialog = new MessageDialog("Success", "Category saved successfully!", MessageDialog.MessageType.Success);
+            successDialog.ShowDialog();
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error saving category: {ex.Message}";
-            MessageBox.Show($"Failed to save category: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorDialog = new MessageDialog("Error", $"Failed to save category: {ex.Message}", MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -3038,6 +3143,11 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         
         FileLogger.Log($"   🔄 Calling UpdateProductUnitPricing for all units...");
         UpdateProductUnitPricing(); // Auto-calculate price of units
+        
+        // Refresh currency formatted properties
+        OnPropertyChanged(nameof(FormattedPrice));
+        OnPropertyChanged(nameof(FormattedTaxInclusivePrice));
+        
         ValidateForm();
         FileLogger.Log($"✅ OnPriceChanged completed");
     }
@@ -3054,6 +3164,10 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
         
         FileLogger.Log($"   🔄 Calling UpdateProductUnitPricing for all units...");
         UpdateProductUnitPricing(); // Auto-calculate cost of units
+        
+        // Refresh currency formatted properties
+        OnPropertyChanged(nameof(FormattedCost));
+        
         ValidateForm();
         FileLogger.Log($"✅ OnCostChanged completed");
     }
@@ -3066,6 +3180,29 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     partial void OnNameChanged(string value)
     {
         ValidateForm();
+    }
+
+    /// <summary>
+    /// Handles currency change events from IActiveCurrencyService
+    /// </summary>
+    private void OnCurrencyChanged(object? sender, CurrencyDto newCurrency)
+    {
+        FileLogger.Log($"💱 Currency changed to: {newCurrency.Symbol} {newCurrency.CurrencyCode} (Rate: {newCurrency.ExchangeRate})");
+        
+        // Refresh all currency-formatted properties (these will auto-convert using new exchange rate)
+        OnPropertyChanged(nameof(FormattedPrice));
+        OnPropertyChanged(nameof(FormattedCost));
+        OnPropertyChanged(nameof(FormattedLastPurchasePrice));
+        OnPropertyChanged(nameof(FormattedTaxInclusivePrice));
+        OnPropertyChanged(nameof(CurrencySymbol));
+        OnPropertyChanged(nameof(CurrencyCode));
+        OnPropertyChanged(nameof(CurrencyName));
+        OnPropertyChanged(nameof(ExchangeRateInfo));
+        
+        // Refresh ProductUnits grid to update formatted prices
+        OnPropertyChanged(nameof(ProductUnits));
+        
+        FileLogger.Log($"✅ Currency UI updated successfully - Prices converted from AED to {newCurrency.CurrencyCode}");
     }
 
     /// <summary>
@@ -3356,16 +3493,16 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
             AppLogger.LogInfo($"Showing delete confirmation dialog", 
                 $"Batch ID: {batch.Id}, Batch No: {batch.BatchNo}", "product_batches_ui");
 
-            var result = MessageBox.Show(
-                $"Are you sure you want to delete batch '{batch.BatchNo}'?",
+            var confirmDialog = new ConfirmationDialog(
                 "Confirm Delete",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
+                $"Are you sure you want to delete batch '{batch.BatchNo}'?",
+                ConfirmationDialog.DialogType.Danger);
 
+            var dialogResult = confirmDialog.ShowDialog();
             AppLogger.LogInfo($"User response to delete confirmation", 
-                $"Batch ID: {batch.Id}, User choice: {result}", "product_batches_ui");
+                $"Batch ID: {batch.Id}, User choice: {(dialogResult == true ? "Yes" : "No")}", "product_batches_ui");
 
-            if (result == MessageBoxResult.Yes)
+            if (dialogResult == true)
             {
                 AppLogger.LogInfo($"Proceeding with batch deletion", 
                     $"Batch ID: {batch.Id}, Batch No: {batch.BatchNo}", "product_batches_ui");

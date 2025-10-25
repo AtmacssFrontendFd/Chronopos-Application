@@ -11,33 +11,14 @@
     <UserControl.Resources>
         <!-- Input Field Style -->
         <Style x:Key="InputFieldStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="{DynamicResource BorderCornerRadius}">
-                            <ScrollViewer x:Name="PART_ContentHost" 
-                                        Margin="{TemplateBinding Padding}"
-                                        VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
         
         <!-- Label Style -->
@@ -45,16 +26,14 @@
             <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
             <Setter Property="Margin" Value="0,0,0,5"/>
         </Style>
         
         <!-- Section Header Style -->
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeMedium}"/>
-            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
             <Setter Property="Margin" Value="0,0,0,15"/>
         </Style>
         
@@ -66,28 +45,20 @@
             <Setter Property="Padding" Value="16,10"/>
             <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+            <Setter Property="MinHeight" Value="40"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                                CornerRadius="4">
                             <ContentPresenter HorizontalAlignment="Center" 
                                             VerticalAlignment="Center"
                                             Margin="{TemplateBinding Padding}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource PrimaryDark}"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource PrimaryDarker}"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                <Setter Property="Opacity" Value="0.9"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -99,8 +70,6 @@
         <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
             <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
         </Style>
     </UserControl.Resources>
     <Grid>
@@ -114,172 +83,149 @@
                 Background="{DynamicResource SurfaceBackground}"
                 BorderThickness="0,0,0,1"
                 BorderBrush="{DynamicResource BorderLight}"
-                Padding="{DynamicResource DefaultPaddingThickness}">
+                Padding="30,20">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
+                
                 <TextBlock Grid.Column="0"
                            Text="{Binding FormTitle}"
-                           FontSize="{DynamicResource FontSizeLarge}"
+                           FontSize="24"
                            FontWeight="Bold"
                            Foreground="{DynamicResource TextPrimary}"
                            VerticalAlignment="Center"/>
+                
                 <Button Grid.Column="1"
                         Content="✕"
                         Command="{Binding CloseCommand}"
                         Background="Transparent"
-                        BorderThickness="0"
-                        FontSize="16"
-                        FontWeight="Bold"
                         Foreground="{DynamicResource TextSecondary}"
-                        Cursor="Hand"
-                        Padding="8"
-                        ToolTip="Close"/>
+                        BorderThickness="0"
+                        FontSize="20"
+                        Width="30"
+                        Height="30"
+                        Cursor="Hand"/>
             </Grid>
         </Border>
+        
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{DynamicResource DefaultPaddingThickness}">
-            <StackPanel>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="30,20">
                 <TextBlock Text="Currency Information" Style="{StaticResource SectionHeaderStyle}"/>
                 
                 <!-- Currency Name -->
-                <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Currency Name *" Style="{StaticResource LabelStyle}"/>
-                    <TextBox Text="{Binding CurrencyName, UpdateSourceTrigger=PropertyChanged}" 
-                             Style="{StaticResource InputFieldStyle}" 
-                             ToolTip="Enter currency name (e.g., US Dollar)"/>
-                </StackPanel>
+                <TextBlock Text="Currency Name *" Style="{StaticResource LabelStyle}"/>
+                <TextBox Text="{Binding CurrencyName, UpdateSourceTrigger=PropertyChanged}" 
+                         Style="{StaticResource InputFieldStyle}"
+                         Margin="0,0,0,15"/>
                 
                 <!-- Currency Code -->
-                <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Currency Code *" Style="{StaticResource LabelStyle}"/>
-                    <TextBox Text="{Binding CurrencyCode, UpdateSourceTrigger=PropertyChanged}" 
-                             Style="{StaticResource InputFieldStyle}" 
-                             ToolTip="Enter 3-letter currency code (e.g., USD)"
-                             MaxLength="10"
-                             CharacterCasing="Upper"/>
-                </StackPanel>
+                <TextBlock Text="Currency Code *" Style="{StaticResource LabelStyle}"/>
+                <TextBox Text="{Binding CurrencyCode, UpdateSourceTrigger=PropertyChanged}" 
+                         Style="{StaticResource InputFieldStyle}"
+                         MaxLength="10"
+                         CharacterCasing="Upper"
+                         Margin="0,0,0,15"/>
                 
                 <!-- Symbol -->
-                <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Symbol *" Style="{StaticResource LabelStyle}"/>
-                    <TextBox Text="{Binding Symbol, UpdateSourceTrigger=PropertyChanged}" 
-                             Style="{StaticResource InputFieldStyle}" 
-                             ToolTip="Enter currency symbol (e.g., $, €, £)"
-                             MaxLength="5"/>
-                </StackPanel>
+                <TextBlock Text="Symbol *" Style="{StaticResource LabelStyle}"/>
+                <TextBox Text="{Binding Symbol, UpdateSourceTrigger=PropertyChanged}" 
+                         Style="{StaticResource InputFieldStyle}"
+                         MaxLength="5"
+                         Margin="0,0,0,15"/>
                 
                 <!-- Currency Image/Logo -->
-                <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Currency Logo" Style="{StaticResource LabelStyle}"/>
-                    
-                    <!-- Image Preview -->
-                    <Border BorderBrush="{DynamicResource BorderLight}" 
-                            BorderThickness="1" 
-                            CornerRadius="{DynamicResource BorderCornerRadius}" 
-                            Padding="10"
-                            Background="{DynamicResource SurfaceBackground}"
-                            Height="120"
-                            Margin="0,0,0,10">
-                        <Grid>
-                            <!-- Show image if available -->
-                            <Image Source="{Binding ImagePreview}" 
-                                   Stretch="Uniform"
-                                   MaxHeight="100"
-                                   MaxWidth="100"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                            
-                            <!-- Show placeholder if no image -->
-                            <TextBlock Text="🖼️ No image selected" 
-                                      FontSize="{DynamicResource FontSizeMedium}"
-                                      Foreground="{DynamicResource TextSecondary}"
-                                      HorizontalAlignment="Center"
-                                      VerticalAlignment="Center"
-                                      Visibility="{Binding HasImage, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
-                        </Grid>
-                    </Border>
-                    
-                    <!-- Image Actions -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Button Content="📁 Select Image" 
-                                Command="{Binding SelectImageCommand}" 
-                                Style="{StaticResource SecondaryButtonStyle}"
-                                Margin="0,0,10,0"
-                                Padding="12,8"/>
-                        <Button Content="🗑️ Remove" 
-                                Command="{Binding RemoveImageCommand}" 
-                                Style="{StaticResource SecondaryButtonStyle}"
-                                Padding="12,8"
-                                Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                    </StackPanel>
-                    
-                    <TextBlock Text="Supported formats: PNG, JPG, JPEG, BMP, GIF (Max 2MB)"
-                               FontSize="{DynamicResource FontSizeExtraSmall}"
-                               Foreground="{DynamicResource TextSecondary}"
-                               FontFamily="{DynamicResource PoppinsFontFallback}"
-                               Margin="0,5,0,0"
+                <TextBlock Text="Currency Logo" Style="{StaticResource LabelStyle}"/>
+                
+                <!-- Image Preview -->
+                <Border BorderBrush="{DynamicResource BorderLight}" 
+                        BorderThickness="1" 
+                        CornerRadius="4" 
+                        Padding="10"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Height="100"
+                        Margin="0,0,0,10">
+                    <Grid>
+                        <!-- Show image if available -->
+                        <Image Source="{Binding ImagePreview}" 
+                               Stretch="Uniform"
+                               MaxHeight="80"
+                               MaxWidth="80"
                                HorizontalAlignment="Center"
-                               TextWrapping="Wrap"/>
+                               VerticalAlignment="Center"
+                               Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        
+                        <!-- Show placeholder if no image -->
+                        <TextBlock Text="🖼️ No image selected" 
+                                  FontSize="12"
+                                  Foreground="{DynamicResource TextSecondary}"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Visibility="{Binding HasImage, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                    </Grid>
+                </Border>
+                
+                <!-- Image Actions -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,15">
+                    <Button Content="📁 Select Image" 
+                            Command="{Binding SelectImageCommand}" 
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Margin="0,0,10,0"
+                            Padding="12,8"
+                            FontSize="12"/>
+                    <Button Content="🗑️ Remove" 
+                            Command="{Binding RemoveImageCommand}" 
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="12,8"
+                            FontSize="12"
+                            Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}"/>
                 </StackPanel>
                 
                 <!-- Exchange Rate -->
-                <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Exchange Rate *" Style="{StaticResource LabelStyle}"/>
-                    <TextBox Text="{Binding ExchangeRate, UpdateSourceTrigger=PropertyChanged}" 
-                             Style="{StaticResource InputFieldStyle}" 
-                             ToolTip="Enter exchange rate relative to base currency (e.g., 1.0000)"/>
-                    <TextBlock Text="Exchange rate relative to base currency (1 base currency = X this currency)"
-                               FontSize="{DynamicResource FontSizeExtraSmall}"
-                               Foreground="{DynamicResource TextSecondary}"
-                               FontFamily="{DynamicResource PoppinsFontFallback}"
-                               Margin="0,5,0,0"
-                               TextWrapping="Wrap"/>
-                </StackPanel>
+                <TextBlock Text="Exchange Rate *" Style="{StaticResource LabelStyle}"/>
+                <TextBox Text="{Binding ExchangeRate, UpdateSourceTrigger=PropertyChanged}" 
+                         Style="{StaticResource InputFieldStyle}"
+                         Margin="0,0,0,5"/>
+                <TextBlock Text="Exchange rate relative to base currency"
+                           FontSize="11"
+                           Foreground="{DynamicResource TextSecondary}"
+                           Margin="0,0,0,15"
+                           TextWrapping="Wrap"/>
                 
                 <!-- Is Default -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                    <CheckBox Content="Set as Default Currency" 
-                              IsChecked="{Binding IsDefault}" 
-                              FontSize="{DynamicResource FontSizeMedium}" 
-                              FontWeight="SemiBold" 
-                              FontFamily="{DynamicResource PoppinsFontFallback}" 
-                              ToolTip="Set this as the default system currency"/>
-                </StackPanel>
+                <CheckBox Content="Set as Default Currency" 
+                          IsChecked="{Binding IsDefault}" 
+                          FontSize="14"
+                          Foreground="{DynamicResource TextPrimary}"
+                          Margin="0,0,0,20"/>
                 
                 <!-- Info Box -->
                 <Border Background="{DynamicResource PrimaryLight}"
                         BorderBrush="{DynamicResource Primary}"
                         BorderThickness="1"
-                        CornerRadius="{DynamicResource BorderCornerRadius}"
+                        CornerRadius="4"
                         Padding="12"
-                        Margin="0,0,0,10">
+                        Margin="0,5,0,0">
                     <StackPanel>
                         <TextBlock Text="ℹ️ Important Information"
                                    FontWeight="SemiBold"
-                                   FontSize="{DynamicResource FontSizeSmall}"
+                                   FontSize="13"
                                    Foreground="{DynamicResource Primary}"
                                    Margin="0,0,0,5"/>
                         <TextBlock Text="• Currency code must be unique"
-                                   FontSize="{DynamicResource FontSizeExtraSmall}"
+                                   FontSize="11"
                                    Foreground="{DynamicResource TextPrimary}"
                                    TextWrapping="Wrap"
                                    Margin="0,2"/>
                         <TextBlock Text="• Only one currency can be set as default"
-                                   FontSize="{DynamicResource FontSizeExtraSmall}"
+                                   FontSize="11"
                                    Foreground="{DynamicResource TextPrimary}"
                                    TextWrapping="Wrap"
                                    Margin="0,2"/>
                         <TextBlock Text="• Exchange rates are used for currency conversion"
-                                   FontSize="{DynamicResource FontSizeExtraSmall}"
-                                   Foreground="{DynamicResource TextPrimary}"
-                                   TextWrapping="Wrap"
-                                   Margin="0,2"/>
-                        <TextBlock Text="• Default currency cannot be deleted"
-                                   FontSize="{DynamicResource FontSizeExtraSmall}"
+                                   FontSize="11"
                                    Foreground="{DynamicResource TextPrimary}"
                                    TextWrapping="Wrap"
                                    Margin="0,2"/>
@@ -287,34 +233,29 @@
                 </Border>
             </StackPanel>
         </ScrollViewer>
+        
         <!-- Action Buttons -->
         <Border Grid.Row="2"
                 Background="{DynamicResource SurfaceBackground}"
                 BorderThickness="0,1,0,0"
                 BorderBrush="{DynamicResource BorderLight}"
-                Padding="{DynamicResource DefaultPaddingThickness}">
+                Padding="30,20">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" 
-                           Text="{Binding ValidationMessage}" 
-                           Foreground="Red" 
-                           FontSize="{DynamicResource FontSizeSmall}" 
-                           VerticalAlignment="Center" 
-                           TextWrapping="Wrap"/>
-                <Button Grid.Column="1" 
-                        Content="Cancel" 
-                        Command="{Binding CancelCommand}" 
-                        Style="{StaticResource SecondaryButtonStyle}" 
-                        Margin="0,0,10,0"/>
-                <Button Grid.Column="2" 
-                        Content="{Binding SaveButtonText}" 
-                        Command="{Binding SaveCommand}" 
-                        Style="{StaticResource ActionButtonStyle}" 
-                        IsDefault="True"/>
+
+                <Button Grid.Column="0"
+                        Content="{Binding SaveButtonText}"
+                        Command="{Binding SaveCommand}"
+                        Style="{StaticResource ActionButtonStyle}"/>
+
+                <Button Grid.Column="2"
+                        Content="Cancel"
+                        Command="{Binding CancelCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"/>
             </Grid>
         </Border>
     </Grid>

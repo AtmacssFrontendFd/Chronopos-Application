@@ -13,6 +13,8 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 using Microsoft.Win32;
+using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Views.Dialogs;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -20,6 +22,7 @@ public partial class CurrencyViewModel : ObservableObject
 {
     private readonly ICurrencyService _currencyService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IActiveCurrencyService _activeCurrencyService;
     private readonly Action? _navigateBack;
 
     [ObservableProperty]
@@ -82,10 +85,11 @@ public partial class CurrencyViewModel : ObservableObject
     [ObservableProperty]
     private StatusFilterOption? selectedStatusFilter;
 
-    public CurrencyViewModel(ICurrencyService currencyService, ICurrentUserService currentUserService, Action? navigateBack = null)
+    public CurrencyViewModel(ICurrencyService currencyService, ICurrentUserService currentUserService, IActiveCurrencyService activeCurrencyService, Action? navigateBack = null)
     {
         _currencyService = currencyService;
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
         _navigateBack = navigateBack;
         
         // Initialize permissions
@@ -112,6 +116,7 @@ public partial class CurrencyViewModel : ObservableObject
     public IAsyncRelayCommand RefreshCommand => new AsyncRelayCommand(LoadCurrenciesAsync);
     public IAsyncRelayCommand ImportCommand => new AsyncRelayCommand(ImportCurrenciesAsync);
     public IAsyncRelayCommand ExportCommand => new AsyncRelayCommand(ExportCurrenciesAsync);
+    public IAsyncRelayCommand<CurrencyDto?> ActivateCurrencyCommand => new AsyncRelayCommand<CurrencyDto?>(ActivateCurrencyAsync);
     public IRelayCommand BackCommand => new RelayCommand(GoBack);
     public IRelayCommand CloseSidePanelCommand => new RelayCommand(CloseSidePanel);
 
@@ -182,8 +187,11 @@ public partial class CurrencyViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error loading currencies: {ex.Message}";
-            MessageBox.Show($"Error loading currencies: {ex.Message}", "Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorDialog = new MessageDialog(
+                "Error",
+                $"Error loading currencies: {ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -195,8 +203,11 @@ public partial class CurrencyViewModel : ObservableObject
     {
         if (!CanCreateCurrency)
         {
-            MessageBox.Show("You do not have permission to create currencies.", "Permission Denied", 
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            var warningDialog = new MessageDialog(
+                "Permission Denied",
+                "You do not have permission to create currencies.",
+                MessageDialog.MessageType.Warning);
+            warningDialog.ShowDialog();
             return;
         }
 
@@ -214,8 +225,11 @@ public partial class CurrencyViewModel : ObservableObject
 
         if (!CanEditCurrency)
         {
-            MessageBox.Show("You do not have permission to edit currencies.", "Permission Denied", 
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            var warningDialog = new MessageDialog(
+                "Permission Denied",
+                "You do not have permission to edit currencies.",
+                MessageDialog.MessageType.Warning);
+            warningDialog.ShowDialog();
             return;
         }
         
@@ -251,25 +265,30 @@ public partial class CurrencyViewModel : ObservableObject
 
         if (!CanDeleteCurrency)
         {
-            MessageBox.Show("You do not have permission to delete currencies.", "Permission Denied", 
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            var warningDialog = new MessageDialog(
+                "Permission Denied",
+                "You do not have permission to delete currencies.",
+                MessageDialog.MessageType.Warning);
+            warningDialog.ShowDialog();
             return;
         }
 
         if (currency.IsDefault)
         {
-            MessageBox.Show("Cannot delete the default currency. Please set another currency as default first.", 
-                "Cannot Delete Default Currency", MessageBoxButton.OK, MessageBoxImage.Warning);
+            var warningDialog = new MessageDialog(
+                "Cannot Delete Default Currency",
+                "Cannot delete the default currency. Please set another currency as default first.",
+                MessageDialog.MessageType.Warning);
+            warningDialog.ShowDialog();
             return;
         }
         
-        var result = MessageBox.Show(
-            $"Are you sure you want to delete the currency '{currency.CurrencyName}' ({currency.CurrencyCode})?",
+        var confirmDialog = new ConfirmationDialog(
             "Confirm Delete",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            $"Are you sure you want to delete the currency '{currency.CurrencyName}' ({currency.CurrencyCode})?",
+            ConfirmationDialog.DialogType.Danger);
             
-        if (result != MessageBoxResult.Yes) return;
+        if (confirmDialog.ShowDialog() != true) return;
         
         try
         {
@@ -285,15 +304,79 @@ public partial class CurrencyViewModel : ObservableObject
             else
             {
                 StatusMessage = $"Failed to delete currency '{currency.CurrencyName}'.";
-                MessageBox.Show($"Failed to delete currency '{currency.CurrencyName}'.", "Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                var errorDialog = new MessageDialog(
+                    "Error",
+                    $"Failed to delete currency '{currency.CurrencyName}'.",
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error deleting currency: {ex.Message}";
-            MessageBox.Show($"Error deleting currency: {ex.Message}", "Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorDialog = new MessageDialog(
+                "Error",
+                $"Error deleting currency: {ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
+        }
+    }
+
+    private async Task ActivateCurrencyAsync(CurrencyDto? currency)
+    {
+        if (currency == null) return;
+
+        if (currency.IsDefault)
+        {
+            var infoDialog = new MessageDialog(
+                "Already Active",
+                "This currency is already the active currency.",
+                MessageDialog.MessageType.Info);
+            infoDialog.ShowDialog();
+            return;
+        }
+
+        var confirmDialog = new ConfirmationDialog(
+            "Confirm Currency Activation",
+            $"Are you sure you want to set '{currency.CurrencyName} ({currency.CurrencyCode})' as the active currency for the entire system?\n\n" +
+            "This will affect all price displays, calculations, and reports throughout the application.",
+            ConfirmationDialog.DialogType.Warning);
+
+        if (confirmDialog.ShowDialog() != true) return;
+
+        try
+        {
+            IsLoading = true;
+            StatusMessage = "Activating currency...";
+
+            await _currencyService.SetDefaultCurrencyAsync(currency.Id);
+
+            // Refresh the Active Currency Service to update system-wide currency
+            await _activeCurrencyService.RefreshAsync();
+
+            StatusMessage = $"Currency '{currency.CurrencyName}' activated successfully";
+            var successDialog = new MessageDialog(
+                "Currency Activated",
+                $"Currency '{currency.CurrencyName} ({currency.Symbol})' is now the active currency for the system.\n\n" +
+                "All prices will now be displayed using this currency.",
+                MessageDialog.MessageType.Success);
+            successDialog.ShowDialog();
+
+            // Reload currencies to reflect the change
+            await LoadCurrenciesAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error activating currency: {ex.Message}";
+            var errorDialog = new MessageDialog(
+                "Error",
+                $"Error activating currency: {ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 
@@ -301,20 +384,14 @@ public partial class CurrencyViewModel : ObservableObject
     {
         try
         {
-            // Show dialog with Download Template and Upload File options
-            var result = MessageBox.Show(
-                "Would you like to download a template first?\n\n" +
-                "• Click 'Yes' to download the CSV template\n" +
-                "• Click 'No' to upload your file directly\n" +
-                "• Click 'Cancel' to exit",
-                "Import Currencies",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Cancel)
+            // Show custom import dialog
+            var importDialog = new ImportDialog();
+            var dialogResult = importDialog.ShowDialog();
+            
+            if (dialogResult != true)
                 return;
 
-            if (result == MessageBoxResult.Yes)
+            if (importDialog.SelectedAction == ImportDialog.ImportAction.DownloadTemplate)
             {
                 // Download Template
                 var saveFileDialog = new SaveFileDialog
@@ -333,13 +410,18 @@ public partial class CurrencyViewModel : ObservableObject
                     templateCsv.AppendLine("0,British Pound,GBP,£,C:\\Images\\gbp.png,0.7900,false");
 
                     await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
-                    MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.\n\nNote: Image Path column is optional. Leave blank if no image.", 
-                        "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                    var successDialog = new MessageDialog(
+                        "Template Downloaded",
+                        $"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.\n\nNote: Image Path column is optional. Leave blank if no image.",
+                        MessageDialog.MessageType.Success);
+                    successDialog.ShowDialog();
                 }
                 return;
             }
 
             // Upload File
+            if (importDialog.SelectedAction == ImportDialog.ImportAction.UploadFile)
+            {
             var openFileDialog = new OpenFileDialog
             {
                 Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
@@ -354,8 +436,11 @@ public partial class CurrencyViewModel : ObservableObject
                 var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
                 if (lines.Length <= 1)
                 {
-                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    var warningDialog = new MessageDialog(
+                        "Import Error",
+                        "The CSV file is empty or contains only headers.",
+                        MessageDialog.MessageType.Warning);
+                    warningDialog.ShowDialog();
                     return;
                 }
 
@@ -431,17 +516,24 @@ public partial class CurrencyViewModel : ObservableObject
                     message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
                 }
 
-                MessageBox.Show(message, "Import Complete", 
-                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                var resultDialog = new MessageDialog(
+                    "Import Complete",
+                    message,
+                    errorCount > 0 ? MessageDialog.MessageType.Warning : MessageDialog.MessageType.Success);
+                resultDialog.ShowDialog();
                 
                 StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
+            }
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error importing currencies: {ex.Message}";
-            MessageBox.Show($"Error importing currencies: {ex.Message}", "Import Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorDialog = new MessageDialog(
+                "Import Error",
+                $"Error importing currencies: {ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -483,8 +575,11 @@ public partial class CurrencyViewModel : ObservableObject
     {
         if (!CanExportCurrency)
         {
-            MessageBox.Show("You do not have permission to export currencies.", "Permission Denied", 
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            var warningDialog = new MessageDialog(
+                "Permission Denied",
+                "You do not have permission to export currencies.",
+                MessageDialog.MessageType.Warning);
+            warningDialog.ShowDialog();
             return;
         }
 
@@ -511,14 +606,20 @@ public partial class CurrencyViewModel : ObservableObject
             await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
             
             StatusMessage = $"Exported {Currencies.Count} currencies to {saveFileDialog.FileName}";
-            MessageBox.Show($"Successfully exported {Currencies.Count} currencies.", "Export Complete", 
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            var successDialog = new MessageDialog(
+                "Export Complete",
+                $"Successfully exported {Currencies.Count} currencies.",
+                MessageDialog.MessageType.Success);
+            successDialog.ShowDialog();
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error exporting currencies: {ex.Message}";
-            MessageBox.Show($"Error exporting currencies: {ex.Message}", "Export Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorDialog = new MessageDialog(
+                "Export Error",
+                $"Error exporting currencies: {ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
     }
 

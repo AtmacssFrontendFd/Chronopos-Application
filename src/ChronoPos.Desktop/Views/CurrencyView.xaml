@@ -499,10 +499,49 @@
                         </DataGridTemplateColumn>
 
                         <!-- Actions -->
-                        <DataGridTemplateColumn Header="Actions" Width="*" MinWidth="120">
+                        <DataGridTemplateColumn Header="Actions" Width="*" MinWidth="180">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                        <!-- Activate Currency Button -->
+                                        <Button Content="✓"
+                                               Command="{Binding DataContext.ActivateCurrencyCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                               CommandParameter="{Binding}"
+                                               Background="{DynamicResource Primary}"
+                                               Foreground="White"
+                                               BorderThickness="0"
+                                               Cursor="Hand"
+                                               Padding="8,4"
+                                               Margin="0,0,5,0"
+                                               ToolTip="Set as Active Currency"
+                                               IsEnabled="{Binding IsDefault, Converter={StaticResource InverseBoolConverter}}"
+                                               FontWeight="Bold">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border Background="{TemplateBinding Background}"
+                                                                       CornerRadius="4"
+                                                                       Padding="{TemplateBinding Padding}">
+                                                                    <ContentPresenter HorizontalAlignment="Center"
+                                                                                    VerticalAlignment="Center"/>
+                                                                </Border>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource PrimaryDark}"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsEnabled" Value="False">
+                                                            <Setter Property="Opacity" Value="0.3"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+
                                         <Button Content="✏️"
                                                Command="{Binding DataContext.EditCurrencyCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                CommandParameter="{Binding}"
