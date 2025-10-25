@@ -188,6 +188,37 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IProductModifierLinkRepository, ProductModifierLinkRepository>();
                     LogMessage("ProductModifierLinkRepository registered as Transient");
 
+                    // Register Transaction repositories
+                    services.AddTransient<IShiftRepository, ShiftRepository>();
+                    LogMessage("ShiftRepository registered as Transient");
+                    
+                    services.AddTransient<IServiceChargeRepository, ServiceChargeRepository>();
+                    LogMessage("ServiceChargeRepository registered as Transient");
+                    
+                    services.AddTransient<ITransactionRepository, TransactionRepository>();
+                    LogMessage("TransactionRepository registered as Transient");
+                    
+                    services.AddTransient<ITransactionProductRepository, TransactionProductRepository>();
+                    LogMessage("TransactionProductRepository registered as Transient");
+                    
+                    services.AddTransient<ITransactionModifierRepository, TransactionModifierRepository>();
+                    LogMessage("TransactionModifierRepository registered as Transient");
+                    
+                    services.AddTransient<ITransactionServiceChargeRepository, TransactionServiceChargeRepository>();
+                    LogMessage("TransactionServiceChargeRepository registered as Transient");
+                    
+                    services.AddTransient<IRefundTransactionRepository, RefundTransactionRepository>();
+                    LogMessage("RefundTransactionRepository registered as Transient");
+                    
+                    services.AddTransient<IRefundTransactionProductRepository, RefundTransactionProductRepository>();
+                    LogMessage("RefundTransactionProductRepository registered as Transient");
+                    
+                    services.AddTransient<IExchangeTransactionRepository, ExchangeTransactionRepository>();
+                    LogMessage("ExchangeTransactionRepository registered as Transient");
+                    
+                    services.AddTransient<IExchangeTransactionProductRepository, ExchangeTransactionProductRepository>();
+                    LogMessage("ExchangeTransactionProductRepository registered as Transient");
+
                     // Register application services as Transient to ensure fresh DbContext instances
                     services.AddTransient<IProductService, ProductService>();
                     LogMessage("ProductService registered as Transient");
@@ -240,6 +271,10 @@ public partial class App : System.Windows.Application
                     // Register Customer service
                     services.AddTransient<ICustomerService, CustomerService>();
                     LogMessage("CustomerService registered as Transient");
+                    
+                    // Register Category service
+                    services.AddTransient<ICategoryService, CategoryService>();
+                    LogMessage("CategoryService registered as Transient");
                     
                     // Register CustomerGroup services
                     services.AddTransient<ICustomerGroupService, CustomerGroupService>();
@@ -357,6 +392,22 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IProductModifierLinkService, ProductModifierLinkService>();
                     LogMessage("ProductModifierLinkService registered as Transient");
                     
+                    // Register Transaction services
+                    services.AddTransient<IShiftService, ShiftService>();
+                    LogMessage("ShiftService registered as Transient");
+                    
+                    services.AddTransient<IServiceChargeService, ServiceChargeService>();
+                    LogMessage("ServiceChargeService registered as Transient");
+                    
+                    services.AddTransient<ITransactionService, TransactionService>();
+                    LogMessage("TransactionService registered as Transient");
+                    
+                    services.AddTransient<IRefundService, RefundService>();
+                    LogMessage("RefundService registered as Transient");
+                    
+                    services.AddTransient<IExchangeService, ExchangeService>();
+                    LogMessage("ExchangeService registered as Transient");
+                    
                     // Register theme service
                     services.AddSingleton<IThemeService, ThemeService>();
                     LogMessage("ThemeService registered");
@@ -418,6 +469,8 @@ public partial class App : System.Windows.Application
                     LogMessage("AddProductViewModel registered as Transient");
                     services.AddTransient<SalesViewModel>();
                     LogMessage("SalesViewModel registered as Transient");
+                    services.AddTransient<AddSalesViewModel>();
+                    LogMessage("AddSalesViewModel registered as Transient");
                     services.AddTransient<CustomersViewModel>();
                     LogMessage("CustomersViewModel registered as Transient");
                     services.AddTransient<CustomerSidePanelViewModel>();

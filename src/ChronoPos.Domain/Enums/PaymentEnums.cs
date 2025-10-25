@@ -18,10 +18,13 @@ public enum PaymentMethod
 /// </summary>
 public enum SaleStatus
 {
-    Pending = 1,
-    Completed = 2,
-    Cancelled = 3,
-    Refunded = 4
+    Draft = 1,              // Sale in progress / saved only
+    Billed = 2,             // Bill printed, awaiting payment
+    Settled = 3,            // Fully paid and closed
+    Hold = 4,               // Temporarily parked (table order, paused cart)
+    Cancelled = 5,          // Order cancelled before settlement
+    PendingPayment = 6,     // Customer took goods/service but will pay later (credit sale)
+    PartialPayment = 7      // Some payment done, balance pending
 }
 
 /// <summary>

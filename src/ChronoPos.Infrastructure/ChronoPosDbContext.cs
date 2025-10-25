@@ -107,6 +107,18 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.ProductModifierGroupItem> ProductModifierGroupItems { get; set; }
     public DbSet<Domain.Entities.ProductModifierLink> ProductModifierLinks { get; set; }
 
+    // Transaction & Sales entities
+    public DbSet<Domain.Entities.Shift> Shifts { get; set; }
+    public DbSet<Domain.Entities.ServiceCharge> ServiceCharges { get; set; }
+    public DbSet<Domain.Entities.Transaction> Transactions { get; set; }
+    public DbSet<Domain.Entities.TransactionProduct> TransactionProducts { get; set; }
+    public DbSet<Domain.Entities.TransactionModifier> TransactionModifiers { get; set; }
+    public DbSet<Domain.Entities.TransactionServiceCharge> TransactionServiceCharges { get; set; }
+    public DbSet<Domain.Entities.RefundTransaction> RefundTransactions { get; set; }
+    public DbSet<Domain.Entities.RefundTransactionProduct> RefundTransactionProducts { get; set; }
+    public DbSet<Domain.Entities.ExchangeTransaction> ExchangeTransactions { get; set; }
+    public DbSet<Domain.Entities.ExchangeTransactionProduct> ExchangeTransactionProducts { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -1816,6 +1828,32 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             new Domain.Entities.Store { Id = 2, Name = "Branch Store", Address = "456 Branch Avenue", PhoneNumber = "+1234567891", Email = "branch@chronopos.com", ManagerName = "Jane Smith", IsActive = true, IsDefault = false, CreatedAt = baseDate, UpdatedAt = baseDate }
         );
 
+        // NOTE: Shift seeding disabled because Users are not seeded (created during onboarding)
+        // Shifts will be created when users start their work day
+        // For now, transactions use ShiftId = 1 as a placeholder
+        
+        // Seed Default Shift (required for transactions) - without foreign key dependencies
+        modelBuilder.Entity<Domain.Entities.Shift>().HasData(
+            new Domain.Entities.Shift 
+            { 
+                ShiftId = 1, 
+                UserId = null, // No user dependency - can be assigned later
+                ShopLocationId = null,
+                StartTime = baseDate,
+                EndTime = null,
+                OpeningCash = 0m,
+                ClosingCash = 0m,
+                ExpectedCash = 0m,
+                CashDifference = 0m,
+                Status = "Open",
+                Notes = "Default shift for transactions",
+                CreatedBy = null,
+                CreatedAt = baseDate,
+                UpdatedBy = null,
+                UpdatedAt = null
+            }
+        );
+
         // Seed TaxTypes
         modelBuilder.Entity<Domain.Entities.TaxType>().HasData(
             new Domain.Entities.TaxType { Id = 1, Name = "VAT", Description = "Value Added Tax", Value = 10.0000m, IsPercentage = true, IncludedInPrice = false, AppliesToBuying = false, AppliesToSelling = true, CalculationOrder = 1, IsActive = true, CreatedAt = baseDate },
@@ -3071,6 +3109,355 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             
             // Composite unique index to prevent duplicate links
             entity.HasIndex(e => new { e.ProductId, e.ModifierGroupId }).IsUnique();
+        });
+
+        // Configure Shift entity
+        modelBuilder.Entity<Domain.Entities.Shift>(entity =>
+        {
+            entity.HasKey(e => e.ShiftId);
+            entity.Property(e => e.UserId).IsRequired(false); // Made optional - no user dependency
+            entity.Property(e => e.StartTime).IsRequired();
+            entity.Property(e => e.OpeningCash).HasPrecision(12, 2);
+            entity.Property(e => e.ClosingCash).HasPrecision(12, 2);
+            entity.Property(e => e.ExpectedCash).HasPrecision(12, 2);
+            entity.Property(e => e.CashDifference).HasPrecision(12, 2);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Open");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships - User is optional
+            entity.HasOne(s => s.User)
+                  .WithMany()
+                  .HasForeignKey(s => s.UserId)
+                  .OnDelete(DeleteBehavior.Restrict)
+                  .IsRequired(false);
+
+            entity.HasOne(s => s.ShopLocation)
+                  .WithMany()
+                  .HasForeignKey(s => s.ShopLocationId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.ShopLocationId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.StartTime);
+        });
+
+        // Configure ServiceCharge entity
+        modelBuilder.Entity<Domain.Entities.ServiceCharge>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.NameArabic).HasMaxLength(100);
+            entity.Property(e => e.IsPercentage).IsRequired().HasDefaultValue(true);
+            entity.Property(e => e.Value).IsRequired().HasPrecision(10, 4);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationship with TaxType
+            entity.HasOne(sc => sc.TaxType)
+                  .WithMany()
+                  .HasForeignKey(sc => sc.TaxTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            entity.HasIndex(e => e.Name).IsUnique();
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.AutoApply);
+        });
+
+        // Configure Transaction entity
+        modelBuilder.Entity<Domain.Entities.Transaction>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ShiftId).IsRequired();
+            entity.Property(e => e.UserId).IsRequired();
+            entity.Property(e => e.SellingTime).IsRequired();
+            entity.Property(e => e.TotalAmount).HasPrecision(12, 2).IsRequired();
+            entity.Property(e => e.TotalVat).HasPrecision(12, 2).IsRequired();
+            entity.Property(e => e.TotalDiscount).HasPrecision(12, 2).IsRequired();
+            entity.Property(e => e.TotalAppliedVat).HasPrecision(12, 2);
+            entity.Property(e => e.TotalAppliedDiscountValue).HasPrecision(12, 2);
+            entity.Property(e => e.AmountPaidCash).HasPrecision(12, 2);
+            entity.Property(e => e.AmountCreditRemaining).HasPrecision(12, 2);
+            entity.Property(e => e.DiscountValue).HasPrecision(12, 2);
+            entity.Property(e => e.DiscountMaxValue).HasPrecision(12, 2);
+            entity.Property(e => e.Vat).HasPrecision(12, 2);
+            entity.Property(e => e.InvoiceNumber).HasMaxLength(50);
+            // Status values: draft, billed, settled, hold, cancelled, pending_payment, partial_payment, refunded, exchanged
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("draft");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(t => t.Shift)
+                  .WithMany(s => s.Transactions)
+                  .HasForeignKey(t => t.ShiftId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(t => t.Customer)
+                  .WithMany()
+                  .HasForeignKey(t => t.CustomerId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(t => t.User)
+                  .WithMany()
+                  .HasForeignKey(t => t.UserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(t => t.ShopLocation)
+                  .WithMany()
+                  .HasForeignKey(t => t.ShopLocationId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(t => t.Table)
+                  .WithMany()
+                  .HasForeignKey(t => t.TableId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(t => t.Reservation)
+                  .WithMany()
+                  .HasForeignKey(t => t.ReservationId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(t => t.Creator)
+                  .WithMany()
+                  .HasForeignKey(t => t.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.ShiftId);
+            entity.HasIndex(e => e.CustomerId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.InvoiceNumber).IsUnique();
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.SellingTime);
+            entity.HasIndex(e => e.TableId);
+        });
+
+        // Configure TransactionProduct entity
+        modelBuilder.Entity<Domain.Entities.TransactionProduct>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.TransactionId).IsRequired();
+            entity.Property(e => e.ProductId).IsRequired();
+            entity.Property(e => e.BuyerCost).HasPrecision(12, 2).IsRequired();
+            entity.Property(e => e.SellingPrice).HasPrecision(12, 2).IsRequired();
+            entity.Property(e => e.DiscountValue).HasPrecision(12, 2);
+            entity.Property(e => e.DiscountMaxValue).HasPrecision(12, 2);
+            entity.Property(e => e.Vat).HasPrecision(12, 2);
+            entity.Property(e => e.Quantity).HasPrecision(10, 3).IsRequired();
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(tp => tp.Transaction)
+                  .WithMany(t => t.TransactionProducts)
+                  .HasForeignKey(tp => tp.TransactionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(tp => tp.Product)
+                  .WithMany()
+                  .HasForeignKey(tp => tp.ProductId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(tp => tp.ProductUnit)
+                  .WithMany()
+                  .HasForeignKey(tp => tp.ProductUnitId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            entity.HasIndex(e => e.TransactionId);
+            entity.HasIndex(e => e.ProductId);
+            entity.HasIndex(e => e.Status);
+        });
+
+        // Configure TransactionModifier entity
+        modelBuilder.Entity<Domain.Entities.TransactionModifier>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.TransactionProductId).IsRequired();
+            entity.Property(e => e.ProductModifierId).IsRequired();
+            entity.Property(e => e.ExtraPrice).HasPrecision(10, 2).HasDefaultValue(0);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(tm => tm.TransactionProduct)
+                  .WithMany(tp => tp.TransactionModifiers)
+                  .HasForeignKey(tm => tm.TransactionProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(tm => tm.ProductModifier)
+                  .WithMany()
+                  .HasForeignKey(tm => tm.ProductModifierId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.TransactionProductId);
+            entity.HasIndex(e => e.ProductModifierId);
+        });
+
+        // Configure TransactionServiceCharge entity
+        modelBuilder.Entity<Domain.Entities.TransactionServiceCharge>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.TransactionId).IsRequired();
+            entity.Property(e => e.ServiceChargeId).IsRequired();
+            entity.Property(e => e.TotalAmount).HasPrecision(12, 2);
+            entity.Property(e => e.TotalVat).HasPrecision(12, 2);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(tsc => tsc.Transaction)
+                  .WithMany(t => t.TransactionServiceCharges)
+                  .HasForeignKey(tsc => tsc.TransactionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(tsc => tsc.ServiceCharge)
+                  .WithMany(sc => sc.TransactionServiceCharges)
+                  .HasForeignKey(tsc => tsc.ServiceChargeId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.TransactionId);
+            entity.HasIndex(e => e.ServiceChargeId);
+        });
+
+        // Configure RefundTransaction entity
+        modelBuilder.Entity<Domain.Entities.RefundTransaction>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.SellingTransactionId).IsRequired();
+            entity.Property(e => e.TotalAmount).HasPrecision(12, 2);
+            entity.Property(e => e.TotalVat).HasPrecision(12, 2);
+            entity.Property(e => e.RefundTime).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(rt => rt.Customer)
+                  .WithMany()
+                  .HasForeignKey(rt => rt.CustomerId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(rt => rt.SellingTransaction)
+                  .WithMany(t => t.RefundTransactions)
+                  .HasForeignKey(rt => rt.SellingTransactionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(rt => rt.Shift)
+                  .WithMany(s => s.RefundTransactions)
+                  .HasForeignKey(rt => rt.ShiftId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(rt => rt.User)
+                  .WithMany()
+                  .HasForeignKey(rt => rt.UserId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            entity.HasIndex(e => e.SellingTransactionId);
+            entity.HasIndex(e => e.CustomerId);
+            entity.HasIndex(e => e.ShiftId);
+            entity.HasIndex(e => e.RefundTime);
+        });
+
+        // Configure RefundTransactionProduct entity
+        modelBuilder.Entity<Domain.Entities.RefundTransactionProduct>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.RefundTransactionId).IsRequired();
+            entity.Property(e => e.TransactionProductId).IsRequired();
+            entity.Property(e => e.TotalQuantityReturned).HasPrecision(10, 3);
+            entity.Property(e => e.TotalVat).HasPrecision(12, 2);
+            entity.Property(e => e.TotalAmount).HasPrecision(12, 2);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(rtp => rtp.RefundTransaction)
+                  .WithMany(rt => rt.RefundTransactionProducts)
+                  .HasForeignKey(rtp => rtp.RefundTransactionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(rtp => rtp.TransactionProduct)
+                  .WithMany(tp => tp.RefundTransactionProducts)
+                  .HasForeignKey(rtp => rtp.TransactionProductId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.RefundTransactionId);
+            entity.HasIndex(e => e.TransactionProductId);
+        });
+
+        // Configure ExchangeTransaction entity
+        modelBuilder.Entity<Domain.Entities.ExchangeTransaction>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.SellingTransactionId).IsRequired();
+            entity.Property(e => e.TotalExchangedAmount).HasPrecision(12, 2);
+            entity.Property(e => e.TotalExchangedVat).HasPrecision(12, 2);
+            entity.Property(e => e.ProductExchangedQuantity).HasPrecision(10, 3);
+            entity.Property(e => e.ExchangeTime).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(et => et.Customer)
+                  .WithMany()
+                  .HasForeignKey(et => et.CustomerId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(et => et.SellingTransaction)
+                  .WithMany(t => t.ExchangeTransactions)
+                  .HasForeignKey(et => et.SellingTransactionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(et => et.Shift)
+                  .WithMany(s => s.ExchangeTransactions)
+                  .HasForeignKey(et => et.ShiftId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            entity.HasIndex(e => e.SellingTransactionId);
+            entity.HasIndex(e => e.CustomerId);
+            entity.HasIndex(e => e.ShiftId);
+            entity.HasIndex(e => e.ExchangeTime);
+        });
+
+        // Configure ExchangeTransactionProduct entity
+        modelBuilder.Entity<Domain.Entities.ExchangeTransactionProduct>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ExchangeTransactionId).IsRequired();
+            entity.Property(e => e.ReturnedQuantity).HasPrecision(10, 3);
+            entity.Property(e => e.NewQuantity).HasPrecision(10, 3);
+            entity.Property(e => e.PriceDifference).HasPrecision(12, 2);
+            entity.Property(e => e.OldProductAmount).HasPrecision(12, 2);
+            entity.Property(e => e.NewProductAmount).HasPrecision(12, 2);
+            entity.Property(e => e.VatDifference).HasPrecision(12, 2);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(etp => etp.ExchangeTransaction)
+                  .WithMany(et => et.ExchangeTransactionProducts)
+                  .HasForeignKey(etp => etp.ExchangeTransactionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(etp => etp.OriginalTransactionProduct)
+                  .WithMany(tp => tp.OriginalExchangeTransactionProducts)
+                  .HasForeignKey(etp => etp.OriginalTransactionProductId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(etp => etp.NewProduct)
+                  .WithMany()
+                  .HasForeignKey(etp => etp.NewProductId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            entity.HasIndex(e => e.ExchangeTransactionId);
+            entity.HasIndex(e => e.OriginalTransactionProductId);
+            entity.HasIndex(e => e.NewProductId);
         });
     }
 }
