@@ -27,8 +27,11 @@
                 <controls:CircularBackButton 
                     Grid.Column="0"
                     Command="{Binding BackCommand}"
-                    Width="36"
-                    Height="36"
+                    ButtonSize="30"
+                    ButtonBackground="{DynamicResource SurfaceBackground}"
+                    ButtonForeground="{DynamicResource TextSecondary}"
+                    ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                    ButtonHoverForeground="{DynamicResource TextSecondary}"
                     Margin="0,0,15,0"
                     VerticalAlignment="Center"/>
                 

@@ -8,6 +8,7 @@ using System.Windows.Media;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Domain.Entities;
+using ChronoPos.Domain.Interfaces;
 using System.Linq;
 using System.Threading.Tasks;
 using ChronoPos.Application.Logging;
@@ -24,11 +25,15 @@ public partial class AddSalesViewModel : ObservableObject
     private readonly ICustomerService _customerService;
     private readonly ITransactionService _transactionService;
     private readonly IRestaurantTableService _tableService;
+    private readonly IReservationService _reservationService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IShiftService _shiftService;
     private readonly IDiscountService _discountService;
     private readonly ITaxTypeService _taxTypeService;
     private readonly IRefundService _refundService;
+    private readonly IPaymentTypeService _paymentTypeService;
+    private readonly ITransactionServiceChargeRepository _transactionServiceChargeRepository;
+    private readonly Action? _navigateToTransactionList;
 
     #region Observable Properties
 
@@ -75,6 +80,24 @@ public partial class AddSalesViewModel : ObservableObject
     private ObservableCollection<RestaurantTableDto> tables = new();
 
     [ObservableProperty]
+    private ObservableCollection<RestaurantTableDto> filteredTables = new();
+
+    [ObservableProperty]
+    private ObservableCollection<string> locations = new();
+
+    [ObservableProperty]
+    private string? selectedLocation;
+
+    [ObservableProperty]
+    private ObservableCollection<ReservationDto> reservations = new();
+
+    [ObservableProperty]
+    private ReservationDto? selectedReservation;
+
+    [ObservableProperty]
+    private bool isTableSelectionMode = true; // true = Table mode, false = Reservation mode
+
+    [ObservableProperty]
     private ObservableCollection<CartItemModel> cartItems = new();
 
     [ObservableProperty]
@@ -84,7 +107,7 @@ public partial class AddSalesViewModel : ObservableObject
     private decimal discountAmount = 0m;
 
     [ObservableProperty]
-    private decimal containerCharge = 0m;
+    private decimal serviceCharge = 0m;
 
     [ObservableProperty]
     private ObservableCollection<DiscountDto> availableDiscounts = new();
@@ -112,6 +135,9 @@ public partial class AddSalesViewModel : ObservableObject
     private bool showSaveAndPrintButton = false; // Show for draft/billed/hold/pending/partial
 
     [ObservableProperty]
+    private bool showPayLaterButton = true; // Show for new transactions
+
+    [ObservableProperty]
     private bool showSettleButton = false; // Show for draft/billed/hold/pending/partial
 
     [ObservableProperty]
@@ -119,6 +145,9 @@ public partial class AddSalesViewModel : ObservableObject
 
     [ObservableProperty]
     private bool showExchangeButton = false; // Show only for settled
+
+    [ObservableProperty]
+    private bool showCancelButton = true; // Show for new/draft transactions
 
     [ObservableProperty]
     private bool isRefundMode = false; // Indicates if we're in refund mode
@@ -134,22 +163,30 @@ public partial class AddSalesViewModel : ObservableObject
         ICustomerService customerService,
         ITransactionService transactionService,
         IRestaurantTableService tableService,
+        IReservationService reservationService,
         ICurrentUserService currentUserService,
         IShiftService shiftService,
         IDiscountService discountService,
         ITaxTypeService taxTypeService,
-        IRefundService refundService)
+        IRefundService refundService,
+        IPaymentTypeService paymentTypeService,
+        ITransactionServiceChargeRepository transactionServiceChargeRepository,
+        Action? navigateToTransactionList = null)
     {
         _productService = productService;
         _categoryService = categoryService;
         _customerService = customerService;
         _transactionService = transactionService;
         _tableService = tableService;
+        _reservationService = reservationService;
         _currentUserService = currentUserService;
         _shiftService = shiftService;
         _discountService = discountService;
         _taxTypeService = taxTypeService;
         _refundService = refundService;
+        _paymentTypeService = paymentTypeService;
+        _transactionServiceChargeRepository = transactionServiceChargeRepository;
+        _navigateToTransactionList = navigateToTransactionList;
 
         _ = InitializeAsync();
     }
@@ -169,6 +206,12 @@ public partial class AddSalesViewModel : ObservableObject
 
             // Load restaurant tables
             await LoadTablesAsync();
+
+            // Load locations
+            await LoadLocationsAsync();
+
+            // Load reservations
+            await LoadReservationsAsync();
 
             // Load discounts
             await LoadDiscountsAsync();
@@ -208,10 +251,66 @@ public partial class AddSalesViewModel : ObservableObject
             {
                 Tables.Add(table);
             }
+            
+            // Initially show all tables in filtered list
+            FilteredTables.Clear();
+            foreach (var table in Tables)
+            {
+                FilteredTables.Add(table);
+            }
         }
         catch (Exception ex)
         {
             MessageBox.Show($"Error loading tables: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async Task LoadLocationsAsync()
+    {
+        try
+        {
+            var locationsData = await _tableService.GetDistinctLocationsAsync();
+            
+            Locations.Clear();
+            Locations.Add("All Locations"); // Add default option
+            foreach (var location in locationsData.Where(l => !string.IsNullOrEmpty(l)))
+            {
+                Locations.Add(location);
+            }
+            
+            // Set default selection
+            if (Locations.Any())
+            {
+                SelectedLocation = Locations.First();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading locations: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async Task LoadReservationsAsync()
+    {
+        try
+        {
+            var reservationsData = await _reservationService.GetAllAsync();
+            
+            // Only show confirmed reservations (case-insensitive)
+            var activeReservations = reservationsData
+                .Where(r => r.Status?.Equals("confirmed", StringComparison.OrdinalIgnoreCase) == true)
+                .OrderBy(r => r.ReservationDate)
+                .ThenBy(r => r.ReservationTime);
+            
+            Reservations.Clear();
+            foreach (var reservation in activeReservations)
+            {
+                Reservations.Add(reservation);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading reservations: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -558,7 +657,7 @@ public partial class AddSalesViewModel : ObservableObject
     {
         Subtotal = CartItems.Sum(c => c.TotalPrice);
         TaxAmount = Subtotal * (TaxPercentage / 100);
-        Total = Subtotal + TaxAmount + ContainerCharge - DiscountAmount;
+        Total = Subtotal + TaxAmount + ServiceCharge - DiscountAmount;
     }
 
     [RelayCommand]
@@ -619,6 +718,7 @@ public partial class AddSalesViewModel : ObservableObject
                     UserId = currentUserId.Value,
                     CustomerId = SelectedCustomer?.Id,
                     TableId = SelectedTable?.Id,
+                    ReservationId = SelectedReservation?.Id,
                     SellingTime = DateTime.Now,
                     TotalAmount = totalAmount,
                     TotalVat = totalVat,
@@ -642,6 +742,8 @@ public partial class AddSalesViewModel : ObservableObject
                 AppLogger.Log($"  UserId={transactionDto.UserId}");
                 AppLogger.Log($"  CustomerId={transactionDto.CustomerId?.ToString() ?? "NULL"}");
                 AppLogger.Log($"  TableId={transactionDto.TableId?.ToString() ?? "NULL"}");
+                AppLogger.Log($"  ReservationId={transactionDto.ReservationId?.ToString() ?? "NULL"}");
+                AppLogger.Log($"  ServiceCharge={ServiceCharge}");
                 AppLogger.Log($"  Products count={transactionDto.Products.Count}");
                 foreach (var product in transactionDto.Products)
                 {
@@ -650,6 +752,12 @@ public partial class AddSalesViewModel : ObservableObject
 
                 var savedTransaction = await _transactionService.CreateAsync(transactionDto, currentUserId.Value);
                 
+                // Add service charge if present
+                if (ServiceCharge > 0)
+                {
+                    await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge);
+                }
+                
                 // Update CurrentTransactionId and status after saving
                 CurrentTransactionId = savedTransaction.Id;
                 CurrentTransactionStatus = savedTransaction.Status;
@@ -657,6 +765,9 @@ public partial class AddSalesViewModel : ObservableObject
 
                 AppLogger.Log($"SaveTransaction: Transaction #{savedTransaction.Id} created successfully");
                 MessageBox.Show($"Transaction #{savedTransaction.Id} saved successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                // Navigate to transaction list if callback provided
+                _navigateToTransactionList?.Invoke();
             }
 
             // Don't clear cart after save - user might want to continue editing
@@ -1465,14 +1576,14 @@ public partial class AddSalesViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ShowContainerChargePopup()
+    private void ShowServiceChargePopup()
     {
         try
         {
             // Create dialog window
             var dialog = new Window
             {
-                Title = "Add Container Charge",
+                Title = "Add Service Charge",
                 Width = 400,
                 Height = 200,
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
@@ -1481,16 +1592,16 @@ public partial class AddSalesViewModel : ObservableObject
 
             var stackPanel = new StackPanel { Margin = new Thickness(20) };
 
-            // Container Charge Amount
+            // Service Charge Amount
             stackPanel.Children.Add(new TextBlock 
             { 
-                Text = "Container Charge ($)", 
+                Text = "Service Charge ($)", 
                 FontSize = 12, 
                 Margin = new Thickness(0, 0, 0, 5) 
             });
             var chargeTextBox = new TextBox 
             { 
-                Text = ContainerCharge.ToString("F2"),
+                Text = ServiceCharge.ToString("F2"),
                 Height = 35, 
                 FontSize = 14, 
                 Margin = new Thickness(0, 0, 0, 15) 
@@ -1523,14 +1634,14 @@ public partial class AddSalesViewModel : ObservableObject
             {
                 if (decimal.TryParse(chargeTextBox.Text, out var charge))
                 {
-                    ContainerCharge = charge;
+                    ServiceCharge = charge;
                     RecalculateTotals();
                     dialog.DialogResult = true;
                     dialog.Close();
                 }
                 else
                 {
-                    MessageBox.Show("Please enter a valid container charge amount.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Please enter a valid service charge amount.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             };
 
@@ -1571,6 +1682,10 @@ public partial class AddSalesViewModel : ObservableObject
         // Reset transaction tracking
         CurrentTransactionId = 0;
         CurrentTransactionStatus = string.Empty;
+        
+        // Reset service charge
+        ServiceCharge = 0m;
+        
         UpdateButtonVisibility();
 
         RecalculateTotals();
@@ -1582,6 +1697,63 @@ public partial class AddSalesViewModel : ObservableObject
         {
             CustomerName = value.CustomerFullName ?? string.Empty;
             CustomerPhone = value.MobileNo ?? string.Empty;
+        }
+    }
+
+    partial void OnSelectedLocationChanged(string? value)
+    {
+        FilterTablesByLocation();
+    }
+
+    partial void OnSelectedReservationChanged(ReservationDto? value)
+    {
+        if (value != null)
+        {
+            // Auto-select the table associated with the reservation
+            var reservedTable = Tables.FirstOrDefault(t => t.Id == value.TableId);
+            if (reservedTable != null)
+            {
+                SelectedTable = reservedTable;
+            }
+
+            // Also populate customer info from reservation
+            if (!string.IsNullOrEmpty(value.CustomerName))
+            {
+                CustomerName = value.CustomerName;
+            }
+            if (!string.IsNullOrEmpty(value.CustomerMobile))
+            {
+                CustomerPhone = value.CustomerMobile;
+            }
+        }
+    }
+
+    private void FilterTablesByLocation()
+    {
+        FilteredTables.Clear();
+
+        if (SelectedLocation == "All Locations" || string.IsNullOrEmpty(SelectedLocation))
+        {
+            // Show all tables
+            foreach (var table in Tables)
+            {
+                FilteredTables.Add(table);
+            }
+        }
+        else
+        {
+            // Filter tables by selected location
+            var filteredList = Tables.Where(t => t.Location == SelectedLocation);
+            foreach (var table in filteredList)
+            {
+                FilteredTables.Add(table);
+            }
+        }
+
+        // Auto-select first table if available
+        if (FilteredTables.Any() && SelectedTable == null)
+        {
+            SelectedTable = FilteredTables.First();
         }
     }
 
@@ -1612,10 +1784,35 @@ public partial class AddSalesViewModel : ObservableObject
                 SelectedCustomer = Customers.FirstOrDefault(c => c.Id == transaction.CustomerId.Value);
             }
 
-            // Load table
+            // Load reservation
+            if (transaction.ReservationId.HasValue)
+            {
+                await LoadReservationsAsync(); // Ensure reservations are loaded
+                SelectedReservation = Reservations.FirstOrDefault(r => r.Id == transaction.ReservationId.Value);
+                
+                // If reservation is selected, switch to reservation mode
+                if (SelectedReservation != null)
+                {
+                    IsTableSelectionMode = false;
+                }
+            }
+
+            // Load table and location
             if (transaction.TableId.HasValue)
             {
                 SelectedTable = Tables.FirstOrDefault(t => t.Id == transaction.TableId.Value);
+                
+                // If table is selected, also select its location
+                if (SelectedTable != null && !string.IsNullOrEmpty(SelectedTable.Location))
+                {
+                    SelectedLocation = SelectedTable.Location;
+                }
+                
+                // If no reservation but has table, ensure we're in table mode
+                if (SelectedReservation == null)
+                {
+                    IsTableSelectionMode = true;
+                }
             }
 
             // Load transaction products into cart
@@ -1647,15 +1844,29 @@ public partial class AddSalesViewModel : ObservableObject
             // Load discounts
             DiscountAmount = transaction.TotalDiscount;
 
-            // Load tax - calculate percentage from amount to avoid recalculation issues
+            // Load service charges
+            await LoadServiceChargesForTransaction(transactionId);
+
+            // Load tax - find and select matching tax type from available tax types
             TaxAmount = transaction.TotalVat;
-            if (Subtotal > 0 && transaction.TotalVat > 0)
+            if (transaction.Vat > 0)
             {
-                TaxPercentage = (transaction.TotalVat / (transaction.TotalAmount - transaction.TotalVat + transaction.TotalDiscount)) * 100;
+                // Load all tax types to find the matching one
+                var allTaxTypes = await _taxTypeService.GetAllAsync();
+                var matchingTax = allTaxTypes.FirstOrDefault(t => t.IsPercentage && Math.Abs(t.Value - transaction.Vat) < 0.01m);
+                
+                if (matchingTax != null && !SelectedTaxTypes.Any(st => st.Id == matchingTax.Id))
+                {
+                    SelectedTaxTypes.Clear();
+                    SelectedTaxTypes.Add(matchingTax);
+                }
+                
+                TaxPercentage = transaction.Vat;
             }
             else
             {
                 TaxPercentage = 0m;
+                SelectedTaxTypes.Clear();
             }
 
             // Recalculate totals
@@ -1701,10 +1912,35 @@ public partial class AddSalesViewModel : ObservableObject
                 SelectedCustomer = Customers.FirstOrDefault(c => c.Id == transaction.CustomerId.Value);
             }
 
-            // Load table
+            // Load reservation
+            if (transaction.ReservationId.HasValue)
+            {
+                await LoadReservationsAsync(); // Ensure reservations are loaded
+                SelectedReservation = Reservations.FirstOrDefault(r => r.Id == transaction.ReservationId.Value);
+                
+                // If reservation is selected, switch to reservation mode
+                if (SelectedReservation != null)
+                {
+                    IsTableSelectionMode = false;
+                }
+            }
+
+            // Load table and location
             if (transaction.TableId.HasValue)
             {
                 SelectedTable = Tables.FirstOrDefault(t => t.Id == transaction.TableId.Value);
+                
+                // If table is selected, also select its location
+                if (SelectedTable != null && !string.IsNullOrEmpty(SelectedTable.Location))
+                {
+                    SelectedLocation = SelectedTable.Location;
+                }
+                
+                // If no reservation but has table, ensure we're in table mode
+                if (SelectedReservation == null)
+                {
+                    IsTableSelectionMode = true;
+                }
             }
 
             // Load transaction products into cart
@@ -1736,15 +1972,29 @@ public partial class AddSalesViewModel : ObservableObject
             // Load discounts
             DiscountAmount = transaction.TotalDiscount;
 
-            // Load tax - calculate percentage from amount to avoid recalculation issues
+            // Load service charges
+            await LoadServiceChargesForTransaction(transactionId);
+
+            // Load tax - find and select matching tax type from available tax types
             TaxAmount = transaction.TotalVat;
-            if (Subtotal > 0 && transaction.TotalVat > 0)
+            if (transaction.Vat > 0)
             {
-                TaxPercentage = (transaction.TotalVat / (transaction.TotalAmount - transaction.TotalVat + transaction.TotalDiscount)) * 100;
+                // Load all tax types to find the matching one
+                var allTaxTypes = await _taxTypeService.GetAllAsync();
+                var matchingTax = allTaxTypes.FirstOrDefault(t => t.IsPercentage && Math.Abs(t.Value - transaction.Vat) < 0.01m);
+                
+                if (matchingTax != null && !SelectedTaxTypes.Any(st => st.Id == matchingTax.Id))
+                {
+                    SelectedTaxTypes.Clear();
+                    SelectedTaxTypes.Add(matchingTax);
+                }
+                
+                TaxPercentage = transaction.Vat;
             }
             else
             {
                 TaxPercentage = 0m;
+                SelectedTaxTypes.Clear();
             }
 
             // Recalculate totals
@@ -1775,45 +2025,55 @@ public partial class AddSalesViewModel : ObservableObject
         {
             ShowSaveButton = true;
             ShowSaveAndPrintButton = true;
+            ShowPayLaterButton = true;
             ShowSettleButton = true;
             ShowRefundButton = false;
             ShowExchangeButton = false;
+            ShowCancelButton = true;
         }
         // Settled transaction
         else if (CurrentTransactionStatus?.ToLower() == "settled")
         {
             ShowSaveButton = false;
             ShowSaveAndPrintButton = false;
+            ShowPayLaterButton = false;
             ShowSettleButton = false;
             ShowRefundButton = true;
             ShowExchangeButton = true;
+            ShowCancelButton = false;
         }
         // Draft, Billed, Hold, Pending Payment, Partial Payment
         else if (CurrentTransactionStatus?.ToLower() is "draft" or "billed" or "hold" or "pending_payment" or "partial_payment")
         {
             ShowSaveButton = false; // Already saved, hide Save
             ShowSaveAndPrintButton = true;
+            ShowPayLaterButton = false; // Already saved
             ShowSettleButton = true;
             ShowRefundButton = false;
             ShowExchangeButton = false;
+            ShowCancelButton = true; // Can cancel draft/billed transactions
         }
         // Cancelled - no buttons
         else if (CurrentTransactionStatus?.ToLower() == "cancelled")
         {
             ShowSaveButton = false;
             ShowSaveAndPrintButton = false;
+            ShowPayLaterButton = false;
             ShowSettleButton = false;
             ShowRefundButton = false;
             ShowExchangeButton = false;
+            ShowCancelButton = false;
         }
         // Refunded or Exchanged - no buttons (completed transactions)
         else if (CurrentTransactionStatus?.ToLower() is "refunded" or "exchanged")
         {
             ShowSaveButton = false;
             ShowSaveAndPrintButton = false;
+            ShowPayLaterButton = false;
             ShowSettleButton = false;
             ShowRefundButton = false;
             ShowExchangeButton = false;
+            ShowCancelButton = false;
         }
     }
 
@@ -1883,6 +2143,13 @@ public partial class AddSalesViewModel : ObservableObject
                 };
 
                 var savedTransaction = await _transactionService.CreateAsync(transactionDto, currentUserId.Value);
+                
+                // Add service charge if present
+                if (ServiceCharge > 0)
+                {
+                    await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge);
+                }
+                
                 CurrentTransactionId = savedTransaction.Id;
                 CurrentTransactionStatus = "billed";
                 UpdateButtonVisibility();
@@ -1897,6 +2164,188 @@ public partial class AddSalesViewModel : ObservableObject
         catch (Exception ex)
         {
             MessageBox.Show($"Error saving transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// Pay Later - Save transaction with pending payment status
+    /// </summary>
+    [RelayCommand]
+    private async Task PayLater()
+    {
+        try
+        {
+            // Validation: Customer must be selected for Pay Later
+            if (SelectedCustomer == null)
+            {
+                MessageBox.Show("Please select a customer before using Pay Later.\n\nPay Later requires a customer to be selected for credit tracking.", 
+                    "Customer Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!CartItems.Any())
+            {
+                MessageBox.Show("Please add items to the cart before saving.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var currentUserId = _currentUserService.CurrentUserId;
+            if (!currentUserId.HasValue || currentUserId.Value <= 0)
+            {
+                MessageBox.Show("Unable to identify current user. Please log in again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var shiftId = 1;
+            var totalAmount = CartItems.Sum(x => x.TotalPrice);
+            var totalVat = totalAmount * (TaxPercentage / 100);
+
+            if (CurrentTransactionId > 0)
+            {
+                // Change status of existing transaction to "pending_payment"
+                var updatedTransaction = await _transactionService.ChangeStatusAsync(CurrentTransactionId, "pending_payment", currentUserId.Value);
+                CurrentTransactionStatus = "pending_payment";
+                UpdateButtonVisibility();
+                
+                MessageBox.Show($"Transaction #{CurrentTransactionId} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nTotal Amount: {totalAmount:C}", 
+                    "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                // Create new transaction with "pending_payment" status
+                var transactionDto = new CreateTransactionDto
+                {
+                    ShiftId = shiftId,
+                    UserId = currentUserId.Value,
+                    CustomerId = SelectedCustomer.Id,
+                    TableId = SelectedTable?.Id,
+                    ReservationId = SelectedReservation?.Id,
+                    SellingTime = DateTime.Now,
+                    TotalAmount = totalAmount,
+                    TotalVat = totalVat,
+                    TotalDiscount = DiscountAmount,
+                    AmountPaidCash = 0m,
+                    AmountCreditRemaining = totalAmount, // Full amount is credit
+                    CreditDays = 0, // Can be set via popup later
+                    Vat = TaxPercentage,
+                    Status = "pending_payment",
+                    Products = CartItems.Select(item => new CreateTransactionProductDto
+                    {
+                        ProductId = item.ProductId,
+                        Quantity = item.Quantity,
+                        SellingPrice = item.UnitPrice,
+                        BuyerCost = 0m,
+                        Vat = TaxPercentage
+                    }).ToList()
+                };
+
+                var savedTransaction = await _transactionService.CreateAsync(transactionDto, currentUserId.Value);
+                
+                // Add service charge if present
+                if (ServiceCharge > 0)
+                {
+                    await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge);
+                }
+                
+                CurrentTransactionId = savedTransaction.Id;
+                CurrentTransactionStatus = "pending_payment";
+                UpdateButtonVisibility();
+
+                MessageBox.Show($"Transaction #{savedTransaction.Id} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nTotal Amount: {totalAmount:C}", 
+                    "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error saving Pay Later transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// Cancel Transaction - Save transaction with cancelled status
+    /// </summary>
+    [RelayCommand]
+    private async Task CancelTransaction()
+    {
+        try
+        {
+            if (!CartItems.Any())
+            {
+                MessageBox.Show("Please add items to the cart before cancelling.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Confirm cancellation
+            var result = MessageBox.Show(
+                "Are you sure you want to cancel this transaction?\n\nThe transaction will be saved with Cancelled status.",
+                "Confirm Cancellation",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
+            var currentUserId = _currentUserService.CurrentUserId;
+            if (!currentUserId.HasValue || currentUserId.Value <= 0)
+            {
+                MessageBox.Show("Unable to identify current user. Please log in again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var shiftId = 1;
+            var totalAmount = CartItems.Sum(x => x.TotalPrice);
+            var totalVat = totalAmount * (TaxPercentage / 100);
+
+            if (CurrentTransactionId > 0)
+            {
+                // Change status of existing transaction to "cancelled"
+                var updatedTransaction = await _transactionService.ChangeStatusAsync(CurrentTransactionId, "cancelled", currentUserId.Value);
+                CurrentTransactionStatus = "cancelled";
+                UpdateButtonVisibility();
+                
+                MessageBox.Show($"Transaction #{CurrentTransactionId} has been cancelled.", 
+                    "Transaction Cancelled", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                // Create new transaction with "cancelled" status
+                var transactionDto = new CreateTransactionDto
+                {
+                    ShiftId = shiftId,
+                    UserId = currentUserId.Value,
+                    CustomerId = SelectedCustomer?.Id,
+                    TableId = SelectedTable?.Id,
+                    ReservationId = SelectedReservation?.Id,
+                    SellingTime = DateTime.Now,
+                    TotalAmount = totalAmount,
+                    TotalVat = totalVat,
+                    TotalDiscount = DiscountAmount,
+                    AmountPaidCash = 0m,
+                    AmountCreditRemaining = 0m,
+                    Vat = TaxPercentage,
+                    Status = "cancelled",
+                    Products = CartItems.Select(item => new CreateTransactionProductDto
+                    {
+                        ProductId = item.ProductId,
+                        Quantity = item.Quantity,
+                        SellingPrice = item.UnitPrice,
+                        BuyerCost = 0m,
+                        Vat = TaxPercentage
+                    }).ToList()
+                };
+
+                var savedTransaction = await _transactionService.CreateAsync(transactionDto, currentUserId.Value);
+                CurrentTransactionId = savedTransaction.Id;
+                CurrentTransactionStatus = "cancelled";
+                UpdateButtonVisibility();
+
+                MessageBox.Show($"Transaction #{savedTransaction.Id} has been cancelled.", 
+                    "Transaction Cancelled", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error cancelling transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -1924,13 +2373,35 @@ public partial class AddSalesViewModel : ObservableObject
             var shiftId = 1;
             var totalAmount = CartItems.Sum(x => x.TotalPrice);
             var totalVat = totalAmount * (TaxPercentage / 100);
+            
+            // For existing transactions with partial/pending payment, get the remaining amount
+            decimal remainingAmount = totalAmount;
+            decimal alreadyPaid = 0m;
+            
+            if (CurrentTransactionId > 0)
+            {
+                var existingTransaction = await _transactionService.GetByIdAsync(CurrentTransactionId);
+                if (existingTransaction != null)
+                {
+                    alreadyPaid = existingTransaction.AmountPaidCash;
+                    remainingAmount = existingTransaction.AmountCreditRemaining;
+                }
+            }
+
+            // Load payment types from database
+            var paymentTypes = (await _paymentTypeService.GetActiveAsync()).ToList();
+            if (!paymentTypes.Any())
+            {
+                MessageBox.Show("No payment types available. Please add payment types first.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
             // Show payment popup
             var paymentPopup = new Window
             {
                 Title = "Payment",
-                Width = 400,
-                Height = 360, // Increased by 20% from 300 to show Settle button properly
+                Width = 450,
+                Height = 480, // Increased for credit days field
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
                 ResizeMode = ResizeMode.NoResize
             };
@@ -1941,13 +2412,17 @@ public partial class AddSalesViewModel : ObservableObject
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(15) });
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(15) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(20) });
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            // Total Amount Label
+            // Total Amount Label - Show remaining amount if partial/pending payment
             var totalLabel = new TextBlock
             {
-                Text = $"Total Amount: ${totalAmount:N2}",
+                Text = alreadyPaid > 0 
+                    ? $"Remaining Amount: ${remainingAmount:N2}\n(Already Paid: ${alreadyPaid:N2} | Total: ${totalAmount:N2})"
+                    : $"Total Amount: ${totalAmount:N2}",
                 FontSize = 18,
                 FontWeight = FontWeights.Bold,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937"))
@@ -1963,17 +2438,20 @@ public partial class AddSalesViewModel : ObservableObject
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"))
             };
 
-            // Payment Method ComboBox
+            // Payment Method ComboBox - Load from database
             var paymentMethodComboBox = new ComboBox
             {
                 Margin = new Thickness(0, 5, 0, 0),
                 FontSize = 14,
-                Padding = new Thickness(10)
+                Padding = new Thickness(10),
+                DisplayMemberPath = "Name",
+                SelectedValuePath = "Id"
             };
-            paymentMethodComboBox.Items.Add("Cash");
-            paymentMethodComboBox.Items.Add("Card");
-            paymentMethodComboBox.Items.Add("UPI");
-            paymentMethodComboBox.Items.Add("Credit");
+            
+            foreach (var paymentType in paymentTypes)
+            {
+                paymentMethodComboBox.Items.Add(paymentType);
+            }
             paymentMethodComboBox.SelectedIndex = 0;
             
             var paymentMethodPanel = new StackPanel();
@@ -1982,7 +2460,7 @@ public partial class AddSalesViewModel : ObservableObject
             Grid.SetRow(paymentMethodPanel, 2);
             grid.Children.Add(paymentMethodPanel);
 
-            // Amount Label and TextBox
+            // Amount Paid Label and TextBox
             var amountLabel = new TextBlock
             {
                 Text = "Amount Paid:",
@@ -1992,7 +2470,7 @@ public partial class AddSalesViewModel : ObservableObject
 
             var amountTextBox = new TextBox
             {
-                Text = totalAmount.ToString("N2"),
+                Text = remainingAmount.ToString("N2"), // Use remaining amount, not total amount
                 FontSize = 14,
                 Padding = new Thickness(10),
                 Margin = new Thickness(0, 5, 0, 0)
@@ -2003,6 +2481,28 @@ public partial class AddSalesViewModel : ObservableObject
             amountPanel.Children.Add(amountTextBox);
             Grid.SetRow(amountPanel, 4);
             grid.Children.Add(amountPanel);
+
+            // Credit Days Label and TextBox (for partial payment)
+            var creditDaysLabel = new TextBlock
+            {
+                Text = "Credit Days (for partial payment):",
+                FontSize = 14,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"))
+            };
+
+            var creditDaysTextBox = new TextBox
+            {
+                Text = "0",
+                FontSize = 14,
+                Padding = new Thickness(10),
+                Margin = new Thickness(0, 5, 0, 0)
+            };
+
+            var creditDaysPanel = new StackPanel();
+            creditDaysPanel.Children.Add(creditDaysLabel);
+            creditDaysPanel.Children.Add(creditDaysTextBox);
+            Grid.SetRow(creditDaysPanel, 6);
+            grid.Children.Add(creditDaysPanel);
 
             // Buttons
             var buttonPanel = new StackPanel
@@ -2049,8 +2549,44 @@ public partial class AddSalesViewModel : ObservableObject
                         return;
                     }
 
+                    if (!int.TryParse(creditDaysTextBox.Text, out var creditDays) || creditDays < 0)
+                    {
+                        MessageBox.Show("Please enter a valid number of credit days (0 or more).", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    // Validate paid amount against remaining amount for existing transactions
+                    var maxAllowed = CurrentTransactionId > 0 ? remainingAmount : totalAmount;
+                    if (paidAmount < 0 || paidAmount > maxAllowed)
+                    {
+                        MessageBox.Show($"Amount paid must be between $0 and ${maxAllowed:N2}.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
                     paymentPopup.DialogResult = true;
                     paymentPopup.Close();
+
+                    // Calculate new totals considering already paid amount
+                    var totalPaidNow = alreadyPaid + paidAmount;
+                    var creditRemaining = totalAmount - totalPaidNow;
+                    string transactionStatus;
+
+                    // Determine transaction status based on total payment
+                    if (totalPaidNow >= totalAmount)
+                    {
+                        transactionStatus = "settled"; // Full payment
+                        creditRemaining = 0; // Ensure no negative credit
+                    }
+                    else if (totalPaidNow > 0)
+                    {
+                        transactionStatus = "partial_payment"; // Partial payment
+                    }
+                    else
+                    {
+                        transactionStatus = "pending_payment"; // No payment made
+                    }
+
+                    var selectedPaymentType = (PaymentTypeDto)paymentMethodComboBox.SelectedItem;
 
                     // Process settlement
                     if (CurrentTransactionId > 0)
@@ -2060,45 +2596,61 @@ public partial class AddSalesViewModel : ObservableObject
                         {
                             CustomerId = SelectedCustomer?.Id,
                             TableId = SelectedTable?.Id,
+                            ReservationId = SelectedReservation?.Id,
                             TotalAmount = totalAmount,
                             TotalVat = totalVat,
                             TotalDiscount = DiscountAmount,
-                            AmountPaidCash = paidAmount,
-                            AmountCreditRemaining = totalAmount - paidAmount,
+                            AmountPaidCash = totalPaidNow, // Total amount paid so far
+                            AmountCreditRemaining = creditRemaining,
+                            CreditDays = creditDays,
                             Vat = TaxPercentage,
                             Status = CurrentTransactionStatus ?? "draft" // Keep current status
                         };
 
                         await _transactionService.UpdateAsync(CurrentTransactionId, updateDto, currentUserId.Value);
                         
-                        // Now change status to settled
-                        var settledTransaction = await _transactionService.ChangeStatusAsync(CurrentTransactionId, "settled", currentUserId.Value);
-                        CurrentTransactionStatus = "settled";
+                        // Now change status to settled/partial_payment/pending_payment
+                        var settledTransaction = await _transactionService.ChangeStatusAsync(CurrentTransactionId, transactionStatus, currentUserId.Value);
+                        CurrentTransactionStatus = transactionStatus;
                         UpdateButtonVisibility();
+
+                        var statusMessage = transactionStatus switch
+                        {
+                            "settled" => "Transaction settled successfully (Full Payment)!",
+                            "partial_payment" => $"Transaction saved with Partial Payment!\nCredit Remaining: ${creditRemaining:N2}",
+                            "pending_payment" => $"Transaction saved as Pending Payment!\nTotal Credit: ${creditRemaining:N2}",
+                            _ => "Transaction updated!"
+                        };
                         
-                        MessageBox.Show($"Transaction #{CurrentTransactionId} settled successfully!\n\nPayment Method: {paymentMethodComboBox.SelectedItem}\nAmount Paid: ${paidAmount:N2}", 
+                        MessageBox.Show($"{statusMessage}\n\nPayment Method: {selectedPaymentType.Name}\nAmount Paid Now: ${paidAmount:N2}\nTotal Paid: ${totalPaidNow:N2}" +
+                            (creditDays > 0 ? $"\nCredit Days: {creditDays}" : ""), 
                             "Payment Complete", MessageBoxButton.OK, MessageBoxImage.Information);
                         
-                        // Clear cart after settlement
-                        ClearCart();
+                        // Clear cart after settlement if fully paid
+                        if (transactionStatus == "settled")
+                        {
+                            ClearCart();
+                        }
                     }
                     else
                     {
-                        // Create new transaction with "settled" status
+                        // Create new transaction with appropriate status
                         var transactionDto = new CreateTransactionDto
                         {
                             ShiftId = shiftId,
                             UserId = currentUserId.Value,
                             CustomerId = SelectedCustomer?.Id,
                             TableId = SelectedTable?.Id,
+                            ReservationId = SelectedReservation?.Id,
                             SellingTime = DateTime.Now,
                             TotalAmount = totalAmount,
                             TotalVat = totalVat,
                             TotalDiscount = DiscountAmount,
                             AmountPaidCash = paidAmount,
-                            AmountCreditRemaining = totalAmount - paidAmount,
+                            AmountCreditRemaining = creditRemaining,
+                            CreditDays = creditDays,
                             Vat = TaxPercentage,
-                            Status = "settled",
+                            Status = transactionStatus, // Use calculated status instead of hardcoded "settled"
                             Products = CartItems.Select(item => new CreateTransactionProductDto
                             {
                                 ProductId = item.ProductId,
@@ -2110,12 +2662,27 @@ public partial class AddSalesViewModel : ObservableObject
                         };
 
                         var savedTransaction = await _transactionService.CreateAsync(transactionDto, currentUserId.Value);
+                        CurrentTransactionId = savedTransaction.Id;
+                        CurrentTransactionStatus = transactionStatus;
+                        UpdateButtonVisibility();
                         
-                        MessageBox.Show($"Transaction #{savedTransaction.Id} settled successfully!\n\nPayment Method: {paymentMethodComboBox.SelectedItem}\nAmount Paid: ${paidAmount:N2}", 
+                        var statusMessage = transactionStatus switch
+                        {
+                            "settled" => "Transaction settled successfully (Full Payment)!",
+                            "partial_payment" => $"Transaction saved with Partial Payment!\nCredit Remaining: ${creditRemaining:N2}",
+                            "pending_payment" => $"Transaction saved as Pending Payment!\nTotal Credit: ${creditRemaining:N2}",
+                            _ => "Transaction saved!"
+                        };
+                        
+                        MessageBox.Show($"{statusMessage}\nTransaction ID: #{savedTransaction.Id}\n\nPayment Method: {selectedPaymentType.Name}\nAmount Paid: ${paidAmount:N2}" +
+                            (creditDays > 0 ? $"\nCredit Days: {creditDays}" : ""), 
                             "Payment Complete", MessageBoxButton.OK, MessageBoxImage.Information);
                         
-                        // Clear cart after settlement
-                        ClearCart();
+                        // Clear cart after settlement if fully paid
+                        if (transactionStatus == "settled")
+                        {
+                            ClearCart();
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -2126,7 +2693,7 @@ public partial class AddSalesViewModel : ObservableObject
 
             buttonPanel.Children.Add(cancelButton);
             buttonPanel.Children.Add(settleButton);
-            Grid.SetRow(buttonPanel, 6);
+            Grid.SetRow(buttonPanel, 8); // Row 8 because we added credit days section
             grid.Children.Add(buttonPanel);
 
             paymentPopup.Content = grid;
@@ -2135,6 +2702,65 @@ public partial class AddSalesViewModel : ObservableObject
         catch (Exception ex)
         {
             MessageBox.Show($"Error showing payment popup: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// Helper method to add service charge to a transaction
+    /// </summary>
+    private async Task AddServiceChargeToTransaction(int transactionId, decimal chargeAmount)
+    {
+        try
+        {
+            // Note: ServiceChargeId is required but we're creating manual service charges
+            // We use a special ServiceChargeId = 0 to indicate manual/custom service charges
+            // This needs to be handled in the database schema or we need a default service charge type
+            var serviceCharge = new TransactionServiceCharge
+            {
+                TransactionId = transactionId,
+                ServiceChargeId = 0, // Manual/Custom service charge (needs database support)
+                TotalAmount = chargeAmount,
+                TotalVat = 0, // Can be calculated based on tax if needed
+                Status = "Active",
+                CreatedBy = _currentUserService.CurrentUserId,
+                CreatedAt = DateTime.Now
+            };
+
+            await _transactionServiceChargeRepository.AddAsync(serviceCharge);
+            await _transactionServiceChargeRepository.SaveChangesAsync(); // CRITICAL: Save to database
+            AppLogger.Log($"AddServiceChargeToTransaction: Service charge of ${chargeAmount} added and saved to transaction #{transactionId}");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"Error adding service charge to transaction #{transactionId}", ex);
+            // Don't throw - service charge is optional
+        }
+    }
+
+    /// <summary>
+    /// Helper method to load service charges for a transaction
+    /// </summary>
+    private async Task LoadServiceChargesForTransaction(int transactionId)
+    {
+        try
+        {
+            AppLogger.Log($"LoadServiceChargesForTransaction: Loading service charges for transaction #{transactionId}");
+            var serviceCharges = await _transactionServiceChargeRepository.GetByTransactionIdAsync(transactionId);
+            AppLogger.Log($"LoadServiceChargesForTransaction: Retrieved {serviceCharges.Count()} service charge records");
+            
+            var totalServiceCharge = serviceCharges.Sum(sc => sc.TotalAmount);
+            AppLogger.Log($"LoadServiceChargesForTransaction: Calculated total service charge = ${totalServiceCharge}");
+            AppLogger.Log($"LoadServiceChargesForTransaction: Current ServiceCharge value before assignment = ${ServiceCharge}");
+            
+            ServiceCharge = totalServiceCharge;
+            
+            AppLogger.Log($"LoadServiceChargesForTransaction: ServiceCharge property set to ${ServiceCharge}");
+            AppLogger.Log($"LoadServiceChargesForTransaction: Loaded service charges totaling ${totalServiceCharge} for transaction #{transactionId}");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"Error loading service charges for transaction #{transactionId}", ex);
+            ServiceCharge = 0m;
         }
     }
 

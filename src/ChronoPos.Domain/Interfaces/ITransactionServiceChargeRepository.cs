@@ -26,4 +26,9 @@ public interface ITransactionServiceChargeRepository : IRepository<TransactionSe
     /// Deletes a transaction service charge
     /// </summary>
     void Delete(TransactionServiceCharge transactionServiceCharge);
+    
+    /// <summary>
+    /// Saves changes to the database
+    /// </summary>
+    Task SaveChangesAsync();
 }

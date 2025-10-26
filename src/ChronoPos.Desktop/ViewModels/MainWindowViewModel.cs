@@ -12,6 +12,7 @@ using System.Windows;
 using ChronoPos.Application.Logging;
 using System.Collections.ObjectModel;
 using ChronoPos.Domain.Entities;
+using ChronoPos.Domain.Interfaces;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -802,11 +803,15 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ICustomerService>(),
                 _serviceProvider.GetRequiredService<ITransactionService>(),
                 _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<IReservationService>(),
                 _serviceProvider.GetRequiredService<ICurrentUserService>(),
                 _serviceProvider.GetRequiredService<IShiftService>(),
                 _serviceProvider.GetRequiredService<IDiscountService>(),
                 _serviceProvider.GetRequiredService<ITaxTypeService>(),
-                _serviceProvider.GetRequiredService<IRefundService>()
+                _serviceProvider.GetRequiredService<IRefundService>(),
+                _serviceProvider.GetRequiredService<IPaymentTypeService>(),
+                _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
+                navigateToTransactionList: async () => await ShowTransaction()
             );
 
             // Create the AddSalesView and set its DataContext
@@ -852,6 +857,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ITransactionService>(),
                 _serviceProvider.GetRequiredService<IRefundService>(),
                 _serviceProvider.GetRequiredService<IExchangeService>(),
+                _serviceProvider.GetRequiredService<IPaymentTypeService>(),
                 navigateToEditTransaction: async (transactionId) => await LoadTransactionForEdit(transactionId),
                 navigateToPayBill: async (transactionId) => await LoadTransactionForPayment(transactionId),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
@@ -894,11 +900,15 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ICustomerService>(),
                 _serviceProvider.GetRequiredService<ITransactionService>(),
                 _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<IReservationService>(),
                 _serviceProvider.GetRequiredService<ICurrentUserService>(),
                 _serviceProvider.GetRequiredService<IShiftService>(),
                 _serviceProvider.GetRequiredService<IDiscountService>(),
                 _serviceProvider.GetRequiredService<ITaxTypeService>(),
-                _serviceProvider.GetRequiredService<IRefundService>()
+                _serviceProvider.GetRequiredService<IRefundService>(),
+                _serviceProvider.GetRequiredService<IPaymentTypeService>(),
+                _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
+                navigateToTransactionList: async () => await ShowTransaction()
             );
 
             // Create the AddSalesView and set its DataContext
@@ -942,11 +952,15 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ICustomerService>(),
                 _serviceProvider.GetRequiredService<ITransactionService>(),
                 _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<IReservationService>(),
                 _serviceProvider.GetRequiredService<ICurrentUserService>(),
                 _serviceProvider.GetRequiredService<IShiftService>(),
                 _serviceProvider.GetRequiredService<IDiscountService>(),
                 _serviceProvider.GetRequiredService<ITaxTypeService>(),
-                _serviceProvider.GetRequiredService<IRefundService>()
+                _serviceProvider.GetRequiredService<IRefundService>(),
+                _serviceProvider.GetRequiredService<IPaymentTypeService>(),
+                _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
+                navigateToTransactionList: async () => await ShowTransaction()
             );
 
             // Create the AddSalesView and set its DataContext
@@ -999,11 +1013,15 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ICustomerService>(),
                 _serviceProvider.GetRequiredService<ITransactionService>(),
                 _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<IReservationService>(),
                 _serviceProvider.GetRequiredService<ICurrentUserService>(),
                 _serviceProvider.GetRequiredService<IShiftService>(),
                 _serviceProvider.GetRequiredService<IDiscountService>(),
                 _serviceProvider.GetRequiredService<ITaxTypeService>(),
-                _serviceProvider.GetRequiredService<IRefundService>()
+                _serviceProvider.GetRequiredService<IRefundService>(),
+                _serviceProvider.GetRequiredService<IPaymentTypeService>(),
+                _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
+                navigateToTransactionList: async () => await ShowTransaction()
             );
 
             // Create the AddSalesView and set its DataContext

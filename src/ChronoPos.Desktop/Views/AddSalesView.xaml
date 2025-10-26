@@ -3,11 +3,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
              mc:Ignorable="d" 
              d:DesignHeight="800" d:DesignWidth="1400"
              Background="{DynamicResource BackgroundPrimary}">
     
     <UserControl.Resources>
+        <!-- Converters -->
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+        <converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
+        
         <!-- Value Converter for Customer Display -->
         <DataTemplate x:Key="CustomerItemTemplate">
             <TextBlock Text="{Binding CustomerFullName}" />
@@ -15,6 +21,17 @@
         
         <DataTemplate x:Key="TableItemTemplate">
             <TextBlock Text="{Binding TableNumber}" />
+        </DataTemplate>
+        
+        <DataTemplate x:Key="ReservationItemTemplate">
+            <StackPanel>
+                <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding ReservationDateTime}" FontSize="10" Foreground="{DynamicResource TextSecondary}"/>
+            </StackPanel>
+        </DataTemplate>
+        
+        <DataTemplate x:Key="LocationItemTemplate">
+            <TextBlock Text="{Binding}" />
         </DataTemplate>
         <!-- Custom ComboBox Style matching AddProduct -->
         <Style x:Key="FormComboBoxStyle" TargetType="ComboBox">
@@ -215,7 +232,7 @@
                               Foreground="{DynamicResource TextSecondary}"
                               HorizontalAlignment="Left"
                               VerticalAlignment="Center"/>
-                    <Button Content="+ Add" 
+                    <Button Content="+ Create" 
                            FontSize="10"
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource Primary}"
@@ -227,6 +244,7 @@
                            Padding="4,2"
                            Command="{Binding ShowAddCustomerPopupCommand}"/>
                 </Grid>
+                
                 <ComboBox ItemsSource="{Binding Customers}"
                          SelectedItem="{Binding SelectedCustomer}"
                          ItemTemplate="{StaticResource CustomerItemTemplate}"
@@ -476,18 +494,71 @@
                     <RowDefinition Height="Auto"/> <!-- Save Button -->
                 </Grid.RowDefinitions>
 
-                <!-- Table Selection Section -->
+                <!-- Table/Reservation Selection Section -->
                 <Border Grid.Row="0" Style="{StaticResource SectionBorderStyle}">
                     <StackPanel>
-                        <TextBlock Text="Table" 
-                                  FontSize="11" 
-                                  Foreground="{DynamicResource TextSecondary}"
-                                  Margin="0,0,0,6"/>
-                        <ComboBox ItemsSource="{Binding Tables}"
-                                 SelectedItem="{Binding SelectedTable}"
-                                 ItemTemplate="{StaticResource TableItemTemplate}"
-                                 Style="{StaticResource FormComboBoxStyle}"
-                                 MinHeight="36"/>
+                        <!-- Selection Mode Toggle -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <RadioButton Content="Table" 
+                                        IsChecked="{Binding IsTableSelectionMode}"
+                                        GroupName="SelectionMode"
+                                        Style="{StaticResource {x:Type RadioButton}}"
+                                        Margin="0,0,15,0"/>
+                            <RadioButton Content="Reservation" 
+                                        IsChecked="{Binding IsTableSelectionMode, Converter={StaticResource InverseBoolConverter}}"
+                                        GroupName="SelectionMode"
+                                        Style="{StaticResource {x:Type RadioButton}}"/>
+                        </StackPanel>
+
+                        <!-- Table Mode -->
+                        <StackPanel Visibility="{Binding IsTableSelectionMode, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <!-- Location Dropdown -->
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Location" 
+                                              FontSize="11" 
+                                              Foreground="{DynamicResource TextSecondary}"
+                                              Margin="0,0,0,6"/>
+                                    <ComboBox ItemsSource="{Binding Locations}"
+                                             SelectedItem="{Binding SelectedLocation}"
+                                             ItemTemplate="{StaticResource LocationItemTemplate}"
+                                             Style="{StaticResource FormComboBoxStyle}"
+                                             MinHeight="36"/>
+                                </StackPanel>
+                                
+                                <!-- Table Dropdown -->
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Table" 
+                                              FontSize="11" 
+                                              Foreground="{DynamicResource TextSecondary}"
+                                              Margin="0,0,0,6"/>
+                                    <ComboBox ItemsSource="{Binding FilteredTables}"
+                                             SelectedItem="{Binding SelectedTable}"
+                                             ItemTemplate="{StaticResource TableItemTemplate}"
+                                             Style="{StaticResource FormComboBoxStyle}"
+                                             MinHeight="36"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Reservation Mode -->
+                        <StackPanel Visibility="{Binding IsTableSelectionMode, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                            <TextBlock Text="Reservation" 
+                                      FontSize="11" 
+                                      Foreground="{DynamicResource TextSecondary}"
+                                      Margin="0,0,0,6"/>
+                            <ComboBox ItemsSource="{Binding Reservations}"
+                                     SelectedItem="{Binding SelectedReservation}"
+                                     ItemTemplate="{StaticResource ReservationItemTemplate}"
+                                     Style="{StaticResource FormComboBoxStyle}"
+                                     MinHeight="36"/>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
@@ -765,10 +836,10 @@
                                       Foreground="#D32F2F"/>
                         </Grid>
 
-                        <!-- Container Charge (with + button) -->
+                        <!-- Service Charge (with + button) -->
                         <Grid Margin="0,0,0,6">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Container Charge" 
+                                <TextBlock Text="Service Charge" 
                                           FontSize="13" 
                                           Foreground="{DynamicResource TextSecondary}"
                                           VerticalAlignment="Center"/>
@@ -783,8 +854,8 @@
                                        Foreground="White"
                                        BorderThickness="0"
                                        Cursor="Hand"
-                                       Command="{Binding ShowContainerChargePopupCommand}"
-                                       ToolTip="Add Container Charge">
+                                       Command="{Binding ShowServiceChargePopupCommand}"
+                                       ToolTip="Add Service Charge">
                                     <Button.Style>
                                         <Style TargetType="Button">
                                             <Setter Property="Template">
@@ -807,7 +878,7 @@
                                     </Button.Style>
                                 </Button>
                             </StackPanel>
-                            <TextBlock Text="{Binding ContainerCharge, StringFormat='${0:N2}'}" 
+                            <TextBlock Text="{Binding ServiceCharge, StringFormat='${0:N2}'}" 
                                       FontSize="13" 
                                       HorizontalAlignment="Right"
                                       Foreground="{DynamicResource TextPrimary}"/>
@@ -885,16 +956,27 @@
                 </Border>
 
                 <!-- Action Buttons (Dynamic based on Transaction Status) -->
-                <UniformGrid Grid.Row="6" Rows="1" Columns="5">
+                <Grid Grid.Row="6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.8*"/> <!-- Save Button - Wider -->
+                        <ColumnDefinition Width="1.8*"/> <!-- Save & Print - Wider -->
+                        <ColumnDefinition Width="1.5*"/> <!-- Pay Later - Wider -->
+                        <ColumnDefinition Width="1.3*"/> <!-- Settle - Wider -->
+                        <ColumnDefinition Width="1*"/>   <!-- Refund -->
+                        <ColumnDefinition Width="1*"/>   <!-- Exchange -->
+                        <ColumnDefinition Width="1.3*"/> <!-- Cancel - Wider -->
+                    </Grid.ColumnDefinitions>
+                    
                     <!-- Save Button (Only for new transactions) -->
-                    <Button Content="Save" 
+                    <Button Grid.Column="0"
+                           Content="Save" 
                            Height="42"
                            FontSize="14"
                            FontWeight="Bold"
                            Foreground="White"
                            BorderThickness="0"
                            Cursor="Hand"
-                           Margin="0,0,4,0"
+                           Margin="0,0,3,0"
                            Visibility="{Binding ShowSaveButton, Converter={StaticResource BooleanToVisibilityConverter}}"
                            Command="{Binding SaveTransactionCommand}">
                         <Button.Style>
@@ -922,7 +1004,8 @@
                     </Button>
 
                     <!-- Save & Print Button -->
-                    <Button Content="Save &amp; Print" 
+                    <Button Grid.Column="1"
+                           Content="Save &amp; Print" 
                            Height="42"
                            FontSize="14"
                            FontWeight="Bold"
@@ -956,8 +1039,45 @@
                         </Button.Style>
                     </Button>
 
+                    <!-- Pay Later Button (New) -->
+                    <Button Grid.Column="2"
+                           Content="Pay Later" 
+                           Height="42"
+                           FontSize="14"
+                           FontWeight="Bold"
+                           Foreground="White"
+                           BorderThickness="0"
+                           Cursor="Hand"
+                           Margin="2,0,2,0"
+                           Visibility="{Binding ShowPayLaterButton, Converter={StaticResource BooleanToVisibilityConverter}}"
+                           Command="{Binding PayLaterCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Background" Value="#F59E0B"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" 
+                                                   CornerRadius="8" 
+                                                   BorderThickness="0">
+                                                <ContentPresenter HorizontalAlignment="Center" 
+                                                                VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#D97706"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
                     <!-- Settle Button -->
-                    <Button Content="Settle" 
+                    <Button Grid.Column="3"
+                           Content="Settle" 
                            Height="42"
                            FontSize="14"
                            FontWeight="Bold"
@@ -992,7 +1112,8 @@
                     </Button>
 
                     <!-- Refund Button -->
-                    <Button Content="Refund" 
+                    <Button Grid.Column="4"
+                           Content="Refund" 
                            Height="42"
                            FontSize="14"
                            FontWeight="Bold"
@@ -1027,14 +1148,15 @@
                     </Button>
 
                     <!-- Exchange Button (switched to lighter blue tones) -->
-                    <Button Content="Exchange" 
+                    <Button Grid.Column="5"
+                           Content="Exchange" 
                            Height="42"
                            FontSize="14"
                            FontWeight="Bold"
                            Foreground="White"
                            BorderThickness="0"
                            Cursor="Hand"
-                           Margin="4,0,0,0"
+                           Margin="2,0,2,0"
                            Visibility="{Binding ShowExchangeButton, Converter={StaticResource BooleanToVisibilityConverter}}"
                            Command="{Binding ExchangeCommand}">
                         <Button.Style>
@@ -1061,7 +1183,43 @@
                             </Style>
                         </Button.Style>
                     </Button>
-                </UniformGrid>
+
+                    <!-- Cancel Button (New) -->
+                    <Button Grid.Column="6"
+                           Content="Cancel" 
+                           Height="42"
+                           FontSize="14"
+                           FontWeight="Bold"
+                           Foreground="White"
+                           BorderThickness="0"
+                           Cursor="Hand"
+                           Margin="3,0,0,0"
+                           Visibility="{Binding ShowCancelButton, Converter={StaticResource BooleanToVisibilityConverter}}"
+                           Command="{Binding CancelTransactionCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Background" Value="#6B7280"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" 
+                                                   CornerRadius="8" 
+                                                   BorderThickness="0">
+                                                <ContentPresenter HorizontalAlignment="Center" 
+                                                                VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#4B5563"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Grid>
             </Grid>
         </Grid>
     </Grid>

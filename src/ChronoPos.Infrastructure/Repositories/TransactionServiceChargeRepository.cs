@@ -38,4 +38,9 @@ public class TransactionServiceChargeRepository : Repository<TransactionServiceC
     {
         _context.Set<TransactionServiceCharge>().Remove(transactionServiceCharge);
     }
+    
+    public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
 }
