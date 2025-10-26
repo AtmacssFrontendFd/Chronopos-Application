@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
+using ChronoPos.Desktop.Views.Dialogs;
 using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
@@ -479,8 +480,7 @@ public partial class CustomerGroupSidePanelViewModel : ObservableObject
                 // Update customer relations
                 await UpdateCustomerRelationsAsync(customerGroupId);
 
-                MessageBox.Show("Customer group updated successfully!", "Success", 
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Success", "Customer group updated successfully!", MessageDialog.MessageType.Success).ShowDialog();
             }
             else
             {
@@ -503,8 +503,7 @@ public partial class CustomerGroupSidePanelViewModel : ObservableObject
                 // Create customer relations
                 await CreateCustomerRelationsAsync(customerGroupId);
 
-                MessageBox.Show("Customer group created successfully!", "Success", 
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Success", "Customer group created successfully!", MessageDialog.MessageType.Success).ShowDialog();
             }
 
             // Refresh parent list
@@ -515,8 +514,7 @@ public partial class CustomerGroupSidePanelViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error saving customer group: {ex.Message}", "Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error saving customer group: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 

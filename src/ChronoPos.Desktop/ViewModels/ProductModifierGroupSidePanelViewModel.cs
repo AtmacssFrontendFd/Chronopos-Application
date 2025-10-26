@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Views.Dialogs;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -318,7 +319,7 @@ namespace ChronoPos.Desktop.ViewModels
                 StatusMessage = $"Error saving group: {ex.Message}";
                 FileLogger.Log($"❌ Error saving group: {ex.Message}");
                 FileLogger.Log($"❌ Stack trace: {ex.StackTrace}");
-                MessageBox.Show($"Error saving group: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", $"Error saving group: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
             }
             finally
             {
@@ -335,7 +336,7 @@ namespace ChronoPos.Desktop.ViewModels
                 if (!_isEditMode || _editingGroupId == 0)
                 {
                     StatusMessage = "Please save the group first before adding items";
-                    MessageBox.Show("Please save the group first before adding items", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    new MessageDialog("Info", "Please save the group first before adding items", MessageDialog.MessageType.Info).ShowDialog();
                     return;
                 }
 
@@ -349,7 +350,7 @@ namespace ChronoPos.Desktop.ViewModels
                 if (GroupItems.Any(i => i.ModifierId == SelectedModifierToAdd.Id))
                 {
                     StatusMessage = "This modifier is already in the group";
-                    MessageBox.Show("This modifier is already in the group", "Duplicate", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    new MessageDialog("Duplicate", "This modifier is already in the group", MessageDialog.MessageType.Warning).ShowDialog();
                     return;
                 }
 
@@ -382,7 +383,7 @@ namespace ChronoPos.Desktop.ViewModels
             {
                 StatusMessage = $"Error adding modifier: {ex.Message}";
                 FileLogger.Log($"❌ Error adding modifier: {ex.Message}");
-                MessageBox.Show($"Error adding modifier: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", $"Error adding modifier: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
             }
             finally
             {
@@ -397,13 +398,12 @@ namespace ChronoPos.Desktop.ViewModels
 
             try
             {
-                var result = MessageBox.Show(
-                    $"Are you sure you want to remove '{item.ModifierName}' from this group?",
+                var result = new ConfirmationDialog(
                     "Confirm Remove",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
+                    $"Are you sure you want to remove '{item.ModifierName}' from this group?",
+                    ConfirmationDialog.DialogType.Warning).ShowDialog();
 
-                if (result == MessageBoxResult.Yes)
+                if (result == true)
                 {
                     IsLoading = true;
                     StatusMessage = "Removing modifier from group...";
@@ -421,7 +421,7 @@ namespace ChronoPos.Desktop.ViewModels
             {
                 StatusMessage = $"Error removing modifier: {ex.Message}";
                 FileLogger.Log($"❌ Error removing modifier: {ex.Message}");
-                MessageBox.Show($"Error removing modifier: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", $"Error removing modifier: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
             }
             finally
             {

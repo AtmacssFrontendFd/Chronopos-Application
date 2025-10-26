@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
+using ChronoPos.Desktop.Views.Dialogs;
 using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
@@ -388,7 +389,7 @@ public partial class ProductGroupSidePanelViewModel : ObservableObject
                 };
 
                 await _productGroupService.UpdateAsync(dto);
-                MessageBox.Show("Product group updated successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Success", "Product group updated successfully.", MessageDialog.MessageType.Success).ShowDialog();
             }
             else
             {
@@ -407,7 +408,7 @@ public partial class ProductGroupSidePanelViewModel : ObservableObject
 
                 var createdGroup = await _productGroupService.CreateAsync(dto);
                 groupId = createdGroup.Id;
-                MessageBox.Show("Product group created successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Success", "Product group created successfully.", MessageDialog.MessageType.Success).ShowDialog();
             }
 
             // Create product group items based on selection
@@ -418,7 +419,7 @@ public partial class ProductGroupSidePanelViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error saving product group: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error saving product group: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -511,15 +512,13 @@ public partial class ProductGroupSidePanelViewModel : ObservableObject
 
             if (itemsCreated > 0)
             {
-                MessageBox.Show($"{itemsCreated} product group item(s) created successfully.", 
-                    "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Success", $"{itemsCreated} product group item(s) created successfully.", MessageDialog.MessageType.Success).ShowDialog();
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error creating product group items: {ex.Message}");
-            MessageBox.Show($"Product group created but error adding items: {ex.Message}", 
-                "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog("Warning", $"Product group created but error adding items: {ex.Message}", MessageDialog.MessageType.Warning).ShowDialog();
         }
     }
 
@@ -548,23 +547,22 @@ public partial class ProductGroupSidePanelViewModel : ObservableObject
             return;
         }
 
-        var result = MessageBox.Show(
-            "Are you sure you want to remove this item from the group?",
+        var result = new ConfirmationDialog(
             "Confirm Remove",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            "Are you sure you want to remove this item from the group?",
+            ConfirmationDialog.DialogType.Warning).ShowDialog();
 
-        if (result == MessageBoxResult.Yes)
+        if (result == true)
         {
             try
             {
                 await _productGroupService.RemoveItemFromGroupAsync(SelectedGroupItem.Id);
                 GroupItems.Remove(SelectedGroupItem);
-                MessageBox.Show("Item removed successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Success", "Item removed successfully.", MessageDialog.MessageType.Success).ShowDialog();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error removing item: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", $"Error removing item: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
             }
         }
     }

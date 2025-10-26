@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ChronoPos.Infrastructure;
 using ChronoPos.Domain.Entities;
+using ChronoPos.Desktop.Views.Dialogs;
 
 namespace ChronoPos.Desktop.Views
 {
@@ -44,13 +45,12 @@ namespace ChronoPos.Desktop.Views
             // If window is closing without admin created, confirm with user
             if (!AdminCreated)
             {
-                var result = MessageBox.Show(
-                    "Admin account is required to use ChronoPos. Are you sure you want to exit?",
+                var result = new ConfirmationDialog(
                     "Exit Application",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning);
+                    "Admin account is required to use ChronoPos. Are you sure you want to exit?",
+                    ConfirmationDialog.DialogType.Warning).ShowDialog();
                 
-                if (result == MessageBoxResult.No)
+                if (result == false)
                 {
                     e.Cancel = true;
                     LogMessage("Window close cancelled by user");

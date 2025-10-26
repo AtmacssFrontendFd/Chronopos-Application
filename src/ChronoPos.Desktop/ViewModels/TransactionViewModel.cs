@@ -12,6 +12,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
+using ChronoPos.Desktop.Views.Dialogs;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -122,14 +123,15 @@ public partial class TransactionViewModel : ObservableObject
                 }
                 else
                 {
-                    MessageBox.Show($"Opening Transaction #{transactionId}\n\nTransaction details:\n- Customer: {transaction.CustomerName}\n- Table: {transaction.TableNumber}\n- Total: ${transaction.TotalAmount:N2}\n\nNavigation callback not configured.", 
-                        "Open Transaction", MessageBoxButton.OK, MessageBoxImage.Information);
+                    new MessageDialog("Open Transaction", 
+                        $"Opening Transaction #{transactionId}\n\nTransaction details:\n- Customer: {transaction.CustomerName}\n- Table: {transaction.TableNumber}\n- Total: ${transaction.TotalAmount:N2}\n\nNavigation callback not configured.", 
+                        MessageDialog.MessageType.Info).ShowDialog();
                 }
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading transaction: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -148,14 +150,15 @@ public partial class TransactionViewModel : ObservableObject
                 }
                 else
                 {
-                    MessageBox.Show($"Edit Transaction #{transactionId}\n\nTransaction details:\n- Customer: {transaction.CustomerName}\n- Table: {transaction.TableNumber}\n- Total: ${transaction.TotalAmount:N2}\n\nNavigation callback not configured.", 
-                        "Edit Transaction", MessageBoxButton.OK, MessageBoxImage.Information);
+                    new MessageDialog("Edit Transaction", 
+                        $"Edit Transaction #{transactionId}\n\nTransaction details:\n- Customer: {transaction.CustomerName}\n- Table: {transaction.TableNumber}\n- Total: ${transaction.TotalAmount:N2}\n\nNavigation callback not configured.", 
+                        MessageDialog.MessageType.Info).ShowDialog();
                 }
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading transaction: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -164,15 +167,16 @@ public partial class TransactionViewModel : ObservableObject
     {
         try
         {
-            var result = MessageBox.Show($"Are you sure you want to delete transaction #{transactionId}?\n\nThis action cannot be undone.", 
-                "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            var result = new ConfirmationDialog("Confirm Delete", 
+                $"Are you sure you want to delete transaction #{transactionId}?\n\nThis action cannot be undone.", 
+                ConfirmationDialog.DialogType.Warning).ShowDialog();
             
-            if (result == MessageBoxResult.Yes)
+            if (result == true)
             {
                 var success = await _transactionService.DeleteAsync(transactionId);
                 if (success)
                 {
-                    MessageBox.Show("Transaction deleted successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    new MessageDialog("Success", "Transaction deleted successfully!", MessageDialog.MessageType.Success).ShowDialog();
                     
                     // Refresh the list
                     await LoadSalesTransactionsAsync();
@@ -180,13 +184,13 @@ public partial class TransactionViewModel : ObservableObject
                 }
                 else
                 {
-                    MessageBox.Show("Failed to delete transaction.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    new MessageDialog("Error", "Failed to delete transaction.", MessageDialog.MessageType.Error).ShowDialog();
                 }
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error deleting transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error deleting transaction: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -205,14 +209,15 @@ public partial class TransactionViewModel : ObservableObject
                 }
                 else
                 {
-                    MessageBox.Show($"Pay Bill for Transaction #{transactionId}\n\nTransaction details:\n- Customer: {transaction.CustomerName}\n- Table: {transaction.TableNumber}\n- Total Amount: ${transaction.TotalAmount:N2}\n- Status: {transaction.Status}\n\nNavigation callback not configured.", 
-                        "Pay Bill", MessageBoxButton.OK, MessageBoxImage.Information);
+                    new MessageDialog("Pay Bill", 
+                        $"Pay Bill for Transaction #{transactionId}\n\nTransaction details:\n- Customer: {transaction.CustomerName}\n- Table: {transaction.TableNumber}\n- Total Amount: ${transaction.TotalAmount:N2}\n- Status: {transaction.Status}\n\nNavigation callback not configured.", 
+                        MessageDialog.MessageType.Info).ShowDialog();
                 }
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading transaction: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -226,8 +231,9 @@ public partial class TransactionViewModel : ObservableObject
             {
                 // Change status to billed
                 await _transactionService.ChangeStatusAsync(transactionId, "billed", transaction.UserId);
-                MessageBox.Show($"Transaction #{transactionId} marked as Billed!\n\n(Print functionality will be implemented soon)", 
-                    "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Success", 
+                    $"Transaction #{transactionId} marked as Billed!\n\n(Print functionality will be implemented soon)", 
+                    MessageDialog.MessageType.Success).ShowDialog();
                 
                 // Refresh the list
                 await LoadSalesTransactionsAsync();
@@ -236,7 +242,7 @@ public partial class TransactionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error updating transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error updating transaction: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -248,7 +254,7 @@ public partial class TransactionViewModel : ObservableObject
             var transaction = await _transactionService.GetByIdAsync(transactionId);
             if (transaction == null)
             {
-                MessageBox.Show("Transaction not found!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Transaction not found!", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -257,7 +263,7 @@ public partial class TransactionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error settling transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error settling transaction: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -271,7 +277,7 @@ public partial class TransactionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error processing refund: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error processing refund: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -285,7 +291,7 @@ public partial class TransactionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error processing exchange: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error processing exchange: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -297,7 +303,7 @@ public partial class TransactionViewModel : ObservableObject
             var refund = await _refundService.GetByIdAsync(refundId);
             if (refund == null)
             {
-                MessageBox.Show("Refund not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Refund not found.", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -306,7 +312,7 @@ public partial class TransactionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error opening refund details: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error opening refund details: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -318,7 +324,7 @@ public partial class TransactionViewModel : ObservableObject
             var exchange = await _exchangeService.GetByIdAsync(exchangeId);
             if (exchange == null)
             {
-                MessageBox.Show("Exchange not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Exchange not found.", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -327,7 +333,7 @@ public partial class TransactionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error opening exchange details: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error opening exchange details: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -339,7 +345,7 @@ public partial class TransactionViewModel : ObservableObject
             var refund = await _refundService.GetByIdAsync(refundId);
             if (refund == null)
             {
-                MessageBox.Show("Refund not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Refund not found.", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -347,7 +353,7 @@ public partial class TransactionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error printing refund: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error printing refund: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -359,7 +365,7 @@ public partial class TransactionViewModel : ObservableObject
             var exchange = await _exchangeService.GetByIdAsync(exchangeId);
             if (exchange == null)
             {
-                MessageBox.Show("Exchange not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Exchange not found.", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -367,7 +373,7 @@ public partial class TransactionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error printing exchange: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error printing exchange: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -496,7 +502,7 @@ public partial class TransactionViewModel : ObservableObject
                 {
                     if (!decimal.TryParse(amountTextBox.Text, out var paidAmount))
                     {
-                        MessageBox.Show("Please enter a valid amount.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        new MessageDialog("Validation Error", "Please enter a valid amount.", MessageDialog.MessageType.Warning).ShowDialog();
                         return;
                     }
 
@@ -521,8 +527,9 @@ public partial class TransactionViewModel : ObservableObject
                     // Change status to settled
                     await _transactionService.ChangeStatusAsync(transaction.Id, "settled", transaction.UserId);
 
-                    MessageBox.Show($"Transaction #{transaction.Id} settled successfully!\n\nPayment Method: {paymentMethodComboBox.SelectedItem}\nAmount Paid: ${paidAmount:N2}",
-                        "Payment Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                    new MessageDialog("Payment Complete", 
+                        $"Transaction #{transaction.Id} settled successfully!\n\nPayment Method: {paymentMethodComboBox.SelectedItem}\nAmount Paid: ${paidAmount:N2}",
+                        MessageDialog.MessageType.Success).ShowDialog();
 
                     // Refresh the list
                     await LoadSalesTransactionsAsync();
@@ -530,7 +537,7 @@ public partial class TransactionViewModel : ObservableObject
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error settling transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    new MessageDialog("Error", $"Error settling transaction: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
                 }
             };
 
@@ -544,7 +551,7 @@ public partial class TransactionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error showing payment popup: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error showing payment popup: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -718,7 +725,7 @@ public partial class TransactionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error showing refund details: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error showing refund details: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -843,12 +850,12 @@ public partial class TransactionViewModel : ObservableObject
             {
                 var paginator = ((IDocumentPaginatorSource)document).DocumentPaginator;
                 printDialog.PrintDocument(paginator, $"Refund Receipt - {refundNumber}");
-                MessageBox.Show("Refund receipt printed successfully!", "Print Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Print Complete", "Refund receipt printed successfully!", MessageDialog.MessageType.Success).ShowDialog();
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error printing refund receipt: {ex.Message}\n\nPlease check your printer connection.", "Print Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Print Error", $"Error printing refund receipt: {ex.Message}\n\nPlease check your printer connection.", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1077,7 +1084,7 @@ public partial class TransactionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error showing exchange details: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error showing exchange details: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1197,7 +1204,7 @@ public partial class TransactionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error printing exchange receipt: {ex.Message}\n\nPlease check your printer connection.", "Print Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Print Error", $"Error printing exchange receipt: {ex.Message}\n\nPlease check your printer connection.", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1247,7 +1254,7 @@ public partial class TransactionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading sales: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading sales: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1297,7 +1304,7 @@ public partial class TransactionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading refunds: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading refunds: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1370,7 +1377,7 @@ public partial class TransactionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading exchanges: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading exchanges: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 

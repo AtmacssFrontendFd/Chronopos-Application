@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.ComponentModel.DataAnnotations;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Views.Dialogs;
 using InfrastructureServices = ChronoPos.Infrastructure.Services;
 using System.Globalization;
 using ChronoPos.Application.Logging;
@@ -987,7 +988,7 @@ public partial class AddGrnViewModel : ObservableObject, IDisposable
     {
         System.Windows.Application.Current.Dispatcher.Invoke(() =>
         {
-            MessageBox.Show(message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", message, MessageDialog.MessageType.Error).ShowDialog();
         });
     }
 
@@ -995,7 +996,7 @@ public partial class AddGrnViewModel : ObservableObject, IDisposable
     {
         System.Windows.Application.Current.Dispatcher.Invoke(() =>
         {
-            MessageBox.Show(message, "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            new MessageDialog("Success", message, MessageDialog.MessageType.Success).ShowDialog();
         });
     }
 

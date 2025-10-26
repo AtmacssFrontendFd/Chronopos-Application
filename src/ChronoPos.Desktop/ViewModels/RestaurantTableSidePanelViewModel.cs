@@ -1,6 +1,7 @@
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Logging;
+using ChronoPos.Desktop.Views.Dialogs;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
@@ -175,7 +176,7 @@ public partial class RestaurantTableSidePanelViewModel : ObservableObject
                 if (updated != null)
                 {
                     AppLogger.LogInfo("Table updated successfully", filename: "reservation");
-                    MessageBox.Show("Table updated successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    new MessageDialog("Success", "Table updated successfully!", MessageDialog.MessageType.Success).ShowDialog();
                     _onSaved?.Invoke(true);
                 }
                 else
@@ -203,7 +204,7 @@ public partial class RestaurantTableSidePanelViewModel : ObservableObject
                 if (created != null)
                 {
                     AppLogger.LogInfo("Table created successfully", filename: "reservation");
-                    MessageBox.Show("Table created successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    new MessageDialog("Success", "Table created successfully!", MessageDialog.MessageType.Success).ShowDialog();
                     _onSaved?.Invoke(true);
                 }
                 else

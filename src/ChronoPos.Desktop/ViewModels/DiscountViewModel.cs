@@ -390,7 +390,7 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             StatusMessage = $"Error updating discount status: {ex.Message}";
-            MessageBox.Show($"Error updating discount status: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error updating discount status: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {
@@ -509,7 +509,7 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
     catch (Exception ex)
     {
         StatusMessage = $"Error printing coupon: {ex.Message}";
-        MessageBox.Show($"Error printing coupon: {ex.Message}", "Print Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        new MessageDialog("Print Error", $"Error printing coupon: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
     }
 }
 
@@ -1119,7 +1119,7 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
             var fullDiscountData = await _discountService.GetByIdAsync(discount.Id);
             if (fullDiscountData == null)
             {
-                MessageBox.Show($"Error: Could not load discount data for ID {discount.Id}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", $"Error: Could not load discount data for ID {discount.Id}", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
             

@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Desktop.Views.Dialogs;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -95,7 +96,7 @@ public partial class ExchangeSalesViewModel : ObservableObject
             var transaction = await _transactionService.GetByIdAsync(transactionId);
             if (transaction == null)
             {
-                MessageBox.Show("Transaction not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Transaction not found.", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -135,7 +136,7 @@ public partial class ExchangeSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading transaction: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -148,7 +149,7 @@ public partial class ExchangeSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading products: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading products: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -157,7 +158,7 @@ public partial class ExchangeSalesViewModel : ObservableObject
     {
         if (SelectedProduct == null)
         {
-            MessageBox.Show("Please select a product.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog("Validation", "Please select a product.", MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -289,14 +290,14 @@ public partial class ExchangeSalesViewModel : ObservableObject
             var returnItemsToExchange = ReturnItems.Where(x => x.IsSelected && x.ReturnQuantity > 0).ToList();
             if (!returnItemsToExchange.Any())
             {
-                MessageBox.Show("Please select items to return.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Validation", "Please select items to return.", MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
             // Validate new items
             if (!NewItems.Any())
             {
-                MessageBox.Show("Please add new items to exchange.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Validation", "Please add new items to exchange.", MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
@@ -305,24 +306,22 @@ public partial class ExchangeSalesViewModel : ObservableObject
             {
                 if (item.ReturnQuantity > item.OriginalQuantity)
                 {
-                    MessageBox.Show($"Return quantity for '{item.ProductName}' cannot exceed original quantity ({item.OriginalQuantity}).", 
-                        "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    new MessageDialog("Validation", $"Return quantity for '{item.ProductName}' cannot exceed original quantity ({item.OriginalQuantity}).", MessageDialog.MessageType.Warning).ShowDialog();
                     return;
                 }
             }
 
             // Confirm exchange
-            var confirmResult = MessageBox.Show(
+            var confirmResult = new ConfirmationDialog(
+                "Confirm Exchange",
                 $"Confirm Exchange?\n\n" +
                 $"Returning: ${TotalReturnAmount:N2}\n" +
                 $"New Items: ${TotalNewAmount:N2}\n" +
                 $"{DifferenceText}\n\n" +
                 $"Do you want to proceed?",
-                "Confirm Exchange",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
+                ConfirmationDialog.DialogType.Warning).ShowDialog();
 
-            if (confirmResult != MessageBoxResult.Yes)
+            if (confirmResult != true)
                 return;
 
             // Create exchange DTO
@@ -359,20 +358,19 @@ public partial class ExchangeSalesViewModel : ObservableObject
             // Save exchange
             var savedExchange = await _exchangeService.CreateAsync(exchangeDto);
 
-            MessageBox.Show(
+            new MessageDialog(
+                "Success",
                 $"Exchange completed successfully!\n\n" +
                 $"Exchange ID: {savedExchange.Id}\n" +
                 $"{DifferenceText}",
-                "Success",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                MessageDialog.MessageType.Success).ShowDialog();
 
             // Notify completion
             _onExchangeComplete?.Invoke();
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error saving exchange: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error saving exchange: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -385,14 +383,14 @@ public partial class ExchangeSalesViewModel : ObservableObject
             var returnItemsToExchange = ReturnItems.Where(x => x.IsSelected && x.ReturnQuantity > 0).ToList();
             if (!returnItemsToExchange.Any())
             {
-                MessageBox.Show("Please select items to return.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Validation", "Please select items to return.", MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
             // Validate new items
             if (!NewItems.Any())
             {
-                MessageBox.Show("Please add new items to exchange.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Validation", "Please add new items to exchange.", MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
@@ -401,24 +399,22 @@ public partial class ExchangeSalesViewModel : ObservableObject
             {
                 if (item.ReturnQuantity > item.OriginalQuantity)
                 {
-                    MessageBox.Show($"Return quantity for '{item.ProductName}' cannot exceed original quantity ({item.OriginalQuantity}).", 
-                        "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    new MessageDialog("Validation", $"Return quantity for '{item.ProductName}' cannot exceed original quantity ({item.OriginalQuantity}).", MessageDialog.MessageType.Warning).ShowDialog();
                     return;
                 }
             }
 
             // Confirm exchange
-            var confirmResult = MessageBox.Show(
+            var confirmResult = new ConfirmationDialog(
+                "Confirm Exchange",
                 $"Confirm Exchange?\n\n" +
                 $"Returning: ${TotalReturnAmount:N2}\n" +
                 $"New Items: ${TotalNewAmount:N2}\n" +
                 $"{DifferenceText}\n\n" +
                 $"Do you want to proceed and print?",
-                "Confirm Exchange",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
+                ConfirmationDialog.DialogType.Warning).ShowDialog();
 
-            if (confirmResult != MessageBoxResult.Yes)
+            if (confirmResult != true)
                 return;
 
             // Create exchange DTO
@@ -457,20 +453,19 @@ public partial class ExchangeSalesViewModel : ObservableObject
             // Print receipt
             PrintExchangeReceipt(savedExchange, returnItemsToExchange, NewItems.ToList());
 
-            MessageBox.Show(
+            new MessageDialog(
+                "Success",
                 $"Exchange completed and printed successfully!\n\n" +
                 $"Exchange ID: {savedExchange.Id}\n" +
                 $"{DifferenceText}",
-                "Success",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                MessageDialog.MessageType.Success).ShowDialog();
 
             // Notify completion
             _onExchangeComplete?.Invoke();
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error saving exchange: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error saving exchange: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -612,7 +607,7 @@ public partial class ExchangeSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error printing receipt: {ex.Message}", "Print Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Print Error", $"Error printing receipt: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 

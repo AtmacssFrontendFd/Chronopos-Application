@@ -175,8 +175,7 @@ public partial class CustomerGroupsViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = "Error loading customer groups";
-            MessageBox.Show($"Error loading customer groups: {ex.Message}", "Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading customer groups: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {
@@ -290,8 +289,7 @@ public partial class CustomerGroupsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error updating status: {ex.Message}", "Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error updating status: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -320,8 +318,7 @@ public partial class CustomerGroupsViewModel : ObservableObject
     {
         if (customerGroup != null)
         {
-            MessageBox.Show($"Customer Group Details:\n\nName: {customerGroup.Name}\nArabic Name: {customerGroup.NameAr}\nStatus: {customerGroup.Status}", 
-                "Customer Group Details", MessageBoxButton.OK, MessageBoxImage.Information);
+            new MessageDialog("Customer Group Details", $"Customer Group Details:\n\nName: {customerGroup.Name}\nArabic Name: {customerGroup.NameAr}\nStatus: {customerGroup.Status}", MessageDialog.MessageType.Info).ShowDialog();
         }
     }
 

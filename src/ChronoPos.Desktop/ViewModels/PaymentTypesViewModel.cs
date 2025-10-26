@@ -624,8 +624,8 @@ public partial class PaymentTypesViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error loading payment types: {ex.Message}";
-            MessageBox.Show($"Error loading payment types: {ex.Message}", "Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading payment types: {ex.Message}", 
+                MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {

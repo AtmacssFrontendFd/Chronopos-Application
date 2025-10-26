@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ChronoPos.Infrastructure;
 using ChronoPos.Infrastructure.Services;
+using ChronoPos.Desktop.Views.Dialogs;
 
 namespace ChronoPos.Desktop.Views
 {
@@ -180,13 +181,12 @@ namespace ChronoPos.Desktop.Views
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            var result = MessageBox.Show(
-                "Are you sure you want to exit ChronoPOS?",
+            var result = new ConfirmationDialog(
                 "Exit Application",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
+                "Are you sure you want to exit ChronoPOS?",
+                ConfirmationDialog.DialogType.Warning).ShowDialog();
 
-            if (result == MessageBoxResult.Yes)
+            if (result == true)
             {
                 System.Windows.Application.Current.Shutdown();
             }
