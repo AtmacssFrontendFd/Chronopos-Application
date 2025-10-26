@@ -5,6 +5,7 @@ using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.Views;
+using ChronoPos.Desktop.Views.Dialogs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ChronoPos.Infrastructure.Services;
@@ -12,6 +13,7 @@ using System.Windows;
 using ChronoPos.Application.Logging;
 using System.Collections.ObjectModel;
 using ChronoPos.Domain.Entities;
+using ChronoPos.Domain.Interfaces;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -734,11 +736,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission (Create, Edit, Delete, Import, Export, View, Print)
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.DASHBOARD))
         {
-            MessageBox.Show(
-                "You don't have permission to access the Dashboard screen.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access the Dashboard screen.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -781,11 +782,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission (Create, Edit, Delete, Import, Export, View, Print)
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.SALES_WINDOW))
         {
-            MessageBox.Show(
-                "You don't have permission to access the Sales Window screen.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access the Sales Window screen.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -802,11 +802,15 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ICustomerService>(),
                 _serviceProvider.GetRequiredService<ITransactionService>(),
                 _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<IReservationService>(),
                 _serviceProvider.GetRequiredService<ICurrentUserService>(),
                 _serviceProvider.GetRequiredService<IShiftService>(),
                 _serviceProvider.GetRequiredService<IDiscountService>(),
                 _serviceProvider.GetRequiredService<ITaxTypeService>(),
-                _serviceProvider.GetRequiredService<IRefundService>()
+                _serviceProvider.GetRequiredService<IRefundService>(),
+                _serviceProvider.GetRequiredService<IPaymentTypeService>(),
+                _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
+                navigateToTransactionList: async () => await ShowTransaction()
             );
 
             // Create the AddSalesView and set its DataContext
@@ -823,7 +827,7 @@ public partial class MainWindowViewModel : ObservableObject
         {
             StatusMessage = "Error loading Add Sales screen";
             AppLogger.LogError("Error loading Add Sales screen", ex);
-            MessageBox.Show($"Error loading Add Sales screen: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading Add Sales screen: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -833,11 +837,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission (Create, Edit, Delete, Import, Export, View, Print)
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.TRANSACTION))
         {
-            MessageBox.Show(
-                "You don't have permission to access the Transaction screen.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access the Transaction screen.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -852,6 +855,8 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ITransactionService>(),
                 _serviceProvider.GetRequiredService<IRefundService>(),
                 _serviceProvider.GetRequiredService<IExchangeService>(),
+                _serviceProvider.GetRequiredService<IPaymentTypeService>(),
+                _serviceProvider.GetRequiredService<IReservationService>(),
                 navigateToEditTransaction: async (transactionId) => await LoadTransactionForEdit(transactionId),
                 navigateToPayBill: async (transactionId) => await LoadTransactionForPayment(transactionId),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
@@ -869,7 +874,7 @@ public partial class MainWindowViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading transaction screen: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading transaction screen: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -883,7 +888,7 @@ public partial class MainWindowViewModel : ObservableObject
             
             if (transaction == null)
             {
-                MessageBox.Show("Transaction not found!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Transaction not found!", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -894,11 +899,15 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ICustomerService>(),
                 _serviceProvider.GetRequiredService<ITransactionService>(),
                 _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<IReservationService>(),
                 _serviceProvider.GetRequiredService<ICurrentUserService>(),
                 _serviceProvider.GetRequiredService<IShiftService>(),
                 _serviceProvider.GetRequiredService<IDiscountService>(),
                 _serviceProvider.GetRequiredService<ITaxTypeService>(),
-                _serviceProvider.GetRequiredService<IRefundService>()
+                _serviceProvider.GetRequiredService<IRefundService>(),
+                _serviceProvider.GetRequiredService<IPaymentTypeService>(),
+                _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
+                navigateToTransactionList: async () => await ShowTransaction()
             );
 
             // Create the AddSalesView and set its DataContext
@@ -917,7 +926,7 @@ public partial class MainWindowViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading transaction for edit: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading transaction for edit: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -931,7 +940,7 @@ public partial class MainWindowViewModel : ObservableObject
             
             if (transaction == null)
             {
-                MessageBox.Show("Transaction not found!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Transaction not found!", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -942,11 +951,15 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ICustomerService>(),
                 _serviceProvider.GetRequiredService<ITransactionService>(),
                 _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<IReservationService>(),
                 _serviceProvider.GetRequiredService<ICurrentUserService>(),
                 _serviceProvider.GetRequiredService<IShiftService>(),
                 _serviceProvider.GetRequiredService<IDiscountService>(),
                 _serviceProvider.GetRequiredService<ITaxTypeService>(),
-                _serviceProvider.GetRequiredService<IRefundService>()
+                _serviceProvider.GetRequiredService<IRefundService>(),
+                _serviceProvider.GetRequiredService<IPaymentTypeService>(),
+                _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
+                navigateToTransactionList: async () => await ShowTransaction()
             );
 
             // Create the AddSalesView and set its DataContext
@@ -965,7 +978,7 @@ public partial class MainWindowViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading transaction for payment: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading transaction for payment: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -982,13 +995,13 @@ public partial class MainWindowViewModel : ObservableObject
             
             if (transaction == null)
             {
-                MessageBox.Show("Transaction not found!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Transaction not found!", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
             if (transaction.Status.ToLower() != "settled")
             {
-                MessageBox.Show("Only settled transactions can be refunded.", "Invalid Status", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Invalid Status", "Only settled transactions can be refunded.", MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
@@ -999,11 +1012,15 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ICustomerService>(),
                 _serviceProvider.GetRequiredService<ITransactionService>(),
                 _serviceProvider.GetRequiredService<IRestaurantTableService>(),
+                _serviceProvider.GetRequiredService<IReservationService>(),
                 _serviceProvider.GetRequiredService<ICurrentUserService>(),
                 _serviceProvider.GetRequiredService<IShiftService>(),
                 _serviceProvider.GetRequiredService<IDiscountService>(),
                 _serviceProvider.GetRequiredService<ITaxTypeService>(),
-                _serviceProvider.GetRequiredService<IRefundService>()
+                _serviceProvider.GetRequiredService<IRefundService>(),
+                _serviceProvider.GetRequiredService<IPaymentTypeService>(),
+                _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
+                navigateToTransactionList: async () => await ShowTransaction()
             );
 
             // Create the AddSalesView and set its DataContext
@@ -1023,7 +1040,7 @@ public partial class MainWindowViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading transaction for refund: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading transaction for refund: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1037,13 +1054,13 @@ public partial class MainWindowViewModel : ObservableObject
             
             if (transaction == null)
             {
-                MessageBox.Show("Transaction not found!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Transaction not found!", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
             if (transaction.Status.ToLower() != "settled")
             {
-                MessageBox.Show("Only settled transactions can be exchanged.", "Invalid Status", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Invalid Status", "Only settled transactions can be exchanged.", MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
@@ -1075,7 +1092,7 @@ public partial class MainWindowViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading transaction for exchange: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading transaction for exchange: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1085,11 +1102,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission (Create, Edit, Delete, Import, Export, View, Print)
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.BACK_OFFICE))
         {
-            MessageBox.Show(
-                "You don't have permission to access the Back Office screen.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access the Back Office screen.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -1334,11 +1350,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PRODUCT_MANAGEMENT))
         {
-            MessageBox.Show(
-                "You don't have permission to access Product Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Product Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -1416,11 +1431,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PRODUCT_ATTRIBUTES))
         {
-            MessageBox.Show(
-                "You don't have permission to access Product Attributes Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Product Attributes Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -1493,11 +1507,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PRODUCT_MODIFIERS))
         {
-            MessageBox.Show(
-                "You don't have permission to access Product Modifiers Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Product Modifiers Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -1574,11 +1587,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PRODUCT_COMBINATIONS))
         {
-            MessageBox.Show(
-                "You don't have permission to access Product Combinations Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Product Combinations Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -1807,11 +1819,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.STOCK_MANAGEMENT))
         {
-            MessageBox.Show(
-                "You don't have permission to access Stock Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Stock Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -2205,7 +2216,7 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = "Failed to load add goods return form";
-            MessageBox.Show($"Error loading add goods return form: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading add goods return form: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -2264,7 +2275,7 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = "Failed to load goods return for editing";
-            MessageBox.Show($"Error loading goods return for editing: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading goods return for editing: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -2322,7 +2333,7 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = "Failed to load add goods replace form";
-            MessageBox.Show($"Error loading add goods replace form: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading add goods replace form: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -2381,7 +2392,7 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = "Failed to load goods replace for editing";
-            MessageBox.Show($"Error loading goods replace for editing: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading goods replace for editing: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
     
@@ -2406,11 +2417,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.ADD_OPTIONS))
         {
-            MessageBox.Show(
-                "You don't have permission to access Others.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Others.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -2523,11 +2533,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.DISCOUNTS))
         {
-            MessageBox.Show(
-                "You don't have permission to access Discount Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Discount Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -2587,11 +2596,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.UOM))
         {
-            MessageBox.Show(
-                "You don't have permission to access UOM Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access UOM Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -2650,11 +2658,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PRICE_TYPES))
         {
-            MessageBox.Show(
-                "You don't have permission to access Price Types Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Price Types Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -2713,11 +2720,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.BRAND))
         {
-            MessageBox.Show(
-                "You don't have permission to access Brand Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Brand Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -2763,11 +2769,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.CURRENCY))
         {
-            MessageBox.Show(
-                "You don't have permission to access Currency Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Currency Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -2814,11 +2819,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PAYMENT_TYPES))
         {
-            MessageBox.Show(
-                "You don't have permission to access Payment Types Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Payment Types Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -2876,11 +2880,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.CATEGORY))
         {
-            MessageBox.Show(
-                "You don't have permission to access Category Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Category Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -2929,11 +2932,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.SHOP))
         {
-            MessageBox.Show(
-                "You don't have permission to access Store Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Store Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -2980,11 +2982,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.TAX_RATES))
         {
-            MessageBox.Show(
-                "You don't have permission to access Tax Rates Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Tax Rates Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -3040,16 +3041,15 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task ShowCustomers()
     {
         // Check permission using UMAC - Allow if user has ANY permission
+        // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.CUSTOMERS))
         {
-            MessageBox.Show(
-                "You don't have permission to access Customer Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Customer Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
-
         // Don't change SelectedPage - keep it as "Management" so sidebar stays highlighted
         CurrentPageTitle = "Customer Management";
         StatusMessage = "Loading customer management...";
@@ -3098,11 +3098,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.CUSTOMER_GROUPS))
         {
-            MessageBox.Show(
-                "You don't have permission to access Customer Groups Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Customer Groups Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -3157,11 +3156,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PRODUCT_GROUPING))
         {
-            MessageBox.Show(
-                "You don't have permission to access Product Groups Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Product Groups Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -3218,11 +3216,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.SUPPLIERS))
         {
-            MessageBox.Show(
-                "You don't have permission to access Supplier Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Supplier Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -3285,11 +3282,10 @@ public partial class MainWindowViewModel : ObservableObject
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.RESERVATION))
         {
             AppLogger.LogWarning("User does not have permission to access Reservation screen", filename: "reservation");
-            MessageBox.Show(
-                "You don't have permission to access the Reservation screen.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access the Reservation screen.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
         AppLogger.LogInfo("Permission check passed", filename: "reservation");
@@ -3389,11 +3385,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission (Create, Edit, Delete, Import, Export, View, Print)
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.REPORTS))
         {
-            MessageBox.Show(
-                "You don't have permission to access the Reports screen.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access the Reports screen.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -3417,11 +3412,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.SETTINGS))
         {
-            MessageBox.Show(
-                "You don't have permission to access the Settings screen.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access the Settings screen.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -3496,8 +3490,7 @@ public partial class MainWindowViewModel : ObservableObject
             Console.WriteLine($"ShowSettings: Error occurred - {ex.Message}");
             Console.WriteLine($"ShowSettings: Stack trace - {ex.StackTrace}");
             StatusMessage = $"Error loading settings: {ex.Message}";
-            System.Windows.MessageBox.Show($"Failed to load settings: {ex.Message}\n\nStack trace:\n{ex.StackTrace}", 
-                "Settings Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            new MessageDialog("Settings Error", $"Failed to load settings: {ex.Message}\n\nStack trace:\n{ex.StackTrace}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -3508,11 +3501,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.CLIENT_SETTINGS))
         {
-            MessageBox.Show(
-                "You don't have permission to access User Settings.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access User Settings.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
         
@@ -3558,11 +3550,10 @@ public partial class MainWindowViewModel : ObservableObject
             Console.WriteLine($"ShowUserSettings error: {ex.Message}");
             Console.WriteLine($"ShowUserSettings stack trace: {ex.StackTrace}");
             
-            System.Windows.MessageBox.Show(
-                $"Error loading User Settings:\n\n{ex.Message}\n\nStack Trace:\n{ex.StackTrace}", 
-                "User Settings Error", 
-                System.Windows.MessageBoxButton.OK, 
-                System.Windows.MessageBoxImage.Error);
+            new MessageDialog(
+                "User Settings Error",
+                $"Error loading User Settings:\n\n{ex.Message}\n\nStack Trace:\n{ex.StackTrace}",
+                MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -3571,11 +3562,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.GLOBAL_SETTINGS))
         {
-            MessageBox.Show(
-                "You don't have permission to access Application Settings.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Application Settings.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
         
@@ -3615,11 +3605,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.PERMISSIONS))
         {
-            MessageBox.Show(
-                "You don't have permission to access Permissions Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Permissions Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
         
@@ -3663,11 +3652,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Check permission using UMAC - Allow if user has ANY permission
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.ROLES))
         {
-            MessageBox.Show(
-                "You don't have permission to access Roles Management.",
+            new MessageDialog(
                 "Access Denied",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "You don't have permission to access Roles Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
         
@@ -3730,13 +3718,14 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void Logout()
     {
-        var result = System.Windows.MessageBox.Show(
-            "Are you sure you want to logout?\n\nThe application will restart to ensure a clean session.", 
-            "Confirm Logout", 
-            System.Windows.MessageBoxButton.YesNo, 
-            System.Windows.MessageBoxImage.Question);
+        var dialog = new ConfirmationDialog(
+            "Confirm Logout",
+            "Are you sure you want to logout?\n\nThe application will restart to ensure a clean session.",
+            ConfirmationDialog.DialogType.Warning);
         
-        if (result == System.Windows.MessageBoxResult.Yes)
+        var result = dialog.ShowDialog();
+        
+        if (result == true)
         {
             StatusMessage = "Logging out...";
             
@@ -3764,11 +3753,10 @@ public partial class MainWindowViewModel : ObservableObject
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show(
-                    $"An error occurred during logout: {ex.Message}\n\nPlease close and restart the application manually.", 
-                    "Logout Error", 
-                    System.Windows.MessageBoxButton.OK, 
-                    System.Windows.MessageBoxImage.Error);
+                new MessageDialog(
+                    "Logout Error",
+                    $"An error occurred during logout: {ex.Message}\n\nPlease close and restart the application manually.",
+                    MessageDialog.MessageType.Error).ShowDialog();
                 
                 StatusMessage = "Logout failed";
             }

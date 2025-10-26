@@ -66,165 +66,228 @@ namespace ChronoPos.Application.Services
 
         public async Task<ExchangeTransactionDto> CreateAsync(CreateExchangeTransactionDto createDto)
         {
-            // Validate original transaction exists
-            var originalTransaction = await _transactionRepository.GetByIdWithDetailsAsync(createDto.SellingTransactionId);
-            if (originalTransaction == null)
-            {
-                throw new ArgumentException("Original transaction not found.");
-            }
-
-            // Validate transaction is eligible for exchange
-            if (originalTransaction.Status != "settled" && originalTransaction.Status != "billed")
-            {
-                throw new InvalidOperationException("Only settled or billed transactions can have exchanges.");
-            }
-
-            // Validate shift if provided
-            if (createDto.ShiftId.HasValue)
-            {
-                var shift = await _shiftRepository.GetByIdAsync(createDto.ShiftId.Value);
-                if (shift == null)
-                {
-                    throw new ArgumentException("Shift not found.");
-                }
-                if (shift.Status != "Open")
-                {
-                    throw new InvalidOperationException("Cannot create exchange on a closed shift.");
-                }
-            }
-
-            // Calculate exchange totals
-            decimal totalExchangedAmount = 0;
-            decimal totalExchangedVat = 0;
-            decimal productExchangedQuantity = 0;
-
-            // Validate exchange products
-            if (createDto.Products == null || !createDto.Products.Any())
-            {
-                throw new ArgumentException("At least one product must be selected for exchange.");
-            }
-
-            foreach (var exchangeProduct in createDto.Products)
-            {
-                if (!exchangeProduct.OriginalTransactionProductId.HasValue)
-                {
-                    throw new ArgumentException("Original transaction product ID is required.");
-                }
-                
-                var originalProduct = await _transactionProductRepository.GetByIdAsync(exchangeProduct.OriginalTransactionProductId.Value);
-                if (originalProduct == null)
-                {
-                    throw new ArgumentException($"Original product {exchangeProduct.OriginalTransactionProductId} not found.");
-                }
-
-                if (originalProduct.TransactionId != createDto.SellingTransactionId)
-                {
-                    throw new ArgumentException($"Product {exchangeProduct.OriginalTransactionProductId} does not belong to transaction {createDto.SellingTransactionId}.");
-                }
-
-                var newProduct = await _productRepository.GetByIdAsync(exchangeProduct.NewProductId);
-                if (newProduct == null)
-                {
-                    throw new ArgumentException($"New product {exchangeProduct.NewProductId} not found.");
-                }
-
-                // Calculate amounts
-                var oldProductAmount = originalProduct.SellingPrice * exchangeProduct.ReturnedQuantity;
-                var newProductAmount = newProduct.Price * exchangeProduct.NewQuantity;
-                var priceDifference = newProductAmount - oldProductAmount;
-
-                var oldVat = originalProduct.Vat * exchangeProduct.ReturnedQuantity / originalProduct.Quantity;
-                var newVat = 0m; // VAT should be calculated based on newProduct's tax type if needed
-                var vatDifference = newVat - oldVat;
-
-                totalExchangedAmount += Math.Abs(priceDifference);
-                totalExchangedVat += Math.Abs(vatDifference);
-                productExchangedQuantity += exchangeProduct.ReturnedQuantity;
-            }
-
-            // Create exchange transaction
-            var exchange = new ExchangeTransaction
-            {
-                SellingTransactionId = createDto.SellingTransactionId,
-                CustomerId = createDto.CustomerId ?? originalTransaction.CustomerId,
-                ShiftId = createDto.ShiftId,
-                ExchangeTime = DateTime.Now,
-                TotalExchangedAmount = totalExchangedAmount,
-                TotalExchangedVat = totalExchangedVat,
-                ProductExchangedQuantity = productExchangedQuantity,
-                Status = "Active",
-                CreatedAt = DateTime.Now
-            };
-
-            // Add exchange products
-            foreach (var exchangeProductDto in createDto.Products)
-            {
-                var originalProduct = await _transactionProductRepository.GetByIdAsync(exchangeProductDto.OriginalTransactionProductId.Value);
-                var newProduct = await _productRepository.GetByIdAsync(exchangeProductDto.NewProductId);
-
-                var oldProductAmount = originalProduct.SellingPrice * exchangeProductDto.ReturnedQuantity;
-                var newProductAmount = newProduct.Price * exchangeProductDto.NewQuantity;
-                var priceDifference = newProductAmount - oldProductAmount;
-
-                var oldVat = originalProduct.Vat * exchangeProductDto.ReturnedQuantity / originalProduct.Quantity;
-                var newVat = 0m; // VAT calculation for new product
-                var vatDifference = newVat - oldVat;
-
-                exchange.ExchangeTransactionProducts.Add(new ExchangeTransactionProduct
-                {
-                    OriginalTransactionProductId = exchangeProductDto.OriginalTransactionProductId,
-                    NewProductId = exchangeProductDto.NewProductId,
-                    ReturnedQuantity = exchangeProductDto.ReturnedQuantity,
-                    NewQuantity = exchangeProductDto.NewQuantity,
-                    OldProductAmount = oldProductAmount,
-                    NewProductAmount = newProductAmount,
-                    PriceDifference = priceDifference,
-                    VatDifference = vatDifference,
-                    Status = "Active",
-                    CreatedAt = DateTime.Now
-                });
-            }
-
-            await _exchangeRepository.AddAsync(exchange);
+            Transaction? originalTransactionBackup = null;
+            bool transactionUpdated = false;
+            ExchangeTransaction? exchange = null;
+            var updatedProducts = new List<(Product product, decimal originalInitialStock, int originalStockQuantity)>();
             
-            // Update original transaction status to 'exchanged'
-            originalTransaction.Status = "exchanged";
-            originalTransaction.UpdatedAt = DateTime.Now;
-            _transactionRepository.Update(originalTransaction);
-            
-            // Update stock for exchange products
-            foreach (var exchangeProductDto in createDto.Products)
+            try
             {
-                // Get the original product (being returned) from the transaction
-                var originalTransactionProduct = await _transactionProductRepository.GetByIdAsync(exchangeProductDto.OriginalTransactionProductId!.Value);
-                if (originalTransactionProduct != null)
+                // Validate original transaction exists
+                var originalTransaction = await _transactionRepository.GetByIdWithDetailsAsync(createDto.SellingTransactionId);
+                if (originalTransaction == null)
                 {
-                    var returnedProduct = await _productRepository.GetByIdAsync(originalTransactionProduct.ProductId);
-                    if (returnedProduct != null && returnedProduct.IsStockTracked)
+                    throw new ArgumentException("Original transaction not found.");
+                }
+
+                // Save original state for rollback
+                originalTransactionBackup = new Transaction
+                {
+                    Id = originalTransaction.Id,
+                    Status = originalTransaction.Status,
+                    UpdatedAt = originalTransaction.UpdatedAt
+                };
+
+                // Validate transaction is eligible for exchange
+                if (originalTransaction.Status != "settled" && originalTransaction.Status != "billed")
+                {
+                    throw new InvalidOperationException("Only settled or billed transactions can have exchanges.");
+                }
+
+                // Validate shift if provided
+                if (createDto.ShiftId.HasValue)
+                {
+                    var shift = await _shiftRepository.GetByIdAsync(createDto.ShiftId.Value);
+                    if (shift == null)
                     {
-                        // Increase stock for returned items
-                        returnedProduct.InitialStock += exchangeProductDto.ReturnedQuantity;
-                        returnedProduct.StockQuantity += (int)exchangeProductDto.ReturnedQuantity;
-                        returnedProduct.UpdatedAt = DateTime.Now;
-                        await _productRepository.UpdateAsync(returnedProduct);
+                        throw new ArgumentException("Shift not found.");
+                    }
+                    if (shift.Status != "Open")
+                    {
+                        throw new InvalidOperationException("Cannot create exchange on a closed shift.");
                     }
                 }
 
-                // Get the new product (being given)
-                var newProduct = await _productRepository.GetByIdAsync(exchangeProductDto.NewProductId);
-                if (newProduct != null && newProduct.IsStockTracked)
+                // Calculate exchange totals
+                decimal totalExchangedAmount = 0;
+                decimal totalExchangedVat = 0;
+                decimal productExchangedQuantity = 0;
+
+                // Validate exchange products
+                if (createDto.Products == null || !createDto.Products.Any())
                 {
-                    // Decrease stock for given items
-                    newProduct.InitialStock -= exchangeProductDto.NewQuantity;
-                    newProduct.StockQuantity -= (int)exchangeProductDto.NewQuantity;
-                    newProduct.UpdatedAt = DateTime.Now;
-                    await _productRepository.UpdateAsync(newProduct);
+                    throw new ArgumentException("At least one product must be selected for exchange.");
+                }
+
+                foreach (var exchangeProduct in createDto.Products)
+                {
+                    if (!exchangeProduct.OriginalTransactionProductId.HasValue)
+                    {
+                        throw new ArgumentException("Original transaction product ID is required.");
+                    }
+                    
+                    var originalProduct = await _transactionProductRepository.GetByIdAsync(exchangeProduct.OriginalTransactionProductId.Value);
+                    if (originalProduct == null)
+                    {
+                        throw new ArgumentException($"Original product {exchangeProduct.OriginalTransactionProductId} not found.");
+                    }
+
+                    if (originalProduct.TransactionId != createDto.SellingTransactionId)
+                    {
+                        throw new ArgumentException($"Product {exchangeProduct.OriginalTransactionProductId} does not belong to transaction {createDto.SellingTransactionId}.");
+                    }
+
+                    var newProduct = await _productRepository.GetByIdAsync(exchangeProduct.NewProductId);
+                    if (newProduct == null)
+                    {
+                        throw new ArgumentException($"New product {exchangeProduct.NewProductId} not found.");
+                    }
+
+                    // Calculate amounts
+                    var oldProductAmount = originalProduct.SellingPrice * exchangeProduct.ReturnedQuantity;
+                    var newProductAmount = newProduct.Price * exchangeProduct.NewQuantity;
+                    var priceDifference = newProductAmount - oldProductAmount;
+
+                    var oldVat = originalProduct.Vat * exchangeProduct.ReturnedQuantity / originalProduct.Quantity;
+                    var newVat = 0m; // VAT should be calculated based on newProduct's tax type if needed
+                    var vatDifference = newVat - oldVat;
+
+                    totalExchangedAmount += Math.Abs(priceDifference);
+                    totalExchangedVat += Math.Abs(vatDifference);
+                    productExchangedQuantity += exchangeProduct.ReturnedQuantity;
+                }
+
+                // Create exchange transaction
+                exchange = new ExchangeTransaction
+                {
+                    SellingTransactionId = createDto.SellingTransactionId,
+                    CustomerId = createDto.CustomerId ?? originalTransaction.CustomerId,
+                    ShiftId = createDto.ShiftId,
+                    ExchangeTime = DateTime.Now,
+                    TotalExchangedAmount = totalExchangedAmount,
+                    TotalExchangedVat = totalExchangedVat,
+                    ProductExchangedQuantity = productExchangedQuantity,
+                    Status = "Active",
+                    CreatedAt = DateTime.Now
+                };
+
+                // Add exchange products
+                foreach (var exchangeProductDto in createDto.Products)
+                {
+                    var originalProduct = await _transactionProductRepository.GetByIdAsync(exchangeProductDto.OriginalTransactionProductId.Value);
+                    var newProduct = await _productRepository.GetByIdAsync(exchangeProductDto.NewProductId);
+
+                    var oldProductAmount = originalProduct.SellingPrice * exchangeProductDto.ReturnedQuantity;
+                    var newProductAmount = newProduct.Price * exchangeProductDto.NewQuantity;
+                    var priceDifference = newProductAmount - oldProductAmount;
+
+                    var oldVat = originalProduct.Vat * exchangeProductDto.ReturnedQuantity / originalProduct.Quantity;
+                    var newVat = 0m; // VAT calculation for new product
+                    var vatDifference = newVat - oldVat;
+
+                    exchange.ExchangeTransactionProducts.Add(new ExchangeTransactionProduct
+                    {
+                        OriginalTransactionProductId = exchangeProductDto.OriginalTransactionProductId,
+                        NewProductId = exchangeProductDto.NewProductId,
+                        ReturnedQuantity = exchangeProductDto.ReturnedQuantity,
+                        NewQuantity = exchangeProductDto.NewQuantity,
+                        OldProductAmount = oldProductAmount,
+                        NewProductAmount = newProductAmount,
+                        PriceDifference = priceDifference,
+                        VatDifference = vatDifference,
+                        Status = "Active",
+                        CreatedAt = DateTime.Now
+                    });
+                }
+
+                // TRANSACTIONAL OPERATION 1: Add exchange
+                await _exchangeRepository.AddAsync(exchange);
+
+                // TRANSACTIONAL OPERATION 2: Update original transaction status to 'exchanged'
+                originalTransaction.Status = "exchanged";
+                originalTransaction.UpdatedAt = DateTime.Now;
+                _transactionRepository.Update(originalTransaction);
+                transactionUpdated = true;
+
+                // TRANSACTIONAL OPERATION 3: Update stock for exchange products
+                foreach (var exchangeProductDto in createDto.Products)
+                {
+                    // Get the original product (being returned) from the transaction
+                    var originalTransactionProduct = await _transactionProductRepository.GetByIdAsync(exchangeProductDto.OriginalTransactionProductId!.Value);
+                    if (originalTransactionProduct != null)
+                    {
+                        var returnedProduct = await _productRepository.GetByIdAsync(originalTransactionProduct.ProductId);
+                        if (returnedProduct != null && returnedProduct.IsStockTracked)
+                        {
+                            // Save original stock values for rollback
+                            updatedProducts.Add((returnedProduct, returnedProduct.InitialStock, returnedProduct.StockQuantity));
+                            
+                            // Increase stock for returned items
+                            returnedProduct.InitialStock += exchangeProductDto.ReturnedQuantity;
+                            returnedProduct.StockQuantity += (int)exchangeProductDto.ReturnedQuantity;
+                            returnedProduct.UpdatedAt = DateTime.Now;
+                            await _productRepository.UpdateAsync(returnedProduct);
+                        }
+                    }
+
+                    // Get the new product (being given)
+                    var newProduct = await _productRepository.GetByIdAsync(exchangeProductDto.NewProductId);
+                    if (newProduct != null && newProduct.IsStockTracked)
+                    {
+                        // Save original stock values for rollback
+                        updatedProducts.Add((newProduct, newProduct.InitialStock, newProduct.StockQuantity));
+                        
+                        // Decrease stock for given items
+                        newProduct.InitialStock -= exchangeProductDto.NewQuantity;
+                        newProduct.StockQuantity -= (int)exchangeProductDto.NewQuantity;
+                        newProduct.UpdatedAt = DateTime.Now;
+                        await _productRepository.UpdateAsync(newProduct);
+                    }
+                }
+
+                // COMMIT: Save all changes
+                await _unitOfWork.SaveChangesAsync();
+
+                return MapToDto(await _exchangeRepository.GetByIdWithDetailsAsync(exchange.Id) ?? exchange);
+            }
+            catch (Exception ex)
+            {
+                // ROLLBACK: Attempt to restore original state
+                try
+                {
+                    if (transactionUpdated && originalTransactionBackup != null)
+                    {
+                        var originalTransaction = await _transactionRepository.GetByIdAsync(originalTransactionBackup.Id);
+                        if (originalTransaction != null)
+                        {
+                            originalTransaction.Status = originalTransactionBackup.Status;
+                            originalTransaction.UpdatedAt = originalTransactionBackup.UpdatedAt;
+                            _transactionRepository.Update(originalTransaction);
+                        }
+                    }
+
+                    // No need to delete exchange - it was never saved to database (AddAsync only adds to context)
+
+                    foreach (var (product, originalInitialStock, originalStockQuantity) in updatedProducts)
+                    {
+                        var productToRestore = await _productRepository.GetByIdAsync(product.Id);
+                        if (productToRestore != null)
+                        {
+                            productToRestore.InitialStock = originalInitialStock;
+                            productToRestore.StockQuantity = originalStockQuantity;
+                            await _productRepository.UpdateAsync(productToRestore);
+                        }
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
+                    
+                    throw new Exception($"Error saving exchange: {ex.Message}\n\nTransaction has been rolled back to original state.", ex);
+                }
+                catch (Exception rollbackEx)
+                {
+                    throw new Exception($"Error saving exchange: {ex.Message}\n\nFailed to rollback. Please check exchange #{exchange?.Id} and transaction #{createDto.SellingTransactionId} manually.\n\nRollback error: {rollbackEx.Message}", ex);
                 }
             }
-            
-            await _unitOfWork.SaveChangesAsync();
-
-            return MapToDto(await _exchangeRepository.GetByIdWithDetailsAsync(exchange.Id) ?? exchange);
         }
 
         public async Task<bool> DeleteAsync(int id)

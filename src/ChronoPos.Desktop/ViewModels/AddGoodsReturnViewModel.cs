@@ -7,6 +7,7 @@ using System.Windows;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Views.Dialogs;
 using InfrastructureServices = ChronoPos.Infrastructure.Services;
 using System.Globalization;
 using ChronoPos.Application.Logging;
@@ -530,7 +531,7 @@ public partial class AddGoodsReturnViewModel : ObservableObject, IDisposable
             
             if (!ValidateReturn())
             {
-                MessageBox.Show(ValidationMessage, "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Validation Error", ValidationMessage, MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
@@ -540,18 +541,18 @@ public partial class AddGoodsReturnViewModel : ObservableObject, IDisposable
             if (returnId > 0)
             {
                 ClearValidationErrors();
-                MessageBox.Show("Goods Return saved as draft successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Success", "Goods Return saved as draft successfully!", MessageDialog.MessageType.Success).ShowDialog();
                 _navigateBack?.Invoke(); // Close the screen like PostReturn does
             }
             else
             {
-                MessageBox.Show("Failed to save return as draft. Please try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Failed to save return as draft. Please try again.", MessageDialog.MessageType.Error).ShowDialog();
             }
         }
         catch (Exception ex)
         {
             AppLogger.LogError("Failed to save return as draft", ex, "Save draft operation", "goods_return");
-            MessageBox.Show($"Failed to save return: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to save return: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {
@@ -568,7 +569,7 @@ public partial class AddGoodsReturnViewModel : ObservableObject, IDisposable
             
             if (!ValidateReturn())
             {
-                MessageBox.Show(ValidationMessage, "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Validation Error", ValidationMessage, MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
@@ -583,19 +584,19 @@ public partial class AddGoodsReturnViewModel : ObservableObject, IDisposable
                 if (postSuccess)
                 {
                     Status = "Posted";
-                    MessageBox.Show("Goods Return posted successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    new MessageDialog("Success", "Goods Return posted successfully!", MessageDialog.MessageType.Success).ShowDialog();
                     _navigateBack?.Invoke();
                 }
                 else
                 {
-                    MessageBox.Show("Failed to post return. Please try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    new MessageDialog("Error", "Failed to post return. Please try again.", MessageDialog.MessageType.Error).ShowDialog();
                 }
             }
         }
         catch (Exception ex)
         {
             AppLogger.LogError("Failed to post return", ex, "Post return operation", "goods_return");
-            MessageBox.Show($"Failed to post return: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to post return: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {
@@ -606,10 +607,14 @@ public partial class AddGoodsReturnViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void Cancel()
     {
-        var result = MessageBox.Show("Are you sure you want to cancel? All unsaved changes will be lost.", 
-            "Confirm Cancel", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        var dialog = new ConfirmationDialog(
+            "Confirm Cancel",
+            "Are you sure you want to cancel? All unsaved changes will be lost.",
+            ConfirmationDialog.DialogType.Warning);
         
-        if (result == MessageBoxResult.Yes)
+        var result = dialog.ShowDialog();
+        
+        if (result == true)
         {
             _navigateBack?.Invoke();
         }

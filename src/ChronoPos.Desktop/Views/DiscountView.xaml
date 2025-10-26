@@ -130,8 +130,11 @@
                     </StackPanel.Style>
                     <controls:CircularBackButton 
                         Command="{Binding BackCommand}"
-                        Width="{DynamicResource ButtonHeight}"
-                        Height="{DynamicResource ButtonHeight}"
+                        ButtonSize="30"
+                        ButtonBackground="{DynamicResource SurfaceBackground}"
+                        ButtonForeground="{DynamicResource TextSecondary}"
+                        ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                        ButtonHoverForeground="{DynamicResource TextSecondary}"
                         Margin="0,0,10,0"/>
                 </StackPanel>
 

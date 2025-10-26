@@ -507,10 +507,10 @@
                                                  Margin="0,0,0,15"/>
 
                                         <!-- Contact Person -->
-                                        <TextBlock Text="Contact Person *" 
+                                        <TextBlock Text="Support Person *" 
                                                    Foreground="{DynamicResource TextSecondary}"
                                                    Margin="0,0,0,5"/>
-                                        <TextBox Text="{Binding ContactPerson, UpdateSourceTrigger=PropertyChanged}"
+                                        <TextBox Text="{Binding SupportPerson, UpdateSourceTrigger=PropertyChanged}"
                                                  Height="40"
                                                  Padding="10"
                                                  Background="{DynamicResource MainBackground}"
@@ -598,8 +598,46 @@
                                             <ComboBoxItem Content="Services"/>
                                             <ComboBoxItem Content="Other"/>
                                         </ComboBox>
+
+                                        <!-- Country -->
+                                        <TextBlock Text="Country *" 
+                                                   Foreground="{DynamicResource TextSecondary}"
+                                                   Margin="0,0,0,5"/>
+                                        <ComboBox SelectedItem="{Binding Country}"
+                                                  ItemsSource="{Binding Countries}"
+                                                  Height="40"
+                                                  Padding="10"
+                                                  Background="{DynamicResource MainBackground}"
+                                                  Foreground="{DynamicResource TextPrimary}"
+                                                  BorderBrush="{DynamicResource BorderLight}"
+                                                  Margin="0,0,0,15"
+                                                  IsEditable="True"/>
                                     </StackPanel>
                                 </Grid>
+
+                                <!-- Invoice Number -->
+                                <TextBlock Text="Invoice Number *" 
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,5"/>
+                                <TextBox Text="{Binding InvoiceNumber, UpdateSourceTrigger=PropertyChanged}"
+                                         Height="40"
+                                         Padding="10"
+                                         Background="{DynamicResource MainBackground}"
+                                         Foreground="{DynamicResource TextPrimary}"
+                                         BorderBrush="{DynamicResource BorderLight}"
+                                         Margin="0,0,0,15"/>
+
+                                <!-- Invoice Date -->
+                                <TextBlock Text="Invoice Date *" 
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,5"/>
+                                <DatePicker SelectedDate="{Binding InvoiceDate, UpdateSourceTrigger=PropertyChanged}"
+                                            Height="40"
+                                            Padding="10"
+                                            Background="{DynamicResource MainBackground}"
+                                            Foreground="{DynamicResource TextPrimary}"
+                                            BorderBrush="{DynamicResource BorderLight}"
+                                            Margin="0,0,0,15"/>
 
                                 <!-- Address -->
                                 <TextBlock Text="Registered Address *" 

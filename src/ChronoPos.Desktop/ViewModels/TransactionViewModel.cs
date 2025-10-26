@@ -10,8 +10,10 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
+using ChronoPos.Application.Logging;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -20,11 +22,15 @@ public partial class TransactionViewModel : ObservableObject
     private readonly ITransactionService _transactionService;
     private readonly IRefundService _refundService;
     private readonly IExchangeService _exchangeService;
+    private readonly IPaymentTypeService _paymentTypeService;
+    private readonly IReservationService _reservationService;
     private readonly Action<int>? _navigateToEditTransaction;
     private readonly Action<int>? _navigateToPayBill;
     private readonly Action<int>? _navigateToRefundTransaction;
     private readonly Action<int>? _navigateToExchangeTransaction;
     private readonly Action? _navigateToAddSales;
+    private DispatcherTimer? _timerUpdateTimer;
+    private bool _isPaymentPopupOpen = false; // Guard flag to prevent duplicate popups
 
     [ObservableProperty]
     private string currentTab = "Sales";
@@ -51,6 +57,8 @@ public partial class TransactionViewModel : ObservableObject
         ITransactionService transactionService,
         IRefundService refundService,
         IExchangeService exchangeService,
+        IPaymentTypeService paymentTypeService,
+        IReservationService reservationService,
         Action<int>? navigateToEditTransaction = null,
         Action<int>? navigateToPayBill = null,
         Action<int>? navigateToRefundTransaction = null,
@@ -60,13 +68,35 @@ public partial class TransactionViewModel : ObservableObject
         _transactionService = transactionService;
         _refundService = refundService;
         _exchangeService = exchangeService;
+        _paymentTypeService = paymentTypeService;
+        _reservationService = reservationService;
         _navigateToEditTransaction = navigateToEditTransaction;
         _navigateToPayBill = navigateToPayBill;
         _navigateToRefundTransaction = navigateToRefundTransaction;
         _navigateToExchangeTransaction = navigateToExchangeTransaction;
         _navigateToAddSales = navigateToAddSales;
 
+        // Initialize timer for updating transaction durations
+        _timerUpdateTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMinutes(1) // Update every minute
+        };
+        _timerUpdateTimer.Tick += OnTimerUpdate;
+        _timerUpdateTimer.Start();
+
         _ = InitializeAsync();
+    }
+
+    private void OnTimerUpdate(object? sender, EventArgs e)
+    {
+        // Update timer display for all active transactions
+        foreach (var transaction in SalesTransactions)
+        {
+            if (transaction.ShowTimer)
+            {
+                transaction.TimerDisplay = CalculateElapsedTime(transaction.CreatedAt);
+            }
+        }
     }
 
     private async Task InitializeAsync()
@@ -375,13 +405,41 @@ public partial class TransactionViewModel : ObservableObject
     {
         try
         {
-            var totalAmount = transaction.TotalAmount;
+            // Guard against duplicate popup display
+            if (_isPaymentPopupOpen)
+            {
+                return; // Popup already open, ignore this call
+            }
+            _isPaymentPopupOpen = true;
+
+            // Get fresh transaction data to ensure we have the latest values
+            var freshTransaction = _transactionService.GetByIdAsync(transaction.Id).Result;
+            if (freshTransaction == null)
+            {
+                MessageBox.Show("Transaction not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                _isPaymentPopupOpen = false; // Reset guard flag
+                return;
+            }
+            
+            var totalAmount = freshTransaction.TotalAmount;
+            var alreadyPaid = freshTransaction.AmountPaidCash;
+            var remainingAmount = totalAmount - alreadyPaid;
+            
+            // Load payment types from database
+            var paymentTypes = _paymentTypeService.GetAllAsync().Result;
+            if (!paymentTypes.Any())
+            {
+                MessageBox.Show("No payment methods available. Please configure payment methods first.", 
+                    "Configuration Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _isPaymentPopupOpen = false; // Reset guard flag
+                return;
+            }
             
             var paymentPopup = new Window
             {
                 Title = "Payment",
                 Width = 400,
-                Height = 420,
+                Height = 520,
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
                 ResizeMode = ResizeMode.NoResize,
                 Background = Brushes.White
@@ -393,13 +451,17 @@ public partial class TransactionViewModel : ObservableObject
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(15) });
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(15) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(20) });
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            // Total Amount Label
+            // Total Amount Label - Show remaining amount if partial/pending payment
             var totalLabel = new TextBlock
             {
-                Text = $"Total Amount: ${totalAmount:N2}",
+                Text = alreadyPaid > 0 
+                    ? $"Remaining Amount: ${remainingAmount:N2}\n(Already Paid: ${alreadyPaid:N2} | Total: ${totalAmount:N2})"
+                    : $"Total Amount: ${totalAmount:N2}",
                 FontSize = 18,
                 FontWeight = FontWeights.Bold,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937"))
@@ -407,7 +469,7 @@ public partial class TransactionViewModel : ObservableObject
             Grid.SetRow(totalLabel, 0);
             grid.Children.Add(totalLabel);
 
-            // Payment Method
+            // Payment Method Label and ComboBox
             var paymentMethodLabel = new TextBlock
             {
                 Text = "Payment Method:",
@@ -415,16 +477,20 @@ public partial class TransactionViewModel : ObservableObject
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"))
             };
 
+            // Payment Method ComboBox - Load from database
             var paymentMethodComboBox = new ComboBox
             {
                 Margin = new Thickness(0, 5, 0, 0),
                 FontSize = 14,
-                Padding = new Thickness(10)
+                Padding = new Thickness(10),
+                DisplayMemberPath = "Name",
+                SelectedValuePath = "Id"
             };
-            paymentMethodComboBox.Items.Add("Cash");
-            paymentMethodComboBox.Items.Add("Card");
-            paymentMethodComboBox.Items.Add("UPI");
-            paymentMethodComboBox.Items.Add("Credit");
+            
+            foreach (var paymentType in paymentTypes)
+            {
+                paymentMethodComboBox.Items.Add(paymentType);
+            }
             paymentMethodComboBox.SelectedIndex = 0;
 
             var paymentMethodPanel = new StackPanel();
@@ -433,7 +499,7 @@ public partial class TransactionViewModel : ObservableObject
             Grid.SetRow(paymentMethodPanel, 2);
             grid.Children.Add(paymentMethodPanel);
 
-            // Amount
+            // Amount Paid Label and TextBox
             var amountLabel = new TextBlock
             {
                 Text = "Amount Paid:",
@@ -443,7 +509,7 @@ public partial class TransactionViewModel : ObservableObject
 
             var amountTextBox = new TextBox
             {
-                Text = totalAmount.ToString("N2"),
+                Text = remainingAmount.ToString("N2"), // Use remaining amount
                 FontSize = 14,
                 Padding = new Thickness(10),
                 Margin = new Thickness(0, 5, 0, 0)
@@ -454,6 +520,28 @@ public partial class TransactionViewModel : ObservableObject
             amountPanel.Children.Add(amountTextBox);
             Grid.SetRow(amountPanel, 4);
             grid.Children.Add(amountPanel);
+
+            // Credit Days Label and TextBox (for partial payment)
+            var creditDaysLabel = new TextBlock
+            {
+                Text = "Credit Days (for partial payment):",
+                FontSize = 14,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"))
+            };
+
+            var creditDaysTextBox = new TextBox
+            {
+                Text = freshTransaction.CreditDays.ToString(),
+                FontSize = 14,
+                Padding = new Thickness(10),
+                Margin = new Thickness(0, 5, 0, 0)
+            };
+
+            var creditDaysPanel = new StackPanel();
+            creditDaysPanel.Children.Add(creditDaysLabel);
+            creditDaysPanel.Children.Add(creditDaysTextBox);
+            Grid.SetRow(creditDaysPanel, 6);
+            grid.Children.Add(creditDaysPanel);
 
             // Buttons
             var buttonPanel = new StackPanel
@@ -492,6 +580,9 @@ public partial class TransactionViewModel : ObservableObject
 
             settleButton.Click += async (s, e) =>
             {
+                TransactionDto? originalTransaction = null;
+                bool updateSucceeded = false;
+                
                 try
                 {
                     if (!decimal.TryParse(amountTextBox.Text, out var paidAmount))
@@ -500,50 +591,189 @@ public partial class TransactionViewModel : ObservableObject
                         return;
                     }
 
+                    if (!int.TryParse(creditDaysTextBox.Text, out var creditDays) || creditDays < 0)
+                    {
+                        MessageBox.Show("Please enter a valid number of credit days (0 or more).", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    // Get fresh transaction data to calculate correct remaining amount
+                    var currentTransaction = await _transactionService.GetByIdAsync(freshTransaction.Id);
+                    if (currentTransaction == null)
+                    {
+                        MessageBox.Show("Transaction not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+                    
+                    var currentTotalAmount = currentTransaction.TotalAmount;
+                    var currentAlreadyPaid = currentTransaction.AmountPaidCash;
+                    var currentRemainingAmount = currentTotalAmount - currentAlreadyPaid;
+                    
+                    // Validate paid amount
+                    if (paidAmount < 0 || paidAmount > currentRemainingAmount)
+                    {
+                        MessageBox.Show($"Amount paid must be between $0 and ${currentRemainingAmount:N2}.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
                     paymentPopup.Close();
 
-                    // Update payment info first
+                    // Save original transaction state for rollback
+                    originalTransaction = currentTransaction;
+                    
+                    // Calculate new totals considering already paid amount (use fresh data)
+                    var totalPaidNow = currentAlreadyPaid + paidAmount;
+                    var creditRemaining = currentTotalAmount - totalPaidNow;
+                    string transactionStatus;
+
+                    // Determine transaction status based on total payment
+                    if (totalPaidNow >= currentTotalAmount)
+                    {
+                        transactionStatus = "settled"; // Full payment
+                        creditRemaining = 0; // Ensure no negative credit
+                    }
+                    else if (totalPaidNow > 0)
+                    {
+                        transactionStatus = "partial_payment"; // Partial payment
+                    }
+                    else
+                    {
+                        transactionStatus = "pending_payment"; // No payment made
+                    }
+
+                    var selectedPaymentType = (PaymentTypeDto)paymentMethodComboBox.SelectedItem;
+
+                    // TRANSACTIONAL OPERATION: Update payment info first
                     var updateDto = new UpdateTransactionDto
                     {
-                        CustomerId = transaction.CustomerId,
-                        TableId = transaction.TableId,
-                        TotalAmount = totalAmount,
-                        TotalVat = transaction.TotalVat,
-                        TotalDiscount = transaction.TotalDiscount,
-                        AmountPaidCash = paidAmount,
-                        AmountCreditRemaining = totalAmount - paidAmount,
-                        Vat = transaction.Vat,
-                        Status = transaction.Status
+                        CustomerId = currentTransaction.CustomerId,
+                        TableId = currentTransaction.TableId,
+                        ReservationId = currentTransaction.ReservationId,
+                        TotalAmount = currentTotalAmount,
+                        TotalVat = currentTransaction.TotalVat,
+                        TotalDiscount = currentTransaction.TotalDiscount,
+                        AmountPaidCash = totalPaidNow, // Total amount paid so far
+                        AmountCreditRemaining = creditRemaining,
+                        CreditDays = creditDays,
+                        Vat = currentTransaction.Vat,
+                        Status = currentTransaction.Status // Keep current status for now
                     };
 
-                    await _transactionService.UpdateAsync(transaction.Id, updateDto, transaction.UserId);
+                    await _transactionService.UpdateAsync(currentTransaction.Id, updateDto, currentTransaction.UserId);
+                    updateSucceeded = true; // Mark that update succeeded
 
-                    // Change status to settled
-                    await _transactionService.ChangeStatusAsync(transaction.Id, "settled", transaction.UserId);
+                    // TRANSACTIONAL OPERATION: Change status to appropriate state
+                    await _transactionService.ChangeStatusAsync(currentTransaction.Id, transactionStatus, currentTransaction.UserId);
 
-                    MessageBox.Show($"Transaction #{transaction.Id} settled successfully!\n\nPayment Method: {paymentMethodComboBox.SelectedItem}\nAmount Paid: ${paidAmount:N2}",
+                    // Update reservation status to completed if transaction is settled and has a reservation
+                    AppLogger.LogInfo($"Checking reservation update - TransactionId: {currentTransaction.Id}, Status: {transactionStatus}, ReservationId: {currentTransaction.ReservationId?.ToString() ?? "NULL"}");
+                    
+                    if (transactionStatus == "settled" && currentTransaction.ReservationId.HasValue)
+                    {
+                        try
+                        {
+                            AppLogger.LogInfo($"Attempting to complete reservation {currentTransaction.ReservationId.Value} for settled transaction {currentTransaction.Id}");
+                            await _reservationService.CompleteReservationAsync(currentTransaction.ReservationId.Value);
+                            AppLogger.LogInfo($"Successfully completed reservation {currentTransaction.ReservationId.Value}");
+                        }
+                        catch (Exception resEx)
+                        {
+                            // Log but don't fail settlement if reservation update fails
+                            AppLogger.LogError($"Failed to update reservation {currentTransaction.ReservationId.Value} status to completed", resEx);
+                        }
+                    }
+                    else
+                    {
+                        if (transactionStatus != "settled")
+                        {
+                            AppLogger.LogInfo($"Reservation not updated - transaction status is '{transactionStatus}' (not 'settled')");
+                        }
+                        else if (!currentTransaction.ReservationId.HasValue)
+                        {
+                            AppLogger.LogInfo($"Reservation not updated - transaction has no ReservationId");
+                        }
+                    }
+
+                    var statusMessage = transactionStatus switch
+                    {
+                        "settled" => "Transaction settled successfully (Full Payment)!",
+                        "partial_payment" => $"Transaction saved with Partial Payment!\nCredit Remaining: ${creditRemaining:N2}",
+                        "pending_payment" => $"Transaction saved as Pending Payment!\nTotal Credit: ${creditRemaining:N2}",
+                        _ => "Transaction updated!"
+                    };
+
+                    MessageBox.Show($"{statusMessage}\n\nPayment Method: {selectedPaymentType.Name}\nAmount Paid Now: ${paidAmount:N2}\nTotal Paid: ${totalPaidNow:N2}" +
+                        (creditDays > 0 ? $"\nCredit Days: {creditDays}" : ""), 
                         "Payment Complete", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                    // Refresh the list
+                    // Refresh the list to show updated status
                     await LoadSalesTransactionsAsync();
                     SwitchToSales();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error settling transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    // ROLLBACK: If any error occurs, attempt to restore original transaction state
+                    if (originalTransaction != null)
+                    {
+                        try
+                        {
+                            var rollbackDto = new UpdateTransactionDto
+                            {
+                                CustomerId = originalTransaction.CustomerId,
+                                TableId = originalTransaction.TableId,
+                                ReservationId = originalTransaction.ReservationId,
+                                TotalAmount = originalTransaction.TotalAmount,
+                                TotalVat = originalTransaction.TotalVat,
+                                TotalDiscount = originalTransaction.TotalDiscount,
+                                AmountPaidCash = originalTransaction.AmountPaidCash,
+                                AmountCreditRemaining = originalTransaction.AmountCreditRemaining,
+                                CreditDays = originalTransaction.CreditDays,
+                                Vat = originalTransaction.Vat,
+                                Status = originalTransaction.Status
+                            };
+                            
+                            await _transactionService.UpdateAsync(originalTransaction.Id, rollbackDto, originalTransaction.UserId);
+                            
+                            // Only try to revert status if the update succeeded before failure
+                            if (updateSucceeded)
+                            {
+                                await _transactionService.ChangeStatusAsync(originalTransaction.Id, originalTransaction.Status, originalTransaction.UserId);
+                            }
+                            
+                            MessageBox.Show($"Error settling transaction: {ex.Message}\n\nTransaction has been rolled back to original state.", 
+                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                        catch
+                        {
+                            MessageBox.Show($"Error settling transaction: {ex.Message}\n\nFailed to rollback transaction. Please check transaction #{transaction.Id} manually.", 
+                                "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show($"Error settling transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                    
+                    // Refresh list to show current state
+                    await LoadSalesTransactionsAsync();
                 }
             };
 
             buttonPanel.Children.Add(cancelButton);
             buttonPanel.Children.Add(settleButton);
-            Grid.SetRow(buttonPanel, 6);
+            Grid.SetRow(buttonPanel, 8);
             grid.Children.Add(buttonPanel);
 
             paymentPopup.Content = grid;
+            
+            // Reset guard flag when popup closes
+            paymentPopup.Closed += (s, e) => _isPaymentPopupOpen = false;
+            
             paymentPopup.ShowDialog();
         }
         catch (Exception ex)
         {
+            _isPaymentPopupOpen = false; // Reset guard flag on error
             MessageBox.Show($"Error showing payment popup: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -882,7 +1112,7 @@ public partial class TransactionViewModel : ObservableObject
                 Text = $"Exchange {exchangeNumber}",
                 FontSize = 24,
                 FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7C3AED")),
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#3B82F6")),
                 Margin = new Thickness(0, 0, 0, 20)
             };
             stackPanel.Children.Add(headerText);
@@ -1040,7 +1270,7 @@ public partial class TransactionViewModel : ObservableObject
             {
                 Content = "Print Receipt",
                 Height = 40,
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7C3AED")),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#3B82F6")),
                 Foreground = Brushes.White,
                 BorderThickness = new Thickness(0),
                 FontWeight = FontWeights.SemiBold,
@@ -1058,8 +1288,8 @@ public partial class TransactionViewModel : ObservableObject
                 Content = "Close",
                 Height = 40,
                 Background = Brushes.White,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7C3AED")),
-                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7C3AED")),
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#3B82F6")),
+                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#3B82F6")),
                 BorderThickness = new Thickness(2),
                 FontWeight = FontWeights.SemiBold,
                 Margin = new Thickness(5, 0, 0, 0),
@@ -1228,7 +1458,7 @@ public partial class TransactionViewModel : ObservableObject
                 // Get up to 2 products for display
                 var displayItems = new ObservableCollection<TransactionItemModel>(allItems.Take(2));
 
-                SalesTransactions.Add(new TransactionCardModel
+                var cardModel = new TransactionCardModel
                 {
                     OrderNumber = $"#{transaction.Id:D4}",
                     CustomerName = transaction.CustomerName ?? "Walk-in Customer",
@@ -1241,8 +1471,20 @@ public partial class TransactionViewModel : ObservableObject
                     Status = transaction.Status,
                     StatusColor = GetStatusColor(transaction.Status),
                     TransactionId = transaction.Id,
-                    TableName = transaction.TableNumber ?? "N/A"
-                });
+                    TableName = transaction.TableNumber ?? "N/A",
+                    AmountCreditRemaining = transaction.AmountCreditRemaining,
+                    ReservationInfo = transaction.ReservationId.HasValue ? $"Reservation #{transaction.ReservationId}" : string.Empty,
+                    CreatedAt = transaction.CreatedAt
+                };
+
+                // Calculate timer display for active transactions
+                var statusLower = transaction.Status.ToLower();
+                if (statusLower == "draft" || statusLower == "billed")
+                {
+                    cardModel.TimerDisplay = CalculateElapsedTime(transaction.CreatedAt);
+                }
+
+                SalesTransactions.Add(cardModel);
             }
         }
         catch (Exception ex)
@@ -1362,7 +1604,7 @@ public partial class TransactionViewModel : ObservableObject
                     TotalGivenCount = itemsGiven.Count,
                     Difference = exchange.TotalExchangedAmount,
                     Status = "Exchanged",
-                    StatusColor = "#7C3AED"
+                    StatusColor = "#3B82F6"
                 };
                 
                 ExchangeTransactions.Add(exchangeCard);
@@ -1374,6 +1616,31 @@ public partial class TransactionViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Calculate elapsed time from a start date to now in a human-readable format
+    /// </summary>
+    private string CalculateElapsedTime(DateTime startTime)
+    {
+        var elapsed = DateTime.Now - startTime;
+        
+        if (elapsed.TotalMinutes < 1)
+            return "0min";
+        else if (elapsed.TotalMinutes < 60)
+            return $"{(int)elapsed.TotalMinutes}min";
+        else if (elapsed.TotalHours < 24)
+        {
+            var hours = (int)elapsed.TotalHours;
+            var minutes = (int)(elapsed.TotalMinutes % 60);
+            return minutes > 0 ? $"{hours}hr {minutes}min" : $"{hours}hr";
+        }
+        else
+        {
+            var days = (int)elapsed.TotalDays;
+            var hours = (int)(elapsed.TotalHours % 24);
+            return hours > 0 ? $"{days}d {hours}hr" : $"{days}d";
+        }
+    }
+
     private string GetStatusColor(string status)
     {
         return status.ToLower() switch
@@ -1382,11 +1649,11 @@ public partial class TransactionViewModel : ObservableObject
             "pending" or "draft" => "#F59E0B",          // Orange/Yellow
             "billed" => "#3B82F6",                      // Blue
             "cancelled" => "#EF4444",                   // Red
-            "hold" => "#8B5CF6",                        // Purple
+            "hold" => "#60A5FA",                        // Blue (replaced purple with lighter blue)
             "pending_payment" => "#F97316",             // Dark Orange
             "partial_payment" => "#06B6D4",             // Cyan
             "refunded" => "#DC2626",                    // Dark Red
-            "exchanged" => "#7C3AED",                   // Violet
+            "exchanged" => "#3B82F6",                   // Blue (replaced violet)
             _ => "#6B7280"                              // Gray
         };
     }
@@ -1463,9 +1730,56 @@ public partial class TransactionViewModel : ObservableObject
                             <TextBlock FontSize='11' Foreground='#6B7280' Margin='0,4,0,0'>
                                 <Run Text='{Binding Date}'/> - <Run Text='{Binding Time}'/>
                             </TextBlock>
-                            <TextBlock FontSize='12' Foreground='#3B82F6' FontWeight='Medium' Margin='0,4,0,0'>
-                                <Run Text='Table: '/><Run Text='{Binding TableName}'/>
-                            </TextBlock>
+                            <Grid Margin='0,4,0,0'>
+                                <TextBlock FontSize='12' Foreground='#3B82F6' FontWeight='Medium' HorizontalAlignment='Left'>
+                                    <Run Text='Table: '/><Run Text='{Binding TableName}'/>
+                                </TextBlock>
+                                <!-- Reservation Info -->
+                                <TextBlock FontSize='11' Foreground='#8B5CF6' FontWeight='Medium' HorizontalAlignment='Right'>
+                                    <TextBlock.Style>
+                                        <Style TargetType='TextBlock'>
+                                            <Setter Property='Visibility' Value='Collapsed'/>
+                                            <Setter Property='Text' Value='{Binding ReservationInfo}'/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding='{Binding ShowReservation}' Value='True'>
+                                                    <Setter Property='Visibility' Value='Visible'/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                            <!-- Credit Remaining for Partial/Pending Payment -->
+                            <Border Background='#FEE2E2' CornerRadius='6' Padding='8,4' HorizontalAlignment='Left' Margin='0,6,0,0'>
+                                <Border.Style>
+                                    <Style TargetType='Border'>
+                                        <Setter Property='Visibility' Value='Collapsed'/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding='{Binding ShowCreditRemaining}' Value='True'>
+                                                <Setter Property='Visibility' Value='Visible'/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Text='{Binding CreditRemainingDisplay}' FontSize='11' FontWeight='SemiBold' Foreground='#991B1B'/>
+                            </Border>
+                            <!-- Timer Display for Active Transactions -->
+                            <Border Background='#FEF3C7' CornerRadius='6' Padding='8,4' HorizontalAlignment='Left' Margin='0,6,0,0'>
+                                <Border.Style>
+                                    <Style TargetType='Border'>
+                                        <Setter Property='Visibility' Value='Collapsed'/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding='{Binding ShowTimer}' Value='True'>
+                                                <Setter Property='Visibility' Value='Visible'/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel Orientation='Horizontal'>
+                                    <TextBlock Text='⏱️ ' FontSize='11' VerticalAlignment='Center'/>
+                                    <TextBlock Text='{Binding TimerDisplay}' FontSize='11' FontWeight='SemiBold' Foreground='#92400E' VerticalAlignment='Center'/>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                         
                         <!-- Section Label with Quantity and View All Button -->
@@ -1560,10 +1874,10 @@ public partial class TransactionViewModel : ObservableObject
                                             <DataTrigger Binding='{Binding StatusLower}' Value='hold'>
                                                 <Setter Property='Visibility' Value='Visible'/>
                                             </DataTrigger>
-                                            <DataTrigger Binding='{Binding StatusLower}' Value='pending payment'>
+                                            <DataTrigger Binding='{Binding StatusLower}' Value='pending_payment'>
                                                 <Setter Property='Visibility' Value='Visible'/>
                                             </DataTrigger>
-                                            <DataTrigger Binding='{Binding StatusLower}' Value='partial payment'>
+                                            <DataTrigger Binding='{Binding StatusLower}' Value='partial_payment'>
                                                 <Setter Property='Visibility' Value='Visible'/>
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -1597,10 +1911,10 @@ public partial class TransactionViewModel : ObservableObject
                                             <DataTrigger Binding='{Binding StatusLower}' Value='hold'>
                                                 <Setter Property='Visibility' Value='Visible'/>
                                             </DataTrigger>
-                                            <DataTrigger Binding='{Binding StatusLower}' Value='pending payment'>
+                                            <DataTrigger Binding='{Binding StatusLower}' Value='pending_payment'>
                                                 <Setter Property='Visibility' Value='Visible'/>
                                             </DataTrigger>
-                                            <DataTrigger Binding='{Binding StatusLower}' Value='partial payment'>
+                                            <DataTrigger Binding='{Binding StatusLower}' Value='partial_payment'>
                                                 <Setter Property='Visibility' Value='Visible'/>
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -1634,7 +1948,7 @@ public partial class TransactionViewModel : ObservableObject
                             </Button>
                             
                             <!-- Exchange Button - for settled -->
-                            <Button Content='Exchange' Height='35' Margin='4,0,0,0' Background='#8B5CF6' Foreground='White' BorderThickness='0' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
+                            <Button Content='Exchange' Height='35' Margin='4,0,0,0' Background='#60A5FA' Foreground='White' BorderThickness='0' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
                                     Command='{Binding DataContext.ExchangeFromCardCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}'
                                     CommandParameter='{Binding TransactionId}'>
                                 <Button.Style>
@@ -1896,10 +2210,10 @@ public partial class TransactionViewModel : ObservableObject
                                 <Trigger Property='IsMouseOver' Value='True'>
                                     <Setter Property='Effect'>
                                         <Setter.Value>
-                                            <DropShadowEffect Color='#7C3AED' BlurRadius='15' ShadowDepth='3' Opacity='0.4'/>
+                                            <DropShadowEffect Color='#3B82F6' BlurRadius='15' ShadowDepth='3' Opacity='0.4'/>
                                         </Setter.Value>
                                     </Setter>
-                                    <Setter Property='BorderBrush' Value='#7C3AED'/>
+                                    <Setter Property='BorderBrush' Value='#3B82F6'/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -1921,7 +2235,7 @@ public partial class TransactionViewModel : ObservableObject
                         
                         <!-- Header: Exchange Number + Status Badge -->
                         <Grid Grid.Row='0'>
-                            <Border Background='#7C3AED' CornerRadius='8' Padding='10,5' HorizontalAlignment='Left'>
+                            <Border Background='#3B82F6' CornerRadius='8' Padding='10,5' HorizontalAlignment='Left'>
                                 <TextBlock Text='{Binding ExchangeNumber}' FontSize='13' FontWeight='Bold' Foreground='White'/>
                             </Border>
                             <Border Background='{Binding StatusColor}' CornerRadius='6' Padding='8,4' HorizontalAlignment='Right'>
@@ -1935,7 +2249,7 @@ public partial class TransactionViewModel : ObservableObject
                             <TextBlock FontSize='11' Foreground='#6B7280' Margin='0,4,0,0'>
                                 <Run Text='{Binding Date}'/> - <Run Text='{Binding Time}'/>
                             </TextBlock>
-                            <TextBlock FontSize='12' Foreground='#7C3AED' FontWeight='Medium' Margin='0,4,0,0'>
+                            <TextBlock FontSize='12' Foreground='#3B82F6' FontWeight='Medium' Margin='0,4,0,0'>
                                 <Run Text='Original Invoice: '/><Run Text='{Binding OriginalInvoice}'/>
                             </TextBlock>
                         </StackPanel>
@@ -1946,7 +2260,7 @@ public partial class TransactionViewModel : ObservableObject
                                 <TextBlock Text='Items Returned: ' FontSize='11' FontWeight='SemiBold' Foreground='#EF4444'/>
                                 <TextBlock Text='{Binding TotalReturnedCount}' FontSize='11' FontWeight='Bold' Foreground='#EF4444'/>
                             </StackPanel>
-                            <Button Content='View All' FontSize='10' FontWeight='SemiBold' Foreground='#7C3AED' Background='Transparent' 
+                            <Button Content='View All' FontSize='10' FontWeight='SemiBold' Foreground='#3B82F6' Background='Transparent' 
                                     BorderThickness='0' HorizontalAlignment='Right' Cursor='Hand' Padding='4,0'
                                     Command='{Binding DataContext.OpenExchangeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}'
                                     CommandParameter='{Binding ExchangeId}'>
@@ -1967,7 +2281,7 @@ public partial class TransactionViewModel : ObservableObject
                                                 <Setter Property='Visibility' Value='Visible'/>
                                             </DataTrigger>
                                             <Trigger Property='IsMouseOver' Value='True'>
-                                                <Setter Property='Foreground' Value='#6D28D9'/>
+                                                <Setter Property='Foreground' Value='#2563EB'/>
                                                 <Setter Property='TextBlock.TextDecorations' Value='Underline'/>
                                             </Trigger>
                                         </Style.Triggers>
@@ -2031,12 +2345,12 @@ public partial class TransactionViewModel : ObservableObject
                         <!-- Difference -->
                         <Grid Grid.Row='8' Margin='0,4,0,0'>
                             <TextBlock Text='Price Difference' FontSize='13' FontWeight='SemiBold' Foreground='#1F2937'/>
-                            <TextBlock Text='{Binding Difference, StringFormat=${0:N2}}' FontSize='15' FontWeight='Bold' Foreground='#7C3AED' HorizontalAlignment='Right'/>
+                            <TextBlock Text='{Binding Difference, StringFormat=${0:N2}}' FontSize='15' FontWeight='Bold' Foreground='#3B82F6' HorizontalAlignment='Right'/>
                         </Grid>
                         
                         <!-- Action Buttons -->
                         <UniformGrid Grid.Row='10' Columns='2' HorizontalAlignment='Stretch'>
-                            <Button Content='View Details' Height='35' Margin='0,0,4,0' Background='#7C3AED' Foreground='White' BorderThickness='0' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
+                            <Button Content='View Details' Height='35' Margin='0,0,4,0' Background='#3B82F6' Foreground='White' BorderThickness='0' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
                                     Command='{Binding DataContext.OpenExchangeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}'
                                     CommandParameter='{Binding ExchangeId}'>
                                 <Button.Style>
@@ -2052,13 +2366,13 @@ public partial class TransactionViewModel : ObservableObject
                                         </Setter>
                                         <Style.Triggers>
                                             <Trigger Property='IsMouseOver' Value='True'>
-                                                <Setter Property='Background' Value='#6D28D9'/>
+                                                <Setter Property='Background' Value='#2563EB'/>
                                             </Trigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Button.Style>
                             </Button>
-                            <Button Content='Print' Height='35' Margin='4,0,0,0' Background='White' BorderBrush='#7C3AED' BorderThickness='2' Foreground='#7C3AED' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
+                            <Button Content='Print' Height='35' Margin='4,0,0,0' Background='White' BorderBrush='#3B82F6' BorderThickness='2' Foreground='#3B82F6' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
                                     Command='{Binding DataContext.PrintExchangeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}'
                                     CommandParameter='{Binding ExchangeId}'>
                                 <Button.Style>
@@ -2093,7 +2407,7 @@ public partial class TransactionViewModel : ObservableObject
 }
 
 // Models
-public class TransactionCardModel
+public partial class TransactionCardModel : ObservableObject
 {
     public string OrderNumber { get; set; } = string.Empty;
     public string CustomerName { get; set; } = string.Empty;
@@ -2106,9 +2420,27 @@ public class TransactionCardModel
     public string StatusLower => Status.ToLower();
     public int TransactionId { get; set; }
     public string TableName { get; set; } = string.Empty;
+    public string ReservationInfo { get; set; } = string.Empty; // For showing reservation details
     public int TotalItemCount { get; set; }
     public bool ShowViewAllButton => TotalItemCount > 2;
     public ObservableCollection<TransactionItemModel> DisplayItems { get; set; } = new();
+    
+    // Payment info for partial/pending payments
+    public decimal AmountCreditRemaining { get; set; }
+    public string CreditRemainingDisplay => AmountCreditRemaining > 0 ? $"Remaining: ${AmountCreditRemaining:N2}" : string.Empty;
+    public bool ShowCreditRemaining => StatusLower == "partial_payment" || StatusLower == "pending_payment";
+    
+    // Timer properties for active transactions
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    
+    [ObservableProperty]
+    private string timerDisplay = string.Empty;
+    
+    public bool ShowTimer => StatusLower == "draft" || StatusLower == "billed";
+    
+    // Reservation display
+    public bool ShowReservation => !string.IsNullOrEmpty(ReservationInfo);
 }
 
 public class TransactionItemModel
