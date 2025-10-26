@@ -12,6 +12,7 @@ using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Services;
 using ChronoPos.Desktop.ViewModels;
 using ChronoPos.Desktop.Views;
+using ChronoPos.Desktop.Views.Dialogs;
 using ChronoPos.Desktop.Services;
 
 namespace ChronoPos.Desktop;
@@ -618,11 +619,10 @@ public partial class App : System.Windows.Application
                 LogMessage($"!!! Inner stack trace: {ex.InnerException.StackTrace}");
             }
             
-            MessageBox.Show(
-                $"Application startup failed:\n\n{ex.Message}\n\nSee log file for details.", 
-                "Startup Error", 
-                MessageBoxButton.OK, 
-                MessageBoxImage.Error);
+            new MessageDialog(
+                "Startup Error",
+                $"Application startup failed:\n\n{ex.Message}\n\nSee log file for details.",
+                MessageDialog.MessageType.Error).ShowDialog();
             
             this.Shutdown(1);
         }
@@ -917,11 +917,10 @@ public partial class App : System.Windows.Application
         catch (Exception ex)
         {
             LogMessage($"  - Database initialization error: {ex.Message}");
-            MessageBox.Show(
-                $"Database initialization failed: {ex.Message}\nThe application will continue without database functionality.", 
-                "Database Warning", 
-                MessageBoxButton.OK, 
-                MessageBoxImage.Warning);
+            new MessageDialog(
+                "Database Warning",
+                $"Database initialization failed: {ex.Message}\nThe application will continue without database functionality.",
+                MessageDialog.MessageType.Warning).ShowDialog();
         }
     }
 
@@ -965,8 +964,7 @@ public partial class App : System.Windows.Application
         {
             LogMessage($"Database initialization failed: {ex.Message}");
             // Log error but don't crash the application
-            MessageBox.Show($"Database initialization failed: {ex.Message}\nThe application will continue without database functionality.", 
-                          "Database Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog("Database Warning", $"Database initialization failed: {ex.Message}\nThe application will continue without database functionality.", MessageDialog.MessageType.Warning).ShowDialog();
         }
     }
 

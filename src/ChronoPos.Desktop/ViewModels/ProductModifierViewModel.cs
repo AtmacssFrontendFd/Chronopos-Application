@@ -5,6 +5,7 @@ using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Constants;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.Views;
+using ChronoPos.Desktop.Views.Dialogs;
 using System.Collections.ObjectModel;
 using System.Windows;
 
@@ -412,13 +413,12 @@ namespace ChronoPos.Desktop.ViewModels
 
             try
             {
-                var result = MessageBox.Show(
-                    $"Are you sure you want to delete the modifier group '{modifierGroup.Name}'?\n\nThis will also delete all items in this group. This action cannot be undone.",
+                var result = new ConfirmationDialog(
                     "Confirm Delete",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
+                    $"Are you sure you want to delete the modifier group '{modifierGroup.Name}'?\n\nThis will also delete all items in this group. This action cannot be undone.",
+                    ConfirmationDialog.DialogType.Warning).ShowDialog();
 
-                if (result == MessageBoxResult.Yes)
+                if (result == true)
                 {
                     IsLoading = true;
                     LoadingMessage = "Deleting modifier group...";
@@ -435,8 +435,7 @@ namespace ChronoPos.Desktop.ViewModels
             {
                 StatusMessage = $"Error deleting modifier group: {ex.Message}";
                 FileLogger.Log($"❌ Error deleting modifier group: {ex.Message}");
-                MessageBox.Show($"Error deleting modifier group: {ex.Message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", $"Error deleting modifier group: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
             }
             finally
             {
@@ -508,13 +507,12 @@ namespace ChronoPos.Desktop.ViewModels
 
             try
             {
-                var result = MessageBox.Show(
-                    $"Are you sure you want to delete the modifier '{modifier.Name}'?\n\nThis action cannot be undone.",
+                var result = new ConfirmationDialog(
                     "Confirm Delete",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
+                    $"Are you sure you want to delete the modifier '{modifier.Name}'?\n\nThis action cannot be undone.",
+                    ConfirmationDialog.DialogType.Warning).ShowDialog();
 
-                if (result == MessageBoxResult.Yes)
+                if (result == true)
                 {
                     IsLoading = true;
                     LoadingMessage = "Deleting modifier...";
@@ -531,8 +529,7 @@ namespace ChronoPos.Desktop.ViewModels
             {
                 StatusMessage = $"Error deleting modifier: {ex.Message}";
                 FileLogger.Log($"❌ Error deleting modifier: {ex.Message}");
-                MessageBox.Show($"Error deleting modifier: {ex.Message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", $"Error deleting modifier: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
             }
             finally
             {

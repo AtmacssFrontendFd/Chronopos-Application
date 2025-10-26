@@ -4,6 +4,7 @@ using ChronoPos.Application.Logging;
 using ChronoPos.Desktop.Helpers;
 using ChronoPos.Desktop.Models;
 using ChronoPos.Desktop.Views;
+using ChronoPos.Desktop.Views.Dialogs;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -243,8 +244,8 @@ public partial class ReservationTimelineViewModel : ObservableObject
         {
             AppLogger.LogError("InitializeAsync failed", ex, filename: "reservation");
             StatusMessage = $"Error initializing: {ex.Message}";
-            MessageBox.Show($"Failed to initialize reservation timeline: {ex.Message}", 
-                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to initialize reservation timeline: {ex.Message}", 
+                MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {
@@ -410,8 +411,7 @@ public partial class ReservationTimelineViewModel : ObservableObject
         {
             AppLogger.LogError("LoadReservationsAsync failed", ex, filename: "reservation");
             StatusMessage = $"Error loading reservations: {ex.Message}";
-            MessageBox.Show($"Failed to load reservations: {ex.Message}", 
-                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to load reservations: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {
@@ -559,8 +559,7 @@ public partial class ReservationTimelineViewModel : ObservableObject
         if (!CanCreateReservation)
         {
             AppLogger.LogWarning("User attempted to open Add Reservation but lacks permission", filename: "reservation");
-            MessageBox.Show("You don't have permission to create reservations.", 
-                "Permission Denied", MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog("Permission Denied", "You don't have permission to create reservations.", MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -591,7 +590,7 @@ public partial class ReservationTimelineViewModel : ObservableObject
         catch (Exception ex)
         {
             AppLogger.LogError("Failed to open Add Reservation side panel", ex, filename: "reservation");
-            MessageBox.Show($"Failed to open reservation form: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to open reservation form: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -603,8 +602,7 @@ public partial class ReservationTimelineViewModel : ObservableObject
         if (!CanEditReservation)
         {
             AppLogger.LogWarning("User attempted to edit reservation but lacks permission", filename: "reservation");
-            MessageBox.Show("You don't have permission to edit reservations.", 
-                "Permission Denied", MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog("Permission Denied", "You don't have permission to edit reservations.", MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -642,7 +640,7 @@ public partial class ReservationTimelineViewModel : ObservableObject
         catch (Exception ex)
         {
             AppLogger.LogError($"Failed to open Edit Reservation side panel for ID {reservation.Id}", ex, filename: "reservation");
-            MessageBox.Show($"Failed to open reservation form: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to open reservation form: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -672,7 +670,7 @@ public partial class ReservationTimelineViewModel : ObservableObject
         catch (Exception ex)
         {
             AppLogger.LogError("Failed to open Add Table side panel", ex, filename: "reservation");
-            MessageBox.Show($"Failed to open table form: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to open table form: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -709,7 +707,7 @@ public partial class ReservationTimelineViewModel : ObservableObject
         catch (Exception ex)
         {
             AppLogger.LogError($"Failed to open Edit Table side panel for {table.TableNumber}", ex, filename: "reservation");
-            MessageBox.Show($"Failed to open table form: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to open table form: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -745,7 +743,7 @@ public partial class ReservationTimelineViewModel : ObservableObject
         catch (Exception ex)
         {
             AppLogger.LogError($"Failed to open reservation details popup", ex, filename: "reservation");
-            MessageBox.Show($"Failed to open reservation details: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to open reservation details: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -843,20 +841,18 @@ public partial class ReservationTimelineViewModel : ObservableObject
     {
         if (!CanDeleteReservation)
         {
-            MessageBox.Show("You don't have permission to delete reservations.", 
-                "Permission Denied", MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog("Permission Denied", "You don't have permission to delete reservations.", MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
         if (reservation == null) return;
 
-        var result = MessageBox.Show(
-            $"Are you sure you want to delete the reservation for {reservation.CustomerName} on {reservation.ReservationDateTime}?",
+        var result = new ConfirmationDialog(
             "Confirm Delete",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+            $"Are you sure you want to delete the reservation for {reservation.CustomerName} on {reservation.ReservationDateTime}?",
+            ConfirmationDialog.DialogType.Warning).ShowDialog();
 
-        if (result == MessageBoxResult.Yes)
+        if (result == true)
         {
             try
             {
@@ -870,21 +866,18 @@ public partial class ReservationTimelineViewModel : ObservableObject
                     StatusMessage = "Reservation deleted successfully";
                     await LoadReservationsAsync();
                     
-                    MessageBox.Show("Reservation deleted successfully.", 
-                        "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    new MessageDialog("Success", "Reservation deleted successfully.", MessageDialog.MessageType.Success).ShowDialog();
                 }
                 else
                 {
                     StatusMessage = "Failed to delete reservation";
-                    MessageBox.Show("Failed to delete reservation. Please try again.", 
-                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    new MessageDialog("Error", "Failed to delete reservation. Please try again.", MessageDialog.MessageType.Error).ShowDialog();
                 }
             }
             catch (Exception ex)
             {
                 StatusMessage = $"Error: {ex.Message}";
-                MessageBox.Show($"Error deleting reservation: {ex.Message}", 
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", $"Error deleting reservation: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
             }
             finally
             {
@@ -913,15 +906,13 @@ public partial class ReservationTimelineViewModel : ObservableObject
             }
             else
             {
-                MessageBox.Show("Failed to confirm reservation.", 
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Failed to confirm reservation.", MessageDialog.MessageType.Error).ShowDialog();
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error: {ex.Message}";
-            MessageBox.Show($"Error confirming reservation: {ex.Message}", 
-                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error confirming reservation: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {
@@ -949,15 +940,13 @@ public partial class ReservationTimelineViewModel : ObservableObject
             }
             else
             {
-                MessageBox.Show("Failed to check in reservation.", 
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Failed to check in reservation.", MessageDialog.MessageType.Error).ShowDialog();
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error: {ex.Message}";
-            MessageBox.Show($"Error checking in reservation: {ex.Message}", 
-                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error checking in reservation: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {
@@ -970,13 +959,12 @@ public partial class ReservationTimelineViewModel : ObservableObject
     {
         if (reservation == null) return;
 
-        var result = MessageBox.Show(
-            $"Are you sure you want to cancel this reservation?",
+        var result = new ConfirmationDialog(
             "Confirm Cancellation",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+            $"Are you sure you want to cancel this reservation?",
+            ConfirmationDialog.DialogType.Warning).ShowDialog();
 
-        if (result == MessageBoxResult.Yes)
+        if (result == true)
         {
             try
             {
@@ -993,15 +981,13 @@ public partial class ReservationTimelineViewModel : ObservableObject
                 }
                 else
                 {
-                    MessageBox.Show("Failed to cancel reservation.", 
-                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    new MessageDialog("Error", "Failed to cancel reservation.", MessageDialog.MessageType.Error).ShowDialog();
                 }
             }
             catch (Exception ex)
             {
                 StatusMessage = $"Error: {ex.Message}";
-                MessageBox.Show($"Error cancelling reservation: {ex.Message}", 
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", $"Error cancelling reservation: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
             }
             finally
             {
@@ -1030,15 +1016,13 @@ public partial class ReservationTimelineViewModel : ObservableObject
             }
             else
             {
-                MessageBox.Show("Failed to complete reservation.", 
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Failed to complete reservation.", MessageDialog.MessageType.Error).ShowDialog();
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error: {ex.Message}";
-            MessageBox.Show($"Error completing reservation: {ex.Message}", 
-                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error completing reservation: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {

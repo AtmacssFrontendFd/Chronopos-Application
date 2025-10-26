@@ -5,6 +5,7 @@ using ChronoPos.Application.DTOs;
 using System.Collections.ObjectModel;
 using System.Windows;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Views.Dialogs;
 using InfrastructureServices = ChronoPos.Infrastructure.Services;
 using ChronoPos.Application.Constants;
 
@@ -375,7 +376,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             StatusMessage = $"Error loading data: {ex.Message}";
-            MessageBox.Show($"Failed to load data: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to load data: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {
@@ -580,7 +581,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             StatusMessage = $"Error saving product: {ex.Message}";
-            MessageBox.Show($"Failed to save product: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to save product: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {
@@ -593,13 +594,14 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
     {
         if (product == null) return;
 
-        var result = MessageBox.Show(
-            $"Are you sure you want to delete '{product.Name}'?",
+        var dialog = new ConfirmationDialog(
             "Confirm Delete",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+            $"Are you sure you want to delete '{product.Name}'?",
+            ConfirmationDialog.DialogType.Danger);
+        
+        var result = dialog.ShowDialog();
 
-        if (result == MessageBoxResult.Yes)
+        if (result == true)
         {
             try
             {
@@ -613,7 +615,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
             catch (Exception ex)
             {
                 StatusMessage = $"Error deleting product: {ex.Message}";
-                MessageBox.Show($"Failed to delete product: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", $"Failed to delete product: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
             }
             finally
             {
@@ -702,7 +704,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             StatusMessage = $"Error saving category: {ex.Message}";
-            MessageBox.Show($"Failed to save category: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to save category: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {
@@ -722,7 +724,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
         if (!validationResult.IsValid)
         {
             StatusMessage = validationResult.ErrorMessage;
-            MessageBox.Show(validationResult.ErrorMessage, "Cannot Add Discount", MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog("Cannot Add Discount", validationResult.ErrorMessage, MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
         
@@ -867,7 +869,7 @@ private void DebugBindings()
         {
             var message = await GetTranslationAsync("validation_category_name_required", "Category name is required");
             var title = await GetTranslationAsync("validation_error_title", "Validation Error");
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog(title, message, MessageDialog.MessageType.Warning).ShowDialog();
             return false;
         }
         
@@ -875,7 +877,7 @@ private void DebugBindings()
         {
             var message = await GetTranslationAsync("validation_category_name_length", "Category name cannot exceed 100 characters");
             var title = await GetTranslationAsync("validation_error_title", "Validation Error");
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog(title, message, MessageDialog.MessageType.Warning).ShowDialog();
             return false;
         }
 
@@ -883,7 +885,7 @@ private void DebugBindings()
         {
             var message = await GetTranslationAsync("validation_description_length", "Category description cannot exceed 500 characters");
             var title = await GetTranslationAsync("validation_error_title", "Validation Error");
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog(title, message, MessageDialog.MessageType.Warning).ShowDialog();
             return false;
         }
 
@@ -891,7 +893,7 @@ private void DebugBindings()
         {
             var message = await GetTranslationAsync("validation_arabic_name_length", "Category name (Arabic) cannot exceed 100 characters");
             var title = await GetTranslationAsync("validation_error_title", "Validation Error");
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog(title, message, MessageDialog.MessageType.Warning).ShowDialog();
             return false;
         }
 
@@ -899,7 +901,7 @@ private void DebugBindings()
         {
             var message = await GetTranslationAsync("validation_display_order_negative", "Display order cannot be negative");
             var title = await GetTranslationAsync("validation_error_title", "Validation Error");
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog(title, message, MessageDialog.MessageType.Warning).ShowDialog();
             return false;
         }
 

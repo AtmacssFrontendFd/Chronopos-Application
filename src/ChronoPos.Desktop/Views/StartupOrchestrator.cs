@@ -5,6 +5,7 @@ using System.Windows.Threading;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Views.Dialogs;
 using ChronoPos.Infrastructure;
 
 namespace ChronoPos.Desktop.Views
@@ -215,11 +216,10 @@ namespace ChronoPos.Desktop.Views
                 
                 await _dispatcher.InvokeAsync(() =>
                 {
-                    MessageBox.Show(
-                        $"Application startup failed: {ex.Message}\n\nSee log file for details.",
+                    new MessageDialog(
                         "Startup Error",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                        $"Application startup failed: {ex.Message}\n\nSee log file for details.",
+                        MessageDialog.MessageType.Error).ShowDialog();
                 });
                 
                 return false;

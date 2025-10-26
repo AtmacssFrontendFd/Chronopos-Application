@@ -2,6 +2,7 @@ using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Logging;
 using ChronoPos.Desktop.Helpers;
+using ChronoPos.Desktop.Views.Dialogs;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -461,13 +462,12 @@ public partial class ReservationSidePanelViewModel : ObservableObject
             {
                 AppLogger.LogWarning($"Time slot conflict detected: {ConflictMessage}", filename: "reservation");
                 
-                var result = MessageBox.Show(
-                    "There is a time slot conflict. Do you want to save anyway?",
+                var result = new ConfirmationDialog(
                     "Conflict Warning",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning);
+                    "There is a time slot conflict. Do you want to save anyway?",
+                    ConfirmationDialog.DialogType.Warning).ShowDialog();
 
-                if (result == MessageBoxResult.No)
+                if (result == false)
                 {
                     AppLogger.LogInfo("User cancelled save due to conflict", filename: "reservation");
                     return;

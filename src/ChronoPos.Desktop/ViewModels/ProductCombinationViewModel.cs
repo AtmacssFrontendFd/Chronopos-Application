@@ -3,6 +3,7 @@ using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Constants;
 using ChronoPos.Domain.Entities;
 using ChronoPos.Desktop.Models;
+using ChronoPos.Desktop.Views.Dialogs;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -297,13 +298,12 @@ public partial class ProductCombinationViewModel : ObservableObject
 
         try
         {
-            var result = MessageBox.Show(
-                $"Are you sure you want to delete all combinations for '{productUnit.DisplayName}'?",
+            var result = new ConfirmationDialog(
                 "Confirm Delete",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
+                $"Are you sure you want to delete all combinations for '{productUnit.DisplayName}'?",
+                ConfirmationDialog.DialogType.Warning).ShowDialog();
 
-            if (result == MessageBoxResult.Yes)
+            if (result == true)
             {
                 StatusMessage = "Deleting combinations...";
                 // Get all combinations for this product unit and delete them
@@ -318,8 +318,8 @@ public partial class ProductCombinationViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error deleting combinations: {ex.Message}";
-            MessageBox.Show($"Failed to delete combinations: {ex.Message}", "Error", 
-                          MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to delete combinations: {ex.Message}", 
+                          MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 

@@ -1,5 +1,6 @@
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Desktop.Views.Dialogs;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -193,13 +194,12 @@ public partial class PermissionViewModel : ObservableObject
     {
         if (permission == null) return;
         
-        var result = MessageBox.Show(
-            $"Are you sure you want to delete the permission '{permission.Name}'?",
+        var result = new ConfirmationDialog(
             "Confirm Delete",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            $"Are you sure you want to delete the permission '{permission.Name}'?",
+            ConfirmationDialog.DialogType.Warning).ShowDialog();
             
-        if (result != MessageBoxResult.Yes) return;
+        if (result != true) return;
         
         try
         {
@@ -220,7 +220,7 @@ public partial class PermissionViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error deleting permission: {ex.Message}";
-            MessageBox.Show(ex.Message, "Delete Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Delete Error", ex.Message, MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
