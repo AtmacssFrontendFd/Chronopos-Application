@@ -14,10 +14,13 @@ namespace ChronoPos.Desktop.Models.Licensing
     public class CustomerInfo
     {
         public string BusinessName { get; set; } = string.Empty;
-        public string ContactPerson { get; set; } = string.Empty;
+        public string SupportPerson { get; set; } = string.Empty; // Renamed from ContactPerson
         public string Email { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
+        public string Country { get; set; } = string.Empty; // New field
+        public string InvoiceNumber { get; set; } = string.Empty; // New field
+        public DateTime InvoiceDate { get; set; } // New field
         
         // Dubai-specific compliance fields
         public string TradeLicenseNumber { get; set; } = string.Empty;

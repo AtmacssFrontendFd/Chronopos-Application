@@ -856,6 +856,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IRefundService>(),
                 _serviceProvider.GetRequiredService<IExchangeService>(),
                 _serviceProvider.GetRequiredService<IPaymentTypeService>(),
+                _serviceProvider.GetRequiredService<IReservationService>(),
                 navigateToEditTransaction: async (transactionId) => await LoadTransactionForEdit(transactionId),
                 navigateToPayBill: async (transactionId) => await LoadTransactionForPayment(transactionId),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),

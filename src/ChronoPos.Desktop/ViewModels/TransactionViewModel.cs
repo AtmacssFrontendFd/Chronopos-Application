@@ -13,6 +13,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
+using ChronoPos.Application.Logging;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -22,12 +23,14 @@ public partial class TransactionViewModel : ObservableObject
     private readonly IRefundService _refundService;
     private readonly IExchangeService _exchangeService;
     private readonly IPaymentTypeService _paymentTypeService;
+    private readonly IReservationService _reservationService;
     private readonly Action<int>? _navigateToEditTransaction;
     private readonly Action<int>? _navigateToPayBill;
     private readonly Action<int>? _navigateToRefundTransaction;
     private readonly Action<int>? _navigateToExchangeTransaction;
     private readonly Action? _navigateToAddSales;
     private DispatcherTimer? _timerUpdateTimer;
+    private bool _isPaymentPopupOpen = false; // Guard flag to prevent duplicate popups
 
     [ObservableProperty]
     private string currentTab = "Sales";
@@ -55,6 +58,7 @@ public partial class TransactionViewModel : ObservableObject
         IRefundService refundService,
         IExchangeService exchangeService,
         IPaymentTypeService paymentTypeService,
+        IReservationService reservationService,
         Action<int>? navigateToEditTransaction = null,
         Action<int>? navigateToPayBill = null,
         Action<int>? navigateToRefundTransaction = null,
@@ -65,6 +69,7 @@ public partial class TransactionViewModel : ObservableObject
         _refundService = refundService;
         _exchangeService = exchangeService;
         _paymentTypeService = paymentTypeService;
+        _reservationService = reservationService;
         _navigateToEditTransaction = navigateToEditTransaction;
         _navigateToPayBill = navigateToPayBill;
         _navigateToRefundTransaction = navigateToRefundTransaction;
@@ -400,11 +405,19 @@ public partial class TransactionViewModel : ObservableObject
     {
         try
         {
+            // Guard against duplicate popup display
+            if (_isPaymentPopupOpen)
+            {
+                return; // Popup already open, ignore this call
+            }
+            _isPaymentPopupOpen = true;
+
             // Get fresh transaction data to ensure we have the latest values
             var freshTransaction = _transactionService.GetByIdAsync(transaction.Id).Result;
             if (freshTransaction == null)
             {
                 MessageBox.Show("Transaction not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                _isPaymentPopupOpen = false; // Reset guard flag
                 return;
             }
             
@@ -418,6 +431,7 @@ public partial class TransactionViewModel : ObservableObject
             {
                 MessageBox.Show("No payment methods available. Please configure payment methods first.", 
                     "Configuration Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _isPaymentPopupOpen = false; // Reset guard flag
                 return;
             }
             
@@ -651,6 +665,35 @@ public partial class TransactionViewModel : ObservableObject
                     // TRANSACTIONAL OPERATION: Change status to appropriate state
                     await _transactionService.ChangeStatusAsync(currentTransaction.Id, transactionStatus, currentTransaction.UserId);
 
+                    // Update reservation status to completed if transaction is settled and has a reservation
+                    AppLogger.LogInfo($"Checking reservation update - TransactionId: {currentTransaction.Id}, Status: {transactionStatus}, ReservationId: {currentTransaction.ReservationId?.ToString() ?? "NULL"}");
+                    
+                    if (transactionStatus == "settled" && currentTransaction.ReservationId.HasValue)
+                    {
+                        try
+                        {
+                            AppLogger.LogInfo($"Attempting to complete reservation {currentTransaction.ReservationId.Value} for settled transaction {currentTransaction.Id}");
+                            await _reservationService.CompleteReservationAsync(currentTransaction.ReservationId.Value);
+                            AppLogger.LogInfo($"Successfully completed reservation {currentTransaction.ReservationId.Value}");
+                        }
+                        catch (Exception resEx)
+                        {
+                            // Log but don't fail settlement if reservation update fails
+                            AppLogger.LogError($"Failed to update reservation {currentTransaction.ReservationId.Value} status to completed", resEx);
+                        }
+                    }
+                    else
+                    {
+                        if (transactionStatus != "settled")
+                        {
+                            AppLogger.LogInfo($"Reservation not updated - transaction status is '{transactionStatus}' (not 'settled')");
+                        }
+                        else if (!currentTransaction.ReservationId.HasValue)
+                        {
+                            AppLogger.LogInfo($"Reservation not updated - transaction has no ReservationId");
+                        }
+                    }
+
                     var statusMessage = transactionStatus switch
                     {
                         "settled" => "Transaction settled successfully (Full Payment)!",
@@ -722,10 +765,15 @@ public partial class TransactionViewModel : ObservableObject
             grid.Children.Add(buttonPanel);
 
             paymentPopup.Content = grid;
+            
+            // Reset guard flag when popup closes
+            paymentPopup.Closed += (s, e) => _isPaymentPopupOpen = false;
+            
             paymentPopup.ShowDialog();
         }
         catch (Exception ex)
         {
+            _isPaymentPopupOpen = false; // Reset guard flag on error
             MessageBox.Show($"Error showing payment popup: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }

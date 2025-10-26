@@ -2608,6 +2608,21 @@ public partial class AddSalesViewModel : ObservableObject
                         
                         // Now change status to settled/partial_payment/pending_payment
                         var settledTransaction = await _transactionService.ChangeStatusAsync(CurrentTransactionId, transactionStatus, currentUserId.Value);
+                        
+                        // Update reservation status to completed if transaction is settled and has a reservation
+                        if (transactionStatus == "settled" && SelectedReservation?.Id != null)
+                        {
+                            try
+                            {
+                                await _reservationService.CompleteReservationAsync(SelectedReservation.Id);
+                                AppLogger.Log($"PayLater: Reservation #{SelectedReservation.Id} marked as completed");
+                            }
+                            catch (Exception resEx)
+                            {
+                                AppLogger.LogError($"PayLater: Failed to update reservation {SelectedReservation.Id} status to completed", resEx);
+                            }
+                        }
+                        
                         CurrentTransactionStatus = transactionStatus;
                         UpdateButtonVisibility();
 
@@ -2661,6 +2676,21 @@ public partial class AddSalesViewModel : ObservableObject
                         var savedTransaction = await _transactionService.CreateAsync(transactionDto, currentUserId.Value);
                         CurrentTransactionId = savedTransaction.Id;
                         CurrentTransactionStatus = transactionStatus;
+                        
+                        // Update reservation status to completed if transaction is settled and has a reservation
+                        if (transactionStatus == "settled" && SelectedReservation?.Id != null)
+                        {
+                            try
+                            {
+                                await _reservationService.CompleteReservationAsync(SelectedReservation.Id);
+                                AppLogger.Log($"PayLater: Reservation #{SelectedReservation.Id} marked as completed for new transaction");
+                            }
+                            catch (Exception resEx)
+                            {
+                                AppLogger.LogError($"PayLater: Failed to update reservation {SelectedReservation.Id} status to completed", resEx);
+                            }
+                        }
+                        
                         UpdateButtonVisibility();
                         
                         var statusMessage = transactionStatus switch
