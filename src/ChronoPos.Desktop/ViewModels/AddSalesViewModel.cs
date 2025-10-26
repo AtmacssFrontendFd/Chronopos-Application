@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
+using ChronoPos.Desktop.Views.Dialogs;
 using ChronoPos.Domain.Entities;
 using ChronoPos.Domain.Interfaces;
 using System.Linq;
@@ -236,7 +237,7 @@ public partial class AddSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error initializing Add Sales screen: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error initializing Add Sales screen: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -261,7 +262,7 @@ public partial class AddSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading tables: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading tables: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -339,7 +340,7 @@ public partial class AddSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading categories: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading categories: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -387,7 +388,7 @@ public partial class AddSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading products: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading products: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -405,7 +406,7 @@ public partial class AddSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading customers: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading customers: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -423,7 +424,7 @@ public partial class AddSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading discounts: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading discounts: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -441,7 +442,7 @@ public partial class AddSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading tax types: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading tax types: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -480,7 +481,7 @@ public partial class AddSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading products for category: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading products for category: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -517,7 +518,7 @@ public partial class AddSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading all products: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading all products: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -542,31 +543,31 @@ public partial class AddSalesViewModel : ObservableObject
                 if (!productDetails.AllowNegativeStock)
                 {
                     // Restrict user from adding more
-                    MessageBox.Show(
+                    new MessageDialog(
+                        "Stock Unavailable",
                         $"Insufficient stock for '{productDetails.Name}'.\n\n" +
                         $"Available: {productDetails.InitialStock}\n" +
                         $"Requested: {requestedQuantity}\n\n" +
                         $"Cannot add more items.",
-                        "Stock Unavailable",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Warning);
+                        MessageDialog.MessageType.Warning).ShowDialog();
                     return;
                 }
                 else
                 {
                     // Allow negative stock but show warning
-                    var result = MessageBox.Show(
+                    var dialog = new ConfirmationDialog(
+                        "Stock Warning",
                         $"Warning: Insufficient stock for '{productDetails.Name}'.\n\n" +
                         $"Available: {productDetails.InitialStock}\n" +
                         $"Requested: {requestedQuantity}\n" +
                         $"Shortage: {requestedQuantity - productDetails.InitialStock}\n\n" +
                         $"This product allows negative stock.\n" +
                         $"Do you want to continue?",
-                        "Stock Warning",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Warning);
+                        ConfirmationDialog.DialogType.Warning);
                     
-                    if (result != MessageBoxResult.Yes)
+                    var result = dialog.ShowDialog();
+                    
+                    if (result != true)
                     {
                         return;
                     }
@@ -664,7 +665,7 @@ public partial class AddSalesViewModel : ObservableObject
     private void EditTable()
     {
         // TODO: Implement table selection dialog
-        MessageBox.Show("Table selection feature coming soon!", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+        new MessageDialog("Info", "Table selection feature coming soon!", MessageDialog.MessageType.Info).ShowDialog();
     }
 
     [RelayCommand]
@@ -676,7 +677,7 @@ public partial class AddSalesViewModel : ObservableObject
             
             if (!CartItems.Any())
             {
-                MessageBox.Show("Please add items to the cart before saving.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Validation", "Please add items to the cart before saving.", MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
@@ -686,7 +687,7 @@ public partial class AddSalesViewModel : ObservableObject
             
             if (!currentUserId.HasValue || currentUserId.Value <= 0)
             {
-                MessageBox.Show("Unable to identify current user. Please log in again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Unable to identify current user. Please log in again.", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -705,8 +706,7 @@ public partial class AddSalesViewModel : ObservableObject
             // TODO: Implement proper transaction update when products change
             if (CurrentTransactionId > 0)
             {
-                MessageBox.Show("Updating existing transactions with product changes is not yet supported.\nPlease create a new transaction instead.", 
-                    "Not Supported", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Not Supported", "Updating existing transactions with product changes is not yet supported.\nPlease create a new transaction instead.", MessageDialog.MessageType.Info).ShowDialog();
                 return;
             }
             else
@@ -768,6 +768,7 @@ public partial class AddSalesViewModel : ObservableObject
                 
                 // Navigate to transaction list if callback provided
                 _navigateToTransactionList?.Invoke();
+                new MessageDialog("Success", $"Transaction #{savedTransaction.Id} saved successfully!", MessageDialog.MessageType.Success).ShowDialog();
             }
 
             // Don't clear cart after save - user might want to continue editing
@@ -781,7 +782,7 @@ public partial class AddSalesViewModel : ObservableObject
                 errorMessage += $"\n\nDetails: {ex.InnerException.Message}";
                 AppLogger.LogError($"SaveTransaction: Inner exception - {ex.InnerException.Message}", ex.InnerException);
             }
-            MessageBox.Show(errorMessage, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", errorMessage, MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -886,13 +887,13 @@ public partial class AddSalesViewModel : ObservableObject
 
                 if (string.IsNullOrEmpty(name))
                 {
-                    MessageBox.Show("Customer name is required.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    new MessageDialog("Validation", "Customer name is required.", MessageDialog.MessageType.Warning).ShowDialog();
                     return;
                 }
 
                 if (string.IsNullOrEmpty(mobile))
                 {
-                    MessageBox.Show("Mobile number is required.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    new MessageDialog("Validation", "Mobile number is required.", MessageDialog.MessageType.Warning).ShowDialog();
                     return;
                 }
 
@@ -909,7 +910,7 @@ public partial class AddSalesViewModel : ObservableObject
 
                     await _customerService.CreateCustomerAsync(newCustomer);
 
-                    MessageBox.Show("Customer added successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    new MessageDialog("Success", "Customer added successfully!", MessageDialog.MessageType.Success).ShowDialog();
 
                     // Reload customers
                     await LoadCustomersAsync();
@@ -922,7 +923,7 @@ public partial class AddSalesViewModel : ObservableObject
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error adding customer: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    new MessageDialog("Error", $"Error adding customer: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
                 }
             };
 
@@ -941,7 +942,7 @@ public partial class AddSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1125,7 +1126,7 @@ public partial class AddSalesViewModel : ObservableObject
                 }
                 else
                 {
-                    MessageBox.Show("Please enter a valid discount amount greater than 0.", "Invalid Amount", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    new MessageDialog("Invalid Amount", "Please enter a valid discount amount greater than 0.", MessageDialog.MessageType.Warning).ShowDialog();
                 }
             };
 
@@ -1199,7 +1200,7 @@ public partial class AddSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1442,7 +1443,7 @@ public partial class AddSalesViewModel : ObservableObject
                 }
                 else
                 {
-                    MessageBox.Show("Please enter a valid tax percentage greater than 0.", "Invalid Amount", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    new MessageDialog("Invalid Amount", "Please enter a valid tax percentage greater than 0.", MessageDialog.MessageType.Warning).ShowDialog();
                 }
             };
 
@@ -1518,7 +1519,7 @@ public partial class AddSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1660,7 +1661,7 @@ public partial class AddSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1767,7 +1768,7 @@ public partial class AddSalesViewModel : ObservableObject
             var transaction = await _transactionService.GetByIdAsync(transactionId);
             if (transaction == null)
             {
-                MessageBox.Show("Transaction not found!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Transaction not found!", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -1875,13 +1876,12 @@ public partial class AddSalesViewModel : ObservableObject
             // Update button visibility based on loaded transaction status
             UpdateButtonVisibility();
 
-            MessageBox.Show($"Transaction #{transactionId} loaded for editing.\n\nYou can now modify the transaction and save the changes.", 
-                "Transaction Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
+            new MessageDialog("Transaction Loaded", $"Transaction #{transactionId} loaded for editing.\n\nYou can now modify the transaction and save the changes.", MessageDialog.MessageType.Info).ShowDialog();
         }
         catch (Exception ex)
         {
             AppLogger.LogError($"Error loading transaction {transactionId} for edit", ex);
-            MessageBox.Show($"Error loading transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading transaction: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1895,7 +1895,7 @@ public partial class AddSalesViewModel : ObservableObject
             var transaction = await _transactionService.GetByIdAsync(transactionId);
             if (transaction == null)
             {
-                MessageBox.Show("Transaction not found!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Transaction not found!", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -2003,15 +2003,14 @@ public partial class AddSalesViewModel : ObservableObject
             // Update button visibility based on loaded transaction status
             UpdateButtonVisibility();
 
-            MessageBox.Show($"Transaction #{transactionId} loaded for payment.\n\nTotal Amount: ${transaction.TotalAmount:N2}\n\nPlease proceed to the payment section to complete the transaction.", 
-                "Ready for Payment", MessageBoxButton.OK, MessageBoxImage.Information);
+            new MessageDialog("Ready for Payment", $"Transaction #{transactionId} loaded for payment.\n\nTotal Amount: ${transaction.TotalAmount:N2}\n\nPlease proceed to the payment section to complete the transaction.", MessageDialog.MessageType.Info).ShowDialog();
 
             // TODO: Auto-focus payment section when implemented
         }
         catch (Exception ex)
         {
             AppLogger.LogError($"Error loading transaction {transactionId} for payment", ex);
-            MessageBox.Show($"Error loading transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading transaction: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -2087,14 +2086,14 @@ public partial class AddSalesViewModel : ObservableObject
         {
             if (!CartItems.Any())
             {
-                MessageBox.Show("Please add items to the cart before saving.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Validation", "Please add items to the cart before saving.", MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
             var currentUserId = _currentUserService.CurrentUserId;
             if (!currentUserId.HasValue || currentUserId.Value <= 0)
             {
-                MessageBox.Show("Unable to identify current user. Please log in again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Unable to identify current user. Please log in again.", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -2112,8 +2111,7 @@ public partial class AddSalesViewModel : ObservableObject
                 // Print the bill
                 PrintBill(updatedTransaction);
                 
-                MessageBox.Show($"Transaction #{CurrentTransactionId} saved and marked as Billed!\n\nBill has been printed.", 
-                    "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Success", $"Transaction #{CurrentTransactionId} saved and marked as Billed!\n\nBill has been printed.", MessageDialog.MessageType.Success).ShowDialog();
             }
             else
             {
@@ -2157,13 +2155,12 @@ public partial class AddSalesViewModel : ObservableObject
                 // Print the bill
                 PrintBill(savedTransaction);
 
-                MessageBox.Show($"Transaction #{savedTransaction.Id} saved and marked as Billed!\n\nBill has been printed.", 
-                    "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Success", $"Transaction #{savedTransaction.Id} saved and marked as Billed!\n\nBill has been printed.", MessageDialog.MessageType.Success).ShowDialog();
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error saving transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error saving transaction: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -2359,14 +2356,14 @@ public partial class AddSalesViewModel : ObservableObject
         {
             if (!CartItems.Any())
             {
-                MessageBox.Show("Please add items to the cart before settling.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Validation", "Please add items to the cart before settling.", MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
             var currentUserId = _currentUserService.CurrentUserId;
             if (!currentUserId.HasValue || currentUserId.Value <= 0)
             {
-                MessageBox.Show("Unable to identify current user. Please log in again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Unable to identify current user. Please log in again.", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -2545,7 +2542,7 @@ public partial class AddSalesViewModel : ObservableObject
                 {
                     if (!decimal.TryParse(amountTextBox.Text, out var paidAmount))
                     {
-                        MessageBox.Show("Please enter a valid amount.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        new MessageDialog("Validation Error", "Please enter a valid amount.", MessageDialog.MessageType.Warning).ShowDialog();
                         return;
                     }
 
@@ -2677,6 +2674,7 @@ public partial class AddSalesViewModel : ObservableObject
                         MessageBox.Show($"{statusMessage}\nTransaction ID: #{savedTransaction.Id}\n\nPayment Method: {selectedPaymentType.Name}\nAmount Paid: ${paidAmount:N2}" +
                             (creditDays > 0 ? $"\nCredit Days: {creditDays}" : ""), 
                             "Payment Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                        new MessageDialog("Payment Complete", $"Transaction #{savedTransaction.Id} settled successfully!\n\nPayment Method: {paymentMethodComboBox.SelectedItem}\nAmount Paid: ${paidAmount:N2}", MessageDialog.MessageType.Success).ShowDialog();
                         
                         // Clear cart after settlement if fully paid
                         if (transactionStatus == "settled")
@@ -2687,7 +2685,7 @@ public partial class AddSalesViewModel : ObservableObject
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error settling transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    new MessageDialog("Error", $"Error settling transaction: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
                 }
             };
 
@@ -2701,7 +2699,7 @@ public partial class AddSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error showing payment popup: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error showing payment popup: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -2914,7 +2912,7 @@ public partial class AddSalesViewModel : ObservableObject
         catch (Exception ex)
         {
             AppLogger.LogError($"Error printing bill: {ex.Message}");
-            MessageBox.Show($"Error printing bill: {ex.Message}\n\nThe transaction was saved successfully.", "Print Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog("Print Error", $"Error printing bill: {ex.Message}\n\nThe transaction was saved successfully.", MessageDialog.MessageType.Warning).ShowDialog();
         }
     }
 
@@ -2927,7 +2925,7 @@ public partial class AddSalesViewModel : ObservableObject
         {
             if (transactionId <= 0)
             {
-                MessageBox.Show("Invalid transaction ID for refund.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Error", "Invalid transaction ID for refund.", MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
@@ -2939,7 +2937,7 @@ public partial class AddSalesViewModel : ObservableObject
             var transaction = await _transactionService.GetByIdAsync(transactionId);
             if (transaction == null)
             {
-                MessageBox.Show("Transaction not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Transaction not found.", MessageDialog.MessageType.Error).ShowDialog();
                 IsRefundMode = false;
                 return;
             }
@@ -3015,11 +3013,11 @@ public partial class AddSalesViewModel : ObservableObject
             // Recalculate totals
             RecalculateTotals();
 
-            MessageBox.Show("Refund mode activated. Select items and specify quantities to refund.", "Refund Mode", MessageBoxButton.OK, MessageBoxImage.Information);
+            new MessageDialog("Refund Mode", "Refund mode activated. Select items and specify quantities to refund.", MessageDialog.MessageType.Info).ShowDialog();
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading transaction for refund: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading transaction for refund: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
             IsRefundMode = false;
         }
     }
@@ -3044,14 +3042,14 @@ public partial class AddSalesViewModel : ObservableObject
             
             if (!refundItems.Any())
             {
-                MessageBox.Show("Please select items and specify quantities to refund.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Validation", "Please select items and specify quantities to refund.", MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
             var currentUserId = _currentUserService.CurrentUserId;
             if (!currentUserId.HasValue || currentUserId.Value <= 0)
             {
-                MessageBox.Show("Unable to identify current user. Please log in again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Unable to identify current user. Please log in again.", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -3060,16 +3058,17 @@ public partial class AddSalesViewModel : ObservableObject
             decimal refundVat = refundAmount * (TaxPercentage / 100);
 
             // Confirm refund
-            var result = MessageBox.Show(
+            var dialog = new ConfirmationDialog(
+                "Confirm Refund",
                 $"Are you sure you want to process this refund?\n\n" +
                 $"Items to refund: {refundItems.Count}\n" +
                 $"Refund amount: ${refundAmount:N2}\n\n" +
                 $"This action cannot be undone.",
-                "Confirm Refund",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
+                ConfirmationDialog.DialogType.Warning);
 
-            if (result != MessageBoxResult.Yes)
+            var result = dialog.ShowDialog();
+
+            if (result != true)
                 return;
 
             var shiftId = 1; // TODO: Get current shift ID
@@ -3078,7 +3077,7 @@ public partial class AddSalesViewModel : ObservableObject
             var transaction = await _transactionService.GetByIdAsync(RefundSourceTransactionId);
             if (transaction == null)
             {
-                MessageBox.Show("Source transaction not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Source transaction not found.", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -3112,13 +3111,12 @@ public partial class AddSalesViewModel : ObservableObject
             // Save refund using RefundService
             var savedRefund = await _refundService.CreateAsync(refundDto);
 
-            MessageBox.Show(
+            new MessageDialog(
+                "Success",
                 $"Refund processed successfully!\n\n" +
                 $"Refund ID: #{savedRefund.Id}\n" +
                 $"Amount: ${refundAmount:N2}",
-                "Success",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                MessageDialog.MessageType.Success).ShowDialog();
 
             // Clear cart and exit refund mode
             ClearCart();
@@ -3127,7 +3125,7 @@ public partial class AddSalesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error processing refund: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error processing refund: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -3143,24 +3141,23 @@ public partial class AddSalesViewModel : ObservableObject
     {
         if (CurrentTransactionId <= 0)
         {
-            MessageBox.Show("Please save the transaction first before initiating an exchange.", "Transaction Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog("Transaction Required", "Please save the transaction first before initiating an exchange.", MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
         if (CurrentTransactionStatus?.ToLower() != "settled")
         {
-            MessageBox.Show("Only settled transactions can be exchanged.", "Invalid Status", MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog("Invalid Status", "Only settled transactions can be exchanged.", MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
         // Navigate back to transactions, which will trigger the exchange screen
         // Note: This requires a callback to MainWindowViewModel
-        MessageBox.Show(
+        new MessageDialog(
+            "Exchange Navigation",
             "To exchange this transaction, please use the Exchange button from the Transaction screen.\n\n" +
             "Go to: Transactions → Find the transaction → Click Exchange button",
-            "Exchange Navigation",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+            MessageDialog.MessageType.Info).ShowDialog();
     }
 }
 

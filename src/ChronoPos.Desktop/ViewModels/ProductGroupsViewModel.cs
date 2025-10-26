@@ -285,7 +285,7 @@ public partial class ProductGroupsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error toggling product group status: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error toggling product group status: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -298,10 +298,7 @@ public partial class ProductGroupsViewModel : ObservableObject
         if (productGroup == null)
             return;
 
-        MessageBox.Show($"Product Group Details:\n\nName: {productGroup.Name}\nSKU Prefix: {productGroup.SkuPrefix}\nProducts: {productGroup.ItemCount}",
-            "Product Group Details",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+        new MessageDialog("Product Group Details", $"Product Group Details:\n\nName: {productGroup.Name}\nSKU Prefix: {productGroup.SkuPrefix}\nProducts: {productGroup.ItemCount}", MessageDialog.MessageType.Info).ShowDialog();
     }
 
     /// <summary>
@@ -338,7 +335,7 @@ public partial class ProductGroupsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading product group details: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading product group details: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 

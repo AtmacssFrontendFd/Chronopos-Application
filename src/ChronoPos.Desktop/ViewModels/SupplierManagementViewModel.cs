@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Views.Dialogs;
 using ChronoPos.Infrastructure.Services;
 
 namespace ChronoPos.Desktop.ViewModels;
@@ -101,8 +102,8 @@ public partial class SupplierManagementViewModel : ObservableObject
         else
         {
             // Fallback for debug
-            MessageBox.Show($"Navigating to {moduleType} module", "Navigation", 
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            new MessageDialog("Navigation", $"Navigating to {moduleType} module", 
+                MessageDialog.MessageType.Info).ShowDialog();
         }
     }
 
@@ -119,8 +120,8 @@ public partial class SupplierManagementViewModel : ObservableObject
         else
         {
             // Fallback for debug
-            MessageBox.Show("Going back to Management", "Navigation", 
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            new MessageDialog("Navigation", "Going back to Management", 
+                MessageDialog.MessageType.Info).ShowDialog();
         }
     }
 

@@ -318,8 +318,7 @@ public partial class TaxTypesViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error updating tax type status: {ex.Message}";
-            MessageBox.Show($"Error updating tax type status: {ex.Message}", "Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error updating tax type status: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {
@@ -594,15 +593,13 @@ public partial class TaxTypesViewModel : ObservableObject
 
                 await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
                 StatusMessage = "Template downloaded successfully";
-                MessageBox.Show($"Template file downloaded to:\n{saveFileDialog.FileName}\n\nYou can now fill in your data and import it.", 
-                    "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Template Downloaded", $"Template file downloaded to:\n{saveFileDialog.FileName}\n\nYou can now fill in your data and import it.", MessageDialog.MessageType.Info).ShowDialog();
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error downloading template: {ex.Message}";
-            MessageBox.Show($"Error downloading template: {ex.Message}", "Template Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Template Error", $"Error downloading template: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -656,7 +653,7 @@ public partial class TaxTypesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading tax types: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading tax types: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 

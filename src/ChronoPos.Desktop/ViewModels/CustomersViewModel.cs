@@ -538,7 +538,7 @@ public partial class CustomersViewModel : ObservableObject
             {
                 // Revert the change if update failed
                 targetCustomer.Status = targetCustomer.Status == "Active" ? "Inactive" : "Active";
-                MessageBox.Show($"Error updating customer status: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", $"Error updating customer status: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
             }
         }
     }

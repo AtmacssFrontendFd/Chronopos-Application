@@ -1,5 +1,6 @@
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Desktop.Views.Dialogs;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -169,13 +170,12 @@ public partial class RoleViewModel : ObservableObject
     {
         if (role == null) return;
 
-        var result = MessageBox.Show(
-            $"Are you sure you want to delete the role '{role.RoleName}'?",
+        var result = new ConfirmationDialog(
             "Confirm Delete",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+            $"Are you sure you want to delete the role '{role.RoleName}'?",
+            ConfirmationDialog.DialogType.Warning).ShowDialog();
 
-        if (result != MessageBoxResult.Yes) return;
+        if (result != true) return;
 
         try
         {
@@ -190,7 +190,7 @@ public partial class RoleViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error deleting role: {ex.Message}";
-            MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", ex.Message, MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {

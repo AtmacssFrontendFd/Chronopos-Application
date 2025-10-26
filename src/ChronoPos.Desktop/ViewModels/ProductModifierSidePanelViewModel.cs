@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Views.Dialogs;
 using System.Collections.ObjectModel;
 using System.Windows;
 
@@ -259,14 +260,14 @@ namespace ChronoPos.Desktop.ViewModels
                 // Handle validation errors (SKU/Barcode duplicates)
                 StatusMessage = ex.Message;
                 FileLogger.Log($"⚠️ Validation error: {ex.Message}");
-                MessageBox.Show(ex.Message, "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Validation Error", ex.Message, MessageDialog.MessageType.Warning).ShowDialog();
             }
             catch (Exception ex)
             {
                 StatusMessage = $"Error saving modifier: {ex.Message}";
                 FileLogger.Log($"❌ Error saving modifier: {ex.Message}");
                 FileLogger.Log($"❌ Stack trace: {ex.StackTrace}");
-                MessageBox.Show($"Error saving modifier: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", $"Error saving modifier: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
             }
             finally
             {
