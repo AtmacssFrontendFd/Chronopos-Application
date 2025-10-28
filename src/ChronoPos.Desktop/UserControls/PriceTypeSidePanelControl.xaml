@@ -16,38 +16,19 @@
         
         <!-- Input Field Style -->
         <Style x:Key="InputFieldStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,8"/>
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="Height" Value="36"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="{DynamicResource BorderCornerRadius}">
-                            <ScrollViewer x:Name="PART_ContentHost" 
-                                        Margin="{TemplateBinding Padding}"
-                                        VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
         
         <!-- Label Style -->
         <Style x:Key="LabelStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
@@ -56,7 +37,7 @@
         
         <!-- Section Header Style -->
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeMedium}"/>
+            <Setter Property="FontSize" Value="18"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
@@ -225,7 +206,7 @@
                          AcceptsReturn="True" 
                          VerticalScrollBarVisibility="Auto" 
                          ToolTip="Enter description for this price type"
-                         Margin="0,0,0,20"/>
+                         Margin="0,0,0,15"/>
                 
                 <!-- Status Section -->
                 <TextBlock Text="Status" 
@@ -235,7 +216,7 @@
                 <CheckBox Content="Active Status" 
                           IsChecked="{Binding Status}"
                           Style="{StaticResource CheckBoxStyle}"
-                          Margin="0,0,0,20"/>
+                          Margin="0,0,0,15"/>
                 
                 <!-- Validation Message -->
                 <TextBlock Text="{Binding ValidationMessage}" 

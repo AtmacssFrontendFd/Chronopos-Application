@@ -27,8 +27,8 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
     private readonly IProductService _productService;
     private readonly ICurrentUserService _currentUserService;
     private readonly object? _categoryService; // ICategoryService when available
-    private readonly object? _customerService; // ICustomerService when available
-    private readonly object? _storeService; // IStoreService when available
+    private readonly ICustomerService? _customerService;
+    private readonly IStoreService _storeService;
     private readonly Action? _navigateToAddDiscount;
     private readonly Action<DiscountDto>? _navigateToEditDiscount;
     private readonly Action? _navigateBack;
@@ -195,7 +195,9 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
     public DiscountViewModel(
         IDiscountService discountService,
         IProductService productService,
+        IStoreService storeService,
         ICurrentUserService currentUserService,
+        ICustomerService? customerService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -209,7 +211,9 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
     {
         _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
+        _storeService = storeService ?? throw new ArgumentNullException(nameof(storeService));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _customerService = customerService;
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -846,7 +850,7 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
                                 Priority = priority,
                                 IsStackable = isStackable,
                                 DiscountDescription = string.IsNullOrWhiteSpace(description) ? null : description,
-                                ApplicableOn = ChronoPos.Domain.Enums.DiscountApplicableOn.Order,
+                                ApplicableOn = ChronoPos.Domain.Enums.DiscountApplicableOn.Shop,
                                 CreatedBy = 1 // TODO: Get from current user
                             });
                         }

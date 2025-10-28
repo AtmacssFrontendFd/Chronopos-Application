@@ -4,45 +4,26 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             d:DesignHeight="600" d:DesignWidth="400"
+             d:DesignHeight="600" d:DesignWidth="500"
              Background="{DynamicResource CardBackground}"
              FlowDirection="{Binding CurrentFlowDirection}"
              FontFamily="{DynamicResource PoppinsFontFallback}">
     <UserControl.Resources>
         <!-- Input Field Style -->
         <Style x:Key="InputFieldStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="{DynamicResource BorderCornerRadius}">
-                            <ScrollViewer x:Name="PART_ContentHost" 
-                                        Margin="{TemplateBinding Padding}"
-                                        VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
         
         <!-- Label Style -->
         <Style x:Key="LabelStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
@@ -51,7 +32,7 @@
         
         <!-- Section Header Style -->
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeMedium}"/>
+            <Setter Property="FontSize" Value="18"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
@@ -144,28 +125,28 @@
             <StackPanel>
                 <TextBlock Text="Brand Information" Style="{StaticResource SectionHeaderStyle}"/>
                 <!-- Brand Name -->
-                <StackPanel Margin="0,0,0,20">
+                <StackPanel Margin="0,0,0,15">
                     <TextBlock Text="Brand Name *" Style="{StaticResource LabelStyle}"/>
                     <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" ToolTip="Enter brand name"/>
                 </StackPanel>
                 <!-- Brand Name Arabic -->
-                <StackPanel Margin="0,0,0,20">
+                <StackPanel Margin="0,0,0,15">
                     <TextBlock Text="Brand Name (Arabic)" Style="{StaticResource LabelStyle}"/>
                     <TextBox Text="{Binding NameArabic, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" FlowDirection="RightToLeft" ToolTip="Enter brand name in Arabic"/>
                 </StackPanel>
                 <!-- Description -->
-                <StackPanel Margin="0,0,0,20">
+                <StackPanel Margin="0,0,0,15">
                     <TextBlock Text="Description" Style="{StaticResource LabelStyle}"/>
                     <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" Height="80" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" ToolTip="Enter description"/>
                 </StackPanel>
                 <!-- Logo URL -->
-                <StackPanel Margin="0,0,0,20">
+                <StackPanel Margin="0,0,0,15">
                     <TextBlock Text="Logo URL" Style="{StaticResource LabelStyle}"/>
                     <TextBox Text="{Binding LogoUrl, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputFieldStyle}" ToolTip="Enter logo URL (optional)"/>
                 </StackPanel>
                 <!-- Is Active -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                    <CheckBox Content="Active" IsChecked="{Binding IsActive}" FontSize="{DynamicResource FontSizeMedium}" FontWeight="SemiBold" FontFamily="{DynamicResource PoppinsFontFallback}" ToolTip="Enable or disable this brand"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                    <CheckBox Content="Active" IsChecked="{Binding IsActive}" FontSize="14" FontWeight="SemiBold" FontFamily="{DynamicResource PoppinsFontFallback}" ToolTip="Enable or disable this brand"/>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>

@@ -45,8 +45,10 @@ public class DiscountDto
     // Selected product and category IDs (populated from many-to-many relationships)
     public List<int> SelectedProductIds { get; set; } = new();
     public List<int> SelectedCategoryIds { get; set; } = new();
+    public List<int> SelectedCustomerIds { get; set; } = new();
     public List<string> SelectedProductNames { get; set; } = new(); // For display
     public List<string> SelectedCategoryNames { get; set; } = new(); // For display
+    public List<string> SelectedCustomerNames { get; set; } = new(); // For display
     
     public int Priority { get; set; } = 0;
     public bool IsStackable { get; set; } = false;
@@ -145,6 +147,7 @@ public class CreateDiscountDto
     // Product and Category selection arrays for multi-select functionality
     public List<int> SelectedProductIds { get; set; } = new();
     public List<int> SelectedCategoryIds { get; set; } = new();
+    public List<int> SelectedCustomerIds { get; set; } = new();
     
     [Range(0, int.MaxValue, ErrorMessage = "Priority must be 0 or greater")]
     public int Priority { get; set; } = 0;
@@ -205,6 +208,7 @@ public class UpdateDiscountDto
     // Product and Category selection arrays for multi-select functionality
     public List<int> SelectedProductIds { get; set; } = new();
     public List<int> SelectedCategoryIds { get; set; } = new();
+    public List<int> SelectedCustomerIds { get; set; } = new();
     
     [Range(0, int.MaxValue, ErrorMessage = "Priority must be 0 or greater")]
     public int Priority { get; set; } = 0;

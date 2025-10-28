@@ -33,6 +33,12 @@ public class StoreDto
     
     public DateTime UpdatedAt { get; set; }
     
+    // Discount count for this store
+    public int ActiveDiscountCount { get; set; } = 0;
+    
+    // Discount information for display
+    public List<string> DiscountPills { get; set; } = new();
+    
     // Display properties for UI binding
     public string DisplayName => Name;
     public string AddressDisplay => Address ?? "-";
@@ -43,6 +49,7 @@ public class StoreDto
     public string DefaultDisplay => IsDefault ? "Default" : "-";
     public string CreatedAtFormatted => CreatedAt.ToString("dd/MM/yyyy HH:mm");
     public string UpdatedAtFormatted => UpdatedAt.ToString("dd/MM/yyyy HH:mm");
+    public string ActiveDiscountCountDisplay => ActiveDiscountCount > 0 ? $"{ActiveDiscountCount} Discount{(ActiveDiscountCount > 1 ? "s" : "")}" : "No Discounts";
     
     // Override ToString for ComboBox display
     public override string ToString()

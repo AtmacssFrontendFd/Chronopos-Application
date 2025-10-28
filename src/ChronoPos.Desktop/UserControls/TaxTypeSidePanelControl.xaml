@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
              mc:Ignorable="d"
-             d:DesignHeight="600" d:DesignWidth="400"
+             d:DesignHeight="600" d:DesignWidth="500"
              Background="{DynamicResource CardBackground}"
              FlowDirection="{Binding CurrentFlowDirection}"
              FontFamily="{DynamicResource PoppinsFontFallback}">
@@ -15,33 +15,14 @@
         
         <!-- Input Field Style -->
         <Style x:Key="InputFieldStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="{DynamicResource BorderCornerRadius}">
-                            <ScrollViewer x:Name="PART_ContentHost" 
-                                        Margin="{TemplateBinding Padding}"
-                                        VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
         
         <!-- Label Style -->
@@ -49,7 +30,6 @@
             <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
             <Setter Property="Margin" Value="0,0,0,5"/>
         </Style>
     </UserControl.Resources>
@@ -99,7 +79,7 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{DynamicResource DefaultPaddingThickness}">
             <StackPanel>
                 <!-- Name Field -->
-                <StackPanel Margin="0,0,0,20">
+                <StackPanel Margin="0,0,0,15">
                     <TextBlock Text="Name*"
                               Style="{StaticResource LabelStyle}"
                               HorizontalAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"/>
@@ -108,20 +88,21 @@
                 </StackPanel>
 
                 <!-- Description Field -->
-                <StackPanel Margin="0,0,0,20">
+                <StackPanel Margin="0,0,0,15">
                     <TextBlock Text="Description"
                               Style="{StaticResource LabelStyle}"
                               HorizontalAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"/>
                     <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
                             Style="{StaticResource InputFieldStyle}"
-                            MinHeight="80"
+                            Height="80"
                             TextWrapping="Wrap"
                             AcceptsReturn="True"
-                            VerticalScrollBarVisibility="Auto"/>
+                            VerticalScrollBarVisibility="Auto"
+                            VerticalAlignment="Top"/>
                 </StackPanel>
 
                 <!-- Value Field -->
-                <StackPanel Margin="0,0,0,20">
+                <StackPanel Margin="0,0,0,15">
                     <TextBlock Text="Value*"
                               Style="{StaticResource LabelStyle}"
                               HorizontalAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"/>
@@ -130,7 +111,7 @@
                 </StackPanel>
 
                 <!-- Is Percentage CheckBox -->
-                <StackPanel Margin="0,0,0,20">
+                <StackPanel Margin="0,0,0,15">
                     <CheckBox IsChecked="{Binding IsPercentage}"
                              Content="Is Percentage"
                              FontSize="14"
@@ -139,9 +120,10 @@
                 </StackPanel>
 
                 <!-- Applies To Section -->
-                <StackPanel Margin="0,0,0,20">
+                <StackPanel Margin="0,0,0,15">
                     <TextBlock Text="Applies To"
                               FontWeight="Medium"
+                              FontSize="14"
                               Foreground="{DynamicResource TextPrimary}"
                               Margin="0,0,0,12"
                               HorizontalAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"/>
@@ -161,9 +143,10 @@
                 </StackPanel>
 
                 <!-- Status Field -->
-                <StackPanel Margin="0,0,0,25">
+                <StackPanel Margin="0,0,0,15">
                     <TextBlock Text="Status"
                               FontWeight="Medium"
+                              FontSize="14"
                               Foreground="{DynamicResource TextPrimary}"
                               Margin="0,0,0,12"
                               HorizontalAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"/>

@@ -10,8 +10,10 @@ public interface IChronoPosDbContext
     DbSet<Brand> Brands { get; set; }
     DbSet<ProductImage> ProductImages { get; set; }
     DbSet<Customer> Customers { get; set; }
+    DbSet<Supplier> Suppliers { get; set; }
     DbSet<Sale> Sales { get; set; }
     DbSet<SaleItem> SaleItems { get; set; }
+    DbSet<Transaction> Transactions { get; set; }
     DbSet<StockAdjustment> StockAdjustments { get; set; }
     DbSet<StockAdjustmentItem> StockAdjustmentItems { get; set; }
     DbSet<StockAdjustmentReason> StockAdjustmentReasons { get; set; }

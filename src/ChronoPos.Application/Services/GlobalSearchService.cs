@@ -33,22 +33,33 @@ public class GlobalSearchService : IGlobalSearchService
 
         // Search in different modules based on filter
         if (filter.IncludeProducts)
-            tasks.Add(SearchProductsAsync(filter.Query, filter.MaxResults / 6));
+            tasks.Add(SearchProductsAsync(filter.Query, filter.MaxResults / 8));
 
         if (filter.IncludeCustomers)
-            tasks.Add(SearchCustomersAsync(filter.Query, filter.MaxResults / 6));
+            tasks.Add(SearchCustomersAsync(filter.Query, filter.MaxResults / 8));
 
         if (filter.IncludeSales)
-            tasks.Add(SearchSalesAsync(filter.Query, filter.MaxResults / 6));
+            tasks.Add(SearchSalesAsync(filter.Query, filter.MaxResults / 8));
 
         if (filter.IncludeStock)
-            tasks.Add(SearchStockAsync(filter.Query, filter.MaxResults / 6));
+            tasks.Add(SearchStockAsync(filter.Query, filter.MaxResults / 8));
 
         if (filter.IncludeBrands)
-            tasks.Add(SearchBrandsAsync(filter.Query, filter.MaxResults / 6));
+            tasks.Add(SearchBrandsAsync(filter.Query, filter.MaxResults / 8));
 
         if (filter.IncludeCategories)
-            tasks.Add(SearchCategoriesAsync(filter.Query, filter.MaxResults / 6));
+            tasks.Add(SearchCategoriesAsync(filter.Query, filter.MaxResults / 8));
+
+        // Add Suppliers and Transactions
+        tasks.Add(SearchSuppliersAsync(filter.Query, filter.MaxResults / 8));
+        tasks.Add(SearchTransactionsAsync(filter.Query, filter.MaxResults / 8));
+        
+        // Add Pages/Screens and Features
+        if (filter.IncludePages)
+            tasks.Add(Task.FromResult(SearchPagesAsync(filter.Query, filter.MaxResults / 8)));
+        
+        if (filter.IncludeFeatures)
+            tasks.Add(Task.FromResult(SearchFeaturesAsync(filter.Query, filter.MaxResults / 8)));
 
         var results = await Task.WhenAll(tasks);
 
@@ -131,7 +142,9 @@ public class GlobalSearchService : IGlobalSearchService
             IncludeSales = false, // Exclude sales for quick search
             IncludeStock = false, // Exclude stock for quick search
             IncludeBrands = true,
-            IncludeCategories = true
+            IncludeCategories = true,
+            IncludePages = true, // Include pages for quick search
+            IncludeFeatures = true // Include features for quick search
         };
 
         var response = await SearchAsync(filter);
@@ -397,10 +410,262 @@ public class GlobalSearchService : IGlobalSearchService
                 score += 8;
                 break;
             case "sales":
+            case "transactions":
                 score += 6;
                 break;
         }
 
         return score;
+    }
+
+    private async Task<List<GlobalSearchResultDto>> SearchSuppliersAsync(string query, int maxResults)
+    {
+        var results = new List<GlobalSearchResultDto>();
+
+        try
+        {
+            var suppliers = await _context.Suppliers
+                .Where(s => s.CompanyName.Contains(query) || 
+                           (s.KeyContactName != null && s.KeyContactName.Contains(query)) ||
+                           (s.Email != null && s.Email.Contains(query)) ||
+                           (s.Mobile != null && s.Mobile.Contains(query)))
+                .Take(maxResults)
+                .ToListAsync();
+
+            foreach (var supplier in suppliers)
+            {
+                results.Add(new GlobalSearchResultDto
+                {
+                    Id = (int)supplier.SupplierId,
+                    Title = supplier.CompanyName,
+                    Description = $"Contact: {supplier.KeyContactName ?? "N/A"} | Email: {supplier.Email ?? "N/A"}",
+                    Category = "Supplier",
+                    Module = "Suppliers",
+                    SearchType = "Supplier",
+                    Data = supplier,
+                    Status = supplier.IsActive ? "Active" : "Inactive"
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error searching suppliers: {ex.Message}");
+        }
+
+        return results;
+    }
+
+    private async Task<List<GlobalSearchResultDto>> SearchTransactionsAsync(string query, int maxResults)
+    {
+        var results = new List<GlobalSearchResultDto>();
+
+        try
+        {
+            var transactions = await _context.Transactions
+                .Include(t => t.Customer)
+                .Where(t => (t.InvoiceNumber != null && t.InvoiceNumber.Contains(query)) ||
+                           (t.Customer != null && 
+                            (t.Customer.CustomerFullName.Contains(query) || t.Customer.BusinessFullName.Contains(query))))
+                .OrderByDescending(t => t.SellingTime)
+                .Take(maxResults)
+                .ToListAsync();
+
+            foreach (var transaction in transactions)
+            {
+                var customerName = transaction.Customer != null 
+                    ? transaction.Customer.DisplayName 
+                    : "Walk-in";
+                    
+                results.Add(new GlobalSearchResultDto
+                {
+                    Id = transaction.Id,
+                    Title = $"Transaction #{transaction.InvoiceNumber ?? transaction.Id.ToString()}",
+                    Description = $"Customer: {customerName} | Date: {transaction.SellingTime:MMM dd, yyyy}",
+                    Category = "Transaction",
+                    Module = "Transactions",
+                    SearchType = "Transaction",
+                    Data = transaction,
+                    Price = (double)transaction.TotalAmount,
+                    Status = transaction.StatusDisplay
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error searching transactions: {ex.Message}");
+        }
+
+        return results;
+    }
+    
+    private List<GlobalSearchResultDto> SearchPagesAsync(string query, int maxResults)
+    {
+        var results = new List<GlobalSearchResultDto>();
+        var lowerQuery = query.ToLowerInvariant();
+
+        // Define all available pages/screens in the application
+        var pages = new List<(string Name, string Description, string Category, string Module, string[] Keywords)>
+        {
+            // Dashboard
+            ("Dashboard", "Main dashboard with overview and statistics", "Navigation", "Dashboard", new[] { "dashboard", "home", "overview", "main", "statistics", "stats" }),
+            
+            // Sales & Transactions
+            ("Sales Window", "Point of sale transaction screen", "Sales", "Transactions", new[] { "sales", "pos", "sell", "transaction", "checkout", "billing" }),
+            ("Transactions", "View and manage all transactions", "Sales", "Transactions", new[] { "transactions", "sales", "invoices", "bills", "payments" }),
+            ("Transaction History", "View transaction history and reports", "Sales", "Transactions", new[] { "history", "past sales", "transaction log", "sales history" }),
+            
+            // Back Office / Management
+            ("Product Management", "Manage products, inventory, and pricing", "Management", "Products", new[] { "products", "items", "inventory", "stock", "catalog", "manage products" }),
+            ("Customer Management", "Manage customer information and groups", "Management", "Customers", new[] { "customers", "clients", "contacts", "customer list", "manage customers" }),
+            ("Supplier Management", "Manage supplier details and relationships", "Management", "Suppliers", new[] { "suppliers", "vendors", "provider", "supplier list", "manage suppliers" }),
+            ("Category Management", "Organize products into categories", "Management", "Categories", new[] { "categories", "groups", "classification", "product categories" }),
+            ("Brand Management", "Manage product brands", "Management", "Brands", new[] { "brands", "manufacturers", "labels", "brand list" }),
+            ("Stock Management", "Inventory and stock control", "Management", "Stock", new[] { "stock", "inventory", "warehouse", "stock levels", "stock adjustment" }),
+            ("Customer Groups", "Manage customer groups and segments", "Management", "Customers", new[] { "customer groups", "segments", "customer categories" }),
+            ("Product Groups", "Manage product groupings", "Management", "Products", new[] { "product groups", "product sets", "bundles" }),
+            
+            // Settings
+            ("Settings", "Application settings and configuration", "Settings", "Settings", new[] { "settings", "configuration", "preferences", "options", "setup" }),
+            ("User Settings", "Manage user accounts and profiles", "Settings", "Users", new[] { "user settings", "users", "accounts", "profiles", "user management", "add user" }),
+            ("Application Settings", "Configure application preferences", "Settings", "Configuration", new[] { "application settings", "app settings", "system settings", "preferences" }),
+            ("Permissions", "Manage user permissions and access control", "Settings", "Security", new[] { "permissions", "access", "rights", "authorization", "access control", "umac" }),
+            ("Roles", "Manage user roles and role permissions", "Settings", "Security", new[] { "roles", "user roles", "role management", "permissions groups" }),
+            ("Tax Types", "Configure tax types and rates", "Settings", "Finance", new[] { "tax", "vat", "gst", "tax types", "tax rates", "taxation" }),
+            ("Payment Types", "Manage payment methods", "Settings", "Finance", new[] { "payment", "payment types", "payment methods", "cash", "card", "upi" }),
+            ("Units of Measurement", "Manage UOM for products", "Settings", "Products", new[] { "uom", "units", "measurement", "unit of measurement", "kg", "liter" }),
+            ("Discounts", "Configure discount rules and offers", "Settings", "Finance", new[] { "discounts", "offers", "promotions", "sales", "coupon" }),
+            ("Service Charges", "Configure service charges", "Settings", "Finance", new[] { "service charge", "service fee", "additional charges" }),
+            
+            // Stock Operations
+            ("Stock Adjustment", "Adjust stock levels and quantities", "Stock", "Stock", new[] { "stock adjustment", "adjust stock", "inventory adjustment", "stock correction" }),
+            ("Stock Transfer", "Transfer stock between locations", "Stock", "Stock", new[] { "stock transfer", "transfer stock", "move stock", "inter-store transfer" }),
+            ("Goods Received", "Record received goods from suppliers", "Stock", "Stock", new[] { "goods received", "grn", "purchase receipt", "receiving" }),
+            ("Goods Return", "Process goods return to suppliers", "Stock", "Stock", new[] { "goods return", "return to supplier", "purchase return" }),
+            ("Goods Replace", "Replace defective goods", "Stock", "Stock", new[] { "goods replace", "replacement", "exchange goods" }),
+            
+            // Reservation & Restaurant
+            ("Reservations", "Manage table reservations", "Restaurant", "Reservations", new[] { "reservations", "booking", "table booking", "reserve table" }),
+            ("Restaurant Tables", "Manage restaurant table layout", "Restaurant", "Tables", new[] { "tables", "restaurant tables", "table management", "dining tables" }),
+            ("Order Table", "Take orders for tables", "Restaurant", "Orders", new[] { "order", "table order", "dine-in", "kot", "kitchen order" }),
+            
+            // Product Features
+            ("Add Product", "Add new product to inventory", "Products", "Products", new[] { "add product", "new product", "create product", "product entry" }),
+            ("Product Attributes", "Manage product attributes and variations", "Products", "Products", new[] { "attributes", "variants", "variations", "product attributes", "size", "color" }),
+            ("Product Modifiers", "Manage product add-ons and modifiers", "Products", "Products", new[] { "modifiers", "add-ons", "extras", "toppings", "customization" }),
+            ("Product Combinations", "Manage product variant combinations", "Products", "Products", new[] { "combinations", "variants", "product combinations", "sku" }),
+            ("Barcodes", "Manage product barcodes", "Products", "Products", new[] { "barcode", "ean", "upc", "qr code", "sku code" }),
+            ("Product Batches", "Manage product batches and expiry", "Products", "Products", new[] { "batches", "batch number", "expiry", "lot number", "manufacturing date" }),
+            
+            // Reports
+            ("Reports", "View sales and inventory reports", "Reports", "Reports", new[] { "reports", "analytics", "insights", "sales report", "inventory report" }),
+            
+            // Additional Features
+            ("Import/Export", "Import or export data", "Tools", "Data", new[] { "import", "export", "data import", "data export", "csv", "excel" }),
+            ("Backup", "Backup and restore data", "Tools", "System", new[] { "backup", "restore", "data backup", "database backup" }),
+            ("Languages", "Configure application languages", "Settings", "Localization", new[] { "language", "languages", "localization", "translation", "multi-language" }),
+            ("Themes", "Configure application theme and appearance", "Settings", "Appearance", new[] { "theme", "themes", "appearance", "dark mode", "light mode", "colors" }),
+            ("Currencies", "Manage currencies and exchange rates", "Settings", "Finance", new[] { "currency", "currencies", "exchange rate", "multi-currency" }),
+        };
+
+        // Search through pages
+        foreach (var page in pages)
+        {
+            // Check if query matches name, description, or any keyword
+            bool matches = page.Name.ToLowerInvariant().Contains(lowerQuery) ||
+                          page.Description.ToLowerInvariant().Contains(lowerQuery) ||
+                          page.Keywords.Any(k => k.Contains(lowerQuery));
+
+            if (matches)
+            {
+                results.Add(new GlobalSearchResultDto
+                {
+                    Id = 0, // Pages don't have IDs
+                    Title = page.Name,
+                    Description = page.Description,
+                    Category = page.Category,
+                    Module = page.Module,
+                    SearchType = "Page",
+                    Data = page.Name, // Store page name for navigation
+                    Status = "Navigate"
+                });
+            }
+
+            if (results.Count >= maxResults)
+                break;
+        }
+
+        return results;
+    }
+    
+    private List<GlobalSearchResultDto> SearchFeaturesAsync(string query, int maxResults)
+    {
+        var results = new List<GlobalSearchResultDto>();
+        var lowerQuery = query.ToLowerInvariant();
+
+        // Define common features and actions
+        var features = new List<(string Name, string Description, string Category, string Module, string[] Keywords)>
+        {
+            // Product Actions
+            ("Add New Product", "Create a new product in inventory", "Action", "Products", new[] { "add", "new", "create", "product", "item" }),
+            ("Edit Product", "Modify existing product details", "Action", "Products", new[] { "edit", "update", "modify", "product", "change" }),
+            ("Delete Product", "Remove product from inventory", "Action", "Products", new[] { "delete", "remove", "product", "archive" }),
+            ("Adjust Stock", "Adjust product stock levels", "Action", "Stock", new[] { "adjust", "stock", "quantity", "inventory" }),
+            
+            // Customer Actions
+            ("Add Customer", "Register a new customer", "Action", "Customers", new[] { "add", "new", "register", "customer", "client" }),
+            ("Edit Customer", "Update customer information", "Action", "Customers", new[] { "edit", "update", "customer", "profile" }),
+            
+            // Sales Actions
+            ("New Sale", "Start a new sale transaction", "Action", "Sales", new[] { "new", "sale", "transaction", "sell", "checkout" }),
+            ("Process Payment", "Process customer payment", "Action", "Sales", new[] { "payment", "pay", "checkout", "cash", "card" }),
+            ("Print Invoice", "Print sales invoice", "Action", "Sales", new[] { "print", "invoice", "receipt", "bill" }),
+            ("Refund", "Process customer refund", "Action", "Sales", new[] { "refund", "return", "money back", "cancel sale" }),
+            ("Exchange", "Process product exchange", "Action", "Sales", new[] { "exchange", "swap", "replace" }),
+            
+            // Discount Actions
+            ("Create Shop Discount", "Create store-wide discount promotion", "Action", "Finance", new[] { "shop", "store", "discount", "promotion", "sale", "offer" }),
+            ("Create Product Discount", "Create discount for specific products", "Action", "Finance", new[] { "product", "discount", "item", "sale" }),
+            ("Create Customer Discount", "Create discount for specific customers", "Action", "Finance", new[] { "customer", "discount", "loyalty", "vip" }),
+            
+            // User Management
+            ("Add User", "Create new user account", "Action", "Users", new[] { "add", "new", "user", "account", "staff" }),
+            ("Assign Role", "Assign role to user", "Action", "Users", new[] { "role", "assign", "permission", "access" }),
+            ("Reset Password", "Reset user password", "Action", "Users", new[] { "password", "reset", "change password", "forgot" }),
+            
+            // System Actions
+            ("Logout", "Sign out from application", "Action", "System", new[] { "logout", "sign out", "exit", "log out" }),
+            ("Change Theme", "Switch application theme", "Action", "Settings", new[] { "theme", "dark", "light", "appearance" }),
+            ("Change Language", "Switch application language", "Action", "Settings", new[] { "language", "translate", "locale" }),
+            ("Export Data", "Export data to file", "Action", "Tools", new[] { "export", "download", "save", "csv", "excel" }),
+            ("Import Data", "Import data from file", "Action", "Tools", new[] { "import", "upload", "load", "csv", "excel" }),
+        };
+
+        // Search through features
+        foreach (var feature in features)
+        {
+            bool matches = feature.Name.ToLowerInvariant().Contains(lowerQuery) ||
+                          feature.Description.ToLowerInvariant().Contains(lowerQuery) ||
+                          feature.Keywords.Any(k => k.Contains(lowerQuery));
+
+            if (matches)
+            {
+                results.Add(new GlobalSearchResultDto
+                {
+                    Id = 0,
+                    Title = feature.Name,
+                    Description = feature.Description,
+                    Category = feature.Category,
+                    Module = feature.Module,
+                    SearchType = "Feature",
+                    Data = feature.Name,
+                    Status = "Action"
+                });
+            }
+
+            if (results.Count >= maxResults)
+                break;
+        }
+
+        return results;
     }
 }

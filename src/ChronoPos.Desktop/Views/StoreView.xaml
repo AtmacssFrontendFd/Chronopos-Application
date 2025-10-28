@@ -485,6 +485,36 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
+                        <!-- Discounts Column -->
+                        <DataGridTemplateColumn Header="Discounts" Width="300" MinWidth="200">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ItemsControl ItemsSource="{Binding DiscountPills}" 
+                                                 VerticalAlignment="Center"
+                                                 Margin="4">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#E3F2FD" 
+                                                       CornerRadius="10" 
+                                                       Padding="8,3"
+                                                       Margin="0,0,6,3">
+                                                    <TextBlock Text="{Binding}" 
+                                                              FontSize="10" 
+                                                              Foreground="#1976D2"
+                                                              FontWeight="Medium"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
                         <!-- Toggle Active Column -->
                         <DataGridTemplateColumn Header="Active" Width="80">
                             <DataGridTemplateColumn.CellTemplate>

@@ -5,9 +5,9 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
              mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="420"
+             d:DesignHeight="600" d:DesignWidth="600"
              FontFamily="{DynamicResource PoppinsFontFallback}"
-             Width="420">
+             Width="600">
 
     <UserControl.Resources>
         <!-- Converters -->
@@ -15,43 +15,25 @@
         
         <!-- Input Style -->
         <Style x:Key="InputTextBoxStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderNormal}"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,8"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeNormal}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="{DynamicResource BorderCornerRadius}">
-                            <ScrollViewer x:Name="PART_ContentHost" 
-                                        Margin="{TemplateBinding Padding}"
-                                        VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
 
         <!-- ComboBox Style -->
         <Style x:Key="InputComboBoxStyle" TargetType="ComboBox">
-            <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderNormal}"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,8"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeNormal}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Foreground" Value="Black"/>
         </Style>
 
         <!-- Button Style -->
@@ -217,7 +199,7 @@
                         <StackPanel Margin="0,0,0,15">
                             <TextBlock Text="Group Name *" 
                                      FontWeight="SemiBold"
-                                     FontSize="{DynamicResource FontSizeNormal}"
+                                     FontSize="14"
                                      Foreground="{DynamicResource TextPrimary}"
                                      Margin="0,0,0,5"/>
                             <TextBox Text="{Binding GroupName, UpdateSourceTrigger=PropertyChanged}"
@@ -229,7 +211,7 @@
                         <StackPanel Margin="0,0,0,15">
                             <TextBlock Text="Description" 
                                      FontWeight="SemiBold"
-                                     FontSize="{DynamicResource FontSizeNormal}"
+                                     FontSize="14"
                                      Foreground="{DynamicResource TextPrimary}"
                                      Margin="0,0,0,5"/>
                             <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
@@ -244,14 +226,14 @@
                         <StackPanel Margin="0,0,0,15">
                             <TextBlock Text="Selection Type *" 
                                      FontWeight="SemiBold"
-                                     FontSize="{DynamicResource FontSizeNormal}"
+                                     FontSize="14"
                                      Foreground="{DynamicResource TextPrimary}"
                                      Margin="0,0,0,5"/>
                             <ComboBox SelectedItem="{Binding SelectedSelectionType}"
                                     ItemsSource="{Binding SelectionTypes}"
                                     Style="{StaticResource InputComboBoxStyle}"/>
                             <TextBlock Text="Single: User can select only one • Multiple: User can select multiple" 
-                                     FontSize="{DynamicResource FontSizeExtraSmall}"
+                                     FontSize="12"
                                      Foreground="{DynamicResource TextSecondary}"
                                      Margin="0,5,0,0"
                                      TextWrapping="Wrap"
@@ -262,10 +244,10 @@
                         <StackPanel Margin="0,0,0,15">
                             <CheckBox IsChecked="{Binding IsRequired}"
                                     Content="Required Group"
-                                    FontSize="{DynamicResource FontSizeNormal}"
+                                    FontSize="14"
                                     Foreground="{DynamicResource TextPrimary}"/>
                             <TextBlock Text="Customer must make a selection from this group" 
-                                     FontSize="{DynamicResource FontSizeExtraSmall}"
+                                     FontSize="12"
                                      Foreground="{DynamicResource TextSecondary}"
                                      Margin="20,5,0,0"
                                      FontStyle="Italic"/>
@@ -275,14 +257,14 @@
                         <StackPanel Margin="0,0,0,15">
                             <TextBlock Text="Minimum Selections *" 
                                      FontWeight="SemiBold"
-                                     FontSize="{DynamicResource FontSizeNormal}"
+                                     FontSize="14"
                                      Foreground="{DynamicResource TextPrimary}"
                                      Margin="0,0,0,5"/>
                             <TextBox Text="{Binding MinSelections, UpdateSourceTrigger=PropertyChanged}"
                                    Style="{StaticResource InputTextBoxStyle}"
                                    Tag="Minimum number of modifiers customer must select"/>
                             <TextBlock Text="0 = no minimum required" 
-                                     FontSize="{DynamicResource FontSizeExtraSmall}"
+                                     FontSize="12"
                                      Foreground="{DynamicResource TextSecondary}"
                                      Margin="0,5,0,0"
                                      FontStyle="Italic"/>
@@ -292,14 +274,14 @@
                         <StackPanel Margin="0,0,0,15">
                             <TextBlock Text="Maximum Selections" 
                                      FontWeight="SemiBold"
-                                     FontSize="{DynamicResource FontSizeNormal}"
+                                     FontSize="14"
                                      Foreground="{DynamicResource TextPrimary}"
                                      Margin="0,0,0,5"/>
                             <TextBox Text="{Binding MaxSelections, UpdateSourceTrigger=PropertyChanged}"
                                    Style="{StaticResource InputTextBoxStyle}"
                                    Tag="Maximum number of modifiers customer can select"/>
                             <TextBlock Text="Leave empty for unlimited selections" 
-                                     FontSize="{DynamicResource FontSizeExtraSmall}"
+                                     FontSize="12"
                                      Foreground="{DynamicResource TextSecondary}"
                                      Margin="0,5,0,0"
                                      FontStyle="Italic"/>

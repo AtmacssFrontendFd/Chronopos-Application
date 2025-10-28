@@ -71,6 +71,11 @@ public interface IUnitOfWork : IDisposable
     ICategoryDiscountRepository CategoryDiscounts { get; }
     
     /// <summary>
+    /// Customer Discount repository
+    /// </summary>
+    ICustomerDiscountRepository CustomerDiscounts { get; }
+    
+    /// <summary>
     /// Selling Price Type repository
     /// </summary>
     ISellingPriceTypeRepository SellingPriceTypes { get; }

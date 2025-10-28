@@ -4,50 +4,32 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="350"
+             d:DesignHeight="450" d:DesignWidth="550"
              FontFamily="{DynamicResource PoppinsFontFallback}"
-             Width="420">
+             Width="550">
 
     <UserControl.Resources>
         <!-- Input Style -->
         <Style x:Key="InputTextBoxStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderNormal}"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,8"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeNormal}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="{DynamicResource BorderCornerRadius}">
-                            <ScrollViewer x:Name="PART_ContentHost" 
-                                        Margin="{TemplateBinding Padding}"
-                                        VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
 
         <!-- ComboBox Style -->
         <Style x:Key="InputComboBoxStyle" TargetType="ComboBox">
-            <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderNormal}"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,8"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeNormal}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Foreground" Value="Black"/>
         </Style>
 
         <!-- Button Style -->
@@ -140,7 +122,7 @@
                 <StackPanel Margin="0,0,0,15">
                     <TextBlock Text="Modifier Name *" 
                              FontWeight="SemiBold"
-                             FontSize="{DynamicResource FontSizeNormal}"
+                             FontSize="14"
                              Foreground="{DynamicResource TextPrimary}"
                              Margin="0,0,0,5"/>
                     <TextBox Text="{Binding ModifierName, UpdateSourceTrigger=PropertyChanged}"
@@ -152,7 +134,7 @@
                 <StackPanel Margin="0,0,0,15">
                     <TextBlock Text="Description" 
                              FontWeight="SemiBold"
-                             FontSize="{DynamicResource FontSizeNormal}"
+                             FontSize="14"
                              Foreground="{DynamicResource TextPrimary}"
                              Margin="0,0,0,5"/>
                     <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
@@ -167,7 +149,7 @@
                 <StackPanel Margin="0,0,0,15">
                     <TextBlock Text="Price *" 
                              FontWeight="SemiBold"
-                             FontSize="{DynamicResource FontSizeNormal}"
+                             FontSize="14"
                              Foreground="{DynamicResource TextPrimary}"
                              Margin="0,0,0,5"/>
                     <TextBox Text="{Binding Price, UpdateSourceTrigger=PropertyChanged}"
@@ -179,7 +161,7 @@
                 <StackPanel Margin="0,0,0,15">
                     <TextBlock Text="Cost" 
                              FontWeight="SemiBold"
-                             FontSize="{DynamicResource FontSizeNormal}"
+                             FontSize="14"
                              Foreground="{DynamicResource TextPrimary}"
                              Margin="0,0,0,5"/>
                     <TextBox Text="{Binding Cost, UpdateSourceTrigger=PropertyChanged}"
@@ -198,7 +180,7 @@
                         <TextBlock Grid.Column="0"
                                  Text="SKU" 
                                  FontWeight="SemiBold"
-                                 FontSize="{DynamicResource FontSizeNormal}"
+                                 FontSize="14"
                                  Foreground="{DynamicResource TextPrimary}"
                                  Margin="0,0,0,5"/>
                         
@@ -207,7 +189,7 @@
                               Style="{StaticResource SecondaryButtonStyle}"
                               Command="{Binding GenerateSkuCommand}"
                               Padding="8,4"
-                              FontSize="{DynamicResource FontSizeExtraSmall}"
+                              FontSize="12"
                               VerticalAlignment="Top"
                               Margin="10,0,0,0"/>
                     </Grid>
@@ -215,7 +197,7 @@
                            Style="{StaticResource InputTextBoxStyle}"
                            Tag="Enter SKU (optional, must be unique)"/>
                     <TextBlock Text="Must be unique if provided" 
-                             FontSize="{DynamicResource FontSizeExtraSmall}"
+                             FontSize="12"
                              Foreground="{DynamicResource TextSecondary}"
                              Margin="0,5,0,0"
                              FontStyle="Italic"/>
@@ -232,7 +214,7 @@
                         <TextBlock Grid.Column="0"
                                  Text="Barcode" 
                                  FontWeight="SemiBold"
-                                 FontSize="{DynamicResource FontSizeNormal}"
+                                 FontSize="14"
                                  Foreground="{DynamicResource TextPrimary}"
                                  Margin="0,0,0,5"/>
                         
@@ -241,7 +223,7 @@
                               Style="{StaticResource SecondaryButtonStyle}"
                               Command="{Binding GenerateBarcodeCommand}"
                               Padding="8,4"
-                              FontSize="{DynamicResource FontSizeExtraSmall}"
+                              FontSize="12"
                               VerticalAlignment="Top"
                               Margin="10,0,0,0"/>
                     </Grid>
@@ -249,7 +231,7 @@
                            Style="{StaticResource InputTextBoxStyle}"
                            Tag="Enter barcode (optional, must be unique)"/>
                     <TextBlock Text="Must be unique if provided" 
-                             FontSize="{DynamicResource FontSizeExtraSmall}"
+                             FontSize="12"
                              Foreground="{DynamicResource TextSecondary}"
                              Margin="0,5,0,0"
                              FontStyle="Italic"/>
@@ -259,7 +241,7 @@
                 <StackPanel Margin="0,0,0,15">
                     <TextBlock Text="Tax Type" 
                              FontWeight="SemiBold"
-                             FontSize="{DynamicResource FontSizeNormal}"
+                             FontSize="14"
                              Foreground="{DynamicResource TextPrimary}"
                              Margin="0,0,0,5"/>
                     <ComboBox SelectedItem="{Binding SelectedTaxType}"
@@ -267,7 +249,7 @@
                             DisplayMemberPath="Name"
                             Style="{StaticResource InputComboBoxStyle}"/>
                     <TextBlock Text="Select applicable tax type (optional)" 
-                             FontSize="{DynamicResource FontSizeExtraSmall}"
+                             FontSize="12"
                              Foreground="{DynamicResource TextSecondary}"
                              Margin="0,5,0,0"
                              FontStyle="Italic"/>
@@ -277,7 +259,7 @@
                 <StackPanel Margin="0,0,0,15">
                     <TextBlock Text="Status *" 
                              FontWeight="SemiBold"
-                             FontSize="{DynamicResource FontSizeNormal}"
+                             FontSize="14"
                              Foreground="{DynamicResource TextPrimary}"
                              Margin="0,0,0,5"/>
                     <ComboBox SelectedItem="{Binding SelectedStatus}"

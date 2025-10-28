@@ -71,6 +71,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.Discount> Discounts { get; set; }
     public DbSet<Domain.Entities.ProductDiscount> ProductDiscounts { get; set; }
     public DbSet<Domain.Entities.CategoryDiscount> CategoryDiscounts { get; set; }
+    public DbSet<Domain.Entities.CustomerDiscount> CustomerDiscounts { get; set; }
     
     // Selling Price Types
     public DbSet<Domain.Entities.SellingPriceType> SellingPriceTypes { get; set; }
@@ -498,6 +499,11 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasMany(e => e.Addresses)
                   .WithOne(a => a.Customer)
                   .HasForeignKey(a => a.CustomerId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.CustomerDiscounts)
+                  .WithOne(cd => cd.Customer)
+                  .HasForeignKey(cd => cd.CustomerId)
                   .OnDelete(DeleteBehavior.Cascade);
 
             // Index on mobile for quick lookup
@@ -1421,6 +1427,54 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
 
             // Indexes for performance
             entity.HasIndex(e => e.CategoryId);
+            entity.HasIndex(e => e.DiscountsId);
+            entity.HasIndex(e => e.DeletedAt);
+        });
+
+        // Configure CustomerDiscount entity
+        modelBuilder.Entity<Domain.Entities.CustomerDiscount>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("customer_discount");
+            
+            entity.Property(e => e.CustomerId).IsRequired();
+            entity.Property(e => e.DiscountsId).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Unique constraint to prevent duplicate mappings
+            entity.HasIndex(e => new { e.CustomerId, e.DiscountsId })
+                  .IsUnique()
+                  .HasDatabaseName("uq_customer_discount");
+
+            // Foreign key relationships
+            entity.HasOne(d => d.Customer)
+                  .WithMany()
+                  .HasForeignKey(d => d.CustomerId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.Discount)
+                  .WithMany(d => d.CustomerDiscounts)
+                  .HasForeignKey(d => d.DiscountsId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.CreatedByUser)
+                  .WithMany()
+                  .HasForeignKey(d => d.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.UpdatedByUser)
+                  .WithMany()
+                  .HasForeignKey(d => d.UpdatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.DeletedByUser)
+                  .WithMany()
+                  .HasForeignKey(d => d.DeletedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.CustomerId);
             entity.HasIndex(e => e.DiscountsId);
             entity.HasIndex(e => e.DeletedAt);
         });

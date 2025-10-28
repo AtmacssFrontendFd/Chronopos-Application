@@ -75,6 +75,10 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private string logoutButtonText = "Logout";
 
+    // Sidebar Width Property
+    [ObservableProperty]
+    private GridLength sidebarWidth = new GridLength(160);
+
     // Navigation Button Visibility Properties (Based on UMAC Permissions)
     [ObservableProperty]
     private bool isDashboardVisible = true;
@@ -2550,7 +2554,9 @@ public partial class MainWindowViewModel : ObservableObject
             var discountViewModel = new DiscountViewModel(
                 _serviceProvider.GetRequiredService<IDiscountService>(),
                 _serviceProvider.GetRequiredService<IProductService>(),
+                _serviceProvider.GetRequiredService<IStoreService>(),
                 _currentUserService,
+                _serviceProvider.GetRequiredService<ICustomerService>(),
                 _serviceProvider.GetRequiredService<IThemeService>(),
                 _serviceProvider.GetRequiredService<IZoomService>(),
                 _serviceProvider.GetRequiredService<ILocalizationService>(),
@@ -2948,6 +2954,7 @@ public partial class MainWindowViewModel : ObservableObject
             // Create the StoreViewModel with all required services and navigation callback
             var storeViewModel = new StoreViewModel(
                 _serviceProvider.GetRequiredService<IStoreService>(),
+                _serviceProvider.GetRequiredService<IDiscountService>(),
                 _currentUserService,
                 navigateBack: () => ShowAddOptionsCommand.Execute(null)
             );
@@ -3060,7 +3067,8 @@ public partial class MainWindowViewModel : ObservableObject
             var customersViewModel = new CustomersViewModel(
                 _serviceProvider.GetRequiredService<ICustomerService>(),
                 _serviceProvider.GetRequiredService<ICustomerGroupService>(),
-                _currentUserService
+                _currentUserService,
+                _serviceProvider.GetRequiredService<IDiscountService>()
             );
 
             // Set up back navigation to return to Customer Management
@@ -3837,7 +3845,8 @@ public partial class MainWindowViewModel : ObservableObject
     {
         try
         {
-            var results = await _globalSearchService.GetQuickSearchAsync(GlobalSearchQuery, 5);
+            // Limit quick search to 10 results for better UX
+            var results = await _globalSearchService.GetQuickSearchAsync(GlobalSearchQuery, 10);
             
             GlobalSearchResults.Clear();
             foreach (var result in results)
@@ -3845,13 +3854,20 @@ public partial class MainWindowViewModel : ObservableObject
                 GlobalSearchResults.Add(result);
             }
 
-            HasMoreGlobalSearchResults = results.Count >= 5;
+            HasMoreGlobalSearchResults = results.Count >= 10;
             ShowGlobalSearchResults = GlobalSearchResults.Count > 0;
             
-            // Update header with result count
-            GlobalSearchResultsHeader = GlobalSearchResults.Count > 0 
-                ? $"Found {GlobalSearchResults.Count} result{(GlobalSearchResults.Count != 1 ? "s" : "")}"
-                : "No results found";
+            // Update header with result count and module breakdown
+            if (GlobalSearchResults.Count > 0)
+            {
+                var moduleGroups = GlobalSearchResults.GroupBy(r => r.Module).Take(3);
+                var moduleText = string.Join(", ", moduleGroups.Select(g => $"{g.Count()} {g.Key}"));
+                GlobalSearchResultsHeader = $"Found {GlobalSearchResults.Count} result{(GlobalSearchResults.Count != 1 ? "s" : "")} ({moduleText})";
+            }
+            else
+            {
+                GlobalSearchResultsHeader = "No results found";
+            }
         }
         catch (Exception ex)
         {
@@ -3874,13 +3890,48 @@ public partial class MainWindowViewModel : ObservableObject
         SelectedGlobalSearchResult = null;
     }
 
-    private void ShowAllGlobalSearchResults()
+    private async void ShowAllGlobalSearchResults()
     {
         if (HasGlobalSearchText)
         {
-            // Navigate to a dedicated search results page
-            StatusMessage = $"Showing all results for '{GlobalSearchQuery}'";
-            ShowGlobalSearchResults = false;
+            try
+            {
+                // Perform a comprehensive search with more results
+                var filter = new GlobalSearchFilterDto
+                {
+                    Query = GlobalSearchQuery,
+                    MaxResults = 50,
+                    IncludeProducts = true,
+                    IncludeCustomers = true,
+                    IncludeSales = true,
+                    IncludeStock = true,
+                    IncludeBrands = true,
+                    IncludeCategories = true,
+                    IncludePages = true,
+                    IncludeFeatures = true
+                };
+                
+                var response = await _globalSearchService.SearchAsync(filter);
+                
+                // Close the popup
+                ShowGlobalSearchResults = false;
+                
+                // Show results in a categorized view (can be enhanced with a dedicated view later)
+                StatusMessage = $"Found {response.TotalResults} results for '{GlobalSearchQuery}' - " +
+                               $"{string.Join(", ", response.ResultsByModule.Select(kvp => $"{kvp.Value} {kvp.Key}"))}";
+                
+                // For now, navigate to the most relevant module
+                if (response.Results.Any())
+                {
+                    var firstResult = response.Results.First();
+                    NavigateToSearchResult(firstResult);
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error performing full search: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"Full search error: {ex.Message}");
+            }
         }
     }
 
@@ -3929,40 +3980,203 @@ public partial class MainWindowViewModel : ObservableObject
     {
         try
         {
+            System.Diagnostics.Debug.WriteLine($"NavigateToSearchResult called - Type: {result.SearchType}, Title: {result.Title}");
+            
+            // Clear search to hide results popup
+            GlobalSearchQuery = string.Empty;
+            
             switch (result.SearchType.ToLowerInvariant())
             {
+                case "page":
+                    System.Diagnostics.Debug.WriteLine($"Navigating to page: {result.Data}");
+                    // Navigate to the page based on the page name
+                    NavigateToPage(result.Data?.ToString() ?? "");
+                    StatusMessage = $"Navigated to: {result.Title}";
+                    break;
+                
+                case "feature":
+                    System.Diagnostics.Debug.WriteLine($"Executing feature: {result.Data}");
+                    // Execute the feature/action
+                    ExecuteFeature(result.Data?.ToString() ?? "");
+                    StatusMessage = $"Executed: {result.Title}";
+                    break;
+                
                 case "product":
+                    System.Diagnostics.Debug.WriteLine("Navigating to product");
                     // Navigate to product management and highlight the product
-                    _ = ShowManagement();
+                    ShowProductManagement(); // Direct to product management
                     StatusMessage = $"Navigated to product: {result.Title}";
                     break;
                 
                 case "customer":
+                    System.Diagnostics.Debug.WriteLine("Navigating to customer");
                     // Navigate to customer management
+                    _ = ShowCustomerManagement(); // Direct to customer management
                     StatusMessage = $"Navigated to customer: {result.Title}";
                     break;
                 
+                case "supplier":
+                    System.Diagnostics.Debug.WriteLine("Navigating to supplier");
+                    // Navigate to supplier management
+                    _ = ShowSupplierManagement(); // Direct to supplier management
+                    StatusMessage = $"Navigated to supplier: {result.Title}";
+                    break;
+                
                 case "sale":
+                case "transaction":
+                    System.Diagnostics.Debug.WriteLine("Navigating to transaction");
                     // Navigate to sales/transactions
-                    _ = ShowTransactions();
-                    StatusMessage = $"Navigated to sale: {result.Title}";
+                    _ = ShowTransaction();
+                    StatusMessage = $"Navigated to transaction: {result.Title}";
+                    break;
+                
+                case "stockadjustment":
+                    System.Diagnostics.Debug.WriteLine("Navigating to stock adjustment");
+                    // Navigate to stock management
+                    _ = ShowStockManagement(); // Direct to stock management
+                    StatusMessage = $"Navigated to stock adjustment: {result.Title}";
                     break;
                 
                 case "brand":
                 case "category":
-                    // Navigate to management
-                    _ = ShowManagement();
+                    System.Diagnostics.Debug.WriteLine($"Navigating to {result.SearchType}");
+                    // Navigate to add options (categories and brands)
+                    _ = ShowAddOptions(); // Direct to add options
                     StatusMessage = $"Navigated to {result.SearchType.ToLowerInvariant()}: {result.Title}";
                     break;
                 
                 default:
+                    System.Diagnostics.Debug.WriteLine($"Unknown search type: {result.SearchType}");
                     StatusMessage = $"Opening: {result.Title}";
                     break;
             }
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"Error navigating: {ex.Message}");
             StatusMessage = $"Error navigating to result: {ex.Message}";
+        }
+    }
+    
+    private void NavigateToPage(string pageName)
+    {
+        // Map page names to navigation actions
+        switch (pageName.ToLowerInvariant())
+        {
+            case "dashboard":
+                _ = ShowDashboard();
+                break;
+            case "sales window":
+                _ = ShowTransactions();
+                break;
+            case "transactions":
+            case "transaction history":
+                _ = ShowTransaction();
+                break;
+            case "back office":
+                _ = ShowManagement(); // General management landing page
+                break;
+            case "product management":
+            case "add product":
+            case "product attributes":
+            case "product modifiers":
+            case "product combinations":
+            case "barcodes":
+            case "product batches":
+                ShowProductManagement(); // Direct to product management
+                break;
+            case "customer management":
+            case "customer groups":
+                _ = ShowCustomerManagement(); // Direct to customer management
+                break;
+            case "supplier management":
+                _ = ShowSupplierManagement(); // Direct to supplier management
+                break;
+            case "category management":
+            case "brand management":
+            case "product groups":
+                _ = ShowAddOptions(); // Categories and brands are in add options
+                break;
+            case "stock management":
+            case "stock adjustment":
+            case "stock transfer":
+            case "goods received":
+            case "goods return":
+            case "goods replace":
+                _ = ShowStockManagement(); // Direct to stock management
+                break;
+            case "settings":
+                _ = ShowSettings();
+                break;
+            case "user settings":
+                _ = ShowUserSettings();
+                break;
+            case "application settings":
+                _ = ShowApplicationSettings();
+                break;
+            case "permissions":
+                _ = ShowPermissions();
+                break;
+            case "roles":
+                _ = ShowRoles();
+                break;
+            case "tax types":
+            case "payment types":
+            case "units of measurement":
+            case "discounts":
+            case "service charges":
+            case "currencies":
+            case "themes":
+            case "languages":
+                _ = ShowSettings(); // Navigate to settings, then to specific module
+                break;
+            case "reservations":
+            case "restaurant tables":
+                _ = ShowReservation();
+                break;
+            case "reports":
+                ShowReports();
+                break;
+            default:
+                StatusMessage = $"Navigation for '{pageName}' not configured yet";
+                break;
+        }
+    }
+    
+    private void ExecuteFeature(string featureName)
+    {
+        // Map feature names to actions
+        switch (featureName.ToLowerInvariant())
+        {
+            case "add new product":
+            case "add product":
+                ShowProductManagement(); // Go directly to product management
+                StatusMessage = "Click the Add Product button in Product Management";
+                break;
+            case "add customer":
+                _ = ShowCustomerManagement(); // Go directly to customer management
+                StatusMessage = "Click the Add Customer button in Customer Management";
+                break;
+            case "add supplier":
+                _ = ShowSupplierManagement(); // Go directly to supplier management
+                StatusMessage = "Click the Add Supplier button in Supplier Management";
+                break;
+            case "new sale":
+                _ = ShowTransactions();
+                break;
+            case "add user":
+                _ = ShowUserSettings();
+                break;
+            case "logout":
+                Logout();
+                break;
+            case "change theme":
+            case "change language":
+                _ = ShowSettings();
+                break;
+            default:
+                StatusMessage = $"Feature '{featureName}' not configured yet";
+                break;
         }
     }
 

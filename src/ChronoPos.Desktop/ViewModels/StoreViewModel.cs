@@ -17,8 +17,10 @@ namespace ChronoPos.Desktop.ViewModels;
 public partial class StoreViewModel : ObservableObject
 {
     private readonly IStoreService _storeService;
+    private readonly IDiscountService _discountService;
     private readonly ICurrentUserService _currentUserService;
     private readonly Action? _navigateBack;
+    private readonly Dictionary<int, string> _discountCache = new();
 
     [ObservableProperty]
     private ObservableCollection<StoreDto> stores = new();
@@ -69,9 +71,10 @@ public partial class StoreViewModel : ObservableObject
     public bool HasStores => Stores.Count > 0;
     public int TotalStores => Stores.Count;
 
-    public StoreViewModel(IStoreService storeService, ICurrentUserService currentUserService, Action? navigateBack = null)
+    public StoreViewModel(IStoreService storeService, IDiscountService discountService, ICurrentUserService currentUserService, Action? navigateBack = null)
     {
         _storeService = storeService;
+        _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _navigateBack = navigateBack;
 
@@ -153,12 +156,27 @@ public partial class StoreViewModel : ObservableObject
         IsLoading = true;
         try
         {
+            // Load discount cache first
+            await LoadDiscountCacheAsync();
+            
             var allStores = await _storeService.GetAllAsync();
+            
+            // Get all active discounts to find which ones belong to each store
+            var allDiscounts = await _discountService.GetActiveDiscountsAsync();
             
             // Clear and repopulate the existing collection to maintain the filtered view
             Stores.Clear();
             foreach (var store in allStores)
             {
+                // Find discounts for this store
+                var storeDiscounts = allDiscounts.Where(d => d.StoreId == store.Id).ToList();
+                
+                // Load discount count for each store
+                store.ActiveDiscountCount = storeDiscounts.Count;
+                
+                // Build discount pills
+                store.DiscountPills = BuildDiscountPills(storeDiscounts);
+                
                 Stores.Add(store);
             }
             
@@ -717,5 +735,60 @@ public partial class StoreViewModel : ObservableObject
 
         values.Add(currentValue.ToString());
         return values.ToArray();
+    }
+    
+    private async Task LoadDiscountCacheAsync()
+    {
+        try
+        {
+            var discounts = await _discountService.GetActiveDiscountsAsync();
+            _discountCache.Clear();
+            
+            foreach (var discount in discounts)
+            {
+                var displayText = $"{discount.DiscountName} {discount.FormattedDiscountValue}";
+                _discountCache[discount.Id] = displayText;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't fail the whole operation
+            StatusMessage = $"Warning: Could not load discount information: {ex.Message}";
+        }
+    }
+    
+    private List<string> BuildDiscountPills(List<DiscountDto> storeDiscounts)
+    {
+        if (storeDiscounts == null || !storeDiscounts.Any())
+            return new List<string>();
+
+        try
+        {
+            var discountPills = new List<string>();
+            
+            foreach (var discount in storeDiscounts.Take(5)) // Show up to 5 discount pills
+            {
+                if (_discountCache.TryGetValue(discount.Id, out var discountText))
+                {
+                    discountPills.Add(discountText);
+                }
+                else
+                {
+                    discountPills.Add($"{discount.DiscountName} {discount.FormattedDiscountValue}");
+                }
+            }
+
+            if (storeDiscounts.Count > 5)
+            {
+                discountPills.Add($"+{storeDiscounts.Count - 5} more");
+            }
+
+            return discountPills;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Warning: Error building discount pills: {ex.Message}";
+            return new List<string> { "Discounts available" };
+        }
     }
 }

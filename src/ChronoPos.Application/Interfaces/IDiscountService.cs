@@ -179,6 +179,20 @@ public interface IDiscountService
     /// <param name="endDate">End date for statistics</param>
     /// <returns>Usage statistics</returns>
     Task<DiscountUsageStatsDto> GetUsageStatsAsync(int discountId, DateTime? startDate = null, DateTime? endDate = null);
+    
+    /// <summary>
+    /// Gets the count of active discounts for a specific store
+    /// </summary>
+    /// <param name="storeId">Store ID</param>
+    /// <returns>Count of active discounts</returns>
+    Task<int> GetActiveDiscountCountByStoreIdAsync(int storeId);
+
+    /// <summary>
+    /// Get count of active discounts for a specific customer
+    /// </summary>
+    /// <param name="customerId">Customer ID</param>
+    /// <returns>Count of active discounts</returns>
+    Task<int> GetActiveDiscountCountByCustomerIdAsync(int customerId);
 }
 
 /// <summary>

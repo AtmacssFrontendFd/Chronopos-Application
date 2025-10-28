@@ -114,6 +114,8 @@ public class Customer
     
     public ICollection<CustomerAddress> Addresses { get; set; } = new List<CustomerAddress>();
     
+    public ICollection<CustomerDiscount> CustomerDiscounts { get; set; } = new List<CustomerDiscount>();
+    
     /// <summary>
     /// Returns the display name for the customer
     /// </summary>

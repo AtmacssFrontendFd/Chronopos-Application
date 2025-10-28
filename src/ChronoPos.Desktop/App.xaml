@@ -13,6 +13,9 @@
             <!-- Built-in WPF Converter for Boolean to Visibility -->
             <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
             
+            <!-- Null to Visibility Converter -->
+            <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+            
             <!-- Add converters for Product Batches -->
             <converters:DaysToExpiryConverter x:Key="DaysToExpiryConverter"/>
             <converters:BatchStatusToColorConverter x:Key="BatchStatusToColorConverter"/>

@@ -19,6 +19,8 @@ public partial class CustomersViewModel : ObservableObject
     private readonly ICustomerService _customerService;
     private readonly ICustomerGroupService _customerGroupService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IDiscountService _discountService;
+    private readonly Dictionary<int, string> _discountCache = new();
 
     [ObservableProperty]
     private ObservableCollection<CustomerDto> _customers = new();
@@ -59,6 +61,9 @@ public partial class CustomersViewModel : ObservableObject
     [ObservableProperty]
     private bool canExportCustomer = false;
 
+    [ObservableProperty]
+    private bool _hasAnyCustomerWithDiscounts = false;
+
     /// <summary>
     /// Text for the active filter toggle button
     /// </summary>
@@ -77,11 +82,13 @@ public partial class CustomersViewModel : ObservableObject
     public CustomersViewModel(
         ICustomerService customerService, 
         ICustomerGroupService customerGroupService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IDiscountService discountService)
     {
         _customerService = customerService;
         _customerGroupService = customerGroupService;
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
         
         // Initialize side panel view model
         SidePanelViewModel = new CustomerSidePanelViewModel(
@@ -134,8 +141,34 @@ public partial class CustomersViewModel : ObservableObject
     {
         try
         {
+            // Load discount cache first
+            await LoadDiscountCacheAsync();
+            
             var customers = await _customerService.GetAllCustomersAsync();
-            Customers = new ObservableCollection<CustomerDto>(customers);
+            
+            // Clear and repopulate customers with discount information
+            Customers.Clear();
+            int customersWithDiscounts = 0;
+            
+            foreach (var customer in customers)
+            {
+                // Load discount count for each customer
+                customer.ActiveDiscountCount = customer.SelectedDiscountIds?.Count ?? 0;
+                
+                // Build discount pills from the customer's selected discount IDs
+                customer.DiscountPills = BuildDiscountPills(customer);
+                
+                if (customer.SelectedDiscountIds != null && customer.SelectedDiscountIds.Any())
+                {
+                    customersWithDiscounts++;
+                }
+                
+                Customers.Add(customer);
+            }
+            
+            // Update visibility flag for discount column
+            HasAnyCustomerWithDiscounts = customersWithDiscounts > 0;
+            
             FilterCustomers();
         }
         catch (Exception ex)
@@ -573,6 +606,56 @@ public partial class CustomersViewModel : ObservableObject
             CanDeleteCustomer = false;
             CanImportCustomer = false;
             CanExportCustomer = false;
+        }
+    }
+
+    private async Task LoadDiscountCacheAsync()
+    {
+        try
+        {
+            var discounts = await _discountService.GetActiveDiscountsAsync();
+            _discountCache.Clear();
+            
+            foreach (var discount in discounts)
+            {
+                var displayText = $"{discount.DiscountName} {discount.FormattedDiscountValue}";
+                _discountCache[discount.Id] = displayText;
+            }
+        }
+        catch (Exception)
+        {
+            // Log error but don't fail the whole operation
+            // Silent failure is acceptable here as discounts are supplementary info
+        }
+    }
+    
+    private List<string> BuildDiscountPills(CustomerDto customer)
+    {
+        if (customer.SelectedDiscountIds == null || !customer.SelectedDiscountIds.Any())
+            return new List<string>();
+
+        try
+        {
+            var discountPills = new List<string>();
+            
+            foreach (var discountId in customer.SelectedDiscountIds.Take(5)) // Show up to 5 discount pills
+            {
+                if (_discountCache.TryGetValue(discountId, out var discountText))
+                {
+                    discountPills.Add(discountText);
+                }
+            }
+
+            if (customer.SelectedDiscountIds.Count > 5)
+            {
+                discountPills.Add($"+{customer.SelectedDiscountIds.Count - 5} more");
+            }
+
+            return discountPills;
+        }
+        catch (Exception)
+        {
+            return new List<string> { "Discounts available" };
         }
     }
 }

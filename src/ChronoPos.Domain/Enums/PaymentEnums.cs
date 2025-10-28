@@ -44,5 +44,7 @@ public enum DiscountApplicableOn
     Product = 1,
     Category = 2,
     Customer = 3,
-    Order = 4
+    Shop = 5 // Store/Shop-level discount
 }
+
+
