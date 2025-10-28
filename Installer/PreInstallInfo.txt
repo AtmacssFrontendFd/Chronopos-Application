@@ -1,0 +1,106 @@
+========================================
+   ChronoPos Desktop POS System
+   Professional Installation Wizard
+========================================
+
+WELCOME TO CHRONOPOS SETUP!
+
+Thank you for choosing ChronoPos Desktop, a comprehensive Point of Sale system designed for modern businesses.
+
+SYSTEM REQUIREMENTS:
+====================
+- Operating System: Windows 10 (version 1809) or Windows 11
+- Processor: Intel Core i3 or equivalent (64-bit)
+- RAM: 4 GB minimum (8 GB recommended)
+- Disk Space: 500 MB for application + additional space for data
+- Display: 1280x720 resolution minimum (1920x1080 recommended)
+- .NET Runtime: Included (self-contained deployment)
+
+WHAT WILL BE INSTALLED:
+=======================
+1. ChronoPos Desktop Application
+   - Main POS application (~170 MB)
+   - All required runtime libraries
+   - Pre-configured settings
+
+2. Database System
+   - SQLite database engine
+   - Automatic database initialization
+   - Data storage location: %LocalAppData%\ChronoPos\
+
+3. Desktop & Start Menu Shortcuts
+   - Quick access icons for easy launching
+   - Uninstaller shortcut in Start Menu
+
+4. Application Data Folders
+   - Product images storage
+   - Backup files location
+   - Licensing information
+   - Application logs
+
+INSTALLATION PROCESS:
+=====================
+1. Choose Installation Location
+   - Default: C:\Program Files\ChronoPos Desktop\
+   - You can select a custom location if needed
+
+2. Select Additional Options
+   - Create desktop shortcut (recommended)
+   - Create quick launch icon (optional)
+
+3. Automatic Setup
+   - Application files will be copied
+   - Database will be initialized
+   - Shortcuts will be created
+   - System will be configured
+
+FIRST TIME SETUP:
+=================
+After installation completes:
+
+1. Launch ChronoPos Desktop from the desktop shortcut
+2. Complete the License Activation
+   - Enter your sales key provided by ChronoPos
+   - Fill in business information
+   - Set up administrator account
+
+3. Initial Configuration
+   - Business details (name, address, contact)
+   - Tax settings and currency
+   - Receipt printer setup (optional)
+
+4. Start Using ChronoPos
+   - Add products and categories
+   - Create employee accounts
+   - Begin sales transactions
+
+DATA LOCATION:
+==============
+Your business data will be stored securely at:
+%LocalAppData%\ChronoPos\
+
+This includes:
+- chronopos.db (main database)
+- Product images
+- Backup files
+- License information
+
+NOTE: This location is backed up during Windows user profile backups.
+
+SUPPORT & DOCUMENTATION:
+========================
+For help and support:
+- Email: support@chronopos.com
+- Documentation: Included in installation
+- Video tutorials: Available on our website
+
+READY TO INSTALL:
+=================
+Click 'Next' to begin the installation process.
+
+The installer will guide you through each step.
+Installation typically takes 2-5 minutes depending on your system.
+
+---
+ChronoPos Desktop v1.0.0
+Copyright (C) 2025 ChronoPos. All rights reserved.
