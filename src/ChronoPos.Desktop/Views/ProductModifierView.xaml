@@ -941,7 +941,7 @@
         <!-- Side Panel Overlay -->
         <Border HorizontalAlignment="Right"
                 VerticalAlignment="Stretch"
-                Width="420"
+                Width="600"
                 Background="{DynamicResource CardBackground}"
                 BorderThickness="1,0,0,0"
                 BorderBrush="{DynamicResource BorderLight}"
@@ -958,7 +958,7 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
-                                                       From="420" To="0" Duration="0:0:0.3">
+                                                       From="600" To="0" Duration="0:0:0.3">
                                             <DoubleAnimation.EasingFunction>
                                                 <CubicEase EasingMode="EaseOut"/>
                                             </DoubleAnimation.EasingFunction>
@@ -970,7 +970,7 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
-                                                       From="0" To="420" Duration="0:0:0.2">
+                                                       From="0" To="600" Duration="0:0:0.2">
                                             <DoubleAnimation.EasingFunction>
                                                 <CubicEase EasingMode="EaseIn"/>
                                             </DoubleAnimation.EasingFunction>

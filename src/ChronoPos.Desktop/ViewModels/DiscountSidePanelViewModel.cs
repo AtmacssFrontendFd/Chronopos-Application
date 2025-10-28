@@ -24,8 +24,8 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
     private readonly IDiscountService _discountService;
     private readonly IProductService _productService;
     private readonly object? _categoryService; // ICategoryService when available
-    private readonly object? _customerService; // ICustomerService when available 
-    private readonly object? _storeService; // IStoreService when available
+    private readonly ICustomerService? _customerService;
+    private readonly IStoreService? _storeService;
     private readonly Action<bool>? _onSaved;
     private readonly Action? _onCancelled;
     
@@ -95,7 +95,7 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
 
     // Applicability Tab
     [ObservableProperty]
-    private DiscountApplicableOn _applicableOn = DiscountApplicableOn.Order;
+    private DiscountApplicableOn _applicableOn = DiscountApplicableOn.Shop;
 
     [ObservableProperty]
     private string _productSearchText = string.Empty;
@@ -143,6 +143,35 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
 
     [ObservableProperty]
     private ObservableCollection<CategorySelectionViewModel> _selectedCategories = new();
+
+    // Multi-select properties for shops
+    [ObservableProperty]
+    private string _shopSearchText = string.Empty;
+
+    [ObservableProperty]
+    private bool _selectAllShops = false;
+
+    [ObservableProperty]
+    private ObservableCollection<ShopSelectionViewModel> _availableShops = new();
+
+    [ObservableProperty]
+    private ObservableCollection<ShopSelectionViewModel> _filteredShops = new();
+
+    [ObservableProperty]
+    private ObservableCollection<ShopSelectionViewModel> _selectedShops = new();
+
+    // Multi-select properties for customers
+    [ObservableProperty]
+    private bool _selectAllCustomers = false;
+
+    [ObservableProperty]
+    private ObservableCollection<CustomerSelectionViewModel> _availableCustomers = new();
+
+    [ObservableProperty]
+    private ObservableCollection<CustomerSelectionViewModel> _filteredCustomers = new();
+
+    [ObservableProperty]
+    private ObservableCollection<CustomerSelectionViewModel> _selectedCustomers = new();
 
     // Validity Tab
     [ObservableProperty]
@@ -206,12 +235,6 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
     private ObservableCollection<object> _categories = new();
 
     [ObservableProperty]
-    private ObservableCollection<object> _customers = new();
-
-    [ObservableProperty]
-    private ObservableCollection<object> _filteredCustomers = new();
-
-    [ObservableProperty]
     private ObservableCollection<object> _stores = new();
 
     // Computed Properties
@@ -219,6 +242,7 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
     public bool IsProductApplicable => ApplicableOn == DiscountApplicableOn.Product;
     public bool IsCategoryApplicable => ApplicableOn == DiscountApplicableOn.Category;
     public bool IsCustomerApplicable => ApplicableOn == DiscountApplicableOn.Customer;
+    public bool IsShopApplicable => ApplicableOn == DiscountApplicableOn.Shop;
 
     #endregion
 
@@ -231,8 +255,8 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
         IDiscountService discountService,
         IProductService productService,
         object? categoryService,
-        object? customerService,
-        object? storeService,
+        ICustomerService? customerService,
+        IStoreService? storeService,
         IThemeService themeService,
         ILocalizationService localizationService,
         ILayoutDirectionService layoutDirectionService,
@@ -273,8 +297,8 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
         IDiscountService discountService,
         IProductService productService,
         object? categoryService,
-        object? customerService,
-        object? storeService,
+        ICustomerService? customerService,
+        IStoreService? storeService,
         IThemeService themeService,
         ILocalizationService localizationService,
         ILayoutDirectionService layoutDirectionService,
@@ -483,6 +507,97 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
         }
     }
 
+    /// <summary>
+    /// Toggle select all shops
+    /// </summary>
+    [RelayCommand]
+    private void ToggleSelectAllShops()
+    {
+        foreach (var shop in AvailableShops)
+        {
+            shop.IsSelected = SelectAllShops;
+        }
+        UpdateSelectedShops();
+    }
+
+    /// <summary>
+    /// Toggle select all customers
+    /// </summary>
+    [RelayCommand]
+    private void ToggleSelectAllCustomers()
+    {
+        foreach (var customer in AvailableCustomers)
+        {
+            customer.IsSelected = SelectAllCustomers;
+        }
+        UpdateSelectedCustomers();
+    }
+
+    /// <summary>
+    /// Handle shop selection change
+    /// </summary>
+    [RelayCommand]
+    private void ShopSelectionChanged(ShopSelectionViewModel shop)
+    {
+        UpdateSelectedShops();
+        UpdateSelectAllShopsState();
+    }
+
+    /// <summary>
+    /// Filter shops based on search text
+    /// </summary>
+    [RelayCommand]
+    private void FilterShops()
+    {
+        if (string.IsNullOrWhiteSpace(ShopSearchText))
+        {
+            FilteredShops.Clear();
+            foreach (var shop in AvailableShops)
+            {
+                FilteredShops.Add(shop);
+            }
+        }
+        else
+        {
+            FilteredShops.Clear();
+            var searchTerm = ShopSearchText.ToLowerInvariant();
+            foreach (var shop in AvailableShops.Where(s => 
+                s.Name.ToLowerInvariant().Contains(searchTerm) ||
+                s.Address.ToLowerInvariant().Contains(searchTerm)))
+            {
+                FilteredShops.Add(shop);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Filter customers based on search text
+    /// </summary>
+    [RelayCommand]
+    private void FilterCustomers()
+    {
+        if (string.IsNullOrWhiteSpace(CustomerSearchText))
+        {
+            FilteredCustomers.Clear();
+            foreach (var customer in AvailableCustomers)
+            {
+                FilteredCustomers.Add(customer);
+            }
+        }
+        else
+        {
+            FilteredCustomers.Clear();
+            var searchTerm = CustomerSearchText.ToLowerInvariant();
+            foreach (var customer in AvailableCustomers.Where(c => 
+                c.Name.ToLowerInvariant().Contains(searchTerm) ||
+                c.Email.ToLowerInvariant().Contains(searchTerm) ||
+                c.Phone.ToLowerInvariant().Contains(searchTerm)))
+            {
+                FilteredCustomers.Add(customer);
+            }
+        }
+    }
+
     #endregion
 
     #region Private Methods
@@ -548,6 +663,69 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
 
         var selectedCount = AvailableCategories.Count(c => c.IsSelected);
         SelectAllCategories = selectedCount == AvailableCategories.Count;
+    }
+
+    /// <summary>
+    /// Updates the selected shops collection
+    /// </summary>
+    private void UpdateSelectedShops()
+    {
+        SelectedShops.Clear();
+        foreach (var shop in AvailableShops.Where(s => s.IsSelected))
+        {
+            SelectedShops.Add(shop);
+        }
+    }
+
+    /// <summary>
+    /// Updates the select all shops state
+    /// </summary>
+    private void UpdateSelectAllShopsState()
+    {
+        if (AvailableShops.Count == 0)
+        {
+            SelectAllShops = false;
+            return;
+        }
+
+        var selectedCount = AvailableShops.Count(s => s.IsSelected);
+        SelectAllShops = selectedCount == AvailableShops.Count;
+    }
+
+    /// <summary>
+    /// Handle customer selection change
+    /// </summary>
+    private void CustomerSelectionChanged(CustomerSelectionViewModel customer)
+    {
+        UpdateSelectedCustomers();
+        UpdateSelectAllCustomersState();
+    }
+
+    /// <summary>
+    /// Updates the selected customers collection
+    /// </summary>
+    private void UpdateSelectedCustomers()
+    {
+        SelectedCustomers.Clear();
+        foreach (var customer in AvailableCustomers.Where(c => c.IsSelected))
+        {
+            SelectedCustomers.Add(customer);
+        }
+    }
+
+    /// <summary>
+    /// Updates the select all customers state
+    /// </summary>
+    private void UpdateSelectAllCustomersState()
+    {
+        if (AvailableCustomers.Count == 0)
+        {
+            SelectAllCustomers = false;
+            return;
+        }
+
+        var selectedCount = AvailableCustomers.Count(c => c.IsSelected);
+        SelectAllCustomers = selectedCount == AvailableCustomers.Count;
     }
 
     /// <summary>
@@ -837,11 +1015,59 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
     {
         try
         {
-            // TODO: Implement when ICustomerService has GetAllAsync method
-            await Task.CompletedTask;
+            if (_customerService == null)
+            {
+                FileLogger.Log("LoadCustomersAsync: _customerService is null");
+                return;
+            }
+
+            FileLogger.Log("LoadCustomersAsync: Starting to load customers");
+            var customers = await _customerService.GetAllAsync();
+            FileLogger.Log($"LoadCustomersAsync: Loaded {customers?.Count() ?? 0} customers");
+
+            if (customers != null)
+            {
+                var customerList = customers.ToList();
+                FileLogger.Log($"LoadCustomersAsync: Found {customerList.Count} customers");
+                
+                // Marshal collection operations to UI thread
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    FileLogger.Log("LoadCustomersAsync: Clearing existing collections on UI thread");
+                    AvailableCustomers.Clear();
+                    FilteredCustomers.Clear();
+                    
+                    foreach (var customer in customerList)
+                    {
+                        FileLogger.Log($"LoadCustomersAsync: Adding customer - ID: {customer.Id}, Name: '{customer.CustomerFullName}'");
+                        var customerVM = new CustomerSelectionViewModel(customer);
+                        
+                        // Wire up selection change event
+                        customerVM.PropertyChanged += (s, e) =>
+                        {
+                            if (e.PropertyName == nameof(customerVM.IsSelected))
+                            {
+                                CustomerSelectionChanged(customerVM);
+                            }
+                        };
+                        
+                        AvailableCustomers.Add(customerVM);
+                        FilteredCustomers.Add(customerVM);
+                    }
+                    
+                    FileLogger.Log($"LoadCustomersAsync: Added {AvailableCustomers.Count} customers to AvailableCustomers");
+                    FileLogger.Log($"LoadCustomersAsync: Added {FilteredCustomers.Count} customers to FilteredCustomers");
+                });
+            }
+            else
+            {
+                FileLogger.Log("LoadCustomersAsync: customers is null");
+            }
         }
         catch (Exception ex)
         {
+            FileLogger.Log($"Error loading customers: {ex.Message}");
+            FileLogger.Log($"Error loading customers stack trace: {ex.StackTrace}");
             System.Diagnostics.Debug.WriteLine($"Error loading customers: {ex.Message}");
         }
     }
@@ -853,11 +1079,45 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
     {
         try
         {
-            // TODO: Implement when IStoreService has GetAllAsync method
-            await Task.CompletedTask;
+            FileLogger.Log("DiscountSidePanelViewModel.LoadStoresAsync: Starting...");
+            
+            if (_storeService == null)
+            {
+                FileLogger.Log("DiscountSidePanelViewModel.LoadStoresAsync: StoreService is null");
+                return;
+            }
+
+            var stores = await _storeService.GetActiveStoresAsync();
+            FileLogger.Log($"DiscountSidePanelViewModel.LoadStoresAsync: Retrieved {stores?.Count() ?? 0} stores");
+
+            if (stores != null && stores.Any())
+            {
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    AvailableShops.Clear();
+                    FilteredShops.Clear();
+
+                    foreach (var store in stores)
+                    {
+                        var shopVM = new ShopSelectionViewModel(store);
+                        shopVM.PropertyChanged += (s, e) =>
+                        {
+                            if (e.PropertyName == nameof(ShopSelectionViewModel.IsSelected))
+                            {
+                                ShopSelectionChanged(shopVM);
+                            }
+                        };
+                        AvailableShops.Add(shopVM);
+                        FilteredShops.Add(shopVM);
+                    }
+
+                    FileLogger.Log($"DiscountSidePanelViewModel.LoadStoresAsync: Loaded {AvailableShops.Count} shops");
+                });
+            }
         }
         catch (Exception ex)
         {
+            FileLogger.Log($"DiscountSidePanelViewModel.LoadStoresAsync: ERROR - {ex.Message}");
             System.Diagnostics.Debug.WriteLine($"Error loading stores: {ex.Message}");
         }
     }
@@ -888,28 +1148,6 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
     }
 
     /// <summary>
-    /// Filter customers based on search text
-    /// </summary>
-    private void FilterCustomers()
-    {
-        FilteredCustomers.Clear();
-        if (string.IsNullOrWhiteSpace(CustomerSearchText))
-        {
-            foreach (var customer in Customers)
-            {
-                FilteredCustomers.Add(customer);
-            }
-        }
-        else
-        {
-            foreach (var customer in Customers)
-            {
-                // TODO: Filter based on customer name when customer model is defined
-                FilteredCustomers.Add(customer);
-            }
-        }
-    }
-
     /// <summary>
     /// Load discount data for editing
     /// </summary>
@@ -961,6 +1199,8 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
         FileLogger.Log($"DiscountSidePanelViewModel.RestoreSelectionsFromDiscount: SelectedCategoryIds count = {discount.SelectedCategoryIds?.Count ?? 0}");
         FileLogger.Log($"DiscountSidePanelViewModel.RestoreSelectionsFromDiscount: AvailableProducts.Count = {AvailableProducts.Count}");
         FileLogger.Log($"DiscountSidePanelViewModel.RestoreSelectionsFromDiscount: AvailableCategories.Count = {AvailableCategories.Count}");
+        FileLogger.Log($"DiscountSidePanelViewModel.RestoreSelectionsFromDiscount: AvailableShops.Count = {AvailableShops.Count}");
+        FileLogger.Log($"DiscountSidePanelViewModel.RestoreSelectionsFromDiscount: StoreId = {discount.StoreId}");
         
         if (discount.ApplicableOn == DiscountApplicableOn.Product)
         {
@@ -971,6 +1211,16 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
         {
             FileLogger.Log("DiscountSidePanelViewModel.RestoreSelectionsFromDiscount: Restoring CATEGORY selections...");
             SetSelectedCategoriesFromDiscount(discount);
+        }
+        else if (discount.ApplicableOn == DiscountApplicableOn.Shop)
+        {
+            FileLogger.Log("DiscountSidePanelViewModel.RestoreSelectionsFromDiscount: Restoring SHOP selections...");
+            SetSelectedShopsFromDiscount(discount);
+        }
+        else if (discount.ApplicableOn == DiscountApplicableOn.Customer)
+        {
+            FileLogger.Log("DiscountSidePanelViewModel.RestoreSelectionsFromDiscount: Restoring CUSTOMER selections...");
+            SetSelectedCustomersFromDiscount(discount);
         }
         else
         {
@@ -1050,6 +1300,70 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
     }
 
     /// <summary>
+    /// Set selected shops from discount data
+    /// </summary>
+    private void SetSelectedShopsFromDiscount(DiscountDto discount)
+    {
+        FileLogger.Log("DiscountSidePanelViewModel.SetSelectedShopsFromDiscount: Starting...");
+        FileLogger.Log($"DiscountSidePanelViewModel.SetSelectedShopsFromDiscount: AvailableShops.Count = {AvailableShops.Count}");
+        FileLogger.Log($"DiscountSidePanelViewModel.SetSelectedShopsFromDiscount: StoreId = {discount.StoreId}");
+        
+        if (discount.StoreId.HasValue)
+        {
+            var shop = AvailableShops.FirstOrDefault(s => s.Id == discount.StoreId.Value);
+            if (shop != null)
+            {
+                FileLogger.Log($"DiscountSidePanelViewModel.SetSelectedShopsFromDiscount: Setting IsSelected=true for shop ID {discount.StoreId.Value} ('{shop.Name}')");
+                shop.IsSelected = true;
+                UpdateSelectedShops();
+                UpdateSelectAllShopsState();
+            }
+            else
+            {
+                FileLogger.Log($"DiscountSidePanelViewModel.SetSelectedShopsFromDiscount: WARNING - Shop ID {discount.StoreId.Value} not found in AvailableShops");
+            }
+        }
+        else
+        {
+            FileLogger.Log("DiscountSidePanelViewModel.SetSelectedShopsFromDiscount: No StoreId found in discount");
+        }
+    }
+
+    /// <summary>
+    /// Set selected customers from discount data
+    /// </summary>
+    private void SetSelectedCustomersFromDiscount(DiscountDto discount)
+    {
+        FileLogger.Log("DiscountSidePanelViewModel.SetSelectedCustomersFromDiscount: Starting...");
+        FileLogger.Log($"DiscountSidePanelViewModel.SetSelectedCustomersFromDiscount: AvailableCustomers.Count = {AvailableCustomers.Count}");
+        
+        if (discount.SelectedCustomerIds?.Any() == true)
+        {
+            FileLogger.Log($"DiscountSidePanelViewModel.SetSelectedCustomersFromDiscount: Found {discount.SelectedCustomerIds.Count} customer IDs to select: [{string.Join(", ", discount.SelectedCustomerIds)}]");
+            
+            foreach (var customerId in discount.SelectedCustomerIds)
+            {
+                var customer = AvailableCustomers.FirstOrDefault(c => c.Id == customerId);
+                if (customer != null)
+                {
+                    FileLogger.Log($"DiscountSidePanelViewModel.SetSelectedCustomersFromDiscount: Setting IsSelected=true for customer ID {customerId} ('{customer.Name}')");
+                    customer.IsSelected = true;
+                }
+                else
+                {
+                    FileLogger.Log($"DiscountSidePanelViewModel.SetSelectedCustomersFromDiscount: WARNING - Customer ID {customerId} not found in AvailableCustomers");
+                }
+            }
+            UpdateSelectedCustomers();
+            UpdateSelectAllCustomersState();
+        }
+        else
+        {
+            FileLogger.Log("DiscountSidePanelViewModel.SetSelectedCustomersFromDiscount: No selected customer IDs found in discount");
+        }
+    }
+
+    /// <summary>
     /// Validate form data
     /// </summary>
     private bool ValidateForm()
@@ -1091,9 +1405,11 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
         
         var selectedProductIds = SelectedProducts.Select(p => p.Id).ToList();
         var selectedCategoryIds = SelectedCategories.Select(c => c.Id).ToList();
+        var selectedCustomerIds = SelectedCustomers.Select(c => c.Id).ToList();
         
         FileLogger.Log($"DiscountSidePanelViewModel.CreateDiscountDto: selectedProductIds.Count = {selectedProductIds.Count}");
         FileLogger.Log($"DiscountSidePanelViewModel.CreateDiscountDto: selectedCategoryIds.Count = {selectedCategoryIds.Count}");
+        FileLogger.Log($"DiscountSidePanelViewModel.CreateDiscountDto: selectedCustomerIds.Count = {selectedCustomerIds.Count}");
         
         if (selectedProductIds.Any())
         {
@@ -1115,10 +1431,11 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
             ApplicableOn = ApplicableOn,
             SelectedProductIds = selectedProductIds,
             SelectedCategoryIds = selectedCategoryIds,
+            SelectedCustomerIds = selectedCustomerIds,
             Priority = Priority,
             IsStackable = IsStackable,
             IsActive = IsActive,
-            StoreId = null, // TODO: Set based on selection
+            StoreId = ApplicableOn == DiscountApplicableOn.Shop && SelectedShops.Any() ? SelectedShops.First().Id : null,
             CurrencyCode = CurrencyCode,
             CreatedBy = 1 // TODO: Get current user ID
         };
@@ -1144,10 +1461,11 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
             ApplicableOn = ApplicableOn,
             SelectedProductIds = SelectedProducts.Select(p => p.Id).ToList(),
             SelectedCategoryIds = SelectedCategories.Select(c => c.Id).ToList(),
+            SelectedCustomerIds = SelectedCustomers.Select(c => c.Id).ToList(),
             Priority = Priority,
             IsStackable = IsStackable,
             IsActive = IsActive,
-            StoreId = null, // TODO: Set based on selection
+            StoreId = ApplicableOn == DiscountApplicableOn.Shop && SelectedShops.Any() ? SelectedShops.First().Id : null,
             CurrencyCode = CurrencyCode,
             UpdatedBy = 1 // TODO: Get current user ID
         };
@@ -1167,6 +1485,7 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
                 OnPropertyChanged(nameof(IsProductApplicable));
                 OnPropertyChanged(nameof(IsCategoryApplicable));
                 OnPropertyChanged(nameof(IsCustomerApplicable));
+                OnPropertyChanged(nameof(IsShopApplicable));
                 break;
             case nameof(ProductSearchText):
                 FilterProducts();
@@ -1176,6 +1495,9 @@ public partial class DiscountSidePanelViewModel : ObservableValidator, IDisposab
                 break;
             case nameof(CustomerSearchText):
                 FilterCustomers();
+                break;
+            case nameof(ShopSearchText):
+                FilterShops();
                 break;
         }
     }
@@ -1315,5 +1637,62 @@ public partial class CategorySelectionViewModel : ObservableObject
         Name = category.Name;
         NameAr = category.NameArabic ?? string.Empty;
         ProductCount = category.ProductCount;
+    }
+}
+
+/// <summary>
+/// ViewModel for shop/store selection with checkbox
+/// </summary>
+public partial class ShopSelectionViewModel : ObservableObject
+{
+    [ObservableProperty]
+    private int _id;
+
+    [ObservableProperty]
+    private string _name = string.Empty;
+
+    [ObservableProperty]
+    private string _address = string.Empty;
+
+    [ObservableProperty]
+    private bool _isSelected;
+
+    [ObservableProperty]
+    private bool _isActive;
+
+    public ShopSelectionViewModel(StoreDto store)
+    {
+        Id = store.Id;
+        Name = store.Name;
+        Address = store.Address ?? string.Empty;
+        IsActive = store.IsActive;
+    }
+}
+/// <summary>
+/// ViewModel for customer selection in multi-select list
+/// </summary>
+public partial class CustomerSelectionViewModel : ObservableObject
+{
+    [ObservableProperty]
+    private int _id;
+
+    [ObservableProperty]
+    private string _name = string.Empty;
+
+    [ObservableProperty]
+    private string _email = string.Empty;
+
+    [ObservableProperty]
+    private string _phone = string.Empty;
+
+    [ObservableProperty]
+    private bool _isSelected;
+
+    public CustomerSelectionViewModel(CustomerDto customer)
+    {
+        Id = customer.Id;
+        Name = customer.CustomerFullName;
+        Email = customer.OfficialEmail ?? string.Empty;
+        Phone = customer.MobileNo ?? string.Empty;
     }
 }

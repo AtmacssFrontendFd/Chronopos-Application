@@ -275,21 +275,21 @@ public class DiscountRepository : Repository<Discount>, IDiscountRepository
         // Filter by applicable type
         if (customerId.HasValue)
         {
-            query = query.Where(d => d.ApplicableOn == DiscountApplicableOn.Order ||
+            query = query.Where(d => d.ApplicableOn == DiscountApplicableOn.Shop ||
                                    (d.ApplicableOn == DiscountApplicableOn.Customer));
         }
 
         if (productIds != null && productIds.Any())
         {
             var productIdList = productIds.ToList();
-            query = query.Where(d => d.ApplicableOn == DiscountApplicableOn.Order ||
+            query = query.Where(d => d.ApplicableOn == DiscountApplicableOn.Shop ||
                                    (d.ApplicableOn == DiscountApplicableOn.Product && d.ProductDiscounts.Any(pd => productIdList.Contains(pd.ProductId))));
         }
 
         if (categoryIds != null && categoryIds.Any())
         {
             var categoryIdList = categoryIds.ToList();
-            query = query.Where(d => d.ApplicableOn == DiscountApplicableOn.Order ||
+            query = query.Where(d => d.ApplicableOn == DiscountApplicableOn.Shop ||
                                    (d.ApplicableOn == DiscountApplicableOn.Category && d.CategoryDiscounts.Any(cd => categoryIdList.Contains(cd.CategoryId))));
         }
 

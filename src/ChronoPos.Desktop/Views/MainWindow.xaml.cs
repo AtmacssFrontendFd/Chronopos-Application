@@ -127,9 +127,14 @@ public partial class MainWindow : Window
 
     private void SearchResultItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (DataContext is MainWindowViewModel viewModel && sender is ListBoxItem item)
+        if (DataContext is MainWindowViewModel viewModel)
         {
-            viewModel.OpenGlobalSearchResult(item.DataContext);
+            // Get the data context from the sender (which is a Border in our case)
+            if (sender is FrameworkElement element)
+            {
+                System.Diagnostics.Debug.WriteLine($"Search result clicked: {element.DataContext?.GetType().Name}");
+                viewModel.OpenGlobalSearchResult(element.DataContext);
+            }
         }
     }
 

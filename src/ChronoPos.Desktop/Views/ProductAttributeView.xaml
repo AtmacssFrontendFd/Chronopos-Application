@@ -585,7 +585,7 @@
         <!-- Side Panel Overlay - Direct child of root Grid for proper z-index -->
         <Border HorizontalAlignment="Right"
                 VerticalAlignment="Stretch"
-                Width="420"
+                Width="550"
                 Background="{DynamicResource CardBackground}"
                 BorderThickness="1,0,0,0"
                 BorderBrush="{DynamicResource BorderLight}"
@@ -602,7 +602,7 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
-                                                       From="420" To="0" Duration="0:0:0.3">
+                                                       From="550" To="0" Duration="0:0:0.3">
                                             <DoubleAnimation.EasingFunction>
                                                 <CubicEase EasingMode="EaseOut"/>
                                             </DoubleAnimation.EasingFunction>
@@ -614,7 +614,7 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
-                                                       From="0" To="420" Duration="0:0:0.2">
+                                                       From="0" To="550" Duration="0:0:0.2">
                                             <DoubleAnimation.EasingFunction>
                                                 <CubicEase EasingMode="EaseIn"/>
                                             </DoubleAnimation.EasingFunction>

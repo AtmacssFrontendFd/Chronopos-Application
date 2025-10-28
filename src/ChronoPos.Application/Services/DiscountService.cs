@@ -64,7 +64,15 @@ public class DiscountService : IDiscountService
     public async Task<IEnumerable<DiscountDto>> GetActiveDiscountsAsync()
     {
         var discounts = await _discountRepository.GetActiveDiscountsAsync();
-        return discounts.Select(MapToDto);
+        var result = new List<DiscountDto>();
+        
+        foreach (var discount in discounts)
+        {
+            var dto = await MapToDtoWithSelections(discount);
+            result.Add(dto);
+        }
+        
+        return result;
     }
 
     /// <summary>
@@ -73,7 +81,15 @@ public class DiscountService : IDiscountService
     public async Task<IEnumerable<DiscountDto>> GetCurrentlyActiveDiscountsAsync()
     {
         var discounts = await _discountRepository.GetCurrentlyActiveDiscountsAsync();
-        return discounts.Select(MapToDto);
+        var result = new List<DiscountDto>();
+        
+        foreach (var discount in discounts)
+        {
+            var dto = await MapToDtoWithSelections(discount);
+            result.Add(dto);
+        }
+        
+        return result;
     }
 
     /// <summary>
@@ -167,9 +183,10 @@ public class DiscountService : IDiscountService
         var createdDiscount = await _discountRepository.AddAsync(discount);
         await _unitOfWork.SaveChangesAsync();
         
-        // Now create the product and category mappings
+        // Now create the product, category, and customer mappings
         await CreateProductDiscountMappings(createdDiscount.Id, discountDto.SelectedProductIds);
         await CreateCategoryDiscountMappings(createdDiscount.Id, discountDto.SelectedCategoryIds);
+        await CreateCustomerDiscountMappings(createdDiscount.Id, discountDto.SelectedCustomerIds);
         
         await _unitOfWork.SaveChangesAsync();
         
@@ -201,9 +218,10 @@ public class DiscountService : IDiscountService
         
         await _discountRepository.UpdateAsync(existingDiscount);
         
-        // Update the product and category mappings
+        // Update the product, category, and customer mappings
         await UpdateProductDiscountMappings(id, discountDto.SelectedProductIds);
         await UpdateCategoryDiscountMappings(id, discountDto.SelectedCategoryIds);
+        await UpdateCustomerDiscountMappings(id, discountDto.SelectedCustomerIds);
         
         await _unitOfWork.SaveChangesAsync();
         
@@ -545,6 +563,42 @@ public class DiscountService : IDiscountService
     }
 
     /// <summary>
+    /// Creates customer discount mappings for the specified discount
+    /// </summary>
+    private async Task CreateCustomerDiscountMappings(int discountId, List<int> customerIds)
+    {
+        if (customerIds?.Any() == true)
+        {
+            foreach (var customerId in customerIds)
+            {
+                var customerDiscount = new CustomerDiscount
+                {
+                    DiscountsId = discountId,
+                    CustomerId = customerId,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _unitOfWork.CustomerDiscounts.AddAsync(customerDiscount);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates customer discount mappings for the specified discount
+    /// </summary>
+    private async Task UpdateCustomerDiscountMappings(int discountId, List<int> customerIds)
+    {
+        // Remove existing mappings
+        var existingMappings = await _unitOfWork.CustomerDiscounts.GetCustomersByDiscountIdAsync(discountId);
+        foreach (var mapping in existingMappings)
+        {
+            await _unitOfWork.CustomerDiscounts.DeleteAsync(mapping.Id);
+        }
+
+        // Create new mappings
+        await CreateCustomerDiscountMappings(discountId, customerIds);
+    }
+
+    /// <summary>
     /// Maps Discount entity to DiscountDto with selected product/category IDs
     /// </summary>
     private async Task<DiscountDto> MapToDtoWithSelections(Discount discount)
@@ -576,7 +630,18 @@ public class DiscountService : IDiscountService
             Log($"DiscountService.MapToDtoWithSelections: SelectedCategoryIds = [{string.Join(", ", dto.SelectedCategoryIds)}]");
         }
         
-        Log($"DiscountService.MapToDtoWithSelections: Completed - returning DTO with {dto.SelectedProductIds.Count} products and {dto.SelectedCategoryIds.Count} categories");
+        // Populate selected customer IDs
+        Log("DiscountService.MapToDtoWithSelections: Loading CustomerDiscount mappings...");
+        var customerMappings = await _unitOfWork.CustomerDiscounts.GetCustomersByDiscountIdAsync(discount.Id);
+        dto.SelectedCustomerIds = customerMappings.Select(cm => cm.CustomerId).ToList();
+        Log($"DiscountService.MapToDtoWithSelections: Found {dto.SelectedCustomerIds.Count} CustomerDiscount mappings");
+        
+        if (dto.SelectedCustomerIds.Any())
+        {
+            Log($"DiscountService.MapToDtoWithSelections: SelectedCustomerIds = [{string.Join(", ", dto.SelectedCustomerIds)}]");
+        }
+        
+        Log($"DiscountService.MapToDtoWithSelections: Completed - returning DTO with {dto.SelectedProductIds.Count} products, {dto.SelectedCategoryIds.Count} categories, and {dto.SelectedCustomerIds.Count} customers");
         return dto;
     }
 
@@ -671,4 +736,48 @@ public class DiscountService : IDiscountService
     }
 
     #endregion
+    
+    /// <summary>
+    /// Gets the count of active discounts for a specific store
+    /// </summary>
+    public async Task<int> GetActiveDiscountCountByStoreIdAsync(int storeId)
+    {
+        try
+        {
+            var discounts = await _discountRepository.GetAllAsync();
+            var activeDiscounts = discounts.Where(d => 
+                d.StoreId == storeId && 
+                d.IsActive && 
+                d.DeletedAt == null &&
+                d.StartDate <= DateTime.UtcNow &&
+                d.EndDate >= DateTime.UtcNow
+            );
+            
+            return activeDiscounts.Count();
+        }
+        catch (Exception ex)
+        {
+            Log($"Error getting active discount count for store {storeId}: {ex.Message}");
+            return 0;
+        }
+    }
+
+    public async Task<int> GetActiveDiscountCountByCustomerIdAsync(int customerId)
+    {
+        try
+        {
+            var discounts = await GetActiveDiscountsAsync();
+            var customerDiscounts = discounts.Where(d => 
+                d.SelectedCustomerIds != null &&
+                d.SelectedCustomerIds.Contains(customerId)
+            );
+            
+            return customerDiscounts.Count();
+        }
+        catch (Exception ex)
+        {
+            Log($"Error getting active discount count for customer {customerId}: {ex.Message}");
+            return 0;
+        }
+    }
 }

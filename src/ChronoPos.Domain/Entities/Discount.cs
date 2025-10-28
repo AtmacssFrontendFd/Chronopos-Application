@@ -74,6 +74,7 @@ public class Discount
     // Many-to-Many relationship navigation properties
     public virtual ICollection<ProductDiscount> ProductDiscounts { get; set; } = new List<ProductDiscount>();
     public virtual ICollection<CategoryDiscount> CategoryDiscounts { get; set; } = new List<CategoryDiscount>();
+    public virtual ICollection<CustomerDiscount> CustomerDiscounts { get; set; } = new List<CustomerDiscount>();
     
     // Helper properties for UI
     public string FormattedDiscountValue =>

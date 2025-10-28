@@ -102,6 +102,15 @@ public class CustomerDto
     
     public DateTime UpdatedAt { get; set; }
     
+    // Discount Information
+    public int ActiveDiscountCount { get; set; }
+    
+    public List<string> DiscountPills { get; set; } = new List<string>();
+    
+    public List<int> SelectedDiscountIds { get; set; } = new List<int>();
+    
+    public string ActiveDiscountCountDisplay => ActiveDiscountCount > 0 ? $"{ActiveDiscountCount}" : "0";
+    
     // Address Information
     public List<CustomerAddressDto> Addresses { get; set; } = new List<CustomerAddressDto>();
     

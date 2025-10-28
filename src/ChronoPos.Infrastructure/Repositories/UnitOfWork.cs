@@ -25,6 +25,7 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<TaxType>? _taxTypeRepository;
     private IProductDiscountRepository? _productDiscountRepository;
     private ICategoryDiscountRepository? _categoryDiscountRepository;
+    private ICustomerDiscountRepository? _customerDiscountRepository;
     private ISellingPriceTypeRepository? _sellingPriceTypeRepository;
     private IPaymentTypeRepository? _paymentTypeRepository;
     private ISupplierRepository? _supplierRepository;
@@ -73,6 +74,9 @@ public class UnitOfWork : IUnitOfWork
     
     public ICategoryDiscountRepository CategoryDiscounts =>
         _categoryDiscountRepository ??= new CategoryDiscountRepository(_context);
+    
+    public ICustomerDiscountRepository CustomerDiscounts =>
+        _customerDiscountRepository ??= new CustomerDiscountRepository(_context);
     
     public ISellingPriceTypeRepository SellingPriceTypes =>
         _sellingPriceTypeRepository ??= new SellingPriceTypeRepository(_context);
