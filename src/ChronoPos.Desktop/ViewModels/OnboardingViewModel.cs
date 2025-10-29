@@ -2,11 +2,13 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Win32;
 using ChronoPos.Desktop.Models.Licensing;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Application.Logging;
 
 namespace ChronoPos.Desktop.ViewModels
 {
@@ -177,6 +179,7 @@ namespace ChronoPos.Desktop.ViewModels
         [RelayCommand]
         private async Task DiscoverHosts()
         {
+            AppLogger.LogInfo("[ONBOARDING] Starting host discovery from UI", filename: "host_discovery");
             IsDiscoveringHosts = true;
             ErrorMessage = string.Empty;
             DiscoveredHosts.Clear();
@@ -184,29 +187,38 @@ namespace ChronoPos.Desktop.ViewModels
             try
             {
                 StatusMessage = "Searching for ChronoPOS hosts on your network...";
+                AppLogger.LogInfo("[ONBOARDING] Calling DiscoverHostsAsync(10)...", filename: "host_discovery");
+                
                 var hosts = await _hostDiscoveryService.DiscoverHostsAsync(10);
+                
+                AppLogger.LogInfo($"[ONBOARDING] Discovery returned {hosts.Count} host(s)", filename: "host_discovery");
                 
                 foreach (var host in hosts)
                 {
                     DiscoveredHosts.Add(host);
+                    AppLogger.LogInfo($"[ONBOARDING] Added to UI collection: {host.HostName} ({host.HostIp})", filename: "host_discovery");
                 }
 
                 if (DiscoveredHosts.Count == 0)
                 {
                     StatusMessage = "No hosts found. Make sure the host device is running and on the same network.";
+                    AppLogger.LogWarning("[ONBOARDING] ⚠️ No hosts found - UI showing empty state", filename: "host_discovery");
                 }
                 else
                 {
                     StatusMessage = $"Found {DiscoveredHosts.Count} host(s)";
+                    AppLogger.LogInfo($"[ONBOARDING] ✅ UI updated with {DiscoveredHosts.Count} host(s)", filename: "host_discovery");
                 }
             }
             catch (Exception ex)
             {
                 ErrorMessage = $"Discovery error: {ex.Message}";
+                AppLogger.LogError("[ONBOARDING] Discovery error in ViewModel", ex, filename: "host_discovery");
             }
             finally
             {
                 IsDiscoveringHosts = false;
+                AppLogger.LogInfo("[ONBOARDING] Discovery UI state reset", filename: "host_discovery");
             }
         }
 
@@ -224,11 +236,57 @@ namespace ChronoPos.Desktop.ViewModels
 
             try
             {
-                // TODO: Implement actual connection handshake
                 StatusMessage = $"Connecting to {SelectedHost.HostName}...";
-                await Task.Delay(2000); // Placeholder
-
-                // For now, just complete the onboarding
+                
+                // Generate client fingerprint
+                var clientFingerprint = MachineFingerprint.Generate();
+                var clientIp = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName())
+                    .AddressList
+                    .FirstOrDefault(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    ?.ToString() ?? "Unknown";
+                
+                // In real implementation, this would be an HTTP call to host's API
+                // For now, we'll simulate the connection by creating a token locally
+                var connectionToken = new ConnectionToken
+                {
+                    Token = Guid.NewGuid().ToString(),
+                    HostIp = SelectedHost.HostIp,
+                    HostName = SelectedHost.HostName,
+                    DatabaseUncPath = $"\\\\{SelectedHost.HostIp}\\ChronoPosDB\\chronopos.db",
+                    DatabaseShareName = "ChronoPosDB",
+                    IssuedAt = DateTime.UtcNow,
+                    ExpiresAt = DateTime.UtcNow.AddDays(365),
+                    ClientFingerprint = clientFingerprint,
+                    PlanId = SelectedHost.PlanId,
+                    MaxPosDevices = SelectedHost.MaxPosDevices
+                };
+                
+                StatusMessage = "Validating network path...";
+                await Task.Delay(500);
+                
+                // Test if database path is accessible
+                var dbSharingService = new DatabaseSharingService();
+                var isAccessible = dbSharingService.ValidateNetworkPath(connectionToken.DatabaseUncPath);
+                
+                if (!isAccessible)
+                {
+                    ErrorMessage = $"Cannot access database at {connectionToken.DatabaseUncPath}\n\n" +
+                                 $"Please ensure:\n" +
+                                 $"1. The folder is shared as 'ChronoPosDB' on the host\n" +
+                                 $"2. You have read/write permissions\n" +
+                                 $"3. Windows file sharing is enabled";
+                    return;
+                }
+                
+                StatusMessage = "Saving connection configuration...";
+                
+                // Save connection configuration
+                SaveConnectionConfig(connectionToken);
+                
+                StatusMessage = "Connected successfully!";
+                await Task.Delay(1000);
+                
+                // Complete onboarding
                 CurrentStep = 6; // Success screen
             }
             catch (Exception ex)
@@ -239,6 +297,29 @@ namespace ChronoPos.Desktop.ViewModels
             {
                 IsLoading = false;
             }
+        }
+
+        private void SaveConnectionConfig(ConnectionToken token)
+        {
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var chronoPosPath = Path.Combine(appDataPath, "ChronoPos");
+            Directory.CreateDirectory(chronoPosPath);
+            
+            var connectionConfig = new ConnectionConfig
+            {
+                IsClient = true,
+                IsHost = false,
+                HostIp = token.HostIp,
+                DatabasePath = token.DatabaseUncPath,
+                Token = token,
+                ConfiguredAt = DateTime.UtcNow
+            };
+            
+            var configPath = Path.Combine(chronoPosPath, "connection.json");
+            var configJson = Newtonsoft.Json.JsonConvert.SerializeObject(connectionConfig, Newtonsoft.Json.Formatting.Indented);
+            File.WriteAllText(configPath, configJson);
+            
+            System.Diagnostics.Debug.WriteLine($"Connection config saved: {configPath}");
         }
 
         [RelayCommand]

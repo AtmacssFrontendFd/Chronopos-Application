@@ -4,16 +4,20 @@ using Microsoft.EntityFrameworkCore;
 using System.Windows;
 using System.IO;
 using System.Threading.Tasks;
+using System.Threading;
 using ChronoPos.Infrastructure;
 using ChronoPos.Infrastructure.Repositories;
 using ChronoPos.Infrastructure.Services;
 using ChronoPos.Domain.Interfaces;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Services;
+using ChronoPos.Application.Logging;
 using ChronoPos.Desktop.ViewModels;
 using ChronoPos.Desktop.Views;
 using ChronoPos.Desktop.Views.Dialogs;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Models.Licensing;
+using Newtonsoft.Json;
 
 namespace ChronoPos.Desktop;
 
@@ -24,6 +28,7 @@ public partial class App : System.Windows.Application
 {
     private readonly IHost _host;
     private static string _logFilePath = string.Empty;
+    private CancellationTokenSource? _broadcastCancellationTokenSource;
 
     public App()
     {
@@ -58,15 +63,52 @@ public partial class App : System.Windows.Application
                 {
                     LogMessage("Configuring services...");
                     
-                    // Get local app data path for database
-                    var databasePath = Path.Combine(chronoPosPath, "chronopos.db");
-                    LogMessage($"Database path: {databasePath}");
+                    // Load connection configuration to determine if client or host mode
+                    var connectionConfigPath = Path.Combine(chronoPosPath, "connection.json");
+                    ConnectionConfig? connectionConfig = null;
+                    
+                    if (File.Exists(connectionConfigPath))
+                    {
+                        try
+                        {
+                            var configJson = File.ReadAllText(connectionConfigPath);
+                            connectionConfig = JsonConvert.DeserializeObject<ConnectionConfig>(configJson);
+                            LogMessage($"Loaded connection config: IsClient={connectionConfig?.IsClient}, IsHost={connectionConfig?.IsHost}");
+                        }
+                        catch (Exception ex)
+                        {
+                            LogMessage($"Failed to load connection config: {ex.Message}");
+                        }
+                    }
+                    
+                    // Determine database path based on mode
+                    string databasePath;
+                    if (connectionConfig?.IsClient == true && !string.IsNullOrEmpty(connectionConfig.DatabasePath))
+                    {
+                        // Client mode: use network UNC path
+                        databasePath = connectionConfig.DatabasePath;
+                        LogMessage($"CLIENT MODE - Using network database: {databasePath}");
+                    }
+                    else
+                    {
+                        // Host or standalone mode: use local database
+                        databasePath = Path.Combine(chronoPosPath, "chronopos.db");
+                        LogMessage($"HOST/STANDALONE MODE - Using local database: {databasePath}");
+                        
+                        // Ensure the directory exists before creating database
+                        var dbDirectory = Path.GetDirectoryName(databasePath);
+                        if (!string.IsNullOrEmpty(dbDirectory) && !Directory.Exists(dbDirectory))
+                        {
+                            Directory.CreateDirectory(dbDirectory);
+                            LogMessage($"Created database directory: {dbDirectory}");
+                        }
+                    }
 
                     // Configure Entity Framework with SQLite and improved settings
-
+                    // Use Mode=ReadWriteCreate to allow database creation on first run
                     services.AddDbContext<ChronoPosDbContext>(options =>
                     {
-                        options.UseSqlite($"Data Source={databasePath}");
+                        options.UseSqlite($"Data Source={databasePath};Mode=ReadWriteCreate;Cache=Shared");
                         // Enable sensitive data logging in debug mode for better error messages
                         options.EnableSensitiveDataLogging(true);
                         options.EnableDetailedErrors(true);
@@ -456,6 +498,12 @@ public partial class App : System.Windows.Application
                     services.AddSingleton<IHostDiscoveryService, HostDiscoveryService>();
                     LogMessage("HostDiscoveryService registered");
 
+                    services.AddSingleton<IConnectionManagerService, ConnectionManagerService>();
+                    LogMessage("ConnectionManagerService registered");
+
+                    services.AddSingleton<IDatabaseSharingService, DatabaseSharingService>();
+                    LogMessage("DatabaseSharingService registered");
+
                     services.AddSingleton<ICameraService, CameraService>();
                     LogMessage("CameraService registered");
 
@@ -597,11 +645,20 @@ public partial class App : System.Windows.Application
             LogMessage("Initializing database...");
             InitializeDatabase();
             LogMessage("Database initialized successfully");
+            
+            // Configure SQLite for network sharing (WAL mode)
+            LogMessage("Configuring database for optimal performance...");
+            ConfigureDatabaseForSharing();
+            LogMessage("Database configuration completed");
 
             // Seed language translations synchronously
             LogMessage("Seeding language translations...");
             SeedLanguageTranslations();
             LogMessage("Language translations seeded successfully");
+            
+            // Start host broadcasting if eligible
+            LogMessage("Checking host broadcasting eligibility...");
+            _ = StartHostBroadcastingIfEligible();
 
             // Now run the startup flow SYNCHRONOUSLY (we're already on UI thread)
             LogMessage("=== Starting Startup Flow ===");
@@ -991,8 +1048,165 @@ public partial class App : System.Windows.Application
         }
     }
 
+    private void ConfigureDatabaseForSharing()
+    {
+        try
+        {
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var chronoPosPath = Path.Combine(appDataPath, "ChronoPos");
+            
+            // Load connection config
+            var connectionConfigPath = Path.Combine(chronoPosPath, "connection.json");
+            ConnectionConfig? connectionConfig = null;
+            
+            if (File.Exists(connectionConfigPath))
+            {
+                var configJson = File.ReadAllText(connectionConfigPath);
+                connectionConfig = JsonConvert.DeserializeObject<ConnectionConfig>(configJson);
+            }
+            
+            // Determine database path
+            string databasePath;
+            if (connectionConfig?.IsClient == true && !string.IsNullOrEmpty(connectionConfig.DatabasePath))
+            {
+                databasePath = connectionConfig.DatabasePath;
+            }
+            else
+            {
+                databasePath = Path.Combine(chronoPosPath, "chronopos.db");
+            }
+            
+            // Enable WAL mode for better concurrent access
+            DatabaseConfigurationService.EnableWalMode(databasePath);
+            
+            // Test connection
+            var isConnected = DatabaseConfigurationService.TestConnection(databasePath);
+            if (isConnected)
+            {
+                var dbInfo = DatabaseConfigurationService.GetDatabaseInfo(databasePath);
+                LogMessage($"  - Database info: {dbInfo}");
+            }
+            else
+            {
+                LogMessage("  - Warning: Database connection test failed");
+            }
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"  - Database configuration error: {ex.Message}");
+            // Don't fail the app, just log the warning
+        }
+    }
+
+    private async Task StartHostBroadcastingIfEligible()
+    {
+        try
+        {
+            AppLogger.LogSeparator("HOST BROADCAST INITIALIZATION", "host_discovery");
+            AppLogger.LogInfo("[HOST INIT] Starting host broadcasting eligibility check", filename: "host_discovery");
+            
+            var licensingService = _host.Services.GetRequiredService<ILicensingService>();
+            var license = licensingService.GetCurrentLicense();
+            
+            if (license == null)
+            {
+                LogMessage("  - Not starting host broadcast: No license found");
+                AppLogger.LogWarning("[HOST INIT] ❌ No license found - cannot start broadcasting", filename: "host_discovery");
+                return;
+            }
+            
+            AppLogger.LogInfo($"[HOST INIT] ✅ License valid - MaxPosDevices: {license.MaxPosDevices}, Expiry: {license.ExpiryDate}", filename: "host_discovery");
+            
+            // No need to check MaxPosDevices - broadcast if license is valid
+            LogMessage($"  - License valid, starting host broadcast (MaxPosDevices = {license.MaxPosDevices})");
+            
+            var dbSharingService = _host.Services.GetRequiredService<IDatabaseSharingService>();
+            var hostDiscoveryService = _host.Services.GetRequiredService<IHostDiscoveryService>();
+            var connectionManager = _host.Services.GetRequiredService<IConnectionManagerService>();
+            
+            var localIp = dbSharingService.GetLocalIpAddress();
+            LogMessage($"  - Local IP: {localIp}");
+            AppLogger.LogInfo($"[HOST INIT] Local IP Address: {localIp}", filename: "host_discovery");
+            
+            // Get all network interfaces for diagnostics
+            var allIps = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
+                .Where(ni => ni.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up)
+                .SelectMany(ni => ni.GetIPProperties().UnicastAddresses)
+                .Where(addr => addr.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                .Select(addr => $"{addr.Address} (via {System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces().FirstOrDefault(n => n.GetIPProperties().UnicastAddresses.Contains(addr))?.Name})")
+                .ToList();
+            
+            AppLogger.LogInfo($"[HOST INIT] All available network interfaces:", filename: "host_discovery");
+            foreach (var ip in allIps)
+            {
+                AppLogger.LogInfo($"[HOST INIT]   - {ip}", filename: "host_discovery");
+            }
+            
+            // Get database path
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var chronoPosPath = Path.Combine(appDataPath, "ChronoPos");
+            var localDatabasePath = Path.Combine(chronoPosPath, "chronopos.db");
+            
+            var databaseUncPath = dbSharingService.GetDatabaseSharePath(localDatabasePath);
+            LogMessage($"  - Database UNC path: {databaseUncPath}");
+            AppLogger.LogInfo($"[HOST INIT] Database path: {localDatabasePath}", filename: "host_discovery");
+            AppLogger.LogInfo($"[HOST INIT] Database UNC path: {databaseUncPath}", filename: "host_discovery");
+            
+            var connectedClients = connectionManager.GetConnectedClientCount();
+            AppLogger.LogInfo($"[HOST INIT] Currently connected clients: {connectedClients}", filename: "host_discovery");
+            
+            var hostInfo = new HostBroadcastMessage
+            {
+                Type = "ChronoPOS_HOST_BROADCAST",
+                HostName = Environment.MachineName,
+                HostIp = localIp,
+                LicenseFingerprint = license.MachineFingerprint,
+                LicenseExpiry = license.ExpiryDate,
+                PlanId = license.PlanId,
+                MaxPosDevices = license.MaxPosDevices,
+                CurrentClientCount = connectedClients
+            };
+            
+            AppLogger.LogInfo($"[HOST INIT] Host Info Prepared:", filename: "host_discovery");
+            AppLogger.LogInfo($"[HOST INIT]   - Type: {hostInfo.Type}", filename: "host_discovery");
+            AppLogger.LogInfo($"[HOST INIT]   - HostName: {hostInfo.HostName}", filename: "host_discovery");
+            AppLogger.LogInfo($"[HOST INIT]   - HostIp: {hostInfo.HostIp}", filename: "host_discovery");
+            AppLogger.LogInfo($"[HOST INIT]   - PlanId: {hostInfo.PlanId}", filename: "host_discovery");
+            AppLogger.LogInfo($"[HOST INIT]   - MaxPosDevices: {hostInfo.MaxPosDevices}", filename: "host_discovery");
+            AppLogger.LogInfo($"[HOST INIT]   - CurrentClientCount: {hostInfo.CurrentClientCount}", filename: "host_discovery");
+            
+            // Start broadcasting
+            _broadcastCancellationTokenSource = new CancellationTokenSource();
+            AppLogger.LogInfo($"[HOST INIT] Starting broadcast task...", filename: "host_discovery");
+            _ = hostDiscoveryService.StartBroadcastingAsync(hostInfo, _broadcastCancellationTokenSource.Token);
+            
+            LogMessage("  - ✅ Host broadcasting started successfully");
+            LogMessage($"  - Broadcasting as: {hostInfo.HostName} ({hostInfo.HostIp})");
+            LogMessage($"  - IMPORTANT: Share the folder '{chronoPosPath}' as 'ChronoPosDB' in Windows");
+            
+            AppLogger.LogInfo($"[HOST INIT] ✅✅✅ Host broadcasting STARTED successfully!", filename: "host_discovery");
+            AppLogger.LogInfo($"[HOST INIT] IMPORTANT: Windows share required at '{chronoPosPath}' as 'ChronoPosDB'", filename: "host_discovery");
+            AppLogger.LogSeparator("", "host_discovery");
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"  - Host broadcasting error: {ex.Message}");
+            LogMessage($"  - Stack trace: {ex.StackTrace}");
+            AppLogger.LogError($"[HOST INIT] ❌ Host broadcasting initialization failed", ex, filename: "host_discovery");
+            // Don't fail the app, just log the error
+        }
+    }
+
     protected override async void OnExit(ExitEventArgs e)
     {
+        // Stop broadcasting if running
+        if (_broadcastCancellationTokenSource != null)
+        {
+            LogMessage("Stopping host broadcasting...");
+            _broadcastCancellationTokenSource.Cancel();
+            _broadcastCancellationTokenSource.Dispose();
+        }
+        
         using (_host)
         {
             await _host.StopAsync();

@@ -13,17 +13,10 @@ public class Repository<T> : IRepository<T> where T : class
     protected readonly ChronoPosDbContext _context;
     protected readonly DbSet<T> _dbSet;
     
-    private static readonly string LogDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
-    private static readonly string LogFilePath = Path.Combine(LogDirectory, $"repository_{DateTime.Now:yyyyMMdd}.log");
+    // Prefer per-user LocalApplicationData for logs so installed apps (Program Files) don't fail
+    private static readonly string DefaultLogDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ChronoPos", "Logs");
+    private static readonly string LogFilePath = Path.Combine(DefaultLogDirectory, $"repository_{DateTime.Now:yyyyMMdd}.log");
     private static readonly object LockObject = new object();
-    
-    static Repository()
-    {
-        if (!Directory.Exists(LogDirectory))
-        {
-            Directory.CreateDirectory(LogDirectory);
-        }
-    }
     
     private static void Log(string message)
     {
@@ -31,6 +24,26 @@ public class Repository<T> : IRepository<T> where T : class
         {
             lock (LockObject)
             {
+                try
+                {
+                    // Ensure directory exists; if it fails (e.g., permissions), fall back to Temp folder
+                    var dir = Path.GetDirectoryName(LogFilePath) ?? DefaultLogDirectory;
+                    if (!Directory.Exists(dir))
+                    {
+                        Directory.CreateDirectory(dir);
+                    }
+                }
+                catch
+                {
+                    // fallback to temp
+                    var tmp = Path.GetTempPath();
+                    var fallback = Path.Combine(tmp, "ChronoPosLogs");
+                    try { Directory.CreateDirectory(fallback); } catch { /* noop */ }
+                    var fallbackPath = Path.Combine(fallback, Path.GetFileName(LogFilePath));
+                    File.AppendAllText(fallbackPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}{Environment.NewLine}");
+                    return;
+                }
+
                 File.AppendAllText(LogFilePath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}{Environment.NewLine}");
             }
         }
