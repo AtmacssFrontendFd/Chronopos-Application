@@ -34,6 +34,8 @@ namespace ChronoPos.Desktop.Services
 
         public ConnectionToken GenerateToken(string clientFingerprint, string clientIp, string hostIp, string databaseUncPath, int planId, int maxPosDevices)
         {
+            AppLogger.LogInfo($"[CONNECTION MGR] Generating token for client {clientFingerprint} from {clientIp}", filename: "host_discovery");
+            
             var token = new ConnectionToken
             {
                 Token = GenerateSecureToken(),
@@ -49,6 +51,8 @@ namespace ChronoPos.Desktop.Services
             };
 
             AppLogger.Log($"Generated connection token for client {clientFingerprint} from {clientIp}", "ConnectionManager", "licensing");
+            AppLogger.LogInfo($"[CONNECTION MGR] Token details - HostIP: {hostIp}, HostName: {Environment.MachineName}, UNC: {databaseUncPath}", filename: "host_discovery");
+            AppLogger.LogInfo($"[CONNECTION MGR] Token valid from {token.IssuedAt} to {token.ExpiresAt} (365 days)", filename: "host_discovery");
             return token;
         }
 

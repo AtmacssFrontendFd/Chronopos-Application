@@ -74,11 +74,24 @@ public partial class App : System.Windows.Application
                             var configJson = File.ReadAllText(connectionConfigPath);
                             connectionConfig = JsonConvert.DeserializeObject<ConnectionConfig>(configJson);
                             LogMessage($"Loaded connection config: IsClient={connectionConfig?.IsClient}, IsHost={connectionConfig?.IsHost}");
+                            
+                            // Also log to AppLogger for better diagnostics
+                            AppLogger.LogInfo($"[APP STARTUP] Connection config loaded from: {connectionConfigPath}", filename: "host_discovery");
+                            AppLogger.LogInfo($"[APP STARTUP] Mode - IsClient: {connectionConfig?.IsClient}, IsHost: {connectionConfig?.IsHost}", filename: "host_discovery");
+                            if (connectionConfig != null)
+                            {
+                                AppLogger.LogInfo($"[APP STARTUP] Host IP: {connectionConfig.HostIp}, DatabasePath: {connectionConfig.DatabasePath}", filename: "host_discovery");
+                            }
                         }
                         catch (Exception ex)
                         {
                             LogMessage($"Failed to load connection config: {ex.Message}");
+                            AppLogger.LogError("[APP STARTUP] Failed to load connection config", ex, connectionConfigPath, "host_discovery");
                         }
+                    }
+                    else
+                    {
+                        AppLogger.LogInfo($"[APP STARTUP] No connection.json found at {connectionConfigPath} - will use standalone/host mode", filename: "host_discovery");
                     }
                     
                     // Determine database path based on mode
@@ -88,12 +101,14 @@ public partial class App : System.Windows.Application
                         // Client mode: use network UNC path
                         databasePath = connectionConfig.DatabasePath;
                         LogMessage($"CLIENT MODE - Using network database: {databasePath}");
+                        AppLogger.LogInfo($"[APP STARTUP] 🔌 CLIENT MODE - Network database: {databasePath}", filename: "host_discovery");
                     }
                     else
                     {
                         // Host or standalone mode: use local database
                         databasePath = Path.Combine(chronoPosPath, "chronopos.db");
                         LogMessage($"HOST/STANDALONE MODE - Using local database: {databasePath}");
+                        AppLogger.LogInfo($"[APP STARTUP] 🖥️ HOST/STANDALONE MODE - Local database: {databasePath}", filename: "host_discovery");
                         
                         // Ensure the directory exists before creating database
                         var dbDirectory = Path.GetDirectoryName(databasePath);
@@ -968,12 +983,18 @@ public partial class App : System.Windows.Application
             var dbContext = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
             
             LogMessage("  - Ensuring database exists...");
+            AppLogger.LogInfo($"[DB INIT] Database connection string: {dbContext.Database.GetConnectionString()}", filename: "host_discovery");
+            AppLogger.LogInfo($"[DB INIT] Calling EnsureCreated()...", filename: "host_discovery");
+            
             dbContext.Database.EnsureCreated();
+            
             LogMessage("  - Database ensured ✓");
+            AppLogger.LogInfo($"[DB INIT] ✅ Database ready and accessible", filename: "host_discovery");
         }
         catch (Exception ex)
         {
             LogMessage($"  - Database initialization error: {ex.Message}");
+            AppLogger.LogError("[DB INIT] ❌ Database initialization failed", ex, filename: "host_discovery");
             new MessageDialog(
                 "Database Warning",
                 $"Database initialization failed: {ex.Message}\nThe application will continue without database functionality.",
@@ -1203,8 +1224,10 @@ public partial class App : System.Windows.Application
         if (_broadcastCancellationTokenSource != null)
         {
             LogMessage("Stopping host broadcasting...");
+            AppLogger.LogInfo("[APP EXIT] Cancelling host broadcast...", filename: "host_discovery");
             _broadcastCancellationTokenSource.Cancel();
             _broadcastCancellationTokenSource.Dispose();
+            AppLogger.LogInfo("[APP EXIT] Host broadcast stopped", filename: "host_discovery");
         }
         
         using (_host)

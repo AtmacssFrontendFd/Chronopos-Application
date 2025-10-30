@@ -32,7 +32,9 @@ namespace ChronoPos.Desktop.Services
     public class HostDiscoveryService : IHostDiscoveryService
     {
         private const string MULTICAST_ADDRESS = "239.255.42.99";
+        private const string BROADCAST_ADDRESS = "255.255.255.255"; // Fallback to regular broadcast
         private const int MULTICAST_PORT = 42099;
+        private const bool USE_BROADCAST_FALLBACK = true; // Set to true to use broadcast instead of multicast
 
         public async Task<List<HostBroadcastMessage>> DiscoverHostsAsync(int timeoutSeconds = 10, CancellationToken cancellationToken = default)
         {
@@ -218,40 +220,41 @@ namespace ChronoPos.Desktop.Services
         public async Task StartBroadcastingAsync(HostBroadcastMessage hostInfo, CancellationToken cancellationToken = default)
         {
             AppLogger.LogSeparator("HOST BROADCAST START", "host_discovery");
+            
+            var broadcastType = USE_BROADCAST_FALLBACK ? "UDP Broadcast" : "Multicast";
+            var targetAddress = USE_BROADCAST_FALLBACK ? BROADCAST_ADDRESS : MULTICAST_ADDRESS;
+            
             AppLogger.LogInfo($"[HOST BROADCAST] Starting host broadcast: {hostInfo.HostName} ({hostInfo.HostIp})", filename: "host_discovery");
-            AppLogger.LogInfo($"[HOST BROADCAST] Multicast: {MULTICAST_ADDRESS}:{MULTICAST_PORT}, Interval: 3s", filename: "host_discovery");
+            AppLogger.LogInfo($"[HOST BROADCAST] Mode: {broadcastType}, Target: {targetAddress}:{MULTICAST_PORT}, Interval: 3s", filename: "host_discovery");
             
             try
             {
                 using var udpClient = new UdpClient();
                 
                 // Log socket configuration
-                AppLogger.LogInfo($"[HOST BROADCAST] Creating UDP client for multicast broadcasting", filename: "host_discovery");
+                AppLogger.LogInfo($"[HOST BROADCAST] Creating UDP client for {broadcastType.ToLower()}", filename: "host_discovery");
+                
+                // Enable broadcast
+                udpClient.EnableBroadcast = true;
+                AppLogger.LogInfo($"[HOST BROADCAST] Enabled UDP broadcast", filename: "host_discovery");
+                
                 AppLogger.LogInfo($"[HOST BROADCAST] Socket created - Local endpoint: {udpClient.Client.LocalEndPoint}", filename: "host_discovery");
                 
-                var multicastEndPoint = new IPEndPoint(IPAddress.Parse(MULTICAST_ADDRESS), MULTICAST_PORT);
-                AppLogger.LogInfo($"[HOST BROADCAST] Target multicast endpoint: {multicastEndPoint}", filename: "host_discovery");
+                var endPoint = new IPEndPoint(IPAddress.Parse(targetAddress), MULTICAST_PORT);
+                AppLogger.LogInfo($"[HOST BROADCAST] Target endpoint: {endPoint}", filename: "host_discovery");
                 
-                // Set socket options for better multicast support
-                try
+                // Set multicast TTL only if using multicast
+                if (!USE_BROADCAST_FALLBACK)
                 {
-                    udpClient.EnableBroadcast = true;
-                    AppLogger.LogInfo($"[HOST BROADCAST] Enabled UDP broadcast", filename: "host_discovery");
-                }
-                catch (Exception ex)
-                {
-                    AppLogger.LogWarning($"[HOST BROADCAST] Could not enable broadcast: {ex.Message}", filename: "host_discovery");
-                }
-                
-                // Set multicast TTL
-                try
-                {
-                    udpClient.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, 255);
-                    AppLogger.LogInfo($"[HOST BROADCAST] Set multicast TTL to 255", filename: "host_discovery");
-                }
-                catch (Exception ex)
-                {
-                    AppLogger.LogWarning($"[HOST BROADCAST] Could not set multicast TTL: {ex.Message}", filename: "host_discovery");
+                    try
+                    {
+                        udpClient.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, 255);
+                        AppLogger.LogInfo($"[HOST BROADCAST] Set multicast TTL to 255", filename: "host_discovery");
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLogger.LogWarning($"[HOST BROADCAST] Could not set multicast TTL: {ex.Message}", filename: "host_discovery");
+                    }
                 }
                 
                 // Get network interfaces
@@ -281,7 +284,7 @@ namespace ChronoPos.Desktop.Services
                 AppLogger.LogInfo($"[HOST BROADCAST] Message payload ({bytes.Length} bytes):", filename: "host_discovery");
                 AppLogger.LogInfo($"[HOST BROADCAST] {json}", filename: "host_discovery");
                 
-                // Log Windows Firewall warning
+                // Log firewall warning
                 AppLogger.LogWarning($"[HOST BROADCAST] ⚠️ IMPORTANT: Ensure Windows Firewall allows UDP outbound on port {MULTICAST_PORT}", filename: "host_discovery");
                 AppLogger.LogWarning($"[HOST BROADCAST] ⚠️ If clients can't discover this host, add firewall rule for ChronoPos.Desktop.exe", filename: "host_discovery");
 
@@ -292,14 +295,14 @@ namespace ChronoPos.Desktop.Services
                 {
                     try
                     {
-                        await udpClient.SendAsync(bytes, bytes.Length, multicastEndPoint);
+                        await udpClient.SendAsync(bytes, bytes.Length, endPoint);
                         broadcastCount++;
                         
                         // Log first broadcast immediately, then every 20 broadcasts (every minute)
                         if (broadcastCount == 1 || broadcastCount % 20 == 0)
                         {
                             var elapsed = DateTime.Now - lastLogTime;
-                            AppLogger.LogInfo($"[HOST BROADCAST] ✅ Sent broadcast #{broadcastCount} (elapsed: {elapsed.TotalSeconds:F1}s)", filename: "host_discovery");
+                            AppLogger.LogInfo($"[HOST BROADCAST] ✅ Sent {broadcastType.ToLower()} #{broadcastCount} to {targetAddress}:{MULTICAST_PORT} (elapsed: {elapsed.TotalSeconds:F1}s)", filename: "host_discovery");
                             lastLogTime = DateTime.Now;
                         }
                     }

@@ -266,6 +266,7 @@ namespace ChronoPos.Desktop.ViewModels
                 
                 // Test if database path is accessible
                 var dbSharingService = new DatabaseSharingService();
+                AppLogger.LogInfo($"[ONBOARDING] Validating network path: {connectionToken.DatabaseUncPath}", filename: "host_discovery");
                 var isAccessible = dbSharingService.ValidateNetworkPath(connectionToken.DatabaseUncPath);
                 
                 if (!isAccessible)
@@ -292,6 +293,7 @@ namespace ChronoPos.Desktop.ViewModels
             catch (Exception ex)
             {
                 ErrorMessage = $"Connection failed: {ex.Message}";
+                AppLogger.LogError("[ONBOARDING] Connection to host failed", ex, filename: "host_discovery");
             }
             finally
             {
@@ -316,10 +318,17 @@ namespace ChronoPos.Desktop.ViewModels
             };
             
             var configPath = Path.Combine(chronoPosPath, "connection.json");
-            var configJson = Newtonsoft.Json.JsonConvert.SerializeObject(connectionConfig, Newtonsoft.Json.Formatting.Indented);
-            File.WriteAllText(configPath, configJson);
-            
-            System.Diagnostics.Debug.WriteLine($"Connection config saved: {configPath}");
+            try
+            {
+                var configJson = Newtonsoft.Json.JsonConvert.SerializeObject(connectionConfig, Newtonsoft.Json.Formatting.Indented);
+                File.WriteAllText(configPath, configJson);
+                AppLogger.LogInfo($"[ONBOARDING] Connection config saved: {configPath}", filename: "host_discovery");
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogError("[ONBOARDING] Failed to save connection configuration", ex, configPath, "host_discovery");
+                throw;
+            }
         }
 
         [RelayCommand]
