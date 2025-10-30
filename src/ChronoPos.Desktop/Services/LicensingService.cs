@@ -119,14 +119,32 @@ namespace ChronoPos.Desktop.Services
             try
             {
                 var licensePath = Path.Combine(_appDataPath, "license.dat");
+                AppLogger.Log($"Checking for license at: {licensePath}", "LicensingService", "licensing");
+                
                 if (!File.Exists(licensePath))
+                {
+                    AppLogger.Log("License file does not exist", "LicensingService", "licensing");
                     return null;
+                }
 
                 var encryptedLicense = File.ReadAllText(licensePath);
-                return DecryptLicenseKey(encryptedLicense);
+                AppLogger.Log($"License file found, attempting to decrypt ({encryptedLicense.Length} chars)", "LicensingService", "licensing");
+                
+                var license = DecryptLicenseKey(encryptedLicense);
+                if (license != null)
+                {
+                    AppLogger.Log($"License decrypted successfully - Expiry: {license.ExpiryDate:yyyy-MM-dd}, Fingerprint: {license.MachineFingerprint.Substring(0, 8)}...", "LicensingService", "licensing");
+                }
+                else
+                {
+                    AppLogger.Log("Failed to decrypt license key", "LicensingService", "licensing");
+                }
+                
+                return license;
             }
-            catch
+            catch (Exception ex)
             {
+                AppLogger.LogError("Error in GetCurrentLicense", ex, filename: "licensing");
                 return null;
             }
         }

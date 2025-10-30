@@ -1127,12 +1127,21 @@ public partial class App : System.Windows.Application
             AppLogger.LogInfo("[HOST INIT] Starting host broadcasting eligibility check", filename: "host_discovery");
             
             var licensingService = _host.Services.GetRequiredService<ILicensingService>();
-            var license = licensingService.GetCurrentLicense();
             
+            // Use IsLicenseValid() which does complete validation (same as startup flow)
+            if (!licensingService.IsLicenseValid())
+            {
+                LogMessage("  - Not starting host broadcast: No valid license found");
+                AppLogger.LogWarning("[HOST INIT] ❌ No valid license - cannot start broadcasting", filename: "host_discovery");
+                AppLogger.LogWarning("[HOST INIT] License check failed (either missing, expired, or fingerprint mismatch)", filename: "host_discovery");
+                return;
+            }
+            
+            // Now get license details for broadcast message
+            var license = licensingService.GetCurrentLicense();
             if (license == null)
             {
-                LogMessage("  - Not starting host broadcast: No license found");
-                AppLogger.LogWarning("[HOST INIT] ❌ No license found - cannot start broadcasting", filename: "host_discovery");
+                AppLogger.LogError("[HOST INIT] ❌ UNEXPECTED: IsLicenseValid passed but GetCurrentLicense returned null", filename: "host_discovery");
                 return;
             }
             
