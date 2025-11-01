@@ -40,6 +40,7 @@ public partial class StockManagementViewModel : ObservableObject
     private readonly IGoodsReceivedService? _goodsReceivedService;
     private readonly ISupplierService? _supplierService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IActiveCurrencyService _activeCurrencyService;
     private readonly Action? _navigateToAddGrn;
     private readonly Action<long>? NavigateToEditGrn;
     private readonly Action? _navigateToAddStockTransfer;
@@ -1352,7 +1353,7 @@ public partial class StockManagementViewModel : ObservableObject
                                 $"Store: {detailedGrn.StoreName}\n" +
                                 $"Invoice No: {detailedGrn.InvoiceNo ?? "N/A"}\n" +
                                 $"Status: {detailedGrn.Status}\n" +
-                                $"Total Amount: ₹{detailedGrn.TotalAmount:N2}\n" +
+                                $"Total Amount: {_activeCurrencyService.FormatPrice(detailedGrn.TotalAmount)}\n" +
                                 $"Created: {detailedGrn.CreatedAt:dd/MM/yyyy HH:mm}\n" +
                                 $"Remarks: {detailedGrn.Remarks ?? "N/A"}";
                     
@@ -1373,7 +1374,7 @@ public partial class StockManagementViewModel : ObservableObject
                             $"Store: {grn.StoreName}\n" +
                             $"Invoice No: {grn.InvoiceNo ?? "N/A"}\n" +
                             $"Status: {grn.Status}\n" +
-                            $"Total Amount: ₹{grn.TotalAmount:N2}\n" +
+                            $"Total Amount: {_activeCurrencyService.FormatPrice(grn.TotalAmount)}\n" +
                             $"Created: {grn.CreatedAt:dd/MM/yyyy HH:mm}";
                 
                 new MessageDialog($"View GRN - {grn.GrnNo}", details, MessageDialog.MessageType.Info).ShowDialog();
@@ -1492,6 +1493,7 @@ public partial class StockManagementViewModel : ObservableObject
         IFontService fontService,
         InfrastructureServices.IDatabaseLocalizationService databaseLocalizationService,
         ICurrentUserService currentUserService,
+        IActiveCurrencyService activeCurrencyService,
         IProductService? productService = null,
         IStockAdjustmentService? stockAdjustmentService = null,
         IProductBatchService? productBatchService = null,
@@ -1526,6 +1528,7 @@ public partial class StockManagementViewModel : ObservableObject
         _fontService = fontService;
         _databaseLocalizationService = databaseLocalizationService;
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
         _productService = productService;
         _stockAdjustmentService = stockAdjustmentService;
         _productBatchService = productBatchService;

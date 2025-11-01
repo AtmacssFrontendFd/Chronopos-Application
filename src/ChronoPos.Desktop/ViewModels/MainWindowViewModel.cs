@@ -27,6 +27,7 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly IDatabaseLocalizationService _databaseLocalizationService;
     private readonly IGlobalSearchService _globalSearchService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IActiveCurrencyService _activeCurrencyService;
     private System.Timers.Timer? _searchDelayTimer;
 
     [ObservableProperty]
@@ -139,6 +140,11 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private string currentLanguageDisplayName = "English";
 
+    /// <summary>
+    /// Gets the active currency symbol for display in UI
+    /// </summary>
+    public string CurrencySymbol => _activeCurrencyService?.CurrencySymbol ?? "$";
+
     // Commands
     public ICommand ClearGlobalSearchCommand { get; }
     public ICommand ShowAllGlobalSearchResultsCommand { get; }
@@ -152,6 +158,7 @@ public partial class MainWindowViewModel : ObservableObject
         _databaseLocalizationService = serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
         _globalSearchService = serviceProvider.GetRequiredService<IGlobalSearchService>();
         _currentUserService = serviceProvider.GetRequiredService<ICurrentUserService>();
+        _activeCurrencyService = serviceProvider.GetRequiredService<IActiveCurrencyService>();
         
         // Load current logged-in user name
         var currentUserDto = _currentUserService.CurrentUser;
@@ -751,33 +758,40 @@ public partial class MainWindowViewModel : ObservableObject
         CurrentPageTitle = await _databaseLocalizationService.GetTranslationAsync("nav_dashboard") ?? "Dashboard";
         StatusMessage = await _databaseLocalizationService.GetTranslationAsync("status_dashboard_loaded") ?? "Dashboard loaded";
         
-        // Create dashboard view content
-        var dashboardContent = new System.Windows.Controls.StackPanel();
-        var welcomeText = await _databaseLocalizationService.GetTranslationAsync("dashboard_welcome") ?? "Welcome to ChronoPos Point of Sale System";
-        dashboardContent.Children.Add(new System.Windows.Controls.TextBlock 
-        { 
-            Text = welcomeText, 
-            FontSize = 18, 
-            Margin = new System.Windows.Thickness(0, 0, 0, 20) 
-        });
-        
-        var statsPanel = new System.Windows.Controls.WrapPanel();
-        
-        // Quick stats cards with translated labels
-        var todaySalesLabel = await _databaseLocalizationService.GetTranslationAsync("dashboard_today_sales") ?? "Today's Sales";
-        var productsLabel = await _databaseLocalizationService.GetTranslationAsync("dashboard_total_products") ?? "Total Products";
-        var customersLabel = await _databaseLocalizationService.GetTranslationAsync("dashboard_total_customers") ?? "Total Customers";
-        
-        var todaySalesCard = CreateStatsCard(todaySalesLabel, "$0.00", "#FF4CAF50");
-        var productsCard = CreateStatsCard(productsLabel, "0", "#FF2196F3");
-        var customersCard = CreateStatsCard(customersLabel, "0", "#FFFF9800");
-        
-        statsPanel.Children.Add(todaySalesCard);
-        statsPanel.Children.Add(productsCard);
-        statsPanel.Children.Add(customersCard);
-        
-        dashboardContent.Children.Add(statsPanel);
-        CurrentView = dashboardContent;
+        try
+        {
+            // Create the comprehensive dashboard view with ViewModel
+            var dashboardViewModel = _serviceProvider.GetRequiredService<DashboardViewModel>();
+            
+            // Wire up navigation actions
+            dashboardViewModel.NavigateToProductsAction = () => ShowProductManagement();
+            dashboardViewModel.NavigateToTransactionsAction = () => _ = ShowTransaction();
+            dashboardViewModel.NavigateToCustomersAction = () => _ = ShowCustomerManagement();
+            dashboardViewModel.NavigateToStockManagementAction = () => _ = ShowStockManagement();
+            dashboardViewModel.NavigateToNewSaleAction = () => _ = ShowTransactions();
+            dashboardViewModel.NavigateToReportsAction = () => ShowReports();
+            
+            var dashboardView = new DashboardView
+            {
+                DataContext = dashboardViewModel
+            };
+            
+            CurrentView = dashboardView;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+            AppLogger.LogError(
+                $"Failed to load dashboard: {ex.Message}", 
+                ex, 
+                "MainWindowViewModel.ShowDashboard");
+            
+            StatusMessage = "Error loading dashboard";
+            new MessageDialog(
+                "Error",
+                "Failed to load the dashboard. Please try again.",
+                MessageDialog.MessageType.Error).ShowDialog();
+        }
     }
 
     [RelayCommand]
@@ -814,6 +828,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IRefundService>(),
                 _serviceProvider.GetRequiredService<IPaymentTypeService>(),
                 _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
+                _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
                 navigateToTransactionList: async () => await ShowTransaction()
             );
 
@@ -861,6 +876,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IExchangeService>(),
                 _serviceProvider.GetRequiredService<IPaymentTypeService>(),
                 _serviceProvider.GetRequiredService<IReservationService>(),
+                _activeCurrencyService,
                 navigateToEditTransaction: async (transactionId) => await LoadTransactionForEdit(transactionId),
                 navigateToPayBill: async (transactionId) => await LoadTransactionForPayment(transactionId),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
@@ -911,6 +927,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IRefundService>(),
                 _serviceProvider.GetRequiredService<IPaymentTypeService>(),
                 _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
+                _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
                 navigateToTransactionList: async () => await ShowTransaction()
             );
 
@@ -963,6 +980,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IRefundService>(),
                 _serviceProvider.GetRequiredService<IPaymentTypeService>(),
                 _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
+                _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
                 navigateToTransactionList: async () => await ShowTransaction()
             );
 
@@ -1024,6 +1042,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IRefundService>(),
                 _serviceProvider.GetRequiredService<IPaymentTypeService>(),
                 _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
+                _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
                 navigateToTransactionList: async () => await ShowTransaction()
             );
 
@@ -1075,6 +1094,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IExchangeService>(),
                 _serviceProvider.GetRequiredService<ICustomerService>(),
                 _serviceProvider.GetRequiredService<ICurrentUserService>(),
+                _activeCurrencyService,
                 onExchangeComplete: async () => await ShowTransaction(),
                 onBack: async () => await ShowTransaction()
             );
@@ -1855,6 +1875,7 @@ public partial class MainWindowViewModel : ObservableObject
                 fontService ?? throw new InvalidOperationException("FontService is required"),
                 databaseLocalizationService ?? throw new InvalidOperationException("DatabaseLocalizationService is required"),
                 _currentUserService,
+                _activeCurrencyService,
                 _serviceProvider.GetService<IProductService>(),
                 _serviceProvider.GetService<IStockAdjustmentService>(),
                 _serviceProvider.GetService<IProductBatchService>(),
@@ -1950,6 +1971,7 @@ public partial class MainWindowViewModel : ObservableObject
                 layoutDirectionService,
                 fontService,
                 databaseLocalizationService,
+                _activeCurrencyService,
                 navigateBack: () => _ = ShowStockManagement("GoodsReceived") // Navigate back to stock management Goods Received section
             );
             
@@ -2013,6 +2035,7 @@ public partial class MainWindowViewModel : ObservableObject
                 layoutDirectionService,
                 fontService,
                 databaseLocalizationService,
+                _activeCurrencyService,
                 navigateBack: () => _ = ShowStockManagement("GoodsReceived") // Navigate back to stock management Goods Received section
             );
             
@@ -2557,6 +2580,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IStoreService>(),
                 _currentUserService,
                 _serviceProvider.GetRequiredService<ICustomerService>(),
+                _activeCurrencyService,
                 _serviceProvider.GetRequiredService<IThemeService>(),
                 _serviceProvider.GetRequiredService<IZoomService>(),
                 _serviceProvider.GetRequiredService<ILocalizationService>(),

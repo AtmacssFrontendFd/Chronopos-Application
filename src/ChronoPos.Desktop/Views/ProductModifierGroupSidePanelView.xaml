@@ -456,7 +456,7 @@
                                                             <TextBlock Text="Price Adj: " 
                                                                      FontSize="{DynamicResource FontSizeExtraSmall}"
                                                                      Foreground="{DynamicResource TextSecondary}"/>
-                                                            <TextBlock Text="{Binding PriceAdjustment, StringFormat='{}{0:C}'}" 
+                                                            <TextBlock Text="{Binding PriceAdjustment, Converter={StaticResource CurrencyPriceConverter}}" 
                                                                      FontSize="{DynamicResource FontSizeExtraSmall}"
                                                                      Foreground="{DynamicResource Primary}"
                                                                      FontWeight="SemiBold"/>

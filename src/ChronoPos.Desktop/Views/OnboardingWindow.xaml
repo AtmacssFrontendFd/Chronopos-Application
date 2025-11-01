@@ -451,7 +451,7 @@
                                     <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ScratchCardInfo.PlanName}" Foreground="{DynamicResource TextPrimary}" FontWeight="Medium"/>
 
                                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Price:" Foreground="{DynamicResource TextSecondary}"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ScratchCardInfo.PlanPrice, StringFormat='${0:F2}'}" Foreground="{DynamicResource TextPrimary}" FontWeight="Medium"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ScratchCardInfo.PlanPrice, Converter={StaticResource CurrencyPriceConverter}}" Foreground="{DynamicResource TextPrimary}" FontWeight="Medium"/>
 
                                     <TextBlock Grid.Row="4" Grid.Column="0" Text="Duration:" Foreground="{DynamicResource TextSecondary}"/>
                                     <TextBlock Grid.Row="4" Grid.Column="1" Foreground="{DynamicResource TextPrimary}" FontWeight="Medium">

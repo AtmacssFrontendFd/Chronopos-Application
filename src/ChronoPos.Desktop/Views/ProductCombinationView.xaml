@@ -382,7 +382,7 @@
 
                         <!-- Price Column -->
                         <DataGridTextColumn Header="Price" 
-                                            Binding="{Binding PriceDisplay}" 
+                                            Binding="{Binding PriceOfUnit, Converter={StaticResource CurrencyPriceConverter}}" 
                                             Width="100"
                                             MinWidth="80">
                             <DataGridTextColumn.ElementStyle>
@@ -396,7 +396,7 @@
 
                         <!-- Cost Column -->
                         <DataGridTextColumn Header="Cost" 
-                                            Binding="{Binding CostDisplay}" 
+                                            Binding="{Binding CostOfUnit, Converter={StaticResource CurrencyPriceConverter}}" 
                                             Width="100"
                                             MinWidth="80">
                             <DataGridTextColumn.ElementStyle>

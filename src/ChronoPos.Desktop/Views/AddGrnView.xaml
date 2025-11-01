@@ -716,7 +716,7 @@
 
                                                 <!-- Line Total Column -->
                                                 <DataGridTextColumn Header="Line Total" 
-                                                                    Binding="{Binding LineTotal, StringFormat='{}{0:C2}'}" 
+                                                                    Binding="{Binding LineTotal, Converter={StaticResource CurrencyPriceConverter}}" 
                                                                     Width="100"
                                                                     IsReadOnly="True">
                                                     <DataGridTextColumn.ElementStyle>

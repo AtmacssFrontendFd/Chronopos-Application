@@ -426,7 +426,7 @@
                                                           Foreground="{DynamicResource Primary}"
                                                           Margin="0,6,0,8"
                                                           HorizontalAlignment="Center">
-                                                    <Run Text="$"/>
+                                                    <Run Text="{Binding DataContext.CurrencySymbol, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                                     <Run Text="{Binding Price, StringFormat=N2}"/>
                                                 </TextBlock>
 
@@ -718,7 +718,7 @@
                                                               FontWeight="Bold"
                                                               Foreground="{DynamicResource Primary}"
                                                               VerticalAlignment="Center">
-                                                        <Run Text="$"/>
+                                                        <Run Text="{Binding DataContext.CurrencySymbol, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                                         <Run Text="{Binding TotalPrice, StringFormat=N2}"/>
                                                     </TextBlock>
                                                 </Grid>
@@ -782,7 +782,7 @@
                             <TextBlock Text="Subtotal" 
                                       FontSize="13" 
                                       Foreground="{DynamicResource TextSecondary}"/>
-                            <TextBlock Text="{Binding Subtotal, StringFormat='${0:N2}'}" 
+                            <TextBlock Text="{Binding Subtotal, Converter={StaticResource CurrencyPriceConverter}}" 
                                       FontSize="13" 
                                       HorizontalAlignment="Right"
                                       Foreground="{DynamicResource TextPrimary}"/>
@@ -830,7 +830,7 @@
                                     </Button.Style>
                                 </Button>
                             </StackPanel>
-                            <TextBlock Text="{Binding DiscountAmount, StringFormat='-${0:N2}'}" 
+                            <TextBlock Text="{Binding DiscountAmount, Converter={StaticResource NegativeCurrencyPriceConverter}}" 
                                       FontSize="13" 
                                       HorizontalAlignment="Right"
                                       Foreground="#D32F2F"/>
@@ -878,7 +878,7 @@
                                     </Button.Style>
                                 </Button>
                             </StackPanel>
-                            <TextBlock Text="{Binding ServiceCharge, StringFormat='${0:N2}'}" 
+                            <TextBlock Text="{Binding ServiceCharge, Converter={StaticResource CurrencyPriceConverter}}" 
                                       FontSize="13" 
                                       HorizontalAlignment="Right"
                                       Foreground="{DynamicResource TextPrimary}"/>
@@ -929,7 +929,7 @@
                                     </Button.Style>
                                 </Button>
                             </StackPanel>
-                            <TextBlock Text="{Binding TaxAmount, StringFormat='${0:N2}'}" 
+                            <TextBlock Text="{Binding TaxAmount, Converter={StaticResource CurrencyPriceConverter}}" 
                                       FontSize="13" 
                                       HorizontalAlignment="Right"
                                       Foreground="{DynamicResource TextPrimary}"/>
@@ -946,7 +946,7 @@
                                       FontSize="15" 
                                       FontWeight="Bold"
                                       Foreground="{DynamicResource TextPrimary}"/>
-                            <TextBlock Text="{Binding Total, StringFormat='${0:N2}'}" 
+                            <TextBlock Text="{Binding Total, Converter={StaticResource CurrencyPriceConverter}}" 
                                       FontSize="16" 
                                       FontWeight="Bold"
                                       HorizontalAlignment="Right"

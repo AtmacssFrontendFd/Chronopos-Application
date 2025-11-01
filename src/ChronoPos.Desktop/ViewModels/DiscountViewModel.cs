@@ -29,6 +29,7 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
     private readonly object? _categoryService; // ICategoryService when available
     private readonly ICustomerService? _customerService;
     private readonly IStoreService _storeService;
+    private readonly IActiveCurrencyService _activeCurrencyService;
     private readonly Action? _navigateToAddDiscount;
     private readonly Action<DiscountDto>? _navigateToEditDiscount;
     private readonly Action? _navigateBack;
@@ -47,13 +48,13 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
     #region Observable Properties
 
     [ObservableProperty]
-    private ObservableCollection<DiscountDto> discounts = new();
+    private ObservableCollection<DiscountViewDto> discounts = new();
 
     [ObservableProperty]
-    private ObservableCollection<DiscountDto> filteredDiscounts = new();
+    private ObservableCollection<DiscountViewDto> filteredDiscounts = new();
 
     [ObservableProperty]
-    private DiscountDto? selectedDiscount;
+    private DiscountViewDto? selectedDiscount;
 
     [ObservableProperty]
     private string searchText = string.Empty;
@@ -198,6 +199,7 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
         IStoreService storeService,
         ICurrentUserService currentUserService,
         ICustomerService? customerService,
+        IActiveCurrencyService activeCurrencyService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -214,6 +216,7 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
         _storeService = storeService ?? throw new ArgumentNullException(nameof(storeService));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _customerService = customerService;
+        _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -1027,7 +1030,7 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
                 Discounts.Clear();
                 foreach (var discount in discountList)
                 {
-                    Discounts.Add(discount);
+                    Discounts.Add(new DiscountViewDto(discount, _activeCurrencyService));
                 }
                 
                 FilterDiscounts();
@@ -1248,4 +1251,59 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
     }
 
     #endregion
+}
+
+/// <summary>
+/// Display wrapper for DiscountDto with dynamic currency formatting
+/// </summary>
+public class DiscountViewDto : DiscountDto
+{
+    private readonly IActiveCurrencyService? _currencyService;
+
+    public DiscountViewDto(DiscountDto discount, IActiveCurrencyService currencyService)
+    {
+        _currencyService = currencyService;
+        
+        // Copy all properties from DiscountDto
+        Id = discount.Id;
+        DiscountName = discount.DiscountName;
+        DiscountNameAr = discount.DiscountNameAr;
+        DiscountDescription = discount.DiscountDescription;
+        DiscountCode = discount.DiscountCode;
+        DiscountType = discount.DiscountType;
+        DiscountValue = discount.DiscountValue;
+        MaxDiscountAmount = discount.MaxDiscountAmount;
+        MinPurchaseAmount = discount.MinPurchaseAmount;
+        StartDate = discount.StartDate;
+        EndDate = discount.EndDate;
+        ApplicableOn = discount.ApplicableOn;
+        SelectedProductIds = discount.SelectedProductIds;
+        SelectedCategoryIds = discount.SelectedCategoryIds;
+        SelectedCustomerIds = discount.SelectedCustomerIds;
+        SelectedProductNames = discount.SelectedProductNames;
+        SelectedCategoryNames = discount.SelectedCategoryNames;
+        SelectedCustomerNames = discount.SelectedCustomerNames;
+        Priority = discount.Priority;
+        IsStackable = discount.IsStackable;
+        IsActive = discount.IsActive;
+        CreatedBy = discount.CreatedBy;
+        CreatedByName = discount.CreatedByName;
+        CreatedAt = discount.CreatedAt;
+        UpdatedBy = discount.UpdatedBy;
+        UpdatedByName = discount.UpdatedByName;
+        UpdatedAt = discount.UpdatedAt;
+        DeletedAt = discount.DeletedAt;
+        DeletedBy = discount.DeletedBy;
+        DeletedByName = discount.DeletedByName;
+        StoreId = discount.StoreId;
+        StoreName = discount.StoreName;
+        CurrencyCode = discount.CurrencyCode;
+    }
+
+    public new string FormattedDiscountValue =>
+        DiscountType == Domain.Enums.DiscountType.Percentage 
+            ? $"{DiscountValue}%" 
+            : _currencyService != null 
+                ? $"{_currencyService.FormatPrice(DiscountValue)}"
+                : $"{CurrencyCode} {DiscountValue:F2}";
 }

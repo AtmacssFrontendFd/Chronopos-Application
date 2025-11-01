@@ -335,7 +335,7 @@
                                                                       Foreground="{DynamicResource Primary}"
                                                                       HorizontalAlignment="Right"
                                                                       Visibility="{Binding Price, Converter={StaticResource NullToVisibilityConverter}}">
-                                                                <Run Text="$"/>
+                                                                <Run Text="{Binding DataContext.CurrencySymbol, RelativeSource={RelativeSource AncestorType=Window}}"/>
                                                                 <Run Text="{Binding Price, StringFormat=N2}"/>
                                                             </TextBlock>
                                                             <TextBlock Text="{Binding Status}"

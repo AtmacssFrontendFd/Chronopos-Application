@@ -216,10 +216,16 @@
 
                                                 <StackPanel Grid.Column="0">
                                                     <TextBlock Text="{Binding ProductName}" FontSize="13" FontWeight="SemiBold" Foreground="#1F2937"/>
-                                                    <TextBlock Text="{Binding UnitPrice, StringFormat='Price: {0:C2}'}" FontSize="11" Foreground="#6B7280" Margin="0,2,0,0"/>
+                                                    <TextBlock FontSize="11" Foreground="#6B7280" Margin="0,2,0,0">
+                                                        <TextBlock.Text>
+                                                            <MultiBinding StringFormat="Price: {0}">
+                                                                <Binding Path="UnitPrice" Converter="{StaticResource CurrencyPriceConverter}"/>
+                                                            </MultiBinding>
+                                                        </TextBlock.Text>
+                                                    </TextBlock>
                                                 </StackPanel>
 
-                                                <TextBlock Grid.Column="1" Text="{Binding TotalPrice, StringFormat=C2}" FontSize="13" FontWeight="Bold" Foreground="#10B981" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding TotalPrice, Converter={StaticResource CurrencyPriceConverter}}" FontSize="13" FontWeight="Bold" Foreground="#10B981" VerticalAlignment="Center" Margin="0,0,10,0"/>
                                                 
                                                 <Button Grid.Column="2" Content="✕" Command="{Binding DataContext.RemoveNewItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                         CommandParameter="{Binding}"

@@ -15,6 +15,7 @@ namespace ChronoPos.Desktop.ViewModels
         private readonly ILicensingService _licensingService;
         private readonly IHostDiscoveryService _hostDiscoveryService;
         private readonly ICameraService _cameraService;
+        private readonly IActiveCurrencyService _activeCurrencyService;
 
         [ObservableProperty]
         private int _currentStep = 0; // 0 = Welcome, 1-6 = Steps
@@ -94,6 +95,11 @@ namespace ChronoPos.Desktop.ViewModels
         [ObservableProperty]
         private bool _isDiscoveringHosts = false;
 
+        /// <summary>
+        /// Gets the active currency symbol for display in UI
+        /// </summary>
+        public string CurrencySymbol => _activeCurrencyService?.CurrencySymbol ?? "$";
+
         public System.Collections.ObjectModel.ObservableCollection<string> Countries { get; } = new()
         {
             "United Arab Emirates", "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda",
@@ -126,11 +132,13 @@ namespace ChronoPos.Desktop.ViewModels
         public OnboardingViewModel(
             ILicensingService licensingService,
             IHostDiscoveryService hostDiscoveryService,
-            ICameraService cameraService)
+            ICameraService cameraService,
+            IActiveCurrencyService activeCurrencyService)
         {
             _licensingService = licensingService;
             _hostDiscoveryService = hostDiscoveryService;
             _cameraService = cameraService;
+            _activeCurrencyService = activeCurrencyService;
 
             IsCameraAvailable = _cameraService.IsCameraAvailable();
         }

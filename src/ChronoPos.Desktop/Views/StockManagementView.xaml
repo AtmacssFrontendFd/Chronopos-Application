@@ -466,7 +466,7 @@
 
                                         <!-- Cost Price Column -->
                                         <DataGridTextColumn Header="Cost Price" 
-                                                            Binding="{Binding CostPrice, StringFormat='{}{0:C2}'}" 
+                                                            Binding="{Binding CostPrice, Converter={StaticResource CurrencyPriceConverter}}" 
                                                             Width="110"
                                                             MinWidth="90">
                                             <DataGridTextColumn.ElementStyle>
@@ -479,7 +479,7 @@
 
                                         <!-- Value After Column -->
                                         <DataGridTextColumn Header="Total Value" 
-                                                            Binding="{Binding ValueAfter, StringFormat='{}{0:C2}'}" 
+                                                            Binding="{Binding ValueAfter, Converter={StaticResource CurrencyPriceConverter}}" 
                                                             Width="120"
                                                             MinWidth="100">
                                             <DataGridTextColumn.ElementStyle>
@@ -1045,7 +1045,7 @@
                                     
                                         <!-- Total Amount Column -->
                                         <DataGridTextColumn Header="Total Amount" 
-                                                            Binding="{Binding TotalAmount, StringFormat='{}{0:C2}'}" 
+                                                            Binding="{Binding TotalAmount, Converter={StaticResource CurrencyPriceConverter}}" 
                                                             Width="120"
                                                             MinWidth="100">
                                             <DataGridTextColumn.ElementStyle>
