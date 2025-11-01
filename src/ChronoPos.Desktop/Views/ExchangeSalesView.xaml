@@ -87,14 +87,24 @@
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
 
-                                                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                                
-                                                <StackPanel Grid.Column="1">
-                                                    <TextBlock Text="{Binding ProductName}" FontSize="13" FontWeight="SemiBold" Foreground="#1F2937"/>
-                                                    <TextBlock Text="{Binding OriginalQuantity, StringFormat='Original Qty: {0}'}" FontSize="11" Foreground="#6B7280" Margin="0,2,0,0"/>
-                                                </StackPanel>
-
-                                                <TextBlock Grid.Column="2" Text="{Binding UnitPrice, StringFormat=C2}" FontSize="13" FontWeight="Bold" Foreground="#F59E0B" VerticalAlignment="Center"/>
+                                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{Binding ProductName}" FontSize="13" FontWeight="SemiBold" Foreground="#1F2937"/>
+                                    <TextBlock Text="{Binding Modifiers}" FontSize="10" Foreground="#9CA3AF" FontStyle="Italic" Margin="0,2,0,0" TextWrapping="Wrap">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasModifiers}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding OriginalQuantity, StringFormat='Original Qty: {0}'}" FontSize="11" Foreground="#6B7280" Margin="0,2,0,0"/>
+                                </StackPanel>                                                <TextBlock Grid.Column="2" Text="{Binding UnitPrice, StringFormat=C2}" FontSize="13" FontWeight="Bold" Foreground="#F59E0B" VerticalAlignment="Center"/>
                                             </Grid>
 
                                             <!-- Return Quantity Row -->

@@ -12,8 +12,8 @@ public class TransactionServiceCharge
     [Required]
     public int TransactionId { get; set; }
     
-    [Required]
-    public int ServiceChargeId { get; set; }
+    // Nullable to support manual/custom service charges not linked to predefined service charge
+    public int? ServiceChargeId { get; set; }
     
     public decimal TotalAmount { get; set; } = 0;
     

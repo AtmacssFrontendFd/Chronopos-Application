@@ -13,6 +13,8 @@ using ChronoPos.Domain.Interfaces;
 using System.Linq;
 using System.Threading.Tasks;
 using ChronoPos.Application.Logging;
+using System;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -21,6 +23,7 @@ namespace ChronoPos.Desktop.ViewModels;
 /// </summary>
 public partial class AddSalesViewModel : ObservableObject
 {
+    private readonly IServiceProvider _serviceProvider;
     private readonly IProductService _productService;
     private readonly ICategoryService _categoryService;
     private readonly ICustomerService _customerService;
@@ -34,7 +37,11 @@ public partial class AddSalesViewModel : ObservableObject
     private readonly IRefundService _refundService;
     private readonly IPaymentTypeService _paymentTypeService;
     private readonly ITransactionServiceChargeRepository _transactionServiceChargeRepository;
+    private readonly ITransactionModifierRepository _transactionModifierRepository;
+    private readonly IProductBarcodeRepository _productBarcodeRepository;
     private readonly Action? _navigateToTransactionList;
+    private readonly Action<int>? _navigateToRefundTransaction;
+    private readonly Action<int>? _navigateToExchangeTransaction;
 
     #region Observable Properties
 
@@ -73,6 +80,12 @@ public partial class AddSalesViewModel : ObservableObject
 
     [ObservableProperty]
     private ObservableCollection<ProductDisplayModel> filteredProducts = new();
+
+    [ObservableProperty]
+    private ObservableCollection<ProductGroupViewModel> productGroups = new();
+
+    [ObservableProperty]
+    private bool isShowingProducts = true;
 
     [ObservableProperty]
     private ObservableCollection<CustomerDto> customers = new();
@@ -150,15 +163,23 @@ public partial class AddSalesViewModel : ObservableObject
     [ObservableProperty]
     private bool showCancelButton = true; // Show for new/draft transactions
 
+    // Barcode Scanner Properties
     [ObservableProperty]
-    private bool isRefundMode = false; // Indicates if we're in refund mode
+    private string barcodeInput = string.Empty;
 
     [ObservableProperty]
-    private int refundSourceTransactionId = 0; // Source transaction ID for refund
+    private bool isScannerReady = true;
+
+    [ObservableProperty]
+    private string scannerStatusMessage = "Ready to scan";
+
+    [ObservableProperty]
+    private Brush scannerStatusColor = Brushes.Green;
 
     #endregion
 
     public AddSalesViewModel(
+        IServiceProvider serviceProvider,
         IProductService productService,
         ICategoryService categoryService,
         ICustomerService customerService,
@@ -172,8 +193,13 @@ public partial class AddSalesViewModel : ObservableObject
         IRefundService refundService,
         IPaymentTypeService paymentTypeService,
         ITransactionServiceChargeRepository transactionServiceChargeRepository,
-        Action? navigateToTransactionList = null)
+        ITransactionModifierRepository transactionModifierRepository,
+        IProductBarcodeRepository productBarcodeRepository,
+        Action? navigateToTransactionList = null,
+        Action<int>? navigateToRefundTransaction = null,
+        Action<int>? navigateToExchangeTransaction = null)
     {
+        _serviceProvider = serviceProvider;
         _productService = productService;
         _categoryService = categoryService;
         _customerService = customerService;
@@ -187,7 +213,11 @@ public partial class AddSalesViewModel : ObservableObject
         _refundService = refundService;
         _paymentTypeService = paymentTypeService;
         _transactionServiceChargeRepository = transactionServiceChargeRepository;
+        _transactionModifierRepository = transactionModifierRepository;
+        _productBarcodeRepository = productBarcodeRepository;
         _navigateToTransactionList = navigateToTransactionList;
+        _navigateToRefundTransaction = navigateToRefundTransaction;
+        _navigateToExchangeTransaction = navigateToExchangeTransaction;
 
         _ = InitializeAsync();
     }
@@ -522,16 +552,297 @@ public partial class AddSalesViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Show products view
+    /// </summary>
+    [RelayCommand]
+    private void ShowProducts()
+    {
+        IsShowingProducts = true;
+        AppLogger.Log("Switched to Products view", filename: "product_selection");
+    }
+
+    /// <summary>
+    /// Show product groups view
+    /// </summary>
+    [RelayCommand]
+    private async Task ShowProductGroups()
+    {
+        try
+        {
+            IsShowingProducts = false;
+            AppLogger.Log("Switching to Product Groups view", filename: "product_group_selection");
+            
+            // Load product groups if not already loaded
+            if (ProductGroups == null || !ProductGroups.Any())
+            {
+                var productGroupService = _serviceProvider!.GetRequiredService<IProductGroupService>();
+                var productGroupItemService = _serviceProvider!.GetRequiredService<IProductGroupItemService>();
+                var productUnitService = _serviceProvider!.GetRequiredService<IProductUnitService>();
+                
+                var allGroups = await productGroupService.GetAllAsync();
+                
+                if (allGroups != null && allGroups.Any())
+                {
+                    ProductGroups.Clear();
+                    foreach (var group in allGroups.Where(g => g.Status == "Active"))
+                    {
+                        // Calculate total price for this group
+                        decimal totalPrice = 0m;
+                        var groupItems = await productGroupItemService.GetByProductGroupIdAsync(group.Id);
+                        
+                        if (groupItems != null && groupItems.Any())
+                        {
+                            foreach (var item in groupItems)
+                            {
+                                if (!item.ProductId.HasValue) continue;
+                                
+                                var product = await _productService.GetProductByIdAsync(item.ProductId.Value);
+                                if (product == null) continue;
+
+                                // Get price from unit if specified, otherwise from product
+                                if (item.ProductUnitId.HasValue && item.ProductUnitId.Value > 0)
+                                {
+                                    var unit = await productUnitService.GetByIdAsync(item.ProductUnitId.Value);
+                                    totalPrice += unit?.PriceOfUnit ?? product.Price;
+                                }
+                                else
+                                {
+                                    totalPrice += product.Price;
+                                }
+                            }
+                        }
+                        
+                        ProductGroups.Add(new ProductGroupViewModel(group, totalPrice));
+                    }
+                    AppLogger.Log($"Loaded {ProductGroups.Count} product groups", filename: "product_group_selection");
+                }
+                else
+                {
+                    AppLogger.Log("No product groups found", filename: "product_group_selection");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Error loading product groups", ex, filename: "product_group_selection");
+            new MessageDialog("Error", $"Error loading product groups: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
+            IsShowingProducts = true; // Revert to products view on error
+        }
+    }
+
+    /// <summary>
+    /// Increase quantity of a product group
+    /// </summary>
+    [RelayCommand]
+    private async Task IncreaseProductGroupQuantity(ProductGroupViewModel groupViewModel)
+    {
+        try
+        {
+            if (groupViewModel == null) return;
+            
+            AppLogger.Log($"Increasing quantity for product group: {groupViewModel.Name}", filename: "product_group_selection");
+            
+            // Get services
+            var productGroupItemService = _serviceProvider!.GetRequiredService<IProductGroupItemService>();
+            var productUnitService = _serviceProvider!.GetRequiredService<IProductUnitService>();
+            
+            // Get all items in this group
+            var groupItems = await productGroupItemService.GetByProductGroupIdAsync(groupViewModel.Id);
+            
+            if (groupItems == null || !groupItems.Any())
+            {
+                AppLogger.Log($"No items found for group: {groupViewModel.Name}", filename: "product_group_selection");
+                return;
+            }
+            
+            // Load details for each item and add to cart
+            foreach (var item in groupItems)
+            {
+                if (!item.ProductId.HasValue) continue;
+                
+                var product = await _productService.GetProductByIdAsync(item.ProductId.Value);
+                if (product == null) continue;
+
+                ProductUnitDto? unit = null;
+                if (item.ProductUnitId.HasValue && item.ProductUnitId.Value > 0)
+                {
+                    unit = await productUnitService.GetByIdAsync(item.ProductUnitId.Value);
+                }
+
+                // Get the price
+                var price = unit?.PriceOfUnit ?? product.Price;
+
+                // Create selection result for comparison
+                var selectionResult = new ProductSelectionResult
+                {
+                    Product = product,
+                    ProductUnit = unit,
+                    SelectedModifiers = new List<ProductModifierGroupItemDto>(),
+                    ProductGroup = groupViewModel.Group,
+                    FinalPrice = price
+                };
+
+                // Add to cart or increase existing
+                var existingItem = CartItems.FirstOrDefault(ci => 
+                    ci.ProductId == product.Id && 
+                    AreSameSelections(ci, selectionResult));
+
+                if (existingItem != null)
+                {
+                    existingItem.Quantity++;
+                }
+                else
+                {
+                    var productName = product.Name;
+                    if (unit != null)
+                    {
+                        productName += $" ({unit.UnitName})";
+                    }
+                    productName += $" [Group: {groupViewModel.Name}]";
+
+                    var newCartItem = new CartItemModel
+                    {
+                        ProductId = product.Id,
+                        ProductName = productName,
+                        Icon = "📦",
+                        UnitPrice = price,
+                        Quantity = 1,
+                        TotalPrice = price,
+                        Tag = selectionResult,
+                        // Store selected modifiers (empty for product groups, but keeps consistency)
+                        SelectedModifiers = new List<ProductModifierGroupItemDto>()
+                    };
+
+                    newCartItem.PropertyChanged += (s, e) =>
+                    {
+                        if (e.PropertyName == nameof(CartItemModel.TotalPrice))
+                        {
+                            RecalculateTotals();
+                        }
+                    };
+
+                    CartItems.Add(newCartItem);
+                }
+            }
+            
+            // Increase group quantity
+            groupViewModel.Quantity++;
+            
+            RecalculateTotals();
+            AppLogger.Log($"Added items from group: {groupViewModel.Name}, New quantity: {groupViewModel.Quantity}", filename: "product_group_selection");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Error increasing product group quantity", ex, filename: "product_group_selection");
+        }
+    }
+
+    /// <summary>
+    /// Decrease quantity of a product group
+    /// </summary>
+    [RelayCommand]
+    private async Task DecreaseProductGroupQuantity(ProductGroupViewModel groupViewModel)
+    {
+        try
+        {
+            if (groupViewModel == null || groupViewModel.Quantity <= 0) return;
+            
+            AppLogger.Log($"Decreasing quantity for product group: {groupViewModel.Name}", filename: "product_group_selection");
+            
+            // Get services
+            var productGroupItemService = _serviceProvider!.GetRequiredService<IProductGroupItemService>();
+            var productUnitService = _serviceProvider!.GetRequiredService<IProductUnitService>();
+            
+            // Get all items in this group
+            var groupItems = await productGroupItemService.GetByProductGroupIdAsync(groupViewModel.Id);
+            
+            if (groupItems == null || !groupItems.Any())
+            {
+                AppLogger.Log($"No items found for group: {groupViewModel.Name}", filename: "product_group_selection");
+                return;
+            }
+            
+            // Remove one quantity of each item from cart
+            foreach (var item in groupItems)
+            {
+                if (!item.ProductId.HasValue) continue;
+                
+                var product = await _productService.GetProductByIdAsync(item.ProductId.Value);
+                if (product == null) continue;
+
+                ProductUnitDto? unit = null;
+                if (item.ProductUnitId.HasValue && item.ProductUnitId.Value > 0)
+                {
+                    unit = await productUnitService.GetByIdAsync(item.ProductUnitId.Value);
+                }
+
+                // Get the price
+                var price = unit?.PriceOfUnit ?? product.Price;
+
+                // Create selection result for comparison
+                var selectionResult = new ProductSelectionResult
+                {
+                    Product = product,
+                    ProductUnit = unit,
+                    SelectedModifiers = new List<ProductModifierGroupItemDto>(),
+                    ProductGroup = groupViewModel.Group,
+                    FinalPrice = price
+                };
+
+                // Find and decrease cart item
+                var existingItem = CartItems.FirstOrDefault(ci => 
+                    ci.ProductId == product.Id && 
+                    AreSameSelections(ci, selectionResult));
+
+                if (existingItem != null)
+                {
+                    existingItem.Quantity--;
+                    if (existingItem.Quantity <= 0)
+                    {
+                        CartItems.Remove(existingItem);
+                    }
+                }
+            }
+            
+            // Decrease group quantity
+            groupViewModel.Quantity--;
+            
+            RecalculateTotals();
+            AppLogger.Log($"Decreased items from group: {groupViewModel.Name}, New quantity: {groupViewModel.Quantity}", filename: "product_group_selection");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Error decreasing product group quantity", ex, filename: "product_group_selection");
+        }
+    }
+
     [RelayCommand]
     private async Task IncreaseQuantity(ProductDisplayModel product)
     {
-        if (product == null) return;
+        AppLogger.LogSeparator("PRODUCT CLICK - INCREASE QUANTITY", "product_selection");
+        
+        if (product == null)
+        {
+            AppLogger.LogWarning("Product is null in IncreaseQuantity", filename: "product_selection");
+            return;
+        }
+
+        AppLogger.Log($"Product clicked: ID={product.Id}, Name={product.Name}", filename: "product_selection");
 
         // Fetch the full product details including stock information
         var productDetails = await _productService.GetProductByIdAsync(product.Id);
-        if (productDetails == null) return;
+        if (productDetails == null)
+        {
+            AppLogger.LogError($"Failed to fetch product details for ProductId={product.Id}", filename: "product_selection");
+            return;
+        }
+        
+        AppLogger.Log($"Product details loaded: {productDetails.Name}", filename: "product_selection");
 
         var requestedQuantity = product.Quantity + 1;
+
+        AppLogger.Log($"Requested quantity: {requestedQuantity}, IsStockTracked: {productDetails.IsStockTracked}", filename: "product_selection");
 
         // Check if stock tracking is enabled for this product
         if (productDetails.IsStockTracked)
@@ -543,6 +854,8 @@ public partial class AddSalesViewModel : ObservableObject
                 if (!productDetails.AllowNegativeStock)
                 {
                     // Restrict user from adding more
+                    AppLogger.LogWarning($"Insufficient stock for {productDetails.Name}. Available: {productDetails.InitialStock}, Requested: {requestedQuantity}", filename: "product_selection");
+                    
                     new MessageDialog(
                         "Stock Unavailable",
                         $"Insufficient stock for '{productDetails.Name}'.\n\n" +
@@ -554,6 +867,8 @@ public partial class AddSalesViewModel : ObservableObject
                 }
                 else
                 {
+                    AppLogger.Log($"Negative stock warning for {productDetails.Name}", filename: "product_selection");
+                    
                     // Allow negative stock but show warning
                     var dialog = new ConfirmationDialog(
                         "Stock Warning",
@@ -569,31 +884,123 @@ public partial class AddSalesViewModel : ObservableObject
                     
                     if (result != true)
                     {
+                        AppLogger.Log("User cancelled negative stock warning", filename: "product_selection");
                         return;
                     }
+                    
+                    AppLogger.Log("User accepted negative stock warning", filename: "product_selection");
                 }
+            }
+        }
+
+        AppLogger.Log("=== Checking product options ===", filename: "product_selection");
+        AppLogger.Log($"ServiceProvider is null: {_serviceProvider == null}", filename: "product_selection");
+        
+        // Check if product has any options (units, modifiers, combinations, groups)
+        bool hasOptions = false;
+        try
+        {
+            var productUnitService = _serviceProvider!.GetRequiredService<IProductUnitService>();
+            var modifierLinkService = _serviceProvider!.GetRequiredService<IProductModifierLinkService>();
+            var combinationItemService = _serviceProvider!.GetRequiredService<IProductCombinationItemService>();
+            
+            var productUnits = await productUnitService.GetByProductIdAsync(productDetails.Id);
+            var modifierLinks = await modifierLinkService.GetByProductIdAsync(productDetails.Id);
+            
+            // Check for product combinations by checking if any product unit has combination items
+            bool hasCombinations = false;
+            if (productUnits != null && productUnits.Any())
+            {
+                var productUnitIds = productUnits.Select(u => u.Id).ToList();
+                var combinationItems = await combinationItemService.GetCombinationItemsByProductUnitIdsAsync(productUnitIds);
+                hasCombinations = combinationItems != null && combinationItems.Any();
+            }
+            
+            hasOptions = (productUnits != null && productUnits.Any()) || 
+                        (modifierLinks != null && modifierLinks.Any()) ||
+                        hasCombinations;
+            
+            AppLogger.Log($"Product has options: {hasOptions} (Units: {productUnits?.Count() ?? 0}, Modifiers: {modifierLinks?.Count() ?? 0}, Combinations: {hasCombinations})", filename: "product_selection");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Error checking product options", ex, filename: "product_selection");
+        }
+        
+        ProductSelectionResult selection;
+        
+        if (!hasOptions)
+        {
+            // No options - add directly to cart with base price
+            AppLogger.Log("No options available, adding directly to cart", filename: "product_selection");
+            selection = new ProductSelectionResult
+            {
+                Product = productDetails,
+                ProductUnit = null,
+                SelectedModifiers = new List<ProductModifierGroupItemDto>(),
+                ProductGroup = null,
+                FinalPrice = productDetails.Price
+            };
+        }
+        else
+        {
+            // Has options - show selection dialog
+            try
+            {
+                // Show Product Selection Dialog to choose units, modifiers, combinations, groups
+                AppLogger.Log("Creating ProductSelectionDialog instance...", filename: "product_selection");
+                var selectionDialog = new ProductSelectionDialog(_serviceProvider!, productDetails);
+                
+                AppLogger.Log("Showing dialog...", filename: "product_selection");
+                var dialogResult = selectionDialog.ShowDialog();
+                
+                AppLogger.Log($"Dialog closed. Result: {dialogResult}, SelectionResult is null: {selectionDialog.SelectionResult == null}", filename: "product_selection");
+
+                if (dialogResult != true || selectionDialog.SelectionResult == null)
+                {
+                    // User cancelled the selection
+                    AppLogger.Log("User cancelled product selection dialog", filename: "product_selection");
+                    return;
+                }
+
+                selection = selectionDialog.SelectionResult;
+                AppLogger.Log($"Selection made - FinalPrice: {selection.FinalPrice}, HasUnit: {selection.ProductUnit != null}, ModifiersCount: {selection.SelectedModifiers.Count}", filename: "product_selection");
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogError("Error showing ProductSelectionDialog", ex, filename: "product_selection");
+                new MessageDialog("Error", $"Error showing product options: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
+                return;
             }
         }
 
         product.Quantity++;
 
-        // Add or update in cart
-        var existingCartItem = CartItems.FirstOrDefault(c => c.ProductId == product.Id);
+        // Add or update in cart with selected options
+        var existingCartItem = CartItems.FirstOrDefault(c => 
+            c.ProductId == product.Id && 
+            AreSameSelections(c, selection));
+        
         if (existingCartItem != null)
         {
             existingCartItem.Quantity = product.Quantity;
-            existingCartItem.TotalPrice = existingCartItem.UnitPrice * existingCartItem.Quantity;
+            existingCartItem.TotalPrice = selection.FinalPrice * existingCartItem.Quantity;
         }
         else
         {
             var newCartItem = new CartItemModel
             {
                 ProductId = product.Id,
-                ProductName = product.Name,
+                ProductUnitId = selection.ProductUnit?.Id, // Store product unit ID if selected
+                ProductName = BuildProductNameWithOptions(product.Name, selection),
                 Icon = "📦",
-                UnitPrice = product.Price,
-                Quantity = product.Quantity,
-                TotalPrice = product.Price * product.Quantity
+                UnitPrice = selection.FinalPrice,
+                Quantity = 1, // Start with 1 for new selections
+                TotalPrice = selection.FinalPrice,
+                // Store selection details for comparison
+                Tag = selection,
+                // Store selected modifiers for transaction tracking
+                SelectedModifiers = selection.SelectedModifiers ?? new List<ProductModifierGroupItemDto>()
             };
             
             // Subscribe to property changes to auto-recalculate totals
@@ -609,6 +1016,80 @@ public partial class AddSalesViewModel : ObservableObject
         }
 
         RecalculateTotals();
+    }
+
+    /// <summary>
+    /// Check if two selections are the same (for cart item comparison)
+    /// </summary>
+    private bool AreSameSelections(CartItemModel cartItem, ProductSelectionResult selection)
+    {
+        if (cartItem.Tag is not ProductSelectionResult existingSelection)
+            return false;
+
+        // Compare product unit
+        if (existingSelection.ProductUnit?.Id != selection.ProductUnit?.Id)
+            return false;
+
+        // Compare product group
+        if (existingSelection.ProductGroup?.Id != selection.ProductGroup?.Id)
+            return false;
+
+        // Compare modifiers
+        var existingModifierIds = existingSelection.SelectedModifiers.Select(m => m.Id).OrderBy(id => id).ToList();
+        var newModifierIds = selection.SelectedModifiers.Select(m => m.Id).OrderBy(id => id).ToList();
+        
+        if (!existingModifierIds.SequenceEqual(newModifierIds))
+            return false;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Build a descriptive product name with selected options
+    /// </summary>
+    /// <summary>
+    /// Builds a product name with modifiers from transaction product data
+    /// </summary>
+    private string BuildProductNameFromTransaction(string baseName, List<TransactionModifierDto>? modifiers)
+    {
+        if (modifiers == null || !modifiers.Any())
+        {
+            return baseName;
+        }
+
+        var modifierNames = modifiers
+            .Select(m => m.ModifierName)
+            .Where(name => !string.IsNullOrEmpty(name));
+
+        if (modifierNames.Any())
+        {
+            return baseName + " +" + string.Join(", ", modifierNames);
+        }
+
+        return baseName;
+    }
+
+    private string BuildProductNameWithOptions(string baseName, ProductSelectionResult selection)
+    {
+        var parts = new List<string> { baseName };
+
+        if (selection.ProductUnit != null)
+        {
+            parts.Add($"({selection.ProductUnit.UnitName})");
+        }
+
+        if (selection.SelectedModifiers.Any())
+        {
+            var modifierNames = string.Join(", ", selection.SelectedModifiers.Select(m => m.ModifierName));
+            parts.Add($"+ {modifierNames}");
+        }
+
+        if (selection.ProductGroup != null)
+        {
+            parts.Add($"[{selection.ProductGroup.Name}]");
+        }
+
+        return string.Join(" ", parts);
     }
 
     [RelayCommand]
@@ -730,6 +1211,7 @@ public partial class AddSalesViewModel : ObservableObject
                     Products = CartItems.Select(item => new CreateTransactionProductDto
                     {
                         ProductId = item.ProductId,
+                        ProductUnitId = item.ProductUnitId, // Include product unit ID
                         Quantity = item.Quantity,
                         SellingPrice = item.UnitPrice,
                         BuyerCost = 0m,
@@ -752,10 +1234,20 @@ public partial class AddSalesViewModel : ObservableObject
 
                 var savedTransaction = await _transactionService.CreateAsync(transactionDto, currentUserId.Value);
                 
+                // Save transaction modifiers
+                await SaveTransactionModifiers(savedTransaction.Id, savedTransaction.TransactionProducts);
+                
                 // Add service charge if present
+                AppLogger.Log($"SaveTransaction: Checking service charge - ServiceCharge={ServiceCharge}");
                 if (ServiceCharge > 0)
                 {
+                    AppLogger.Log($"SaveTransaction: Calling AddServiceChargeToTransaction for transaction #{savedTransaction.Id} with amount ${ServiceCharge}");
                     await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge);
+                    AppLogger.Log($"SaveTransaction: AddServiceChargeToTransaction call completed");
+                }
+                else
+                {
+                    AppLogger.Log($"SaveTransaction: Skipping service charge (amount is 0 or negative)");
                 }
                 
                 // Update CurrentTransactionId and status after saving
@@ -1822,14 +2314,26 @@ public partial class AddSalesViewModel : ObservableObject
                 var product = await _productService.GetProductByIdAsync(transactionProduct.ProductId);
                 if (product != null)
                 {
+                    // Build product name with modifiers
+                    string productNameWithModifiers = BuildProductNameFromTransaction(product.Name, transactionProduct.Modifiers);
+                    
                     var cartItem = new CartItemModel
                     {
                         ProductId = product.Id,
-                        ProductName = product.Name,
+                        ProductUnitId = transactionProduct.ProductUnitId, // Load product unit ID
+                        ProductName = productNameWithModifiers,
                         Icon = "🍽️",
                         UnitPrice = transactionProduct.SellingPrice,
                         Quantity = (int)transactionProduct.Quantity,
-                        TotalPrice = transactionProduct.LineTotal
+                        TotalPrice = transactionProduct.LineTotal,
+                        // Store the modifiers for future reference
+                        SelectedModifiers = transactionProduct.Modifiers?.Select(m => new ProductModifierGroupItemDto
+                        {
+                            Id = m.Id,
+                            ModifierId = m.ProductModifierId,
+                            ModifierName = m.ModifierName,
+                            PriceAdjustment = m.ExtraPrice
+                        }).ToList() ?? new List<ProductModifierGroupItemDto>()
                     };
                     CartItems.Add(cartItem);
 
@@ -1949,14 +2453,25 @@ public partial class AddSalesViewModel : ObservableObject
                 var product = await _productService.GetProductByIdAsync(transactionProduct.ProductId);
                 if (product != null)
                 {
+                    // Build product name with modifiers
+                    string productNameWithModifiers = BuildProductNameFromTransaction(product.Name, transactionProduct.Modifiers);
+                    
                     var cartItem = new CartItemModel
                     {
                         ProductId = product.Id,
-                        ProductName = product.Name,
+                        ProductUnitId = transactionProduct.ProductUnitId, // Load product unit ID
+                        ProductName = productNameWithModifiers,
                         Icon = "🍽️",
                         UnitPrice = transactionProduct.SellingPrice,
                         Quantity = (int)transactionProduct.Quantity,
-                        TotalPrice = transactionProduct.LineTotal
+                        TotalPrice = transactionProduct.LineTotal,
+                        SelectedModifiers = transactionProduct.Modifiers?.Select(m => new ProductModifierGroupItemDto
+                        {
+                            Id = m.Id,
+                            ModifierId = m.ProductModifierId,
+                            ModifierName = m.ModifierName,
+                            PriceAdjustment = m.ExtraPrice
+                        }).ToList() ?? new List<ProductModifierGroupItemDto>()
                     };
                     CartItems.Add(cartItem);
 
@@ -2100,12 +2615,25 @@ public partial class AddSalesViewModel : ObservableObject
             var shiftId = 1;
             var totalAmount = CartItems.Sum(x => x.TotalPrice);
             var totalVat = totalAmount * (TaxPercentage / 100);
+            
+            // Get customer balance
+            decimal customerBalanceAmount = SelectedCustomer?.CustomerBalanceAmount ?? 0m;
+            
+            // Calculate bill total considering customer balance
+            decimal billTotal = totalAmount + customerBalanceAmount;
 
             if (CurrentTransactionId > 0)
             {
                 // Change status of existing transaction to "billed"
                 var updatedTransaction = await _transactionService.ChangeStatusAsync(CurrentTransactionId, "billed", currentUserId.Value);
                 CurrentTransactionStatus = "billed";
+                
+                // Note: Customer balance is NOT updated during Save and Print
+                // It will be updated only when:
+                // 1. Pay Later is used (adds full amount to balance)
+                // 2. Settle with partial payment is done (adds remaining amount to balance)
+                // 3. Settle with full payment is done (clears balance to 0)
+                
                 UpdateButtonVisibility();
                 
                 // Print the bill
@@ -2127,12 +2655,13 @@ public partial class AddSalesViewModel : ObservableObject
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
-                    AmountCreditRemaining = 0m,
+                    AmountCreditRemaining = billTotal, // Bill total becomes credit remaining
                     Vat = TaxPercentage,
                     Status = "billed",
                     Products = CartItems.Select(item => new CreateTransactionProductDto
                     {
                         ProductId = item.ProductId,
+                        ProductUnitId = item.ProductUnitId, // Include product unit ID
                         Quantity = item.Quantity,
                         SellingPrice = item.UnitPrice,
                         BuyerCost = 0m,
@@ -2142,14 +2671,31 @@ public partial class AddSalesViewModel : ObservableObject
 
                 var savedTransaction = await _transactionService.CreateAsync(transactionDto, currentUserId.Value);
                 
+                // Save transaction modifiers
+                await SaveTransactionModifiers(savedTransaction.Id, savedTransaction.TransactionProducts);
+                
                 // Add service charge if present
+                AppLogger.Log($"SaveAndPrint: Checking service charge - ServiceCharge={ServiceCharge}");
                 if (ServiceCharge > 0)
                 {
+                    AppLogger.Log($"SaveAndPrint: Calling AddServiceChargeToTransaction for transaction #{savedTransaction.Id} with amount ${ServiceCharge}");
                     await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge);
+                    AppLogger.Log($"SaveAndPrint: AddServiceChargeToTransaction call completed");
+                }
+                else
+                {
+                    AppLogger.Log($"SaveAndPrint: Skipping service charge (amount is 0 or negative)");
                 }
                 
                 CurrentTransactionId = savedTransaction.Id;
                 CurrentTransactionStatus = "billed";
+                
+                // Note: Customer balance is NOT updated during Save and Print
+                // It will be updated only when:
+                // 1. Pay Later is used (adds full amount to balance)
+                // 2. Settle with partial payment is done (adds remaining amount to balance)
+                // 3. Settle with full payment is done (clears balance to 0)
+                
                 UpdateButtonVisibility();
 
                 // Print the bill
@@ -2196,15 +2742,62 @@ public partial class AddSalesViewModel : ObservableObject
             var shiftId = 1;
             var totalAmount = CartItems.Sum(x => x.TotalPrice);
             var totalVat = totalAmount * (TaxPercentage / 100);
+            
+            // Get customer balance
+            decimal customerBalanceAmount = SelectedCustomer?.CustomerBalanceAmount ?? 0m;
+            
+            // Calculate bill total considering customer balance
+            // If customer has pending dues (positive balance), add to bill
+            // If customer has credit (negative balance), deduct from bill
+            decimal billTotal = totalAmount + customerBalanceAmount;
 
             if (CurrentTransactionId > 0)
             {
-                // Change status of existing transaction to "pending_payment"
+                // Update existing transaction with payment info
+                var updateDto = new UpdateTransactionDto
+                {
+                    CustomerId = SelectedCustomer.Id,
+                    TableId = SelectedTable?.Id,
+                    ReservationId = SelectedReservation?.Id,
+                    TotalAmount = totalAmount,
+                    TotalVat = totalVat,
+                    TotalDiscount = DiscountAmount,
+                    AmountPaidCash = 0m,
+                    AmountCreditRemaining = billTotal, // Bill total becomes credit remaining
+                    CreditDays = 0,
+                    Vat = TaxPercentage,
+                    Status = "pending_payment"
+                };
+                
+                await _transactionService.UpdateAsync(CurrentTransactionId, updateDto, currentUserId.Value);
+                
+                // Change status to pending_payment
                 var updatedTransaction = await _transactionService.ChangeStatusAsync(CurrentTransactionId, "pending_payment", currentUserId.Value);
                 CurrentTransactionStatus = "pending_payment";
+                
+                // Update customer balance to bill total (unpaid amount)
+                if (SelectedCustomer != null)
+                {
+                    try
+                    {
+                        var customerDto = await _customerService.GetByIdAsync(SelectedCustomer.Id);
+                        if (customerDto != null)
+                        {
+                            customerDto.CustomerBalanceAmount = billTotal;
+                            await _customerService.UpdateCustomerAsync(customerDto);
+                            SelectedCustomer.CustomerBalanceAmount = billTotal;
+                            AppLogger.Log($"PayLater: Updated customer balance to ${billTotal:N2} for customer {SelectedCustomer.Id}");
+                        }
+                    }
+                    catch (Exception custEx)
+                    {
+                        AppLogger.LogError($"PayLater: Failed to update customer balance", custEx);
+                    }
+                }
+                
                 UpdateButtonVisibility();
                 
-                MessageBox.Show($"Transaction #{CurrentTransactionId} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nTotal Amount: {totalAmount:C}", 
+                MessageBox.Show($"Transaction #{CurrentTransactionId} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nBill Total: ${billTotal:C}", 
                     "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
@@ -2222,13 +2815,14 @@ public partial class AddSalesViewModel : ObservableObject
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
-                    AmountCreditRemaining = totalAmount, // Full amount is credit
+                    AmountCreditRemaining = billTotal, // Bill total becomes credit remaining
                     CreditDays = 0, // Can be set via popup later
                     Vat = TaxPercentage,
                     Status = "pending_payment",
                     Products = CartItems.Select(item => new CreateTransactionProductDto
                     {
                         ProductId = item.ProductId,
+                        ProductUnitId = item.ProductUnitId, // Include product unit ID
                         Quantity = item.Quantity,
                         SellingPrice = item.UnitPrice,
                         BuyerCost = 0m,
@@ -2238,6 +2832,9 @@ public partial class AddSalesViewModel : ObservableObject
 
                 var savedTransaction = await _transactionService.CreateAsync(transactionDto, currentUserId.Value);
                 
+                // Save transaction modifiers
+                await SaveTransactionModifiers(savedTransaction.Id, savedTransaction.TransactionProducts);
+                
                 // Add service charge if present
                 if (ServiceCharge > 0)
                 {
@@ -2246,9 +2843,30 @@ public partial class AddSalesViewModel : ObservableObject
                 
                 CurrentTransactionId = savedTransaction.Id;
                 CurrentTransactionStatus = "pending_payment";
+                
+                // Update customer balance to bill total (unpaid amount)
+                if (SelectedCustomer != null)
+                {
+                    try
+                    {
+                        var customerDto = await _customerService.GetByIdAsync(SelectedCustomer.Id);
+                        if (customerDto != null)
+                        {
+                            customerDto.CustomerBalanceAmount = billTotal;
+                            await _customerService.UpdateCustomerAsync(customerDto);
+                            SelectedCustomer.CustomerBalanceAmount = billTotal;
+                            AppLogger.Log($"PayLater: Updated customer balance to ${billTotal:N2} for customer {SelectedCustomer.Id}");
+                        }
+                    }
+                    catch (Exception custEx)
+                    {
+                        AppLogger.LogError($"PayLater: Failed to update customer balance", custEx);
+                    }
+                }
+                
                 UpdateButtonVisibility();
 
-                MessageBox.Show($"Transaction #{savedTransaction.Id} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nTotal Amount: {totalAmount:C}", 
+                MessageBox.Show($"Transaction #{savedTransaction.Id} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nBill Total: ${billTotal:C}", 
                     "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
@@ -2324,6 +2942,7 @@ public partial class AddSalesViewModel : ObservableObject
                     Products = CartItems.Select(item => new CreateTransactionProductDto
                     {
                         ProductId = item.ProductId,
+                        ProductUnitId = item.ProductUnitId, // Include product unit ID
                         Quantity = item.Quantity,
                         SellingPrice = item.UnitPrice,
                         BuyerCost = 0m,
@@ -2332,6 +2951,10 @@ public partial class AddSalesViewModel : ObservableObject
                 };
 
                 var savedTransaction = await _transactionService.CreateAsync(transactionDto, currentUserId.Value);
+                
+                // Save transaction modifiers
+                await SaveTransactionModifiers(savedTransaction.Id, savedTransaction.TransactionProducts);
+                
                 CurrentTransactionId = savedTransaction.Id;
                 CurrentTransactionStatus = "cancelled";
                 UpdateButtonVisibility();
@@ -2371,18 +2994,44 @@ public partial class AddSalesViewModel : ObservableObject
             var totalAmount = CartItems.Sum(x => x.TotalPrice);
             var totalVat = totalAmount * (TaxPercentage / 100);
             
-            // For existing transactions with partial/pending payment, get the remaining amount
-            decimal remainingAmount = totalAmount;
-            decimal alreadyPaid = 0m;
+            // Get customer balance
+            decimal customerBalanceAmount = SelectedCustomer?.CustomerBalanceAmount ?? 0m;
             
+            // Calculate bill total considering customer balance
+            // If customer has pending dues (positive balance), add to bill
+            // If customer has credit (negative balance), deduct from bill
+            decimal billTotal = totalAmount + customerBalanceAmount;
+            
+            // For existing transactions with partial/pending payment, get the remaining amount and status
+            decimal alreadyPaid = 0m;
+            string existingStatus = string.Empty;
+            decimal existingAmountCreditRemaining = 0m;
+
             if (CurrentTransactionId > 0)
             {
                 var existingTransaction = await _transactionService.GetByIdAsync(CurrentTransactionId);
                 if (existingTransaction != null)
                 {
                     alreadyPaid = existingTransaction.AmountPaidCash;
-                    remainingAmount = existingTransaction.AmountCreditRemaining;
+                    existingStatus = existingTransaction.Status ?? string.Empty;
+                    existingAmountCreditRemaining = existingTransaction.AmountCreditRemaining;
                 }
+            }
+
+            // Calculate remaining amount and prefill based on transaction status
+            decimal remainingAmount;
+            decimal amountToPrefill;
+            if (existingStatus == "partial_payment")
+            {
+                // For partial payment transactions, bill total is the customer's pending amount
+                remainingAmount = existingAmountCreditRemaining; // show transaction remaining
+                amountToPrefill = customerBalanceAmount; // prefill amount paid with customer pending amount
+            }
+            else
+            {
+                // Default behavior: remaining is billTotal - alreadyPaid
+                remainingAmount = billTotal - alreadyPaid;
+                amountToPrefill = remainingAmount;
             }
 
             // Load payment types from database
@@ -2397,8 +3046,8 @@ public partial class AddSalesViewModel : ObservableObject
             var paymentPopup = new Window
             {
                 Title = "Payment",
-                Width = 450,
-                Height = 480, // Increased for credit days field
+                Width = 480,
+                Height = 550, // Increased for customer balance info and better spacing
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
                 ResizeMode = ResizeMode.NoResize
             };
@@ -2414,16 +3063,43 @@ public partial class AddSalesViewModel : ObservableObject
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(20) });
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            // Total Amount Label - Show remaining amount if partial/pending payment
-            var totalLabel = new TextBlock
+            // Total Amount Label - Show customer balance and bill total
+            string balanceInfo = "";
+            if (customerBalanceAmount > 0)
             {
-                Text = alreadyPaid > 0 
-                    ? $"Remaining Amount: ${remainingAmount:N2}\n(Already Paid: ${alreadyPaid:N2} | Total: ${totalAmount:N2})"
-                    : $"Total Amount: ${totalAmount:N2}",
-                FontSize = 18,
-                FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937"))
-            };
+                balanceInfo = $"\nCustomer Pending: ${customerBalanceAmount:N2} (Added to bill)";
+            }
+            else if (customerBalanceAmount < 0)
+            {
+                balanceInfo = $"\nStore Credit Available: ${Math.Abs(customerBalanceAmount):N2} (Deducted from bill)";
+            }
+            
+                        var totalLabel = new TextBlock
+                        {
+                                FontSize = 16,
+                                FontWeight = FontWeights.Bold,
+                                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937")),
+                                TextWrapping = TextWrapping.Wrap
+                        };
+
+                        if (existingStatus == "partial_payment")
+                        {
+                                // Show customer pending as bill total and transaction remaining
+                                var alreadyPaidFromSale = totalAmount - existingAmountCreditRemaining;
+                                totalLabel.Text = $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
+                                                                    $"Customer Pending: ${customerBalanceAmount:N2}\n" +
+                                                                    $"Remaining Amount of Transaction: ${existingAmountCreditRemaining:N2}\n" +
+                                                                    $"Already Paid: ${alreadyPaidFromSale:N2}";
+                        }
+                        else
+                        {
+                                totalLabel.Text = alreadyPaid > 0 
+                                        ? $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
+                                            $"Bill Total: ${billTotal:N2}\n" +
+                                            $"Remaining: ${remainingAmount:N2}\n(Already Paid: ${alreadyPaid:N2})"
+                                        : $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
+                                            $"Bill Total: ${billTotal:N2}";
+                        }
             Grid.SetRow(totalLabel, 0);
             grid.Children.Add(totalLabel);
 
@@ -2467,7 +3143,7 @@ public partial class AddSalesViewModel : ObservableObject
 
             var amountTextBox = new TextBox
             {
-                Text = remainingAmount.ToString("N2"), // Use remaining amount, not total amount
+                Text = amountToPrefill.ToString("N2"), // Use calculated prefill amount (handles partial payments)
                 FontSize = 14,
                 Padding = new Thickness(10),
                 Margin = new Thickness(0, 5, 0, 0)
@@ -2552,38 +3228,71 @@ public partial class AddSalesViewModel : ObservableObject
                         return;
                     }
 
-                    // Validate paid amount against remaining amount for existing transactions
-                    var maxAllowed = CurrentTransactionId > 0 ? remainingAmount : totalAmount;
-                    if (paidAmount < 0 || paidAmount > maxAllowed)
+                    // Calculate the actual remaining amount to pay based on transaction status
+                    var actualRemainingAmount = existingStatus == "partial_payment" ? customerBalanceAmount : (billTotal - alreadyPaid);
+
+                    // Validate paid amount against actual remaining amount
+                    if (paidAmount < 0 || paidAmount > actualRemainingAmount)
                     {
-                        MessageBox.Show($"Amount paid must be between $0 and ${maxAllowed:N2}.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show($"Amount paid must be between $0 and ${actualRemainingAmount:N2}.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
 
                     paymentPopup.DialogResult = true;
                     paymentPopup.Close();
 
-                    // Calculate new totals considering already paid amount
+                    // Calculate new totals considering already paid amount and bill total
                     var totalPaidNow = alreadyPaid + paidAmount;
-                    var creditRemaining = totalAmount - totalPaidNow;
+                    var creditRemaining = billTotal - totalPaidNow;
                     string transactionStatus;
 
-                    // Determine transaction status based on total payment
-                    if (totalPaidNow >= totalAmount)
+                    // Determine transaction status based on total payment against bill total
+                    if (totalPaidNow >= billTotal)
                     {
                         transactionStatus = "settled"; // Full payment
                         creditRemaining = 0; // Ensure no negative credit
                     }
                     else if (totalPaidNow > 0)
                     {
+                        // Partial payment - check if customer allows credit
+                        if (SelectedCustomer != null && !SelectedCustomer.CreditAllowed)
+                        {
+                            MessageBox.Show("This customer is not allowed to have credit.\n\nPlease collect full payment or select a customer with credit privileges.", 
+                                "Credit Not Allowed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            return;
+                        }
                         transactionStatus = "partial_payment"; // Partial payment
                     }
                     else
                     {
+                        // No payment - check if customer allows credit
+                        if (SelectedCustomer != null && !SelectedCustomer.CreditAllowed)
+                        {
+                            MessageBox.Show("This customer is not allowed to have credit.\n\nPlease collect payment or select a customer with credit privileges.", 
+                                "Credit Not Allowed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            return;
+                        }
                         transactionStatus = "pending_payment"; // No payment made
                     }
 
                     var selectedPaymentType = (PaymentTypeDto)paymentMethodComboBox.SelectedItem;
+                    
+                    // Calculate customer balance change
+                    // If sale fully settled: CustomerBalanceAmount = 0 (all dues cleared)
+                    // If partial/pending: CustomerBalanceAmount = creditRemaining (unpaid amount becomes due)
+                    decimal newCustomerBalance = 0m;
+                    
+                    if (transactionStatus == "settled")
+                    {
+                        // Full payment - clear customer balance
+                        newCustomerBalance = 0m;
+                    }
+                    else
+                    {
+                        // Partial or pending payment - update customer balance with unpaid amount
+                        // The unpaid portion (creditRemaining) becomes the new balance
+                        newCustomerBalance = creditRemaining;
+                    }
 
                     // Process settlement
                     if (CurrentTransactionId > 0)
@@ -2624,6 +3333,27 @@ public partial class AddSalesViewModel : ObservableObject
                         }
                         
                         CurrentTransactionStatus = transactionStatus;
+                        
+                        // Update customer balance if customer is selected
+                        if (SelectedCustomer != null)
+                        {
+                            try
+                            {
+                                var customerDto = await _customerService.GetByIdAsync(SelectedCustomer.Id);
+                                if (customerDto != null)
+                                {
+                                    customerDto.CustomerBalanceAmount = newCustomerBalance;
+                                    await _customerService.UpdateCustomerAsync(customerDto);
+                                    SelectedCustomer.CustomerBalanceAmount = newCustomerBalance;
+                                    AppLogger.Log($"Settle: Updated customer balance to ${newCustomerBalance:N2} for customer {SelectedCustomer.Id}");
+                                }
+                            }
+                            catch (Exception custEx)
+                            {
+                                AppLogger.LogError($"Settle: Failed to update customer balance", custEx);
+                            }
+                        }
+                        
                         UpdateButtonVisibility();
 
                         var statusMessage = transactionStatus switch
@@ -2674,8 +3404,32 @@ public partial class AddSalesViewModel : ObservableObject
                         };
 
                         var savedTransaction = await _transactionService.CreateAsync(transactionDto, currentUserId.Value);
+                        
+                        // Save transaction modifiers
+                        await SaveTransactionModifiers(savedTransaction.Id, savedTransaction.TransactionProducts);
+                        
                         CurrentTransactionId = savedTransaction.Id;
                         CurrentTransactionStatus = transactionStatus;
+                        
+                        // Update customer balance if customer is selected
+                        if (SelectedCustomer != null)
+                        {
+                            try
+                            {
+                                var customerDto = await _customerService.GetByIdAsync(SelectedCustomer.Id);
+                                if (customerDto != null)
+                                {
+                                    customerDto.CustomerBalanceAmount = newCustomerBalance;
+                                    await _customerService.UpdateCustomerAsync(customerDto);
+                                    SelectedCustomer.CustomerBalanceAmount = newCustomerBalance;
+                                    AppLogger.Log($"Settle: Updated customer balance to ${newCustomerBalance:N2} for customer {SelectedCustomer.Id}");
+                                }
+                            }
+                            catch (Exception custEx)
+                            {
+                                AppLogger.LogError($"Settle: Failed to update customer balance", custEx);
+                            }
+                        }
                         
                         // Update reservation status to completed if transaction is settled and has a reservation
                         if (transactionStatus == "settled" && SelectedReservation?.Id != null)
@@ -2734,19 +3488,271 @@ public partial class AddSalesViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Process refund for current settled transaction
+    /// </summary>
+    [RelayCommand]
+    private async Task Refund()
+    {
+        try
+        {
+            // Validate that we have a transaction ID
+            if (CurrentTransactionId == 0)
+            {
+                MessageBox.Show("No transaction to refund.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Load the current transaction
+            var transaction = await _transactionService.GetByIdAsync(CurrentTransactionId);
+            if (transaction == null)
+            {
+                MessageBox.Show("Transaction not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Check if transaction is settled
+            if (transaction.Status?.ToLower() != "settled")
+            {
+                MessageBox.Show($"Only settled transactions can be refunded.\n\nCurrent status: {transaction.Status}", 
+                    "Invalid Status", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Show refund dialog
+            var refundDialog = new Views.Dialogs.RefundDialog(
+                transaction,
+                _refundService,
+                _currentUserService);
+
+            var result = refundDialog.ShowDialog();
+
+            if (result == true && refundDialog.IsConfirmed)
+            {
+                // Clear the current transaction and navigate back to transaction list
+                ClearCart();
+                _navigateToTransactionList?.Invoke();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error processing refund: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// Navigate to exchange screen for current settled transaction
+    /// </summary>
+    [RelayCommand]
+    private async Task Exchange()
+    {
+        try
+        {
+            // Validate that we have a transaction ID
+            if (CurrentTransactionId == 0)
+            {
+                MessageBox.Show("No transaction to exchange.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Load the current transaction
+            var transaction = await _transactionService.GetByIdAsync(CurrentTransactionId);
+            if (transaction == null)
+            {
+                MessageBox.Show("Transaction not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Check if transaction is settled
+            if (transaction.Status?.ToLower() != "settled")
+            {
+                MessageBox.Show($"Only settled transactions can be exchanged.\n\nCurrent status: {transaction.Status}", 
+                    "Invalid Status", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Navigate to Exchange screen
+            _navigateToExchangeTransaction?.Invoke(CurrentTransactionId);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error processing exchange: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    #region Barcode Scanner Methods
+
+    /// <summary>
+    /// Searches for a product by barcode and adds it to cart
+    /// </summary>
+    [RelayCommand]
+    private async Task SearchByBarcode()
+    {
+        if (string.IsNullOrWhiteSpace(BarcodeInput))
+            return;
+
+        var barcode = BarcodeInput.Trim();
+        
+        try
+        {
+            IsScannerReady = false;
+            ScannerStatusMessage = "Scanning...";
+            ScannerStatusColor = Brushes.Orange;
+            
+            AppLogger.Log($"[BARCODE SCAN] Searching for barcode: {barcode}");
+            
+            // Search in ProductBarcodes table
+            var productBarcode = await _productBarcodeRepository.GetByBarcodeValueAsync(barcode);
+            
+            if (productBarcode != null && productBarcode.Product != null)
+            {
+                AppLogger.Log($"[BARCODE SCAN] Found product: {productBarcode.Product.Name} (ID: {productBarcode.ProductId})");
+                
+                // Get full product details
+                var product = await _productService.GetProductByIdAsync(productBarcode.ProductId);
+                
+                if (product != null)
+                {
+                    // Check if product already in cart
+                    var existingItem = CartItems.FirstOrDefault(item => item.ProductId == product.Id);
+                    
+                    if (existingItem != null)
+                    {
+                        // Increase quantity
+                        existingItem.Quantity++;
+                        existingItem.TotalPrice = existingItem.Quantity * existingItem.UnitPrice;
+                        AppLogger.Log($"[BARCODE SCAN] Increased quantity for '{product.Name}' to {existingItem.Quantity}");
+                    }
+                    else
+                    {
+                        // Add new item to cart
+                        var cartItem = new CartItemModel
+                        {
+                            ProductId = product.Id,
+                            ProductName = product.Name,
+                            Icon = "🛒",
+                            UnitPrice = product.Price,
+                            Quantity = 1,
+                            TotalPrice = product.Price,
+                            ProductUnitId = null
+                        };
+                        
+                        CartItems.Add(cartItem);
+                        AppLogger.Log($"[BARCODE SCAN] Added '{product.Name}' to cart - Price: ${product.Price}");
+                    }
+                    
+                    // Recalculate totals
+                    RecalculateTotals();
+                    
+                    // Success feedback
+                    ScannerStatusMessage = $"✓ {product.Name} added!";
+                    ScannerStatusColor = Brushes.LimeGreen;
+                    System.Media.SystemSounds.Beep.Play();
+                    
+                    AppLogger.Log($"[BARCODE SCAN] SUCCESS - Product added to cart");
+                }
+                else
+                {
+                    // Product not found in system
+                    ScannerStatusMessage = $"✗ Product not found in system";
+                    ScannerStatusColor = Brushes.Red;
+                    System.Media.SystemSounds.Hand.Play();
+                    AppLogger.LogError($"[BARCODE SCAN] Product ID {productBarcode.ProductId} not found in product service");
+                }
+            }
+            else
+            {
+                // Barcode not found
+                ScannerStatusMessage = $"✗ Barcode not registered: {barcode}";
+                ScannerStatusColor = Brushes.Red;
+                System.Media.SystemSounds.Hand.Play();
+                AppLogger.LogError($"[BARCODE SCAN] Barcode '{barcode}' not found in database");
+            }
+        }
+        catch (Exception ex)
+        {
+            ScannerStatusMessage = $"✗ Error: {ex.Message}";
+            ScannerStatusColor = Brushes.Red;
+            System.Media.SystemSounds.Hand.Play();
+            AppLogger.LogError($"[BARCODE SCAN] Error processing barcode '{barcode}'", ex);
+        }
+        finally
+        {
+            // Clear input for next scan
+            BarcodeInput = string.Empty;
+            
+            // Reset status after 2 seconds
+            await Task.Delay(2000);
+            ScannerStatusMessage = "Ready to scan";
+            ScannerStatusColor = Brushes.Green;
+            IsScannerReady = true;
+        }
+    }
+
+    #endregion
+
+    /// <summary>
     /// Helper method to add service charge to a transaction
+    /// </summary>
+    /// <summary>
+    /// Save transaction modifiers for products that have modifiers selected
+    /// </summary>
+    private async Task SaveTransactionModifiers(int transactionId, List<TransactionProductDto> transactionProducts)
+    {
+        try
+        {
+            var currentUserId = _currentUserService.CurrentUserId;
+            
+            // Get all cart items with their modifiers
+            foreach (var cartItem in CartItems)
+            {
+                // Find the corresponding transaction product
+                var transactionProduct = transactionProducts.FirstOrDefault(tp => tp.ProductId == cartItem.ProductId);
+                if (transactionProduct == null || cartItem.SelectedModifiers == null || !cartItem.SelectedModifiers.Any())
+                {
+                    continue;
+                }
+                
+                // Save each selected modifier
+                foreach (var modifier in cartItem.SelectedModifiers)
+                {
+                    var transactionModifier = new TransactionModifier
+                    {
+                        TransactionProductId = transactionProduct.Id,
+                        ProductModifierId = modifier.ModifierId,
+                        ExtraPrice = modifier.PriceAdjustment,
+                        CreatedBy = currentUserId,
+                        CreatedAt = DateTime.Now
+                    };
+                    
+                    await _transactionModifierRepository.AddAsync(transactionModifier);
+                }
+            }
+            
+            // Save all modifiers to database
+            await _transactionModifierRepository.SaveChangesAsync();
+            AppLogger.Log($"SaveTransactionModifiers: Saved modifiers for transaction #{transactionId}");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"Error saving transaction modifiers for transaction #{transactionId}", ex);
+            // Don't throw - continue with transaction even if modifiers fail
+        }
+    }
+
+    /// <summary>
+    /// Helper method to add service charge to an existing transaction
     /// </summary>
     private async Task AddServiceChargeToTransaction(int transactionId, decimal chargeAmount)
     {
         try
         {
-            // Note: ServiceChargeId is required but we're creating manual service charges
-            // We use a special ServiceChargeId = 0 to indicate manual/custom service charges
-            // This needs to be handled in the database schema or we need a default service charge type
+            AppLogger.Log($"AddServiceChargeToTransaction: START - Transaction #{transactionId}, Amount=${chargeAmount}");
+            
+            // Create service charge with nullable ServiceChargeId (manual/custom charge)
             var serviceCharge = new TransactionServiceCharge
             {
                 TransactionId = transactionId,
-                ServiceChargeId = 0, // Manual/Custom service charge (needs database support)
+                ServiceChargeId = null, // NULL for manual/custom service charges (not linked to predefined service charge)
                 TotalAmount = chargeAmount,
                 TotalVat = 0, // Can be calculated based on tax if needed
                 Status = "Active",
@@ -2754,14 +3760,25 @@ public partial class AddSalesViewModel : ObservableObject
                 CreatedAt = DateTime.Now
             };
 
+            AppLogger.Log($"AddServiceChargeToTransaction: Service charge object created - TransactionId={serviceCharge.TransactionId}, Amount={serviceCharge.TotalAmount}, Status={serviceCharge.Status}, ServiceChargeId={serviceCharge.ServiceChargeId}");
+            
             await _transactionServiceChargeRepository.AddAsync(serviceCharge);
+            AppLogger.Log($"AddServiceChargeToTransaction: AddAsync completed");
+            
             await _transactionServiceChargeRepository.SaveChangesAsync(); // CRITICAL: Save to database
-            AppLogger.Log($"AddServiceChargeToTransaction: Service charge of ${chargeAmount} added and saved to transaction #{transactionId}");
+            AppLogger.Log($"AddServiceChargeToTransaction: SaveChangesAsync completed - Service charge of ${chargeAmount} added and saved to transaction #{transactionId}");
         }
         catch (Exception ex)
         {
-            AppLogger.LogError($"Error adding service charge to transaction #{transactionId}", ex);
-            // Don't throw - service charge is optional
+            AppLogger.LogError($"AddServiceChargeToTransaction: ERROR adding service charge to transaction #{transactionId}", ex);
+            AppLogger.LogError($"AddServiceChargeToTransaction: Exception details - {ex.GetType().Name}: {ex.Message}", ex);
+            AppLogger.LogError($"AddServiceChargeToTransaction: Stack trace: {ex.StackTrace}", ex);
+            if (ex.InnerException != null)
+            {
+                AppLogger.LogError($"AddServiceChargeToTransaction: Inner exception - {ex.InnerException.GetType().Name}: {ex.InnerException.Message}", ex.InnerException);
+            }
+            // Rethrow to see the actual error
+            throw;
         }
     }
 
@@ -2912,14 +3929,40 @@ public partial class AddSalesViewModel : ObservableObject
                 totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{taxLine}{taxSpacing}{taxAmount}\n"));
             }
             
+            // Show customer balance if applicable
+            if (SelectedCustomer != null)
+            {
+                decimal customerBalance = SelectedCustomer.CustomerBalanceAmount;
+                if (customerBalance != 0)
+                {
+                    string balanceLabel = customerBalance > 0 ? "Previous Pending:" : "Store Credit:";
+                    var balanceLine = $"{balanceLabel}";
+                    var balanceAmount = customerBalance > 0 ? $"${customerBalance:N2}" : $"-${Math.Abs(customerBalance):N2}";
+                    var balanceSpacing = new string(' ', Math.Max(0, 35 - balanceLine.Length - balanceAmount.Length));
+                    totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{balanceLine}{balanceSpacing}{balanceAmount}\n"));
+                }
+            }
+            
             // Total line separator
             totalsPara.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────\n") { FontWeight = FontWeights.Bold });
             
+            // Calculate bill total (sale + customer balance)
+            decimal customerBalanceAmount = SelectedCustomer?.CustomerBalanceAmount ?? 0m;
+            decimal billTotal = Total + customerBalanceAmount;
+            
             // Grand Total
             var totalLine = $"TOTAL:";
-            var totalAmount = $"${Total:N2}";
+            var totalAmount = $"${billTotal:N2}";
             var totalSpacing = new string(' ', Math.Max(0, 35 - totalLine.Length - totalAmount.Length));
             totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{totalLine}{totalSpacing}{totalAmount}\n") { FontWeight = FontWeights.Bold, FontSize = 13 });
+            
+            // Show payment status for billed transactions
+            if (transaction.Status == "billed" && billTotal > 0)
+            {
+                totalsPara.Inlines.Add(new System.Windows.Documents.Run("\n"));
+                totalsPara.Inlines.Add(new System.Windows.Documents.Run("STATUS: PENDING PAYMENT\n") { FontWeight = FontWeights.Bold, Foreground = Brushes.Red });
+                totalsPara.Inlines.Add(new System.Windows.Documents.Run($"Amount Due: ${billTotal:N2}\n") { FontWeight = FontWeights.Bold });
+            }
             
             document.Blocks.Add(totalsPara);
 
@@ -2944,250 +3987,6 @@ public partial class AddSalesViewModel : ObservableObject
             AppLogger.LogError($"Error printing bill: {ex.Message}");
             new MessageDialog("Print Error", $"Error printing bill: {ex.Message}\n\nThe transaction was saved successfully.", MessageDialog.MessageType.Warning).ShowDialog();
         }
-    }
-
-    /// <summary>
-    /// Load transaction for refund processing
-    /// </summary>
-    public async Task LoadTransactionForRefund(int transactionId)
-    {
-        try
-        {
-            if (transactionId <= 0)
-            {
-                new MessageDialog("Error", "Invalid transaction ID for refund.", MessageDialog.MessageType.Warning).ShowDialog();
-                return;
-            }
-
-            // Enter refund mode
-            IsRefundMode = true;
-            RefundSourceTransactionId = transactionId;
-
-            // Load the transaction
-            var transaction = await _transactionService.GetByIdAsync(transactionId);
-            if (transaction == null)
-            {
-                new MessageDialog("Error", "Transaction not found.", MessageDialog.MessageType.Error).ShowDialog();
-                IsRefundMode = false;
-                return;
-            }
-
-            // Clear current cart and load transaction items
-            ClearCart();
-            
-            // Load transaction products
-            foreach (var product in transaction.TransactionProducts)
-            {
-                var cartItem = new CartItemModel
-                {
-                    ProductId = product.ProductId,
-                    ProductName = product.ProductName,
-                    UnitPrice = product.SellingPrice,
-                    Quantity = (int)product.Quantity,
-                    TotalPrice = product.SellingPrice * product.Quantity,
-                    IsSelected = false,
-                    RefundQuantity = 0,
-                    MaxRefundQuantity = (int)product.Quantity
-                };
-
-                CartItems.Add(cartItem);
-            }
-
-            // Update customer and table info
-            if (transaction.CustomerId.HasValue)
-            {
-                var customer = await _customerService.GetByIdAsync(transaction.CustomerId.Value);
-                if (customer != null)
-                {
-                    // Check if customer exists in Customers collection, if not add it
-                    var existingCustomer = Customers.FirstOrDefault(c => c.Id == customer.Id);
-                    if (existingCustomer == null)
-                    {
-                        Customers.Add(customer);
-                    }
-                    
-                    // Set selected customer
-                    SelectedCustomer = Customers.FirstOrDefault(c => c.Id == customer.Id);
-                    CustomerName = customer.DisplayName;
-                    CustomerPhone = customer.PrimaryMobile;
-                }
-            }
-            else
-            {
-                // Clear customer selection for walk-in
-                SelectedCustomer = null;
-                CustomerName = string.Empty;
-                CustomerPhone = string.Empty;
-            }
-
-            if (transaction.TableId.HasValue)
-            {
-                SelectedTable = Tables.FirstOrDefault(t => t.Id == transaction.TableId.Value);
-            }
-
-            // Load discount and tax from transaction
-            DiscountAmount = transaction.TotalDiscount;
-            TaxPercentage = transaction.Vat;
-            
-            // Set transaction details for display
-            CurrentTransactionId = transactionId;
-            CurrentTransactionStatus = "refund";
-            
-            // Update button visibility for refund mode - show only Refund button
-            ShowSaveButton = false;
-            ShowSaveAndPrintButton = false;
-            ShowSettleButton = false;
-            ShowRefundButton = true; // Show refund button to process the refund
-            ShowExchangeButton = false;
-
-            // Recalculate totals
-            RecalculateTotals();
-
-            new MessageDialog("Refund Mode", "Refund mode activated. Select items and specify quantities to refund.", MessageDialog.MessageType.Info).ShowDialog();
-        }
-        catch (Exception ex)
-        {
-            new MessageDialog("Error", $"Error loading transaction for refund: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
-            IsRefundMode = false;
-        }
-    }
-
-    /// <summary>
-    /// Process refund - saves refund transaction
-    /// </summary>
-    [RelayCommand]
-    private async Task Refund()
-    {
-        try
-        {
-            if (!IsRefundMode)
-            {
-                // If not in refund mode, load the transaction for refund
-                await LoadTransactionForRefund(CurrentTransactionId);
-                return;
-            }
-
-            // Validate refund items
-            var refundItems = CartItems.Where(item => item.IsSelected && item.RefundQuantity > 0).ToList();
-            
-            if (!refundItems.Any())
-            {
-                new MessageDialog("Validation", "Please select items and specify quantities to refund.", MessageDialog.MessageType.Warning).ShowDialog();
-                return;
-            }
-
-            var currentUserId = _currentUserService.CurrentUserId;
-            if (!currentUserId.HasValue || currentUserId.Value <= 0)
-            {
-                new MessageDialog("Error", "Unable to identify current user. Please log in again.", MessageDialog.MessageType.Error).ShowDialog();
-                return;
-            }
-
-            // Calculate refund amount
-            decimal refundAmount = refundItems.Sum(item => item.UnitPrice * item.RefundQuantity);
-            decimal refundVat = refundAmount * (TaxPercentage / 100);
-
-            // Confirm refund
-            var dialog = new ConfirmationDialog(
-                "Confirm Refund",
-                $"Are you sure you want to process this refund?\n\n" +
-                $"Items to refund: {refundItems.Count}\n" +
-                $"Refund amount: ${refundAmount:N2}\n\n" +
-                $"This action cannot be undone.",
-                ConfirmationDialog.DialogType.Warning);
-
-            var result = dialog.ShowDialog();
-
-            if (result != true)
-                return;
-
-            var shiftId = 1; // TODO: Get current shift ID
-
-            // Get transaction products to map refund items
-            var transaction = await _transactionService.GetByIdAsync(RefundSourceTransactionId);
-            if (transaction == null)
-            {
-                new MessageDialog("Error", "Source transaction not found.", MessageDialog.MessageType.Error).ShowDialog();
-                return;
-            }
-
-            // Create refund DTO
-            var refundDto = new CreateRefundTransactionDto
-            {
-                SellingTransactionId = RefundSourceTransactionId,
-                CustomerId = SelectedCustomer?.Id,
-                ShiftId = shiftId,
-                UserId = currentUserId.Value,
-                TotalAmount = refundAmount,
-                TotalVat = refundVat,
-                IsCash = true,
-                RefundTime = DateTime.Now,
-                Products = refundItems.Select(item =>
-                {
-                    // Find corresponding transaction product
-                    var transactionProduct = transaction.TransactionProducts
-                        .FirstOrDefault(tp => tp.ProductId == item.ProductId);
-                    
-                    return new CreateRefundTransactionProductDto
-                    {
-                        TransactionProductId = transactionProduct?.Id ?? 0,
-                        TotalQuantityReturned = item.RefundQuantity,
-                        TotalVat = (item.UnitPrice * item.RefundQuantity) * (TaxPercentage / 100),
-                        TotalAmount = item.UnitPrice * item.RefundQuantity
-                    };
-                }).ToList()
-            };
-
-            // Save refund using RefundService
-            var savedRefund = await _refundService.CreateAsync(refundDto);
-
-            new MessageDialog(
-                "Success",
-                $"Refund processed successfully!\n\n" +
-                $"Refund ID: #{savedRefund.Id}\n" +
-                $"Amount: ${refundAmount:N2}",
-                MessageDialog.MessageType.Success).ShowDialog();
-
-            // Clear cart and exit refund mode
-            ClearCart();
-            IsRefundMode = false;
-            RefundSourceTransactionId = 0;
-        }
-        catch (Exception ex)
-        {
-            new MessageDialog("Error", $"Error processing refund: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
-        }
-    }
-
-    /// <summary>
-    /// Exchange transaction
-    /// <summary>
-    /// Exchange command - navigates to exchange screen for the current transaction
-    /// <summary>
-    /// Exchange command - navigate to exchange screen for current transaction
-    /// </summary>
-    [RelayCommand]
-    private async Task Exchange()
-    {
-        if (CurrentTransactionId <= 0)
-        {
-            new MessageDialog("Transaction Required", "Please save the transaction first before initiating an exchange.", MessageDialog.MessageType.Warning).ShowDialog();
-            return;
-        }
-
-        if (CurrentTransactionStatus?.ToLower() != "settled")
-        {
-            new MessageDialog("Invalid Status", "Only settled transactions can be exchanged.", MessageDialog.MessageType.Warning).ShowDialog();
-            return;
-        }
-
-        // Navigate back to transactions, which will trigger the exchange screen
-        // Note: This requires a callback to MainWindowViewModel
-        new MessageDialog(
-            "Exchange Navigation",
-            "To exchange this transaction, please use the Exchange button from the Transaction screen.\n\n" +
-            "Go to: Transactions → Find the transaction → Click Exchange button",
-            MessageDialog.MessageType.Info).ShowDialog();
     }
 }
 
@@ -3240,6 +4039,9 @@ public partial class CartItemModel : ObservableObject
 {
     [ObservableProperty]
     private int productId;
+    
+    [ObservableProperty]
+    private int? productUnitId; // Store selected product unit ID
 
     [ObservableProperty]
     private string productName = string.Empty;
@@ -3256,31 +4058,15 @@ public partial class CartItemModel : ObservableObject
     [ObservableProperty]
     private decimal totalPrice;
 
-    [ObservableProperty]
-    private bool isSelected = false; // For refund mode checkbox
-
-    [ObservableProperty]
-    private int refundQuantity = 0; // Quantity being refunded
-
-    [ObservableProperty]
-    private int maxRefundQuantity = 0; // Maximum quantity that can be refunded (original quantity)
+    // Store selected modifiers for this cart item
+    public List<ProductModifierGroupItemDto> SelectedModifiers { get; set; } = new();
+    
+    // Store product selection details (units, modifiers, groups, etc.)
+    public object? Tag { get; set; }
 
     partial void OnQuantityChanged(int value)
     {
         // Auto-recalculate total price when quantity changes
         TotalPrice = UnitPrice * value;
-    }
-
-    partial void OnRefundQuantityChanged(int value)
-    {
-        // Ensure refund quantity doesn't exceed max
-        if (value > MaxRefundQuantity)
-        {
-            RefundQuantity = MaxRefundQuantity;
-        }
-        if (value < 0)
-        {
-            RefundQuantity = 0;
-        }
     }
 }

@@ -23,7 +23,7 @@ public interface IUnitOfWork : IDisposable
     /// <summary>
     /// Customer repository
     /// </summary>
-    IRepository<ChronoPos.Domain.Entities.Customer> Customers { get; }
+    ICustomerRepository Customers { get; }
     
     /// <summary>
     /// Customer Group repository

@@ -39,4 +39,9 @@ public class TransactionModifierRepository : Repository<TransactionModifier>, IT
     {
         _context.Set<TransactionModifier>().Remove(transactionModifier);
     }
+    
+    public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
 }

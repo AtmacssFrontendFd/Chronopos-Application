@@ -117,11 +117,19 @@ public partial class ExchangeSalesViewModel : ObservableObject
             ReturnItems.Clear();
             foreach (var product in transaction.TransactionProducts)
             {
+                // Build modifier string
+                string modifierString = string.Empty;
+                if (product.Modifiers != null && product.Modifiers.Any())
+                {
+                    modifierString = string.Join(", ", product.Modifiers.Select(m => m.ModifierName));
+                }
+
                 var returnItem = new ExchangeItemModel
                 {
                     TransactionProductId = product.Id,
                     ProductId = product.ProductId,
                     ProductName = product.ProductName,
+                    Modifiers = modifierString,
                     OriginalQuantity = (int)product.Quantity,
                     ReturnQuantity = 0,
                     UnitPrice = product.SellingPrice,
@@ -634,6 +642,11 @@ public partial class ExchangeItemModel : ObservableObject
 
     [ObservableProperty]
     private string productName = string.Empty;
+
+    [ObservableProperty]
+    private string modifiers = string.Empty;
+
+    public bool HasModifiers => !string.IsNullOrEmpty(Modifiers);
 
     [ObservableProperty]
     private int originalQuantity;

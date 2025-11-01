@@ -367,9 +367,9 @@ namespace ChronoPos.Application.Services
         {
             var validTransitions = new Dictionary<string, List<string>>
             {
-                { "draft", new List<string> { "hold", "billed", "settled", "cancelled" } }, // Allow direct settlement from draft
-                { "hold", new List<string> { "draft", "billed", "settled", "cancelled" } }, // Allow direct settlement from hold
-                { "billed", new List<string> { "settled", "refunded", "cancelled" } },
+                { "draft", new List<string> { "hold", "billed", "settled", "pending_payment", "partial_payment", "cancelled" } }, // Allow direct settlement/partial/pending from draft
+                { "hold", new List<string> { "draft", "billed", "settled", "pending_payment", "partial_payment", "cancelled" } }, // Allow direct settlement/partial/pending from hold
+                { "billed", new List<string> { "settled", "pending_payment", "partial_payment", "refunded", "cancelled" } }, // Allow payment transitions from billed
                 { "pending_payment", new List<string> { "billed", "settled", "partial_payment", "cancelled" } },
                 { "partial_payment", new List<string> { "settled", "pending_payment", "cancelled" } },
                 { "settled", new List<string> { "refunded", "exchanged" } }, // Settled can be refunded or exchanged

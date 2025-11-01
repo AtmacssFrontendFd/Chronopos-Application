@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Constants;
+using ChronoPos.Application.Logging;
 using ChronoPos.Desktop.Views.Dialogs;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -79,6 +80,11 @@ public partial class CustomersViewModel : ObservableObject
     /// </summary>
     public Action? GoBackAction { get; set; }
 
+    /// <summary>
+    /// Action to show customer transactions (set by parent)
+    /// </summary>
+    public Action<int, string>? ShowCustomerTransactionsAction { get; set; }
+
     public CustomersViewModel(
         ICustomerService customerService, 
         ICustomerGroupService customerGroupService,
@@ -141,10 +147,16 @@ public partial class CustomersViewModel : ObservableObject
     {
         try
         {
+            AppLogger.LogSeparator("LOADING CUSTOMERS", "customer_discounts");
+            
             // Load discount cache first
             await LoadDiscountCacheAsync();
             
+            AppLogger.Log($"Discount cache loaded with {_discountCache.Count} discounts", filename: "customer_discounts");
+            
             var customers = await _customerService.GetAllCustomersAsync();
+            
+            AppLogger.Log($"Loaded {customers.Count()} customers from service", filename: "customer_discounts");
             
             // Clear and repopulate customers with discount information
             Customers.Clear();
@@ -152,11 +164,17 @@ public partial class CustomersViewModel : ObservableObject
             
             foreach (var customer in customers)
             {
+                // Debug: Check SelectedDiscountIds
+                var discountIds = customer.SelectedDiscountIds ?? new List<int>();
+                AppLogger.Log($"Customer '{customer.CustomerFullName}' (ID: {customer.Id}) has {discountIds.Count} discount IDs: [{string.Join(", ", discountIds)}]", filename: "customer_discounts");
+                
                 // Load discount count for each customer
                 customer.ActiveDiscountCount = customer.SelectedDiscountIds?.Count ?? 0;
                 
                 // Build discount pills from the customer's selected discount IDs
                 customer.DiscountPills = BuildDiscountPills(customer);
+                
+                AppLogger.Log($"Customer '{customer.CustomerFullName}' built {customer.DiscountPills.Count} discount pills: [{string.Join(", ", customer.DiscountPills)}]", filename: "customer_discounts");
                 
                 if (customer.SelectedDiscountIds != null && customer.SelectedDiscountIds.Any())
                 {
@@ -169,10 +187,13 @@ public partial class CustomersViewModel : ObservableObject
             // Update visibility flag for discount column
             HasAnyCustomerWithDiscounts = customersWithDiscounts > 0;
             
+            AppLogger.Log($"{customersWithDiscounts} customers have discounts. Column visibility: {HasAnyCustomerWithDiscounts}", filename: "customer_discounts");
+            
             FilterCustomers();
         }
         catch (Exception ex)
         {
+            AppLogger.LogError("Error loading customers", ex, filename: "customer_discounts");
             var errorDialog = new MessageDialog(
                 "Loading Error",
                 $"An error occurred while loading customers:\n\n{ex.Message}",
@@ -267,6 +288,21 @@ public partial class CustomersViewModel : ObservableObject
     private void ClearSearch()
     {
         SearchText = string.Empty;
+    }
+
+    /// <summary>
+    /// Command to view customer transactions
+    /// </summary>
+    [RelayCommand]
+    private void ViewCustomerTransactions()
+    {
+        if (SelectedCustomer?.Id != null)
+        {
+            ShowCustomerTransactionsAction?.Invoke(
+                SelectedCustomer.Id, 
+                SelectedCustomer.CustomerFullName ?? "Unknown Customer"
+            );
+        }
     }
 
     /// <summary>
@@ -613,36 +649,53 @@ public partial class CustomersViewModel : ObservableObject
     {
         try
         {
+            AppLogger.Log("Loading discount cache...", filename: "customer_discounts");
             var discounts = await _discountService.GetActiveDiscountsAsync();
             _discountCache.Clear();
+            
+            AppLogger.Log($"Retrieved {discounts.Count()} active discounts", filename: "customer_discounts");
             
             foreach (var discount in discounts)
             {
                 var displayText = $"{discount.DiscountName} {discount.FormattedDiscountValue}";
                 _discountCache[discount.Id] = displayText;
+                AppLogger.Log($"  - Discount ID {discount.Id}: {displayText}", filename: "customer_discounts");
             }
+            
+            AppLogger.Log($"Discount cache populated with {_discountCache.Count} items", filename: "customer_discounts");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Log error but don't fail the whole operation
-            // Silent failure is acceptable here as discounts are supplementary info
+            AppLogger.LogError("Error loading discount cache", ex, filename: "customer_discounts");
         }
     }
     
     private List<string> BuildDiscountPills(CustomerDto customer)
     {
         if (customer.SelectedDiscountIds == null || !customer.SelectedDiscountIds.Any())
+        {
+            AppLogger.Log($"BuildDiscountPills: Customer {customer.Id} has no discount IDs", filename: "customer_discounts");
             return new List<string>();
+        }
 
         try
         {
+            AppLogger.Log($"BuildDiscountPills: Customer {customer.Id} building pills for {customer.SelectedDiscountIds.Count} discount IDs", filename: "customer_discounts");
+            
             var discountPills = new List<string>();
             
             foreach (var discountId in customer.SelectedDiscountIds.Take(5)) // Show up to 5 discount pills
             {
+                AppLogger.Log($"  - Looking up discount ID {discountId} in cache (cache has {_discountCache.Count} items)", filename: "customer_discounts");
+                
                 if (_discountCache.TryGetValue(discountId, out var discountText))
                 {
+                    AppLogger.Log($"  - Found discount ID {discountId}: {discountText}", filename: "customer_discounts");
                     discountPills.Add(discountText);
+                }
+                else
+                {
+                    AppLogger.LogWarning($"  - Discount ID {discountId} NOT FOUND in cache", filename: "customer_discounts");
                 }
             }
 
@@ -651,10 +704,12 @@ public partial class CustomersViewModel : ObservableObject
                 discountPills.Add($"+{customer.SelectedDiscountIds.Count - 5} more");
             }
 
+            AppLogger.Log($"BuildDiscountPills: Returning {discountPills.Count} pills", filename: "customer_discounts");
             return discountPills;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            AppLogger.LogError($"BuildDiscountPills: Error for customer {customer.Id}", ex, filename: "customer_discounts");
             return new List<string> { "Discounts available" };
         }
     }

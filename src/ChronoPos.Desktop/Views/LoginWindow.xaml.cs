@@ -194,8 +194,16 @@ namespace ChronoPos.Desktop.Views
 
         private void ShowError(string message)
         {
+            // Ensure message is not null or empty
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                message = "An error occurred. Please try again.";
+            }
+            
             ErrorTextBlock.Text = message;
             ErrorBorder.Visibility = Visibility.Visible;
+            
+            LogMessage($"Error displayed to user: {message}");
         }
 
         private void LogMessage(string message)

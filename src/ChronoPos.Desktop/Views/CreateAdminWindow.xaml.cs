@@ -94,8 +94,11 @@ namespace ChronoPos.Desktop.Views
 
         private async void CreateAdminButton_Click(object sender, RoutedEventArgs e)
         {
-            ErrorTextBlock.Visibility = Visibility.Collapsed;
-            SuccessTextBlock.Visibility = Visibility.Collapsed;
+            // Hide any previous messages
+            ErrorBorder.Visibility = Visibility.Collapsed;
+            SuccessBorder.Visibility = Visibility.Collapsed;
+            ErrorTextBlock.Text = string.Empty;
+            SuccessTextBlock.Text = string.Empty;
 
             // Validate inputs
             if (string.IsNullOrWhiteSpace(FullNameTextBox.Text))
@@ -284,16 +287,32 @@ namespace ChronoPos.Desktop.Views
 
         private void ShowError(string message)
         {
+            // Ensure message is not null or empty
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                message = "An error occurred. Please check your input and try again.";
+            }
+            
             ErrorTextBlock.Text = message;
             ErrorBorder.Visibility = Visibility.Visible;
             SuccessBorder.Visibility = Visibility.Collapsed;
+            
+            LogMessage($"Error displayed to user: {message}");
         }
 
         private void ShowSuccess(string message)
         {
+            // Ensure message is not null or empty
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                message = "Operation completed successfully.";
+            }
+            
             SuccessTextBlock.Text = message;
             SuccessBorder.Visibility = Visibility.Visible;
             ErrorBorder.Visibility = Visibility.Collapsed;
+            
+            LogMessage($"Success message displayed to user: {message}");
         }
 
         private bool IsValidEmail(string email)

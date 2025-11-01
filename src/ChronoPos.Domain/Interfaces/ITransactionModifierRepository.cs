@@ -26,4 +26,9 @@ public interface ITransactionModifierRepository : IRepository<TransactionModifie
     /// Deletes a transaction modifier
     /// </summary>
     void Delete(TransactionModifier transactionModifier);
+    
+    /// <summary>
+    /// Saves changes to the database
+    /// </summary>
+    Task SaveChangesAsync();
 }

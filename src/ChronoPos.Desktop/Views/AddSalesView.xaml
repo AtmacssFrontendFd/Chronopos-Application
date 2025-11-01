@@ -211,6 +211,8 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/> <!-- Title -->
                 <ColumnDefinition Width="*"/> <!-- Spacer -->
+                <ColumnDefinition Width="Auto"/> <!-- Barcode Scanner -->
+                <ColumnDefinition Width="20"/> <!-- Gap -->
                 <ColumnDefinition Width="Auto"/> <!-- Customer -->
                 <ColumnDefinition Width="10"/> <!-- Gap -->
                 <ColumnDefinition Width="Auto"/> <!-- Phone -->
@@ -224,8 +226,61 @@
                       Foreground="{DynamicResource TextPrimary}"
                       VerticalAlignment="Center"/>
             
+            <!-- Barcode Scanner -->
+            <StackPanel Grid.Column="2" Width="280">
+                <TextBlock Text="Scan Barcode" 
+                          FontSize="11" 
+                          Foreground="{DynamicResource TextSecondary}"
+                          Margin="0,0,0,4"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/> <!-- Scanner Icon -->
+                        <ColumnDefinition Width="*"/> <!-- TextBox -->
+                        <ColumnDefinition Width="Auto"/> <!-- Status Indicator -->
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- Scanner Icon -->
+                    <Border Grid.Column="0" 
+                            Width="36" 
+                            Height="36" 
+                            Background="{DynamicResource Primary}" 
+                            CornerRadius="6"
+                            Margin="0,0,8,0"
+                            VerticalAlignment="Center">
+                        <TextBlock Text="📷" 
+                                  FontSize="20"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"/>
+                    </Border>
+                    
+                    <!-- Barcode Input TextBox -->
+                    <TextBox Grid.Column="1"
+                            x:Name="BarcodeTextBox"
+                            Text="{Binding BarcodeInput, UpdateSourceTrigger=PropertyChanged}"
+                            MinHeight="36"
+                            FontSize="13"
+                            Padding="10,8"
+                            Background="{DynamicResource SurfaceBackground}"
+                            Foreground="{DynamicResource TextPrimary}"
+                            BorderBrush="{DynamicResource BorderLight}"
+                            BorderThickness="1"
+                            VerticalContentAlignment="Center"
+                            PreviewKeyDown="BarcodeTextBox_PreviewKeyDown"/>
+                    
+                    <!-- Status Indicator -->
+                    <Border Grid.Column="2" 
+                           Width="12" 
+                           Height="12" 
+                           CornerRadius="6"
+                           Background="{Binding ScannerStatusColor}"
+                           Margin="8,0,0,0"
+                           VerticalAlignment="Center"
+                           ToolTip="{Binding ScannerStatusMessage}"/>
+                </Grid>
+            </StackPanel>
+            
             <!-- Customer Dropdown -->
-            <StackPanel Grid.Column="2" Width="220">
+            <StackPanel Grid.Column="4" Width="220">
                 <Grid Margin="0,0,0,4">
                     <TextBlock Text="Customer" 
                               FontSize="11" 
@@ -253,7 +308,7 @@
             </StackPanel>
             
             <!-- Phone Number -->
-            <StackPanel Grid.Column="4" Width="180">
+            <StackPanel Grid.Column="6" Width="180">
                 <TextBlock Text="Phone Number" 
                           FontSize="11" 
                           Foreground="{DynamicResource TextSecondary}"
@@ -356,12 +411,78 @@
                 <!-- Products Section -->
                 <Border Grid.Row="2" Style="{StaticResource SectionBorderStyle}">
                     <StackPanel>
-                        <Grid Margin="0,0,0,8">
-                            <TextBlock Text="Products" 
-                                      FontSize="13" 
-                                      FontWeight="SemiBold"
-                                      Foreground="{DynamicResource TextPrimary}"
-                                      VerticalAlignment="Center"/>
+                        <!-- Toggle Buttons -->
+                        <Grid Margin="0,0,0,12">
+                            <StackPanel Orientation="Horizontal" 
+                                       HorizontalAlignment="Left">
+                                <Button Content="Products" 
+                                       Height="32"
+                                       Padding="16,0"
+                                       Margin="0,0,8,0"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       BorderThickness="0"
+                                       Cursor="Hand"
+                                       Command="{Binding ShowProductsCommand}">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}" 
+                                                               CornerRadius="6" 
+                                                               Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" 
+                                                                             VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsShowingProducts}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="Product Groups" 
+                                       Height="32"
+                                       Padding="16,0"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       BorderThickness="0"
+                                       Cursor="Hand"
+                                       Command="{Binding ShowProductGroupsCommand}">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}" 
+                                                               CornerRadius="6" 
+                                                               Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" 
+                                                                             VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsShowingProducts}" Value="False">
+                                                    <Setter Property="Background" Value="#10B981"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </StackPanel>
                             <Button Content="Show All" 
                                    Height="28"
                                    Padding="12,0"
@@ -370,8 +491,8 @@
                                    Background="{DynamicResource Primary}"
                                    Foreground="White"
                                    BorderThickness="0"
-                                   HorizontalAlignment="Right"
                                    Cursor="Hand"
+                                   HorizontalAlignment="Right"
                                    Command="{Binding ShowAllProductsCommand}">
                                 <Button.Style>
                                     <Style TargetType="Button">
@@ -391,8 +512,11 @@
                                 </Button.Style>
                             </Button>
                         </Grid>
+                        
+                        <!-- Products Grid (Visible when IsShowingProducts = True) -->
                         <ScrollViewer VerticalScrollBarVisibility="Auto" 
-                                     Height="Auto">
+                                     Height="Auto"
+                                     Visibility="{Binding IsShowingProducts, Converter={StaticResource BoolToVisibilityConverter}}">
                             <ItemsControl ItemsSource="{Binding FilteredProducts}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -470,6 +594,96 @@
                                                            Foreground="White"
                                                            BorderThickness="0"
                                                            Command="{Binding DataContext.IncreaseQuantityCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                           CommandParameter="{Binding}"/>
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        
+                        <!-- Product Groups Grid (Visible when IsShowingProducts = False) -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                                     Height="Auto"
+                                     Visibility="{Binding IsShowingProducts, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                            <ItemsControl ItemsSource="{Binding ProductGroups}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource ProductCardStyle}">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Group Name -->
+                                                <TextBlock Grid.Row="0" 
+                                                          Text="{Binding Name}" 
+                                                          FontSize="13"
+                                                          FontWeight="SemiBold"
+                                                          Foreground="{DynamicResource TextPrimary}"
+                                                          TextWrapping="Wrap"
+                                                          VerticalAlignment="Center"
+                                                          TextAlignment="Center"/>
+
+                                                <!-- Total Price -->
+                                                <TextBlock Grid.Row="1" 
+                                                          FontSize="15"
+                                                          FontWeight="Bold"
+                                                          Foreground="#10B981"
+                                                          Margin="0,6,0,8"
+                                                          HorizontalAlignment="Center">
+                                                    <Run Text="$"/>
+                                                    <Run Text="{Binding TotalPrice, StringFormat=N2}"/>
+                                                </TextBlock>
+
+                                                <!-- Quantity Controls -->
+                                                <Grid Grid.Row="2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- Minus Button -->
+                                                    <Button Grid.Column="0" 
+                                                           Content="−"
+                                                           Width="28" 
+                                                           Height="28"
+                                                           FontSize="16"
+                                                           Background="{DynamicResource SurfaceBackground}"
+                                                           Foreground="{DynamicResource TextPrimary}"
+                                                           BorderBrush="{DynamicResource BorderLight}"
+                                                           BorderThickness="1"
+                                                           Command="{Binding DataContext.DecreaseProductGroupQuantityCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                           CommandParameter="{Binding}"/>
+
+                                                    <!-- Quantity Display -->
+                                                    <TextBlock Grid.Column="1" 
+                                                              Text="{Binding Quantity, FallbackValue=0}" 
+                                                              FontSize="13"
+                                                              FontWeight="SemiBold"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"
+                                                              Foreground="{DynamicResource TextPrimary}"/>
+
+                                                    <!-- Plus Button -->
+                                                    <Button Grid.Column="2" 
+                                                           Content="+"
+                                                           Width="28" 
+                                                           Height="28"
+                                                           FontSize="16"
+                                                           Background="#10B981"
+                                                           Foreground="White"
+                                                           BorderThickness="0"
+                                                           Command="{Binding DataContext.IncreaseProductGroupQuantityCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                            CommandParameter="{Binding}"/>
                                                 </Grid>
                                             </Grid>

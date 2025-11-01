@@ -27,6 +27,7 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly IDatabaseLocalizationService _databaseLocalizationService;
     private readonly IGlobalSearchService _globalSearchService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IProductBarcodeRepository _productBarcodeRepository;
     private System.Timers.Timer? _searchDelayTimer;
 
     [ObservableProperty]
@@ -145,10 +146,11 @@ public partial class MainWindowViewModel : ObservableObject
     public ICommand ChangeLanguageCommand { get; }
     public ICommand ToggleLanguageCommand { get; }
 
-    public MainWindowViewModel(IProductService productService, IServiceProvider serviceProvider)
+    public MainWindowViewModel(IProductService productService, IServiceProvider serviceProvider, IProductBarcodeRepository productBarcodeRepository)
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        _productBarcodeRepository = productBarcodeRepository ?? throw new ArgumentNullException(nameof(productBarcodeRepository));
         _databaseLocalizationService = serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
         _globalSearchService = serviceProvider.GetRequiredService<IGlobalSearchService>();
         _currentUserService = serviceProvider.GetRequiredService<ICurrentUserService>();
@@ -801,6 +803,7 @@ public partial class MainWindowViewModel : ObservableObject
         {
             // Create the AddSalesViewModel with all required services
             var addSalesViewModel = new AddSalesViewModel(
+                _serviceProvider,
                 _serviceProvider.GetRequiredService<IProductService>(),
                 _serviceProvider.GetRequiredService<ICategoryService>(),
                 _serviceProvider.GetRequiredService<ICustomerService>(),
@@ -814,7 +817,11 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IRefundService>(),
                 _serviceProvider.GetRequiredService<IPaymentTypeService>(),
                 _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
-                navigateToTransactionList: async () => await ShowTransaction()
+                _serviceProvider.GetRequiredService<ITransactionModifierRepository>(),
+                _productBarcodeRepository,
+                navigateToTransactionList: async () => await ShowTransaction(),
+                navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
+                navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId)
             );
 
             // Create the AddSalesView and set its DataContext
@@ -861,6 +868,8 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IExchangeService>(),
                 _serviceProvider.GetRequiredService<IPaymentTypeService>(),
                 _serviceProvider.GetRequiredService<IReservationService>(),
+                _serviceProvider.GetRequiredService<ICustomerService>(),
+                _serviceProvider.GetRequiredService<ICurrentUserService>(),
                 navigateToEditTransaction: async (transactionId) => await LoadTransactionForEdit(transactionId),
                 navigateToPayBill: async (transactionId) => await LoadTransactionForPayment(transactionId),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
@@ -898,6 +907,7 @@ public partial class MainWindowViewModel : ObservableObject
 
             // Create a fresh AddSalesViewModel
             var addSalesViewModel = new AddSalesViewModel(
+                _serviceProvider,
                 _serviceProvider.GetRequiredService<IProductService>(),
                 _serviceProvider.GetRequiredService<ICategoryService>(),
                 _serviceProvider.GetRequiredService<ICustomerService>(),
@@ -911,7 +921,11 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IRefundService>(),
                 _serviceProvider.GetRequiredService<IPaymentTypeService>(),
                 _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
-                navigateToTransactionList: async () => await ShowTransaction()
+                _serviceProvider.GetRequiredService<ITransactionModifierRepository>(),
+                _productBarcodeRepository,
+                navigateToTransactionList: async () => await ShowTransaction(),
+                navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
+                navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId)
             );
 
             // Create the AddSalesView and set its DataContext
@@ -950,6 +964,7 @@ public partial class MainWindowViewModel : ObservableObject
 
             // Create a fresh AddSalesViewModel
             var addSalesViewModel = new AddSalesViewModel(
+                _serviceProvider,
                 _serviceProvider.GetRequiredService<IProductService>(),
                 _serviceProvider.GetRequiredService<ICategoryService>(),
                 _serviceProvider.GetRequiredService<ICustomerService>(),
@@ -963,7 +978,11 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IRefundService>(),
                 _serviceProvider.GetRequiredService<IPaymentTypeService>(),
                 _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
-                navigateToTransactionList: async () => await ShowTransaction()
+                _serviceProvider.GetRequiredService<ITransactionModifierRepository>(),
+                _productBarcodeRepository,
+                navigateToTransactionList: async () => await ShowTransaction(),
+                navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
+                navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId)
             );
 
             // Create the AddSalesView and set its DataContext
@@ -1011,6 +1030,7 @@ public partial class MainWindowViewModel : ObservableObject
 
             // Create a fresh AddSalesViewModel
             var addSalesViewModel = new AddSalesViewModel(
+                _serviceProvider,
                 _serviceProvider.GetRequiredService<IProductService>(),
                 _serviceProvider.GetRequiredService<ICategoryService>(),
                 _serviceProvider.GetRequiredService<ICustomerService>(),
@@ -1024,7 +1044,11 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IRefundService>(),
                 _serviceProvider.GetRequiredService<IPaymentTypeService>(),
                 _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
-                navigateToTransactionList: async () => await ShowTransaction()
+                _serviceProvider.GetRequiredService<ITransactionModifierRepository>(),
+                _productBarcodeRepository,
+                navigateToTransactionList: async () => await ShowTransaction(),
+                navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
+                navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId)
             );
 
             // Create the AddSalesView and set its DataContext
@@ -1033,18 +1057,18 @@ public partial class MainWindowViewModel : ObservableObject
                 DataContext = addSalesViewModel
             };
 
-            // Navigate to Add Sales screen first
-            SelectedPage = "Transactions";
-            CurrentPageTitle = "Refund Transaction";
-            CurrentView = addSalesView;
+            // Refunds are now handled via popup in Transaction screen
+            // Navigate to transaction list instead
+            await ShowTransaction();
             
-            // Initialize the view model and then load transaction in refund mode
-            await addSalesViewModel.InitializeAsync();
-            await addSalesViewModel.LoadTransactionForRefund(transactionId);
+            new MessageDialog("Refund", 
+                "Refunds are now processed from the Transaction screen.\n\n" +
+                "Click the 'Refund' button on the transaction card to process a refund.", 
+                MessageDialog.MessageType.Info).ShowDialog();
         }
         catch (Exception ex)
         {
-            new MessageDialog("Error", $"Error loading transaction for refund: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
+            new MessageDialog("Error", $"Error: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -3077,6 +3101,9 @@ public partial class MainWindowViewModel : ObservableObject
                 _ = ShowCustomerManagement();
             };
 
+            // Set up customer transactions navigation
+            customersViewModel.ShowCustomerTransactionsAction = ShowCustomerTransactions;
+
             // Create the CustomersView and set its DataContext
             var customersView = new CustomersView
             {
@@ -3090,6 +3117,45 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error loading customer management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    public void ShowCustomerTransactions(int customerId, string customerName)
+    {
+        try
+        {
+            CurrentPageTitle = "Customer Transactions";
+            StatusMessage = "Loading customer transactions...";
+
+            // Create the CustomerTransactionsViewModel
+            var transactionRepository = _serviceProvider.GetRequiredService<ITransactionRepository>();
+            var transactionsViewModel = new CustomerTransactionsViewModel(
+                transactionRepository,
+                customerId,
+                customerName,
+                () => _ = ShowCustomers()
+            );
+
+            // Create the view and set its DataContext
+            var transactionsView = new CustomerTransactionsView
+            {
+                DataContext = transactionsViewModel
+            };
+
+            CurrentView = transactionsView;
+            StatusMessage = "Customer transactions loaded successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading customer transactions: {ex.Message}";
             var errorContent = new System.Windows.Controls.TextBlock
             {
                 Text = $"Error: {ex.Message}",

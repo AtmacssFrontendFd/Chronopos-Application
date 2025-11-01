@@ -254,7 +254,8 @@
                           ScrollViewer.VerticalScrollBarVisibility="Auto"
                           ScrollViewer.HorizontalScrollBarVisibility="Auto"
                           ScrollViewer.CanContentScroll="True"
-                          Visibility="{Binding HasCustomers, Converter={StaticResource BoolToVisibilityConverter}}">
+                          Visibility="{Binding HasCustomers, Converter={StaticResource BoolToVisibilityConverter}}"
+                          MouseDoubleClick="CustomerDataGrid_MouseDoubleClick">
 
                     <DataGrid.ColumnHeaderStyle>
                         <Style TargetType="DataGridColumnHeader">

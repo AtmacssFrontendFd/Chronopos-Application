@@ -1,0 +1,321 @@
+<Window x:Class="ChronoPos.Desktop.Views.Dialogs.RefundDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Process Refund" 
+        Height="560" 
+        Width="720"
+        WindowStartupLocation="CenterScreen"
+        Background="#F3F4F6"
+        ResizeMode="CanResize">
+
+    <Window.Resources>
+        <!-- Card Style -->
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#00000015" BlurRadius="8" ShadowDepth="0" Direction="0"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Button Styles -->
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#10B981"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#059669"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#D1D5DB"/>
+                    <Setter Property="Cursor" Value="Arrow"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#E5E7EB"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#D1D5DB"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#EF4444" Padding="16">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Title -->
+                <TextBlock Grid.Row="0" 
+                          Text="Process Refund" 
+                          FontSize="20" 
+                          FontWeight="Bold" 
+                          Foreground="White"/>
+                
+                <!-- Transaction Info -->
+                <Grid Grid.Row="1" Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <TextBlock x:Name="TransactionInfoText" 
+                                  FontSize="13" 
+                                  Foreground="#FEE2E2" 
+                                  VerticalAlignment="Center"/>
+                        <TextBlock Text=" • " 
+                                  FontSize="13" 
+                                  Foreground="#FEE2E2" 
+                                  Margin="8,0"
+                                  VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TransactionDateText" 
+                                  FontSize="13" 
+                                  Foreground="#FEE2E2"
+                                  VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Border Background="#DC2626" 
+                               CornerRadius="4" 
+                               Padding="8,4"
+                               Margin="0,0,10,0">
+                            <TextBlock x:Name="TransactionStatusText" 
+                                      FontSize="12" 
+                                      FontWeight="SemiBold"
+                                      Foreground="White"/>
+                        </Border>
+                        <TextBlock x:Name="TransactionTotalText" 
+                                  FontSize="15" 
+                                  FontWeight="Bold"
+                                  Foreground="White"
+                                  VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+            <StackPanel>
+                <!-- Items to Refund Card -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Select Items to Refund" 
+                                  FontSize="15" 
+                                  FontWeight="SemiBold" 
+                                  Foreground="#111827" 
+                                  Margin="0,0,0,12"/>
+                        
+                        <!-- Items List -->
+                        <ItemsControl x:Name="RefundItemsControl">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#F9FAFB" 
+                                            BorderBrush="#E5E7EB" 
+                                            BorderThickness="1" 
+                                            CornerRadius="6" 
+                                            Padding="12" 
+                                            Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Checkbox -->
+                                            <CheckBox Grid.Column="0" 
+                                                     IsChecked="{Binding IsSelected, Mode=TwoWay}" 
+                                                     VerticalAlignment="Center" 
+                                                     Margin="0,0,12,0"/>
+
+                                            <!-- Product Info -->
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{Binding ProductName}" 
+                                                          FontSize="13" 
+                                                          FontWeight="SemiBold" 
+                                                          Foreground="#111827"/>
+                                                <TextBlock Margin="0,4,0,0">
+                                                    <Run Text="Unit Price: $" Foreground="#6B7280" FontSize="11"/>
+                                                    <Run Text="{Binding UnitPrice, StringFormat=N2}" Foreground="#6B7280" FontSize="11"/>
+                                                    <Run Text=" | Original Qty: " Foreground="#6B7280" FontSize="11"/>
+                                                    <Run Text="{Binding MaxRefundQuantity}" Foreground="#6B7280" FontSize="11"/>
+                                                </TextBlock>
+                                            </StackPanel>
+
+                                            <!-- Quantity Controls -->
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="Refund Qty:" 
+                                                          FontSize="11" 
+                                                          Foreground="#6B7280" 
+                                                          VerticalAlignment="Center" 
+                                                          Margin="0,0,8,0"/>
+                                                <Button Content="-" 
+                                                       Width="26" 
+                                                       Height="26" 
+                                                       Click="DecreaseQuantity_Click" 
+                                                       Tag="{Binding}"
+                                                       Background="#E5E7EB"
+                                                       BorderThickness="0"
+                                                       Cursor="Hand"/>
+                                                <TextBox Text="{Binding RefundQuantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                        Width="45" 
+                                                        Height="26" 
+                                                        TextAlignment="Center" 
+                                                        VerticalContentAlignment="Center"
+                                                        Margin="4,0"/>
+                                                <Button Content="+" 
+                                                       Width="26" 
+                                                       Height="26" 
+                                                       Click="IncreaseQuantity_Click" 
+                                                       Tag="{Binding}"
+                                                       Background="#E5E7EB"
+                                                       BorderThickness="0"
+                                                       Cursor="Hand"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- Refund Summary Card -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Refund Summary" 
+                                  FontSize="15" 
+                                  FontWeight="SemiBold" 
+                                  Foreground="#111827" 
+                                  Margin="0,0,0,12"/>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" 
+                                      Text="Subtotal:" 
+                                      FontSize="13" 
+                                      Foreground="#6B7280" 
+                                      Margin="0,0,0,6"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" 
+                                      x:Name="RefundSubtotalText" 
+                                      FontSize="13" 
+                                      FontWeight="SemiBold" 
+                                      Foreground="#111827" 
+                                      Margin="0,0,0,6"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" 
+                                      Text="Tax/VAT:" 
+                                      FontSize="13" 
+                                      Foreground="#6B7280" 
+                                      Margin="0,0,0,6"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" 
+                                      x:Name="RefundVatText" 
+                                      FontSize="13" 
+                                      FontWeight="SemiBold" 
+                                      Foreground="#111827" 
+                                      Margin="0,0,0,6"/>
+
+                            <Separator Grid.Row="2" Grid.ColumnSpan="2" Margin="0,8"/>
+                        </Grid>
+                        
+                        <Grid Margin="0,8,0,0">
+                            <TextBlock Text="Total Refund:" 
+                                      FontSize="15" 
+                                      FontWeight="Bold" 
+                                      Foreground="#111827"/>
+                            <TextBlock x:Name="RefundTotalText" 
+                                      FontSize="16" 
+                                      FontWeight="Bold" 
+                                      Foreground="#EF4444" 
+                                      HorizontalAlignment="Right"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer Buttons -->
+        <Border Grid.Row="2" Background="White" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" Padding="16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="1" 
+                       Content="Cancel" 
+                       Style="{StaticResource SecondaryButton}" 
+                       Click="CancelButton_Click"
+                       Margin="0,0,8,0"/>
+                
+                <Button Grid.Column="2" 
+                       x:Name="ConfirmRefundButton"
+                       Content="Confirm Refund" 
+                       Style="{StaticResource PrimaryButton}" 
+                       Click="ConfirmRefundButton_Click"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

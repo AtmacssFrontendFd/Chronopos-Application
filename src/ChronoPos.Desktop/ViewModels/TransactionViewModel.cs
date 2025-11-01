@@ -14,6 +14,7 @@ using System.Windows.Threading;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Logging;
+using ChronoPos.Desktop.Views.Dialogs;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -24,6 +25,8 @@ public partial class TransactionViewModel : ObservableObject
     private readonly IExchangeService _exchangeService;
     private readonly IPaymentTypeService _paymentTypeService;
     private readonly IReservationService _reservationService;
+    private readonly ICustomerService _customerService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly Action<int>? _navigateToEditTransaction;
     private readonly Action<int>? _navigateToPayBill;
     private readonly Action<int>? _navigateToRefundTransaction;
@@ -59,6 +62,8 @@ public partial class TransactionViewModel : ObservableObject
         IExchangeService exchangeService,
         IPaymentTypeService paymentTypeService,
         IReservationService reservationService,
+        ICustomerService customerService,
+        ICurrentUserService currentUserService,
         Action<int>? navigateToEditTransaction = null,
         Action<int>? navigateToPayBill = null,
         Action<int>? navigateToRefundTransaction = null,
@@ -70,6 +75,8 @@ public partial class TransactionViewModel : ObservableObject
         _exchangeService = exchangeService;
         _paymentTypeService = paymentTypeService;
         _reservationService = reservationService;
+        _customerService = customerService;
+        _currentUserService = currentUserService;
         _navigateToEditTransaction = navigateToEditTransaction;
         _navigateToPayBill = navigateToPayBill;
         _navigateToRefundTransaction = navigateToRefundTransaction;
@@ -256,8 +263,11 @@ public partial class TransactionViewModel : ObservableObject
             {
                 // Change status to billed
                 await _transactionService.ChangeStatusAsync(transactionId, "billed", transaction.UserId);
-                MessageBox.Show($"Transaction #{transactionId} marked as Billed!\n\n(Print functionality will be implemented soon)", 
-                    "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                // Print the bill
+                PrintBill(transaction);
+                
+                new MessageDialog("Success", $"Transaction #{transactionId} marked as Billed!\n\nBill has been printed.", MessageDialog.MessageType.Success).ShowDialog();
                 
                 // Refresh the list
                 await LoadSalesTransactionsAsync();
@@ -266,7 +276,7 @@ public partial class TransactionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error updating transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error updating transaction: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -296,8 +306,36 @@ public partial class TransactionViewModel : ObservableObject
     {
         try
         {
-            // Navigate to Add Sales screen in refund mode
-            _navigateToRefundTransaction?.Invoke(transactionId);
+            // Load transaction
+            var transaction = await _transactionService.GetByIdAsync(transactionId);
+            if (transaction == null)
+            {
+                MessageBox.Show("Transaction not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Check if transaction is settled
+            if (transaction.Status?.ToLower() != "settled")
+            {
+                MessageBox.Show($"Only settled transactions can be refunded.\n\nCurrent status: {transaction.Status}", 
+                    "Invalid Status", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Show refund dialog
+            var refundDialog = new Views.Dialogs.RefundDialog(
+                transaction,
+                _refundService,
+                _currentUserService);
+
+            var result = refundDialog.ShowDialog();
+
+            if (result == true && refundDialog.IsConfirmed)
+            {
+                // Refresh transaction list to reflect the refund
+                await LoadSalesTransactionsAsync();
+                SwitchToSales();
+            }
         }
         catch (Exception ex)
         {
@@ -401,7 +439,7 @@ public partial class TransactionViewModel : ObservableObject
         }
     }
 
-    private void ShowPaymentPopupForTransaction(TransactionDto transaction)
+    private async void ShowPaymentPopupForTransaction(TransactionDto transaction)
     {
         try
         {
@@ -413,24 +451,68 @@ public partial class TransactionViewModel : ObservableObject
             _isPaymentPopupOpen = true;
 
             // Get fresh transaction data to ensure we have the latest values
-            var freshTransaction = _transactionService.GetByIdAsync(transaction.Id).Result;
+            var freshTransaction = await _transactionService.GetByIdAsync(transaction.Id);
             if (freshTransaction == null)
             {
-                MessageBox.Show("Transaction not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Transaction not found.", MessageDialog.MessageType.Error).ShowDialog();
                 _isPaymentPopupOpen = false; // Reset guard flag
+                return;
+            }
+            
+            var currentUserId = _currentUserService.CurrentUserId;
+            if (!currentUserId.HasValue || currentUserId.Value <= 0)
+            {
+                new MessageDialog("Error", "Unable to identify current user. Please log in again.", MessageDialog.MessageType.Error).ShowDialog();
+                _isPaymentPopupOpen = false;
                 return;
             }
             
             var totalAmount = freshTransaction.TotalAmount;
             var alreadyPaid = freshTransaction.AmountPaidCash;
-            var remainingAmount = totalAmount - alreadyPaid;
+            
+            // Get customer balance if customer is linked
+            decimal customerBalanceAmount = 0m;
+            CustomerDto? customer = null;
+            if (freshTransaction.CustomerId.HasValue)
+            {
+                try
+                {
+                    customer = await _customerService.GetByIdAsync(freshTransaction.CustomerId.Value);
+                    customerBalanceAmount = customer?.CustomerBalanceAmount ?? 0m;
+                }
+                catch (Exception custEx)
+                {
+                    AppLogger.LogError($"Failed to load customer {freshTransaction.CustomerId.Value}", custEx);
+                }
+            }
+            
+            // Calculate bill total and remaining amount based on transaction status
+            decimal billTotal;
+            decimal remainingAmount;
+            decimal amountToPrefill;
+            
+            if (freshTransaction.Status == "partial_payment")
+            {
+                // For partial payment transactions, bill total is the customer's pending amount
+                billTotal = customerBalanceAmount;
+                remainingAmount = freshTransaction.AmountCreditRemaining; // Show transaction's remaining amount
+                amountToPrefill = customerBalanceAmount; // Pre-fill with customer's pending amount
+            }
+            else
+            {
+                // For new/other transactions, calculate bill total considering customer balance
+                // If customer has pending dues (positive balance), add to bill
+                // If customer has credit (negative balance), deduct from bill
+                billTotal = totalAmount + customerBalanceAmount;
+                remainingAmount = billTotal - alreadyPaid;
+                amountToPrefill = remainingAmount;
+            }
             
             // Load payment types from database
-            var paymentTypes = _paymentTypeService.GetAllAsync().Result;
+            var paymentTypes = (await _paymentTypeService.GetActiveAsync()).ToList();
             if (!paymentTypes.Any())
             {
-                MessageBox.Show("No payment methods available. Please configure payment methods first.", 
-                    "Configuration Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Error", "No payment types available. Please add payment types first.", MessageDialog.MessageType.Error).ShowDialog();
                 _isPaymentPopupOpen = false; // Reset guard flag
                 return;
             }
@@ -438,8 +520,8 @@ public partial class TransactionViewModel : ObservableObject
             var paymentPopup = new Window
             {
                 Title = "Payment",
-                Width = 400,
-                Height = 520,
+                Width = 480,
+                Height = 550, // Increased for customer balance info and better spacing
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
                 ResizeMode = ResizeMode.NoResize,
                 Background = Brushes.White
@@ -456,16 +538,48 @@ public partial class TransactionViewModel : ObservableObject
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(20) });
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            // Total Amount Label - Show remaining amount if partial/pending payment
+            // Total Amount Label - Show customer balance and bill total
+            string balanceInfo = "";
+            if (customerBalanceAmount > 0)
+            {
+                balanceInfo = $"\nCustomer Pending: ${customerBalanceAmount:N2} (Added to bill)";
+            }
+            else if (customerBalanceAmount < 0)
+            {
+                balanceInfo = $"\nStore Credit Available: ${Math.Abs(customerBalanceAmount):N2} (Deducted from bill)";
+            }
+            
             var totalLabel = new TextBlock
             {
-                Text = alreadyPaid > 0 
-                    ? $"Remaining Amount: ${remainingAmount:N2}\n(Already Paid: ${alreadyPaid:N2} | Total: ${totalAmount:N2})"
-                    : $"Total Amount: ${totalAmount:N2}",
-                FontSize = 18,
+                FontSize = 16,
                 FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937"))
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937")),
+                TextWrapping = TextWrapping.Wrap
             };
+            
+            // Set text based on transaction status
+            if (freshTransaction.Status == "partial_payment")
+            {
+                // For partial payment transactions, show customer pending as bill total
+                var alreadyPaidFromSale = totalAmount - freshTransaction.AmountCreditRemaining;
+                totalLabel.Text = $"Customer Pending Amount: ${customerBalanceAmount:N2}\n" +
+                                  $"Remaining Amount of Transaction: ${remainingAmount:N2}\n" +
+                                  $"Already Paid: ${alreadyPaidFromSale:N2}";
+            }
+            else if (alreadyPaid > 0)
+            {
+                // For transactions with some payment already made
+                totalLabel.Text = $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
+                                  $"Bill Total: ${billTotal:N2}\n" +
+                                  $"Remaining: ${remainingAmount:N2}\n(Already Paid: ${alreadyPaid:N2})";
+            }
+            else
+            {
+                // For new transactions with no payment yet
+                totalLabel.Text = $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
+                                  $"Bill Total: ${billTotal:N2}";
+            }
+            
             Grid.SetRow(totalLabel, 0);
             grid.Children.Add(totalLabel);
 
@@ -509,7 +623,7 @@ public partial class TransactionViewModel : ObservableObject
 
             var amountTextBox = new TextBox
             {
-                Text = remainingAmount.ToString("N2"), // Use remaining amount
+                Text = amountToPrefill.ToString("N2"), // Pre-fill with calculated amount to prefill
                 FontSize = 14,
                 Padding = new Thickness(10),
                 Margin = new Thickness(0, 5, 0, 0)
@@ -587,13 +701,13 @@ public partial class TransactionViewModel : ObservableObject
                 {
                     if (!decimal.TryParse(amountTextBox.Text, out var paidAmount))
                     {
-                        MessageBox.Show("Please enter a valid amount.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        new MessageDialog("Validation Error", "Please enter a valid amount.", MessageDialog.MessageType.Warning).ShowDialog();
                         return;
                     }
 
                     if (!int.TryParse(creditDaysTextBox.Text, out var creditDays) || creditDays < 0)
                     {
-                        MessageBox.Show("Please enter a valid number of credit days (0 or more).", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        new MessageDialog("Validation Error", "Please enter a valid number of credit days (0 or more).", MessageDialog.MessageType.Warning).ShowDialog();
                         return;
                     }
 
@@ -601,47 +715,108 @@ public partial class TransactionViewModel : ObservableObject
                     var currentTransaction = await _transactionService.GetByIdAsync(freshTransaction.Id);
                     if (currentTransaction == null)
                     {
-                        MessageBox.Show("Transaction not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        new MessageDialog("Error", "Transaction not found.", MessageDialog.MessageType.Error).ShowDialog();
                         return;
+                    }
+                    
+                    // Get fresh customer balance
+                    decimal currentCustomerBalance = 0m;
+                    if (customer != null)
+                    {
+                        try
+                        {
+                            var freshCustomer = await _customerService.GetByIdAsync(customer.Id);
+                            currentCustomerBalance = freshCustomer?.CustomerBalanceAmount ?? 0m;
+                        }
+                        catch (Exception custEx)
+                        {
+                            AppLogger.LogError($"Failed to refresh customer {customer.Id}", custEx);
+                            currentCustomerBalance = customerBalanceAmount; // Use original value
+                        }
                     }
                     
                     var currentTotalAmount = currentTransaction.TotalAmount;
                     var currentAlreadyPaid = currentTransaction.AmountPaidCash;
-                    var currentRemainingAmount = currentTotalAmount - currentAlreadyPaid;
+                    
+                    // Calculate bill total and remaining amount based on transaction status
+                    decimal currentBillTotal;
+                    decimal maxAllowedPayment;
+                    
+                    if (currentTransaction.Status == "partial_payment")
+                    {
+                        // For partial payment transactions, bill total is customer's pending amount
+                        currentBillTotal = currentCustomerBalance;
+                        maxAllowedPayment = currentCustomerBalance; // Can pay up to customer's pending amount
+                    }
+                    else
+                    {
+                        // For new/other transactions, calculate bill total with customer balance
+                        currentBillTotal = currentTotalAmount + currentCustomerBalance;
+                        maxAllowedPayment = currentBillTotal - currentAlreadyPaid; // Can pay up to remaining amount
+                    }
                     
                     // Validate paid amount
-                    if (paidAmount < 0 || paidAmount > currentRemainingAmount)
+                    if (paidAmount < 0 || paidAmount > maxAllowedPayment)
                     {
-                        MessageBox.Show($"Amount paid must be between $0 and ${currentRemainingAmount:N2}.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        new MessageDialog("Validation Error", $"Amount paid must be between $0 and ${maxAllowedPayment:N2}.", MessageDialog.MessageType.Warning).ShowDialog();
                         return;
                     }
-
-                    paymentPopup.Close();
 
                     // Save original transaction state for rollback
                     originalTransaction = currentTransaction;
                     
-                    // Calculate new totals considering already paid amount (use fresh data)
+                    // Calculate new totals considering already paid amount and bill total
                     var totalPaidNow = currentAlreadyPaid + paidAmount;
-                    var creditRemaining = currentTotalAmount - totalPaidNow;
+                    var creditRemaining = currentBillTotal - totalPaidNow;
                     string transactionStatus;
 
-                    // Determine transaction status based on total payment
-                    if (totalPaidNow >= currentTotalAmount)
+                    // Determine transaction status based on total payment against bill total
+                    if (totalPaidNow >= currentBillTotal)
                     {
                         transactionStatus = "settled"; // Full payment
                         creditRemaining = 0; // Ensure no negative credit
                     }
                     else if (totalPaidNow > 0)
                     {
+                        // Partial payment - check if customer allows credit
+                        if (customer != null && !customer.CreditAllowed)
+                        {
+                            new MessageDialog("Credit Not Allowed", "This customer is not allowed to have credit.\n\nPlease collect full payment or select a customer with credit privileges.", MessageDialog.MessageType.Warning).ShowDialog();
+                            return;
+                        }
                         transactionStatus = "partial_payment"; // Partial payment
                     }
                     else
                     {
+                        // No payment - check if customer allows credit
+                        if (customer != null && !customer.CreditAllowed)
+                        {
+                            new MessageDialog("Credit Not Allowed", "This customer is not allowed to have credit.\n\nPlease collect payment or select a customer with credit privileges.", MessageDialog.MessageType.Warning).ShowDialog();
+                            return;
+                        }
                         transactionStatus = "pending_payment"; // No payment made
                     }
 
+                    paymentPopup.Close();
+
                     var selectedPaymentType = (PaymentTypeDto)paymentMethodComboBox.SelectedItem;
+                    
+                    // Calculate customer balance change
+                    // If sale fully settled: CustomerBalanceAmount = 0 (all dues cleared)
+                    // If partial/pending: CustomerBalanceAmount = creditRemaining (unpaid amount becomes due)
+                    decimal newCustomerBalance = 0m;
+                    
+                    if (transactionStatus == "settled")
+                    {
+                        // Full payment - clear customer balance
+                        newCustomerBalance = 0m;
+                    }
+                    else
+                    {
+                        // Partial or pending payment - update customer balance with unpaid amount
+                        // The unpaid portion (creditRemaining) becomes the new balance
+                        newCustomerBalance = creditRemaining;
+                    }
 
                     // TRANSACTIONAL OPERATION: Update payment info first
                     var updateDto = new UpdateTransactionDto
@@ -665,32 +840,32 @@ public partial class TransactionViewModel : ObservableObject
                     // TRANSACTIONAL OPERATION: Change status to appropriate state
                     await _transactionService.ChangeStatusAsync(currentTransaction.Id, transactionStatus, currentTransaction.UserId);
 
+                    // Update customer balance if customer is selected
+                    if (customer != null)
+                    {
+                        try
+                        {
+                            customer.CustomerBalanceAmount = newCustomerBalance;
+                            await _customerService.UpdateCustomerAsync(customer);
+                            AppLogger.Log($"Settle: Updated customer balance to ${newCustomerBalance:N2} for customer {customer.Id}");
+                        }
+                        catch (Exception custEx)
+                        {
+                            AppLogger.LogError($"Settle: Failed to update customer balance", custEx);
+                        }
+                    }
+
                     // Update reservation status to completed if transaction is settled and has a reservation
-                    AppLogger.LogInfo($"Checking reservation update - TransactionId: {currentTransaction.Id}, Status: {transactionStatus}, ReservationId: {currentTransaction.ReservationId?.ToString() ?? "NULL"}");
-                    
                     if (transactionStatus == "settled" && currentTransaction.ReservationId.HasValue)
                     {
                         try
                         {
-                            AppLogger.LogInfo($"Attempting to complete reservation {currentTransaction.ReservationId.Value} for settled transaction {currentTransaction.Id}");
                             await _reservationService.CompleteReservationAsync(currentTransaction.ReservationId.Value);
-                            AppLogger.LogInfo($"Successfully completed reservation {currentTransaction.ReservationId.Value}");
+                            AppLogger.Log($"Settle: Reservation #{currentTransaction.ReservationId.Value} marked as completed");
                         }
                         catch (Exception resEx)
                         {
-                            // Log but don't fail settlement if reservation update fails
-                            AppLogger.LogError($"Failed to update reservation {currentTransaction.ReservationId.Value} status to completed", resEx);
-                        }
-                    }
-                    else
-                    {
-                        if (transactionStatus != "settled")
-                        {
-                            AppLogger.LogInfo($"Reservation not updated - transaction status is '{transactionStatus}' (not 'settled')");
-                        }
-                        else if (!currentTransaction.ReservationId.HasValue)
-                        {
-                            AppLogger.LogInfo($"Reservation not updated - transaction has no ReservationId");
+                            AppLogger.LogError($"Settle: Failed to update reservation {currentTransaction.ReservationId.Value} status to completed", resEx);
                         }
                     }
 
@@ -702,9 +877,8 @@ public partial class TransactionViewModel : ObservableObject
                         _ => "Transaction updated!"
                     };
 
-                    MessageBox.Show($"{statusMessage}\n\nPayment Method: {selectedPaymentType.Name}\nAmount Paid Now: ${paidAmount:N2}\nTotal Paid: ${totalPaidNow:N2}" +
-                        (creditDays > 0 ? $"\nCredit Days: {creditDays}" : ""), 
-                        "Payment Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                    new MessageDialog("Payment Complete", $"{statusMessage}\n\nPayment Method: {selectedPaymentType.Name}\nAmount Paid Now: ${paidAmount:N2}\nTotal Paid: ${totalPaidNow:N2}" +
+                        (creditDays > 0 ? $"\nCredit Days: {creditDays}" : ""), MessageDialog.MessageType.Success).ShowDialog();
 
                     // Refresh the list to show updated status
                     await LoadSalesTransactionsAsync();
@@ -740,18 +914,16 @@ public partial class TransactionViewModel : ObservableObject
                                 await _transactionService.ChangeStatusAsync(originalTransaction.Id, originalTransaction.Status, originalTransaction.UserId);
                             }
                             
-                            MessageBox.Show($"Error settling transaction: {ex.Message}\n\nTransaction has been rolled back to original state.", 
-                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            new MessageDialog("Error", $"Error settling transaction: {ex.Message}\n\nTransaction has been rolled back to original state.", MessageDialog.MessageType.Error).ShowDialog();
                         }
                         catch
                         {
-                            MessageBox.Show($"Error settling transaction: {ex.Message}\n\nFailed to rollback transaction. Please check transaction #{transaction.Id} manually.", 
-                                "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            new MessageDialog("Critical Error", $"Error settling transaction: {ex.Message}\n\nFailed to rollback transaction. Please check transaction #{transaction.Id} manually.", MessageDialog.MessageType.Error).ShowDialog();
                         }
                     }
                     else
                     {
-                        MessageBox.Show($"Error settling transaction: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        new MessageDialog("Error", $"Error settling transaction: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
                     }
                     
                     // Refresh list to show current state
@@ -774,7 +946,7 @@ public partial class TransactionViewModel : ObservableObject
         catch (Exception ex)
         {
             _isPaymentPopupOpen = false; // Reset guard flag on error
-            MessageBox.Show($"Error showing payment popup: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error showing payment popup: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -782,6 +954,17 @@ public partial class TransactionViewModel : ObservableObject
     {
         try
         {
+            // Fetch the original transaction to get modifiers
+            TransactionDto? originalTransaction = null;
+            try
+            {
+                originalTransaction = _transactionService.GetByIdAsync(refund.SellingTransactionId).Result;
+            }
+            catch
+            {
+                // If we can't get the original transaction, continue without modifiers
+            }
+
             var refundNumber = $"#R{refund.Id:D4}";
             
             var detailsPopup = new Window
@@ -842,6 +1025,10 @@ public partial class TransactionViewModel : ObservableObject
 
             foreach (var product in refund.RefundProducts)
             {
+                // Find the original transaction product to get modifiers
+                var originalProduct = originalTransaction?.TransactionProducts
+                    .FirstOrDefault(tp => tp.Id == product.TransactionProductId);
+                
                 var productBorder = new Border
                 {
                     Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEF2F2")),
@@ -858,6 +1045,22 @@ public partial class TransactionViewModel : ObservableObject
 
                 var productInfo = new StackPanel();
                 productInfo.Children.Add(new TextBlock { Text = product.ProductName ?? "Unknown", FontSize = 13, FontWeight = FontWeights.SemiBold });
+                
+                // Add modifiers if available
+                if (originalProduct?.Modifiers != null && originalProduct.Modifiers.Any())
+                {
+                    var modifierText = string.Join(", ", originalProduct.Modifiers.Select(m => m.ModifierName));
+                    productInfo.Children.Add(new TextBlock 
+                    { 
+                        Text = modifierText, 
+                        FontSize = 10, 
+                        Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#9CA3AF")), 
+                        FontStyle = FontStyles.Italic,
+                        Margin = new Thickness(0, 2, 0, 0),
+                        TextWrapping = TextWrapping.Wrap
+                    });
+                }
+                
                 productInfo.Children.Add(new TextBlock { Text = $"Quantity: {product.TotalQuantityReturned:0.##}", FontSize = 11, Foreground = Brushes.Gray, Margin = new Thickness(0, 2, 0, 0) });
                 Grid.SetColumn(productInfo, 0);
 
@@ -1086,6 +1289,17 @@ public partial class TransactionViewModel : ObservableObject
     {
         try
         {
+            // Fetch the original transaction to get modifiers
+            TransactionDto? originalTransaction = null;
+            try
+            {
+                originalTransaction = _transactionService.GetByIdAsync(exchange.SellingTransactionId).Result;
+            }
+            catch
+            {
+                // If we can't get the original transaction, continue without modifiers
+            }
+
             var exchangeNumber = $"#E{exchange.Id:D4}";
             
             var detailsPopup = new Window
@@ -1147,6 +1361,10 @@ public partial class TransactionViewModel : ObservableObject
 
             foreach (var product in exchange.ExchangeProducts.Where(p => p.OldProductName != null))
             {
+                // Find the original transaction product to get modifiers
+                var originalProduct = originalTransaction?.TransactionProducts
+                    .FirstOrDefault(tp => tp.Id == product.OriginalTransactionProductId);
+
                 var productBorder = new Border
                 {
                     Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEF2F2")),
@@ -1163,6 +1381,22 @@ public partial class TransactionViewModel : ObservableObject
 
                 var productInfo = new StackPanel();
                 productInfo.Children.Add(new TextBlock { Text = product.OldProductName ?? "Unknown", FontSize = 13, FontWeight = FontWeights.SemiBold });
+                
+                // Add modifiers if available
+                if (originalProduct?.Modifiers != null && originalProduct.Modifiers.Any())
+                {
+                    var modifierText = string.Join(", ", originalProduct.Modifiers.Select(m => m.ModifierName));
+                    productInfo.Children.Add(new TextBlock 
+                    { 
+                        Text = modifierText, 
+                        FontSize = 10, 
+                        Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#9CA3AF")), 
+                        FontStyle = FontStyles.Italic,
+                        Margin = new Thickness(0, 2, 0, 0),
+                        TextWrapping = TextWrapping.Wrap
+                    });
+                }
+                
                 productInfo.Children.Add(new TextBlock { Text = $"Quantity: {product.ReturnedQuantity:0.##}", FontSize = 11, Foreground = Brushes.Gray, Margin = new Thickness(0, 2, 0, 0) });
                 Grid.SetColumn(productInfo, 0);
 
@@ -1447,11 +1681,30 @@ public partial class TransactionViewModel : ObservableObject
                 var allItems = new ObservableCollection<TransactionItemModel>();
                 foreach (var product in transaction.TransactionProducts)
                 {
+                    // Build product name with modifiers (like in the bill)
+                    string productNameWithModifiers = product.ProductName ?? "Unknown";
+                    
+                    if (product.Modifiers != null && product.Modifiers.Any())
+                    {
+                        var modifierNames = product.Modifiers
+                            .Select(m => m.ModifierName)
+                            .Where(name => !string.IsNullOrEmpty(name));
+                        
+                        if (modifierNames.Any())
+                        {
+                            productNameWithModifiers += " +" + string.Join(", ", modifierNames);
+                        }
+                    }
+                    
+                    // Calculate total price including modifiers
+                    decimal totalModifierPrice = product.Modifiers?.Sum(m => m.ExtraPrice) ?? 0m;
+                    decimal totalPrice = product.SellingPrice + totalModifierPrice;
+                    
                     allItems.Add(new TransactionItemModel
                     {
                         Quantity = product.Quantity.ToString("0.##"),
-                        ItemName = product.ProductName ?? "Unknown",
-                        Price = product.SellingPrice.ToString("C2")
+                        ItemName = productNameWithModifiers,
+                        Price = totalPrice.ToString("C2")
                     });
                 }
 
@@ -1502,15 +1755,38 @@ public partial class TransactionViewModel : ObservableObject
             RefundTransactions.Clear();
             foreach (var refund in refunds.OrderByDescending(r => r.CreatedAt).Take(20))
             {
+                // Get the original transaction to fetch modifiers
+                TransactionDto? originalTransaction = null;
+                try
+                {
+                    originalTransaction = await _transactionService.GetByIdAsync(refund.SellingTransactionId);
+                }
+                catch
+                {
+                    // If we can't get the original transaction, continue without modifiers
+                }
+
                 // Get all products
                 var allItems = new ObservableCollection<TransactionItemModel>();
                 foreach (var product in refund.RefundProducts)
                 {
+                    // Find the original transaction product to get modifiers
+                    var originalProduct = originalTransaction?.TransactionProducts
+                        .FirstOrDefault(tp => tp.Id == product.TransactionProductId);
+                    
+                    // Build modifier string
+                    string modifierString = string.Empty;
+                    if (originalProduct?.Modifiers != null && originalProduct.Modifiers.Any())
+                    {
+                        modifierString = string.Join(", ", originalProduct.Modifiers.Select(m => m.ModifierName));
+                    }
+
                     allItems.Add(new TransactionItemModel
                     {
                         Quantity = product.TotalQuantityReturned.ToString("0.##"),
                         ItemName = product.ProductName ?? "Unknown",
-                        Price = product.TotalAmount.ToString("C2")
+                        Price = product.TotalAmount.ToString("C2"),
+                        Modifiers = modifierString
                     });
                 }
 
@@ -1552,40 +1828,56 @@ public partial class TransactionViewModel : ObservableObject
             ExchangeTransactions.Clear();
             foreach (var exchange in exchanges.OrderByDescending(e => e.CreatedAt).Take(20))
             {
+                // Get the original transaction to fetch modifiers
+                TransactionDto? originalTransaction = null;
+                try
+                {
+                    originalTransaction = await _transactionService.GetByIdAsync(exchange.SellingTransactionId);
+                }
+                catch
+                {
+                    // If we can't get the original transaction, continue without modifiers
+                }
+
                 // Get returned items
                 var itemsReturned = new ObservableCollection<ExchangeCardItemModel>();
                 var itemsGiven = new ObservableCollection<ExchangeCardItemModel>();
                 
-                // Group returned items by product
-                var returnedGroups = exchange.ExchangeProducts
-                    .Where(p => p.OldProductName != null)
-                    .GroupBy(p => new { p.OldProductName, p.OldProductAmount })
-                    .Select(g => new ExchangeCardItemModel
-                    {
-                        Quantity = $"{g.Sum(x => x.ReturnedQuantity)}x",
-                        ItemName = g.Key.OldProductName ?? "",
-                        Price = g.Key.OldProductAmount.ToString("C2")
-                    });
-                
-                foreach (var item in returnedGroups)
+                // Process returned items - get modifiers from original transaction product
+                foreach (var exchangeProduct in exchange.ExchangeProducts.Where(p => p.OldProductName != null))
                 {
-                    itemsReturned.Add(item);
+                    // Find the original transaction product to get modifiers
+                    var originalProduct = originalTransaction?.TransactionProducts
+                        .FirstOrDefault(tp => tp.Id == exchangeProduct.OriginalTransactionProductId);
+                    
+                    // Build modifier string for returned item
+                    string modifierString = string.Empty;
+                    if (originalProduct?.Modifiers != null && originalProduct.Modifiers.Any())
+                    {
+                        modifierString = string.Join(", ", originalProduct.Modifiers.Select(m => m.ModifierName));
+                    }
+
+                    itemsReturned.Add(new ExchangeCardItemModel
+                    {
+                        Quantity = $"{exchangeProduct.ReturnedQuantity}x",
+                        ItemName = exchangeProduct.OldProductName ?? "",
+                        Price = exchangeProduct.OldProductAmount.ToString("C2"),
+                        Modifiers = modifierString
+                    });
                 }
                 
-                // Group given items by product
-                var givenGroups = exchange.ExchangeProducts
-                    .Where(p => p.NewProductName != null)
-                    .GroupBy(p => new { p.NewProductName, p.NewProductAmount })
-                    .Select(g => new ExchangeCardItemModel
-                    {
-                        Quantity = $"{g.Sum(x => x.NewQuantity)}x",
-                        ItemName = g.Key.NewProductName ?? "",
-                        Price = g.Key.NewProductAmount.ToString("C2")
-                    });
-                
-                foreach (var item in givenGroups)
+                // Process given items - these are new products, so check if they have modifiers
+                // Note: For new products in exchange, we need to check if the exchange transaction stores modifier info
+                // For now, we'll just display the product name without modifiers for new items
+                foreach (var exchangeProduct in exchange.ExchangeProducts.Where(p => p.NewProductName != null))
                 {
-                    itemsGiven.Add(item);
+                    itemsGiven.Add(new ExchangeCardItemModel
+                    {
+                        Quantity = $"{exchangeProduct.NewQuantity}x",
+                        ItemName = exchangeProduct.NewProductName ?? "",
+                        Price = exchangeProduct.NewProductAmount.ToString("C2"),
+                        Modifiers = string.Empty // New products don't have modifiers in exchange DTO
+                    });
                 }
 
                 var exchangeCard = new ExchangeCardModel
@@ -1840,9 +2132,9 @@ public partial class TransactionViewModel : ObservableObject
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         
-                        <!-- Subtotal -->
+                        <!-- Total -->
                         <Grid Grid.Row='5' Margin='0,4,0,0'>
-                            <TextBlock Text='Subtotal' FontSize='13' FontWeight='SemiBold' Foreground='#1F2937'/>
+                            <TextBlock Text='Total' FontSize='13' FontWeight='SemiBold' Foreground='#1F2937'/>
                             <TextBlock Text='{Binding Subtotal, StringFormat=${0:N2}}' FontSize='15' FontWeight='Bold' Foreground='#1F2937' HorizontalAlignment='Right'/>
                         </Grid>
                         
@@ -2098,16 +2390,39 @@ public partial class TransactionViewModel : ObservableObject
                                 <DataTemplate>
                                     <Border Background='#FEF2F2' BorderBrush='#FECACA' BorderThickness='1' CornerRadius='6' Padding='8,6' Margin='0,0,0,4'>
                                         <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width='Auto'/>
-                                                <ColumnDefinition Width='*'/>
-                                                <ColumnDefinition Width='Auto'/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column='0' FontSize='10' FontWeight='Bold' Foreground='#EF4444' Margin='0,0,6,0'>
-                                                <Run Text='{Binding Quantity}'/><Run Text='x'/>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height='Auto'/>
+                                                <RowDefinition Height='Auto'/>
+                                            </Grid.RowDefinitions>
+                                            
+                                            <!-- Product line -->
+                                            <Grid Grid.Row='0'>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width='Auto'/>
+                                                    <ColumnDefinition Width='*'/>
+                                                    <ColumnDefinition Width='Auto'/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column='0' FontSize='10' FontWeight='Bold' Foreground='#EF4444' Margin='0,0,6,0'>
+                                                    <Run Text='{Binding Quantity}'/><Run Text='x'/>
+                                                </TextBlock>
+                                                <TextBlock Grid.Column='1' Text='{Binding ItemName}' FontSize='10' Foreground='#374151' TextTrimming='CharacterEllipsis'/>
+                                                <TextBlock Grid.Column='2' Text='{Binding Price}' FontSize='10' FontWeight='SemiBold' Foreground='#1F2937'/>
+                                            </Grid>
+                                            
+                                            <!-- Modifiers line -->
+                                            <TextBlock Grid.Row='1' Text='{Binding Modifiers}' FontSize='9' Foreground='#9CA3AF' FontStyle='Italic' 
+                                                       Margin='20,2,0,0' TextTrimming='CharacterEllipsis'>
+                                                <TextBlock.Style>
+                                                    <Style TargetType='TextBlock'>
+                                                        <Setter Property='Visibility' Value='Collapsed'/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding='{Binding HasModifiers}' Value='True'>
+                                                                <Setter Property='Visibility' Value='Visible'/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
                                             </TextBlock>
-                                            <TextBlock Grid.Column='1' Text='{Binding ItemName}' FontSize='10' Foreground='#374151' TextTrimming='CharacterEllipsis'/>
-                                            <TextBlock Grid.Column='2' Text='{Binding Price}' FontSize='10' FontWeight='SemiBold' Foreground='#1F2937'/>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -2296,16 +2611,39 @@ public partial class TransactionViewModel : ObservableObject
                                 <DataTemplate>
                                     <Border Background='#FEF2F2' BorderBrush='#FECACA' BorderThickness='1' CornerRadius='6' Padding='8,6' Margin='0,0,0,4'>
                                         <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width='Auto'/>
-                                                <ColumnDefinition Width='*'/>
-                                                <ColumnDefinition Width='Auto'/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column='0' FontSize='10' FontWeight='Bold' Foreground='#EF4444' Margin='0,0,6,0'>
-                                                <Run Text='{Binding Quantity}'/>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height='Auto'/>
+                                                <RowDefinition Height='Auto'/>
+                                            </Grid.RowDefinitions>
+                                            
+                                            <!-- Product line -->
+                                            <Grid Grid.Row='0'>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width='Auto'/>
+                                                    <ColumnDefinition Width='*'/>
+                                                    <ColumnDefinition Width='Auto'/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column='0' FontSize='10' FontWeight='Bold' Foreground='#EF4444' Margin='0,0,6,0'>
+                                                    <Run Text='{Binding Quantity}'/>
+                                                </TextBlock>
+                                                <TextBlock Grid.Column='1' Text='{Binding ItemName}' FontSize='10' Foreground='#374151' TextTrimming='CharacterEllipsis'/>
+                                                <TextBlock Grid.Column='2' Text='{Binding Price}' FontSize='10' FontWeight='SemiBold' Foreground='#1F2937'/>
+                                            </Grid>
+                                            
+                                            <!-- Modifiers line -->
+                                            <TextBlock Grid.Row='1' Text='{Binding Modifiers}' FontSize='9' Foreground='#9CA3AF' FontStyle='Italic' 
+                                                       Margin='20,2,0,0' TextTrimming='CharacterEllipsis'>
+                                                <TextBlock.Style>
+                                                    <Style TargetType='TextBlock'>
+                                                        <Setter Property='Visibility' Value='Collapsed'/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding='{Binding HasModifiers}' Value='True'>
+                                                                <Setter Property='Visibility' Value='Visible'/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
                                             </TextBlock>
-                                            <TextBlock Grid.Column='1' Text='{Binding ItemName}' FontSize='10' Foreground='#374151' TextTrimming='CharacterEllipsis'/>
-                                            <TextBlock Grid.Column='2' Text='{Binding Price}' FontSize='10' FontWeight='SemiBold' Foreground='#1F2937'/>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -2326,16 +2664,39 @@ public partial class TransactionViewModel : ObservableObject
                                 <DataTemplate>
                                     <Border Background='#F0FDF4' BorderBrush='#BBF7D0' BorderThickness='1' CornerRadius='6' Padding='8,6' Margin='0,0,0,4'>
                                         <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width='Auto'/>
-                                                <ColumnDefinition Width='*'/>
-                                                <ColumnDefinition Width='Auto'/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column='0' FontSize='10' FontWeight='Bold' Foreground='#10B981' Margin='0,0,6,0'>
-                                                <Run Text='{Binding Quantity}'/>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height='Auto'/>
+                                                <RowDefinition Height='Auto'/>
+                                            </Grid.RowDefinitions>
+                                            
+                                            <!-- Product line -->
+                                            <Grid Grid.Row='0'>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width='Auto'/>
+                                                    <ColumnDefinition Width='*'/>
+                                                    <ColumnDefinition Width='Auto'/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column='0' FontSize='10' FontWeight='Bold' Foreground='#10B981' Margin='0,0,6,0'>
+                                                    <Run Text='{Binding Quantity}'/>
+                                                </TextBlock>
+                                                <TextBlock Grid.Column='1' Text='{Binding ItemName}' FontSize='10' Foreground='#374151' TextTrimming='CharacterEllipsis'/>
+                                                <TextBlock Grid.Column='2' Text='{Binding Price}' FontSize='10' FontWeight='SemiBold' Foreground='#1F2937'/>
+                                            </Grid>
+                                            
+                                            <!-- Modifiers line -->
+                                            <TextBlock Grid.Row='1' Text='{Binding Modifiers}' FontSize='9' Foreground='#9CA3AF' FontStyle='Italic' 
+                                                       Margin='20,2,0,0' TextTrimming='CharacterEllipsis'>
+                                                <TextBlock.Style>
+                                                    <Style TargetType='TextBlock'>
+                                                        <Setter Property='Visibility' Value='Collapsed'/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding='{Binding HasModifiers}' Value='True'>
+                                                                <Setter Property='Visibility' Value='Visible'/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
                                             </TextBlock>
-                                            <TextBlock Grid.Column='1' Text='{Binding ItemName}' FontSize='10' Foreground='#374151' TextTrimming='CharacterEllipsis'/>
-                                            <TextBlock Grid.Column='2' Text='{Binding Price}' FontSize='10' FontWeight='SemiBold' Foreground='#1F2937'/>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -2404,6 +2765,199 @@ public partial class TransactionViewModel : ObservableObject
         
         return (DataTemplate)System.Windows.Markup.XamlReader.Parse(xaml);
     }
+    
+    /// <summary>
+    /// Print professional bill
+    /// </summary>
+    private void PrintBill(TransactionDto transaction)
+    {
+        try
+        {
+            var printDialog = new System.Windows.Controls.PrintDialog();
+            
+            // Create print document
+            var document = new System.Windows.Documents.FlowDocument
+            {
+                PagePadding = new Thickness(50),
+                FontFamily = new FontFamily("Courier New"),
+                FontSize = 11
+            };
+
+            // Header
+            var headerPara = new System.Windows.Documents.Paragraph
+            {
+                TextAlignment = TextAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+            headerPara.Inlines.Add(new System.Windows.Documents.Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
+            headerPara.Inlines.Add(new System.Windows.Documents.Run("SALES RECEIPT\n") { FontSize = 16, FontWeight = FontWeights.Bold });
+            headerPara.Inlines.Add(new System.Windows.Documents.Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
+            document.Blocks.Add(headerPara);
+
+            // Bill Info
+            var infoPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 10, 0, 10) };
+            infoPara.Inlines.Add(new System.Windows.Documents.Run($"Invoice #: {transaction.InvoiceNumber ?? transaction.Id.ToString()}\n"));
+            infoPara.Inlines.Add(new System.Windows.Documents.Run($"Date: {transaction.SellingTime:dd-MM-yyyy}\n"));
+            infoPara.Inlines.Add(new System.Windows.Documents.Run($"Time: {transaction.SellingTime:HH:mm:ss}\n"));
+            
+            if (!string.IsNullOrEmpty(transaction.CustomerName))
+            {
+                infoPara.Inlines.Add(new System.Windows.Documents.Run($"Customer: {transaction.CustomerName}\n"));
+            }
+            else
+            {
+                infoPara.Inlines.Add(new System.Windows.Documents.Run("Customer: Walk-in\n"));
+            }
+            
+            if (!string.IsNullOrEmpty(transaction.TableNumber))
+            {
+                infoPara.Inlines.Add(new System.Windows.Documents.Run($"Table: {transaction.TableNumber}\n"));
+            }
+            
+            document.Blocks.Add(infoPara);
+
+            // Separator
+            var separatorPara1 = new System.Windows.Documents.Paragraph
+            {
+                Margin = new Thickness(0, 5, 0, 5),
+                TextAlignment = TextAlignment.Center
+            };
+            separatorPara1.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────") { FontWeight = FontWeights.Bold });
+            document.Blocks.Add(separatorPara1);
+
+            // Items Header
+            var itemsHeaderPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 5, 0, 5) };
+            itemsHeaderPara.Inlines.Add(new System.Windows.Documents.Run("ITEMS\n") { FontWeight = FontWeights.Bold });
+            itemsHeaderPara.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────\n"));
+            document.Blocks.Add(itemsHeaderPara);
+
+            // Items
+            foreach (var item in transaction.TransactionProducts)
+            {
+                var itemPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 2, 0, 2) };
+                
+                // Product name
+                itemPara.Inlines.Add(new System.Windows.Documents.Run($"{item.ProductName}\n"));
+                
+                // Modifiers if any
+                if (item.Modifiers != null && item.Modifiers.Any())
+                {
+                    var modifierText = "  + " + string.Join(", ", item.Modifiers.Select(m => m.ModifierName));
+                    itemPara.Inlines.Add(new System.Windows.Documents.Run($"{modifierText}\n") { FontStyle = FontStyles.Italic, Foreground = Brushes.Gray });
+                }
+                
+                // Quantity and price
+                var qtyPriceText = $"  {item.Quantity:0.##} x ${item.SellingPrice:N2}";
+                var totalText = $"${(item.Quantity * item.SellingPrice):N2}";
+                var spacing = new string(' ', Math.Max(0, 35 - qtyPriceText.Length - totalText.Length));
+                itemPara.Inlines.Add(new System.Windows.Documents.Run($"{qtyPriceText}{spacing}{totalText}\n"));
+                
+                document.Blocks.Add(itemPara);
+            }
+
+            // Separator
+            var separatorPara2 = new System.Windows.Documents.Paragraph
+            {
+                Margin = new Thickness(0, 5, 0, 5),
+                TextAlignment = TextAlignment.Center
+            };
+            separatorPara2.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────") { FontWeight = FontWeights.Bold });
+            document.Blocks.Add(separatorPara2);
+
+            // Totals
+            var totalsPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 5, 0, 10) };
+            
+            // Subtotal
+            var subtotalLine = $"Subtotal:";
+            var subtotalAmount = $"${transaction.TotalAmount:N2}";
+            var subtotalSpacing = new string(' ', Math.Max(0, 35 - subtotalLine.Length - subtotalAmount.Length));
+            totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{subtotalLine}{subtotalSpacing}{subtotalAmount}\n"));
+            
+            if (transaction.TotalDiscount > 0)
+            {
+                var discountLine = $"Discount:";
+                var discountAmount = $"-${transaction.TotalDiscount:N2}";
+                var discountSpacing = new string(' ', Math.Max(0, 35 - discountLine.Length - discountAmount.Length));
+                totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{discountLine}{discountSpacing}{discountAmount}\n"));
+            }
+            
+            if (transaction.Vat > 0)
+            {
+                var taxLine = $"Tax ({transaction.Vat}%):";
+                var taxAmount = $"${transaction.TotalVat:N2}";
+                var taxSpacing = new string(' ', Math.Max(0, 35 - taxLine.Length - taxAmount.Length));
+                totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{taxLine}{taxSpacing}{taxAmount}\n"));
+            }
+            
+            // Get customer balance if customer exists
+            decimal customerBalanceAmount = 0m;
+            if (transaction.CustomerId.HasValue)
+            {
+                try
+                {
+                    var customer = _customerService.GetByIdAsync(transaction.CustomerId.Value).Result;
+                    customerBalanceAmount = customer?.CustomerBalanceAmount ?? 0m;
+                }
+                catch
+                {
+                    // Ignore customer balance fetch errors
+                }
+            }
+            
+            // Show customer balance if applicable
+            if (customerBalanceAmount != 0)
+            {
+                string balanceLabel = customerBalanceAmount > 0 ? "Previous Pending:" : "Store Credit:";
+                var balanceLine = $"{balanceLabel}";
+                var balanceAmount = customerBalanceAmount > 0 ? $"${customerBalanceAmount:N2}" : $"-${Math.Abs(customerBalanceAmount):N2}";
+                var balanceSpacing = new string(' ', Math.Max(0, 35 - balanceLine.Length - balanceAmount.Length));
+                totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{balanceLine}{balanceSpacing}{balanceAmount}\n"));
+            }
+            
+            // Total line separator
+            totalsPara.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────\n") { FontWeight = FontWeights.Bold });
+            
+            // Calculate bill total (sale + customer balance)
+            decimal billTotal = transaction.TotalAmount + customerBalanceAmount;
+            
+            // Grand Total
+            var totalLine = $"TOTAL:";
+            var totalAmount = $"${billTotal:N2}";
+            var totalSpacing = new string(' ', Math.Max(0, 35 - totalLine.Length - totalAmount.Length));
+            totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{totalLine}{totalSpacing}{totalAmount}\n") { FontWeight = FontWeights.Bold, FontSize = 13 });
+            
+            // Show payment status for billed transactions
+            if (transaction.Status == "billed" && billTotal > 0)
+            {
+                totalsPara.Inlines.Add(new System.Windows.Documents.Run("\n"));
+                totalsPara.Inlines.Add(new System.Windows.Documents.Run("STATUS: PENDING PAYMENT\n") { FontWeight = FontWeights.Bold, Foreground = Brushes.Red });
+                totalsPara.Inlines.Add(new System.Windows.Documents.Run($"Amount Due: ${billTotal:N2}\n") { FontWeight = FontWeights.Bold });
+            }
+            
+            document.Blocks.Add(totalsPara);
+
+            // Footer
+            var footerPara = new System.Windows.Documents.Paragraph
+            {
+                TextAlignment = TextAlignment.Center,
+                Margin = new Thickness(0, 20, 0, 0)
+            };
+            footerPara.Inlines.Add(new System.Windows.Documents.Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
+            footerPara.Inlines.Add(new System.Windows.Documents.Run("Thank you for your business!\n"));
+            footerPara.Inlines.Add(new System.Windows.Documents.Run("Please come again\n"));
+            footerPara.Inlines.Add(new System.Windows.Documents.Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
+            document.Blocks.Add(footerPara);
+
+            // Print
+            var paginator = ((System.Windows.Documents.IDocumentPaginatorSource)document).DocumentPaginator;
+            printDialog.PrintDocument(paginator, "Sales Receipt");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"Error printing bill: {ex.Message}");
+            new MessageDialog("Print Error", $"Error printing bill: {ex.Message}\n\nThe transaction was saved successfully.", MessageDialog.MessageType.Warning).ShowDialog();
+        }
+    }
 }
 
 // Models
@@ -2448,6 +3002,8 @@ public class TransactionItemModel
     public string Quantity { get; set; } = string.Empty;
     public string ItemName { get; set; } = string.Empty;
     public string Price { get; set; } = string.Empty;
+    public string Modifiers { get; set; } = string.Empty;
+    public bool HasModifiers => !string.IsNullOrEmpty(Modifiers);
 }
 
 public class RefundCardModel
@@ -2492,4 +3048,6 @@ public class ExchangeCardItemModel
     public string Quantity { get; set; } = string.Empty;
     public string ItemName { get; set; } = string.Empty;
     public string Price { get; set; } = string.Empty;
+    public string Modifiers { get; set; } = string.Empty;
+    public bool HasModifiers => !string.IsNullOrEmpty(Modifiers);
 }

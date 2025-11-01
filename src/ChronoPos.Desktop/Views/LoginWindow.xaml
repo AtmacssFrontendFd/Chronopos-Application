@@ -487,11 +487,15 @@
                                     Padding="15"
                                     Margin="0,0,0,20"
                                     Visibility="Collapsed"
-                                    x:Name="ErrorBorder">
+                                    x:Name="ErrorBorder"
+                                    MinHeight="50">
                                 <TextBlock x:Name="ErrorTextBlock"
+                                           Text=""
                                            Foreground="#DC2626"
                                            FontSize="13"
-                                           TextWrapping="Wrap"/>
+                                           FontWeight="Medium"
+                                           TextWrapping="Wrap"
+                                           VerticalAlignment="Center"/>
                             </Border>
 
                             <!-- Login Button -->

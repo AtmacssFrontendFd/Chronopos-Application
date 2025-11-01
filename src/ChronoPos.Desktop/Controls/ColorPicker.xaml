@@ -25,7 +25,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="BorderBrush" Value="{DynamicResource TextSecondary}"/>
+                                <Setter Property="BorderBrush" Value="#6B7280"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -37,33 +37,33 @@
     <StackPanel>
         <TextBlock Text="{Binding ChooseColorLabel}" 
                    FontWeight="SemiBold" 
-                   FontFamily="{DynamicResource PoppinsFontFallback}"
-                   FontSize="{DynamicResource FontSizeSmall}"
-                   Foreground="{DynamicResource TextPrimary}"
+                   FontFamily="Segoe UI"
+                   FontSize="12"
+                   Foreground="#1F2937"
                    Margin="0,0,0,10"/>
         
         <!-- Current Color Display -->
         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
             <TextBlock Text="{Binding SelectedColorLabel}" 
                        VerticalAlignment="Center" 
-                       FontFamily="{DynamicResource PoppinsFontFallback}"
-                       FontSize="{DynamicResource FontSizeSmall}"
-                       Foreground="{DynamicResource TextSecondary}"
+                       FontFamily="Segoe UI"
+                       FontSize="12"
+                       Foreground="#6B7280"
                        Margin="0,0,10,0"/>
             <Border Width="30" Height="25" 
                     Background="{Binding SelectedColor}" 
-                    BorderBrush="{DynamicResource BorderLight}" 
+                    BorderBrush="#D1D5DB" 
                     BorderThickness="1" 
                     CornerRadius="4"
                     Margin="0,0,10,0"/>
             <TextBox Text="{Binding SelectedColor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                      Width="80" 
                      VerticalAlignment="Center"
-                     FontSize="{DynamicResource FontSizeVerySmall}"
-                     FontFamily="{DynamicResource PoppinsFontFallback}"
-                     Background="{DynamicResource SurfaceBackground}"
-                     Foreground="{DynamicResource TextSecondary}"
-                     BorderBrush="{DynamicResource BorderLight}"
+                     FontSize="11"
+                     FontFamily="Segoe UI"
+                     Background="#FFFFFF"
+                     Foreground="#6B7280"
+                     BorderBrush="#D1D5DB"
                      BorderThickness="1"
                      Padding="4"/>
         </StackPanel>

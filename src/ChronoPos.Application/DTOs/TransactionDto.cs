@@ -201,7 +201,7 @@ public class TransactionServiceChargeDto
 {
     public int Id { get; set; }
     public int TransactionId { get; set; }
-    public int ServiceChargeId { get; set; }
+    public int? ServiceChargeId { get; set; } // Nullable to support manual/custom service charges
     public decimal TotalAmount { get; set; }
     public decimal TotalVat { get; set; }
     public string Status { get; set; } = "Active";

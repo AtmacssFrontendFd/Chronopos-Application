@@ -892,11 +892,8 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
     {
         ProductUnitValidationErrors.Clear();
 
-        if (!ProductUnits.Any())
-        {
-            ProductUnitValidationErrors["ProductUnits"] = "At least one unit of measurement must be defined";
-        }
-        else
+        // ProductUnits are now optional - only validate if there are any
+        if (ProductUnits.Any())
         {
             // Validate that exactly one base unit exists
             var baseUnits = ProductUnits.Where(pu => pu.IsBase).ToList();

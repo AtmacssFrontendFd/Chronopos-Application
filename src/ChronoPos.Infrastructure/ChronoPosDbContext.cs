@@ -1449,7 +1449,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
 
             // Foreign key relationships
             entity.HasOne(d => d.Customer)
-                  .WithMany()
+                  .WithMany(c => c.CustomerDiscounts)
                   .HasForeignKey(d => d.CustomerId)
                   .OnDelete(DeleteBehavior.Cascade);
 
@@ -3354,7 +3354,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.TransactionId).IsRequired();
-            entity.Property(e => e.ServiceChargeId).IsRequired();
+            entity.Property(e => e.ServiceChargeId).IsRequired(false); // Nullable to support manual/custom service charges
             entity.Property(e => e.TotalAmount).HasPrecision(12, 2);
             entity.Property(e => e.TotalVat).HasPrecision(12, 2);
             entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
@@ -3369,7 +3369,8 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasOne(tsc => tsc.ServiceCharge)
                   .WithMany(sc => sc.TransactionServiceCharges)
                   .HasForeignKey(tsc => tsc.ServiceChargeId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .OnDelete(DeleteBehavior.Restrict)
+                  .IsRequired(false); // Allow null ServiceChargeId for manual charges
 
             // Indexes
             entity.HasIndex(e => e.TransactionId);
