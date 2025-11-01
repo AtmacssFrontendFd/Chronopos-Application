@@ -63,17 +63,19 @@ public interface IActiveCurrencyService
     string FormatPrice(decimal amount, string format, bool includeSymbol = true);
     
     /// <summary>
-    /// Convert amount from base currency (AED) to active currency
+    /// Returns the same amount without conversion - only currency symbol changes
+    /// Note: Currency conversion is disabled - only symbol display changes
     /// </summary>
-    /// <param name="amountInBaseCurrency">Amount in AED (base currency)</param>
-    /// <returns>Amount in active currency</returns>
+    /// <param name="amountInBaseCurrency">Amount to display</param>
+    /// <returns>Same amount (no conversion applied)</returns>
     decimal ConvertFromBaseCurrency(decimal amountInBaseCurrency);
     
     /// <summary>
-    /// Convert amount from active currency to base currency (AED)
+    /// Returns the same amount without conversion - only currency symbol changes
+    /// Note: Currency conversion is disabled - only symbol display changes
     /// </summary>
-    /// <param name="amountInActiveCurrency">Amount in active currency</param>
-    /// <returns>Amount in AED (base currency)</returns>
+    /// <param name="amountInActiveCurrency">Amount to store</param>
+    /// <returns>Same amount (no conversion applied)</returns>
     decimal ConvertToBaseCurrency(decimal amountInActiveCurrency);
     
     /// <summary>

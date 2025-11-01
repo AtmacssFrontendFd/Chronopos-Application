@@ -16,6 +16,10 @@
             <!-- Null to Visibility Converter -->
             <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
             
+            <!-- Currency Converters -->
+            <converters:CurrencyPriceConverter x:Key="CurrencyPriceConverter"/>
+            <converters:NegativeCurrencyPriceConverter x:Key="NegativeCurrencyPriceConverter"/>
+            
             <!-- Add converters for Product Batches -->
             <converters:DaysToExpiryConverter x:Key="DaysToExpiryConverter"/>
             <converters:BatchStatusToColorConverter x:Key="BatchStatusToColorConverter"/>

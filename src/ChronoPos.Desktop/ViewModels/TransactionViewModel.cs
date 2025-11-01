@@ -15,6 +15,7 @@ using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Logging;
 using ChronoPos.Desktop.Views.Dialogs;
+using ChronoPos.Desktop.Services;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -27,6 +28,7 @@ public partial class TransactionViewModel : ObservableObject
     private readonly IReservationService _reservationService;
     private readonly ICustomerService _customerService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IActiveCurrencyService _activeCurrencyService;
     private readonly Action<int>? _navigateToEditTransaction;
     private readonly Action<int>? _navigateToPayBill;
     private readonly Action<int>? _navigateToRefundTransaction;
@@ -64,6 +66,7 @@ public partial class TransactionViewModel : ObservableObject
         IReservationService reservationService,
         ICustomerService customerService,
         ICurrentUserService currentUserService,
+        IActiveCurrencyService activeCurrencyService,
         Action<int>? navigateToEditTransaction = null,
         Action<int>? navigateToPayBill = null,
         Action<int>? navigateToRefundTransaction = null,
@@ -77,6 +80,7 @@ public partial class TransactionViewModel : ObservableObject
         _reservationService = reservationService;
         _customerService = customerService;
         _currentUserService = currentUserService;
+        _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
         _navigateToEditTransaction = navigateToEditTransaction;
         _navigateToPayBill = navigateToPayBill;
         _navigateToRefundTransaction = navigateToRefundTransaction;
@@ -159,7 +163,7 @@ public partial class TransactionViewModel : ObservableObject
                 }
                 else
                 {
-                    MessageBox.Show($"Opening Transaction #{transactionId}\n\nTransaction details:\n- Customer: {transaction.CustomerName}\n- Table: {transaction.TableNumber}\n- Total: ${transaction.TotalAmount:N2}\n\nNavigation callback not configured.", 
+                    MessageBox.Show($"Opening Transaction #{transactionId}\n\nTransaction details:\n- Customer: {transaction.CustomerName}\n- Table: {transaction.TableNumber}\n- Total: {_activeCurrencyService.FormatPrice(transaction.TotalAmount)}\n\nNavigation callback not configured.", 
                         "Open Transaction", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
@@ -185,7 +189,7 @@ public partial class TransactionViewModel : ObservableObject
                 }
                 else
                 {
-                    MessageBox.Show($"Edit Transaction #{transactionId}\n\nTransaction details:\n- Customer: {transaction.CustomerName}\n- Table: {transaction.TableNumber}\n- Total: ${transaction.TotalAmount:N2}\n\nNavigation callback not configured.", 
+                    MessageBox.Show($"Edit Transaction #{transactionId}\n\nTransaction details:\n- Customer: {transaction.CustomerName}\n- Table: {transaction.TableNumber}\n- Total: {_activeCurrencyService.FormatPrice(transaction.TotalAmount)}\n\nNavigation callback not configured.", 
                         "Edit Transaction", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
@@ -242,7 +246,7 @@ public partial class TransactionViewModel : ObservableObject
                 }
                 else
                 {
-                    MessageBox.Show($"Pay Bill for Transaction #{transactionId}\n\nTransaction details:\n- Customer: {transaction.CustomerName}\n- Table: {transaction.TableNumber}\n- Total Amount: ${transaction.TotalAmount:N2}\n- Status: {transaction.Status}\n\nNavigation callback not configured.", 
+                    MessageBox.Show($"Pay Bill for Transaction #{transactionId}\n\nTransaction details:\n- Customer: {transaction.CustomerName}\n- Table: {transaction.TableNumber}\n- Total Amount: {_activeCurrencyService.FormatPrice(transaction.TotalAmount)}\n- Status: {transaction.Status}\n\nNavigation callback not configured.", 
                         "Pay Bill", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
@@ -872,8 +876,8 @@ public partial class TransactionViewModel : ObservableObject
                     var statusMessage = transactionStatus switch
                     {
                         "settled" => "Transaction settled successfully (Full Payment)!",
-                        "partial_payment" => $"Transaction saved with Partial Payment!\nCredit Remaining: ${creditRemaining:N2}",
-                        "pending_payment" => $"Transaction saved as Pending Payment!\nTotal Credit: ${creditRemaining:N2}",
+                        "partial_payment" => $"Transaction saved with Partial Payment!\nCredit Remaining: {_activeCurrencyService.FormatPrice(creditRemaining)}",
+                        "pending_payment" => $"Transaction saved as Pending Payment!\nTotal Credit: {_activeCurrencyService.FormatPrice(creditRemaining)}",
                         _ => "Transaction updated!"
                     };
 
@@ -1094,7 +1098,7 @@ public partial class TransactionViewModel : ObservableObject
             totalGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             totalGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             totalGrid.Children.Add(new TextBlock { Text = "Total Refund Amount", FontSize = 16, FontWeight = FontWeights.Bold });
-            var totalAmount = new TextBlock { Text = $"{refund.TotalAmount:C2}", FontSize = 20, FontWeight = FontWeights.Bold, Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444")) };
+            var totalAmount = new TextBlock { Text = _activeCurrencyService.FormatPrice(refund.TotalAmount), FontSize = 20, FontWeight = FontWeights.Bold, Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444")) };
             Grid.SetColumn(totalAmount, 1);
             totalGrid.Children.Add(totalAmount);
             totalsStack.Children.Add(totalGrid);
@@ -1213,8 +1217,8 @@ public partial class TransactionViewModel : ObservableObject
                 itemPara.Inlines.Add(new Run($"{product.ProductName ?? "Unknown"}\n"));
                 
                 // Quantity and price
-                var qtyPriceText = $"  {product.TotalQuantityReturned:0.##} x ${(product.TotalAmount / product.TotalQuantityReturned):N2}";
-                var totalText = $"${product.TotalAmount:N2}";
+                var qtyPriceText = $"  {product.TotalQuantityReturned:0.##} x {_activeCurrencyService.FormatPrice(product.TotalAmount / product.TotalQuantityReturned)}";
+                var totalText = _activeCurrencyService.FormatPrice(product.TotalAmount);
                 var spacing = new string(' ', Math.Max(0, 35 - qtyPriceText.Length - totalText.Length));
                 itemPara.Inlines.Add(new Run($"{qtyPriceText}{spacing}{totalText}\n"));
                 
@@ -1236,7 +1240,7 @@ public partial class TransactionViewModel : ObservableObject
             
             // Subtotal
             var subtotalLine = $"Subtotal:";
-            var subtotalAmount = $"${subtotal:N2}";
+            var subtotalAmount = _activeCurrencyService.FormatPrice(subtotal);
             var subtotalSpacing = new string(' ', Math.Max(0, 35 - subtotalLine.Length - subtotalAmount.Length));
             totalsPara.Inlines.Add(new Run($"{subtotalLine}{subtotalSpacing}{subtotalAmount}\n"));
 
@@ -1244,7 +1248,7 @@ public partial class TransactionViewModel : ObservableObject
             if (refund.TotalVat > 0)
             {
                 var vatLine = $"VAT:";
-                var vatAmount = $"${refund.TotalVat:N2}";
+                var vatAmount = _activeCurrencyService.FormatPrice(refund.TotalVat);
                 var vatSpacing = new string(' ', Math.Max(0, 35 - vatLine.Length - vatAmount.Length));
                 totalsPara.Inlines.Add(new Run($"{vatLine}{vatSpacing}{vatAmount}\n"));
             }
@@ -1252,7 +1256,7 @@ public partial class TransactionViewModel : ObservableObject
             // Total
             totalsPara.Inlines.Add(new Run("───────────────────────────────────\n") { FontWeight = FontWeights.Bold });
             var totalLine = $"TOTAL REFUND:";
-            var totalAmount = $"${refund.TotalAmount:N2}";
+            var totalAmount = _activeCurrencyService.FormatPrice(refund.TotalAmount);
             var totalSpacing = new string(' ', Math.Max(0, 35 - totalLine.Length - totalAmount.Length));
             totalsPara.Inlines.Add(new Run($"{totalLine}{totalSpacing}{totalAmount}\n") { FontWeight = FontWeights.Bold, FontSize = 13 });
             
@@ -1597,7 +1601,7 @@ public partial class TransactionViewModel : ObservableObject
                 var productPara = new Paragraph { Margin = new Thickness(0, 2, 0, 2) };
                 productPara.Inlines.Add(new Run($"{product.OldProductName}\n"));
                 productPara.Inlines.Add(new Run($"  Qty: {product.ReturnedQuantity:0.##}"));
-                productPara.Inlines.Add(new Run($"${product.OldProductAmount:N2}".PadLeft(35 - $"  Qty: {product.ReturnedQuantity:0.##}".Length)) { FontWeight = FontWeights.Bold });
+                productPara.Inlines.Add(new Run(_activeCurrencyService.FormatPrice(product.OldProductAmount).PadLeft(35 - $"  Qty: {product.ReturnedQuantity:0.##}".Length)) { FontWeight = FontWeights.Bold });
                 document.Blocks.Add(productPara);
             }
 
@@ -1620,7 +1624,7 @@ public partial class TransactionViewModel : ObservableObject
                 var productPara = new Paragraph { Margin = new Thickness(0, 2, 0, 2) };
                 productPara.Inlines.Add(new Run($"{product.NewProductName}\n"));
                 productPara.Inlines.Add(new Run($"  Qty: {product.NewQuantity:0.##}"));
-                productPara.Inlines.Add(new Run($"${product.NewProductAmount:N2}".PadLeft(35 - $"  Qty: {product.NewQuantity:0.##}".Length)) { FontWeight = FontWeights.Bold });
+                productPara.Inlines.Add(new Run(_activeCurrencyService.FormatPrice(product.NewProductAmount).PadLeft(35 - $"  Qty: {product.NewQuantity:0.##}".Length)) { FontWeight = FontWeights.Bold });
                 document.Blocks.Add(productPara);
             }
 
@@ -1636,7 +1640,7 @@ public partial class TransactionViewModel : ObservableObject
             // Total difference
             var totalPara = new Paragraph { Margin = new Thickness(0, 5, 0, 5) };
             totalPara.Inlines.Add(new Run("PRICE DIFFERENCE:"));
-            totalPara.Inlines.Add(new Run($"${Math.Abs(exchange.TotalExchangedAmount):N2}".PadLeft(18)) { FontWeight = FontWeights.Bold, FontSize = 13 });
+            totalPara.Inlines.Add(new Run(_activeCurrencyService.FormatPrice(Math.Abs(exchange.TotalExchangedAmount)).PadLeft(18)) { FontWeight = FontWeights.Bold, FontSize = 13 });
             totalPara.Inlines.Add(new Run($"\n({(exchange.TotalExchangedAmount > 0 ? "Customer pays" : exchange.TotalExchangedAmount < 0 ? "Customer refund" : "Even exchange")})") { FontSize = 9 });
             document.Blocks.Add(totalPara);
 
@@ -1729,6 +1733,8 @@ public partial class TransactionViewModel : ObservableObject
                     ReservationInfo = transaction.ReservationId.HasValue ? $"Reservation #{transaction.ReservationId}" : string.Empty,
                     CreatedAt = transaction.CreatedAt
                 };
+                
+                cardModel.SetCurrencyService(_activeCurrencyService);
 
                 // Calculate timer display for active transactions
                 var statusLower = transaction.Status.ToLower();
@@ -1845,6 +1851,18 @@ public partial class TransactionViewModel : ObservableObject
                 
                 // Process returned items - get modifiers from original transaction product
                 foreach (var exchangeProduct in exchange.ExchangeProducts.Where(p => p.OldProductName != null))
+                // Group returned items by product
+                var returnedGroups = exchange.ExchangeProducts
+                    .Where(p => p.OldProductName != null)
+                    .GroupBy(p => new { p.OldProductName, p.OldProductAmount })
+                    .Select(g => new ExchangeCardItemModel
+                    {
+                        Quantity = $"{g.Sum(x => x.ReturnedQuantity)}x",
+                        ItemName = g.Key.OldProductName ?? "",
+                        Price = _activeCurrencyService.FormatPrice(g.Key.OldProductAmount)
+                    });
+                
+                foreach (var item in returnedGroups)
                 {
                     // Find the original transaction product to get modifiers
                     var originalProduct = originalTransaction?.TransactionProducts
@@ -2134,8 +2152,8 @@ public partial class TransactionViewModel : ObservableObject
                         
                         <!-- Total -->
                         <Grid Grid.Row='5' Margin='0,4,0,0'>
-                            <TextBlock Text='Total' FontSize='13' FontWeight='SemiBold' Foreground='#1F2937'/>
-                            <TextBlock Text='{Binding Subtotal, StringFormat=${0:N2}}' FontSize='15' FontWeight='Bold' Foreground='#1F2937' HorizontalAlignment='Right'/>
+                            <TextBlock Text='Subtotal' FontSize='13' FontWeight='SemiBold' Foreground='#1F2937'/>
+                            <TextBlock Text='{Binding Subtotal, Converter={StaticResource CurrencyPriceConverter}}' FontSize='15' FontWeight='Bold' Foreground='#1F2937' HorizontalAlignment='Right'/>
                         </Grid>
                         
                         <!-- Action Buttons - Status Based -->
@@ -2432,7 +2450,7 @@ public partial class TransactionViewModel : ObservableObject
                         <!-- Refund Amount -->
                         <Grid Grid.Row='5' Margin='0,4,0,0'>
                             <TextBlock Text='Refund Amount' FontSize='13' FontWeight='SemiBold' Foreground='#1F2937'/>
-                            <TextBlock Text='{Binding RefundAmount, StringFormat=${0:N2}}' FontSize='15' FontWeight='Bold' Foreground='#EF4444' HorizontalAlignment='Right'/>
+                            <TextBlock Text='{Binding RefundAmount, Converter={StaticResource CurrencyPriceConverter}}' FontSize='15' FontWeight='Bold' Foreground='#EF4444' HorizontalAlignment='Right'/>
                         </Grid>
                         
                         <!-- Action Buttons -->
@@ -2706,7 +2724,7 @@ public partial class TransactionViewModel : ObservableObject
                         <!-- Difference -->
                         <Grid Grid.Row='8' Margin='0,4,0,0'>
                             <TextBlock Text='Price Difference' FontSize='13' FontWeight='SemiBold' Foreground='#1F2937'/>
-                            <TextBlock Text='{Binding Difference, StringFormat=${0:N2}}' FontSize='15' FontWeight='Bold' Foreground='#3B82F6' HorizontalAlignment='Right'/>
+                            <TextBlock Text='{Binding Difference, Converter={StaticResource CurrencyPriceConverter}}' FontSize='15' FontWeight='Bold' Foreground='#3B82F6' HorizontalAlignment='Right'/>
                         </Grid>
                         
                         <!-- Action Buttons -->
@@ -2963,6 +2981,8 @@ public partial class TransactionViewModel : ObservableObject
 // Models
 public partial class TransactionCardModel : ObservableObject
 {
+    private IActiveCurrencyService? _currencyService;
+    
     public string OrderNumber { get; set; } = string.Empty;
     public string CustomerName { get; set; } = string.Empty;
     public string Date { get; set; } = string.Empty;
@@ -2981,8 +3001,15 @@ public partial class TransactionCardModel : ObservableObject
     
     // Payment info for partial/pending payments
     public decimal AmountCreditRemaining { get; set; }
-    public string CreditRemainingDisplay => AmountCreditRemaining > 0 ? $"Remaining: ${AmountCreditRemaining:N2}" : string.Empty;
+    public string CreditRemainingDisplay => AmountCreditRemaining > 0 && _currencyService != null 
+        ? $"Remaining: {_currencyService.FormatPrice(AmountCreditRemaining)}" 
+        : string.Empty;
     public bool ShowCreditRemaining => StatusLower == "partial_payment" || StatusLower == "pending_payment";
+    
+    public void SetCurrencyService(IActiveCurrencyService service)
+    {
+        _currencyService = service;
+    }
     
     // Timer properties for active transactions
     public DateTime CreatedAt { get; set; }

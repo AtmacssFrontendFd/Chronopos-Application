@@ -8,6 +8,7 @@ using System.Windows.Media;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Desktop.Views.Dialogs;
+using ChronoPos.Desktop.Services;
 using ChronoPos.Domain.Entities;
 using ChronoPos.Domain.Interfaces;
 using System.Linq;
@@ -39,6 +40,7 @@ public partial class AddSalesViewModel : ObservableObject
     private readonly ITransactionServiceChargeRepository _transactionServiceChargeRepository;
     private readonly ITransactionModifierRepository _transactionModifierRepository;
     private readonly IProductBarcodeRepository _productBarcodeRepository;
+    private readonly IActiveCurrencyService _activeCurrencyService;
     private readonly Action? _navigateToTransactionList;
     private readonly Action<int>? _navigateToRefundTransaction;
     private readonly Action<int>? _navigateToExchangeTransaction;
@@ -176,6 +178,11 @@ public partial class AddSalesViewModel : ObservableObject
     [ObservableProperty]
     private Brush scannerStatusColor = Brushes.Green;
 
+    /// <summary>
+    /// Gets the active currency symbol for display in UI
+    /// </summary>
+    public string CurrencySymbol => _activeCurrencyService?.CurrencySymbol ?? "$";
+
     #endregion
 
     public AddSalesViewModel(
@@ -198,6 +205,8 @@ public partial class AddSalesViewModel : ObservableObject
         Action? navigateToTransactionList = null,
         Action<int>? navigateToRefundTransaction = null,
         Action<int>? navigateToExchangeTransaction = null)
+        IActiveCurrencyService activeCurrencyService,
+        Action? navigateToTransactionList = null)
     {
         _serviceProvider = serviceProvider;
         _productService = productService;
@@ -215,6 +224,7 @@ public partial class AddSalesViewModel : ObservableObject
         _transactionServiceChargeRepository = transactionServiceChargeRepository;
         _transactionModifierRepository = transactionModifierRepository;
         _productBarcodeRepository = productBarcodeRepository;
+        _activeCurrencyService = activeCurrencyService;
         _navigateToTransactionList = navigateToTransactionList;
         _navigateToRefundTransaction = navigateToRefundTransaction;
         _navigateToExchangeTransaction = navigateToExchangeTransaction;
@@ -1716,7 +1726,7 @@ public partial class AddSalesViewModel : ObservableObject
 
         var displayText = discount.DiscountType == Domain.Enums.DiscountType.Percentage 
             ? $"{discount.DiscountName} - {discount.DiscountValue}%"
-            : $"{discount.DiscountName} - ${discount.DiscountValue:F2}";
+            : $"{discount.DiscountName} - {_activeCurrencyService.FormatPrice(discount.DiscountValue)}";
 
         chipPanel.Children.Add(new TextBlock
         {
@@ -2518,7 +2528,7 @@ public partial class AddSalesViewModel : ObservableObject
             // Update button visibility based on loaded transaction status
             UpdateButtonVisibility();
 
-            new MessageDialog("Ready for Payment", $"Transaction #{transactionId} loaded for payment.\n\nTotal Amount: ${transaction.TotalAmount:N2}\n\nPlease proceed to the payment section to complete the transaction.", MessageDialog.MessageType.Info).ShowDialog();
+            new MessageDialog("Ready for Payment", $"Transaction #{transactionId} loaded for payment.\n\nTotal Amount: {_activeCurrencyService.FormatPrice(transaction.TotalAmount)}\n\nPlease proceed to the payment section to complete the transaction.", MessageDialog.MessageType.Info).ShowDialog();
 
             // TODO: Auto-focus payment section when implemented
         }
@@ -3100,6 +3110,13 @@ public partial class AddSalesViewModel : ObservableObject
                                         : $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
                                             $"Bill Total: ${billTotal:N2}";
                         }
+                Text = alreadyPaid > 0 
+                    ? $"Remaining Amount: {_activeCurrencyService.FormatPrice(remainingAmount)}\n(Already Paid: {_activeCurrencyService.FormatPrice(alreadyPaid)} | Total: {_activeCurrencyService.FormatPrice(totalAmount)})"
+                    : $"Total Amount: {_activeCurrencyService.FormatPrice(totalAmount)}",
+                FontSize = 18,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937"))
+            };
             Grid.SetRow(totalLabel, 0);
             grid.Children.Add(totalLabel);
 
@@ -3359,12 +3376,12 @@ public partial class AddSalesViewModel : ObservableObject
                         var statusMessage = transactionStatus switch
                         {
                             "settled" => "Transaction settled successfully (Full Payment)!",
-                            "partial_payment" => $"Transaction saved with Partial Payment!\nCredit Remaining: ${creditRemaining:N2}",
-                            "pending_payment" => $"Transaction saved as Pending Payment!\nTotal Credit: ${creditRemaining:N2}",
+                            "partial_payment" => $"Transaction saved with Partial Payment!\nCredit Remaining: {_activeCurrencyService.FormatPrice(creditRemaining)}",
+                            "pending_payment" => $"Transaction saved as Pending Payment!\nTotal Credit: {_activeCurrencyService.FormatPrice(creditRemaining)}",
                             _ => "Transaction updated!"
                         };
                         
-                        MessageBox.Show($"{statusMessage}\n\nPayment Method: {selectedPaymentType.Name}\nAmount Paid Now: ${paidAmount:N2}\nTotal Paid: ${totalPaidNow:N2}" +
+                        MessageBox.Show($"{statusMessage}\n\nPayment Method: {selectedPaymentType.Name}\nAmount Paid Now: {_activeCurrencyService.FormatPrice(paidAmount)}\nTotal Paid: {_activeCurrencyService.FormatPrice(totalPaidNow)}" +
                             (creditDays > 0 ? $"\nCredit Days: {creditDays}" : ""), 
                             "Payment Complete", MessageBoxButton.OK, MessageBoxImage.Information);
                         
@@ -3450,15 +3467,15 @@ public partial class AddSalesViewModel : ObservableObject
                         var statusMessage = transactionStatus switch
                         {
                             "settled" => "Transaction settled successfully (Full Payment)!",
-                            "partial_payment" => $"Transaction saved with Partial Payment!\nCredit Remaining: ${creditRemaining:N2}",
-                            "pending_payment" => $"Transaction saved as Pending Payment!\nTotal Credit: ${creditRemaining:N2}",
+                            "partial_payment" => $"Transaction saved with Partial Payment!\nCredit Remaining: {_activeCurrencyService.FormatPrice(creditRemaining)}",
+                            "pending_payment" => $"Transaction saved as Pending Payment!\nTotal Credit: {_activeCurrencyService.FormatPrice(creditRemaining)}",
                             _ => "Transaction saved!"
                         };
                         
-                        MessageBox.Show($"{statusMessage}\nTransaction ID: #{savedTransaction.Id}\n\nPayment Method: {selectedPaymentType.Name}\nAmount Paid: ${paidAmount:N2}" +
+                        MessageBox.Show($"{statusMessage}\nTransaction ID: #{savedTransaction.Id}\n\nPayment Method: {selectedPaymentType.Name}\nAmount Paid: {_activeCurrencyService.FormatPrice(paidAmount)}" +
                             (creditDays > 0 ? $"\nCredit Days: {creditDays}" : ""), 
                             "Payment Complete", MessageBoxButton.OK, MessageBoxImage.Information);
-                        new MessageDialog("Payment Complete", $"Transaction #{savedTransaction.Id} settled successfully!\n\nPayment Method: {paymentMethodComboBox.SelectedItem}\nAmount Paid: ${paidAmount:N2}", MessageDialog.MessageType.Success).ShowDialog();
+                        new MessageDialog("Payment Complete", $"Transaction #{savedTransaction.Id} settled successfully!\n\nPayment Method: {paymentMethodComboBox.SelectedItem}\nAmount Paid: {_activeCurrencyService.FormatPrice(paidAmount)}", MessageDialog.MessageType.Success).ShowDialog();
                         
                         // Clear cart after settlement if fully paid
                         if (transactionStatus == "settled")
@@ -3887,8 +3904,8 @@ public partial class AddSalesViewModel : ObservableObject
                 itemPara.Inlines.Add(new System.Windows.Documents.Run($"{item.ProductName}\n"));
                 
                 // Quantity and price
-                var qtyPriceText = $"  {item.Quantity:0.##} x ${item.UnitPrice:N2}";
-                var totalText = $"${item.TotalPrice:N2}";
+                var qtyPriceText = $"  {item.Quantity:0.##} x {_activeCurrencyService.FormatPrice(item.UnitPrice)}";
+                var totalText = _activeCurrencyService.FormatPrice(item.TotalPrice);
                 var spacing = new string(' ', Math.Max(0, 35 - qtyPriceText.Length - totalText.Length));
                 itemPara.Inlines.Add(new System.Windows.Documents.Run($"{qtyPriceText}{spacing}{totalText}\n"));
                 
@@ -3909,14 +3926,14 @@ public partial class AddSalesViewModel : ObservableObject
             
             // Subtotal
             var subtotalLine = $"Subtotal:";
-            var subtotalAmount = $"${Subtotal:N2}";
+            var subtotalAmount = _activeCurrencyService.FormatPrice(Subtotal);
             var subtotalSpacing = new string(' ', Math.Max(0, 35 - subtotalLine.Length - subtotalAmount.Length));
             totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{subtotalLine}{subtotalSpacing}{subtotalAmount}\n"));
             
             if (DiscountAmount > 0)
             {
                 var discountLine = $"Discount:";
-                var discountAmount = $"-${DiscountAmount:N2}";
+                var discountAmount = $"-{_activeCurrencyService.FormatPrice(DiscountAmount)}";
                 var discountSpacing = new string(' ', Math.Max(0, 35 - discountLine.Length - discountAmount.Length));
                 totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{discountLine}{discountSpacing}{discountAmount}\n"));
             }
@@ -3924,7 +3941,7 @@ public partial class AddSalesViewModel : ObservableObject
             if (TaxPercentage > 0)
             {
                 var taxLine = $"Tax ({TaxPercentage}%):";
-                var taxAmount = $"${TaxAmount:N2}";
+                var taxAmount = _activeCurrencyService.FormatPrice(TaxAmount);
                 var taxSpacing = new string(' ', Math.Max(0, 35 - taxLine.Length - taxAmount.Length));
                 totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{taxLine}{taxSpacing}{taxAmount}\n"));
             }

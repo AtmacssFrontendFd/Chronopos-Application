@@ -627,16 +627,13 @@ public partial class AddProductViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// Exchange rate information for display
+    /// Note: Currency conversion disabled - shows active currency only
     /// </summary>
     public string ExchangeRateInfo
     {
         get
         {
-            if (_activeCurrencyService.CurrencyCode == "AED")
-            {
-                return "Base Currency";
-            }
-            return $"1 AED = {_activeCurrencyService.ExchangeRate:N4} {_activeCurrencyService.CurrencyCode}";
+            return $"Active Currency: {_activeCurrencyService.CurrencyName} ({_activeCurrencyService.CurrencySymbol})";
         }
     }
 

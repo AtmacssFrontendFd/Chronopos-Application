@@ -175,6 +175,14 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IDiscountRepository, DiscountRepository>();
                     LogMessage("DiscountRepository registered as Transient");
                     
+                    // Register Category repository
+                    services.AddTransient<ICategoryRepository, CategoryRepository>();
+                    LogMessage("CategoryRepository registered as Transient");
+                    
+                    // Register generic Customer repository for dashboard
+                    services.AddTransient<IRepository<ChronoPos.Domain.Entities.Customer>, Repository<ChronoPos.Domain.Entities.Customer>>();
+                    LogMessage("Customer Repository registered as Transient");
+                    
                     // Register CustomerGroupRelation repository
                     services.AddTransient<ICustomerGroupRelationRepository, CustomerGroupRelationRepository>();
                     LogMessage("CustomerGroupRelationRepository registered as Transient");
@@ -466,6 +474,10 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IExchangeService, ExchangeService>();
                     LogMessage("ExchangeService registered as Transient");
                     
+                    // Register Dashboard service
+                    services.AddTransient<IDashboardService, DashboardService>();
+                    LogMessage("DashboardService registered as Transient");
+                    
                     // Register theme service
                     services.AddSingleton<IThemeService, ThemeService>();
                     LogMessage("ThemeService registered");
@@ -537,6 +549,8 @@ public partial class App : System.Windows.Application
                     LogMessage("AddProductViewModel registered as Transient");
                     services.AddTransient<SalesViewModel>();
                     LogMessage("SalesViewModel registered as Transient");
+                    services.AddTransient<DashboardViewModel>();
+                    LogMessage("DashboardViewModel registered as Transient");
                     services.AddTransient<AddSalesViewModel>();
                     LogMessage("AddSalesViewModel registered as Transient");
                     services.AddTransient<CustomersViewModel>();
@@ -812,9 +826,10 @@ public partial class App : System.Windows.Application
                 LogMessage("  - Active currency service initialized with fallback currency ⚠");
             }
             
-            // Initialize the currency converter
+            // Initialize the currency converters
             ChronoPos.Desktop.Converters.CurrencyPriceConverter.Initialize(_host.Services);
-            LogMessage("  - Currency price converter initialized ✓");
+            ChronoPos.Desktop.Converters.NegativeCurrencyPriceConverter.Initialize(_host.Services);
+            LogMessage("  - Currency price converters initialized ✓");
         }
         catch (Exception ex)
         {

@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.Views.Dialogs;
 using System;
 using System.Collections.ObjectModel;
@@ -22,6 +23,7 @@ public partial class ExchangeSalesViewModel : ObservableObject
     private readonly IExchangeService _exchangeService;
     private readonly ICustomerService _customerService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IActiveCurrencyService _activeCurrencyService;
     private readonly Action? _onExchangeComplete;
     private readonly Action? _onBack;
 
@@ -70,6 +72,7 @@ public partial class ExchangeSalesViewModel : ObservableObject
         IExchangeService exchangeService,
         ICustomerService customerService,
         ICurrentUserService currentUserService,
+        IActiveCurrencyService activeCurrencyService,
         Action? onExchangeComplete = null,
         Action? onBack = null)
     {
@@ -78,6 +81,7 @@ public partial class ExchangeSalesViewModel : ObservableObject
         _exchangeService = exchangeService;
         _customerService = customerService;
         _currentUserService = currentUserService;
+        _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
         _onExchangeComplete = onExchangeComplete;
         _onBack = onBack;
     }
@@ -277,11 +281,11 @@ public partial class ExchangeSalesViewModel : ObservableObject
 
         if (DifferenceToPay > 0)
         {
-            DifferenceText = $"Customer Pays: ${DifferenceToPay:N2}";
+            DifferenceText = $"Customer Pays: {_activeCurrencyService.FormatPrice(DifferenceToPay)}";
         }
         else if (DifferenceToPay < 0)
         {
-            DifferenceText = $"Refund to Customer: ${Math.Abs(DifferenceToPay):N2}";
+            DifferenceText = $"Refund to Customer: {_activeCurrencyService.FormatPrice(Math.Abs(DifferenceToPay))}";
         }
         else
         {
@@ -323,8 +327,8 @@ public partial class ExchangeSalesViewModel : ObservableObject
             var confirmResult = new ConfirmationDialog(
                 "Confirm Exchange",
                 $"Confirm Exchange?\n\n" +
-                $"Returning: ${TotalReturnAmount:N2}\n" +
-                $"New Items: ${TotalNewAmount:N2}\n" +
+                $"Returning: {_activeCurrencyService.FormatPrice(TotalReturnAmount)}\n" +
+                $"New Items: {_activeCurrencyService.FormatPrice(TotalNewAmount)}\n" +
                 $"{DifferenceText}\n\n" +
                 $"Do you want to proceed?",
                 ConfirmationDialog.DialogType.Warning).ShowDialog();
@@ -416,8 +420,8 @@ public partial class ExchangeSalesViewModel : ObservableObject
             var confirmResult = new ConfirmationDialog(
                 "Confirm Exchange",
                 $"Confirm Exchange?\n\n" +
-                $"Returning: ${TotalReturnAmount:N2}\n" +
-                $"New Items: ${TotalNewAmount:N2}\n" +
+                $"Returning: {_activeCurrencyService.FormatPrice(TotalReturnAmount)}\n" +
+                $"New Items: {_activeCurrencyService.FormatPrice(TotalNewAmount)}\n" +
                 $"{DifferenceText}\n\n" +
                 $"Do you want to proceed and print?",
                 ConfirmationDialog.DialogType.Warning).ShowDialog();

@@ -265,68 +265,28 @@ public class ActiveCurrencyService : IActiveCurrencyService
     }
 
     /// <summary>
-    /// Convert amount from base currency (AED) to active currency
-    /// Example: 100 AED with USD rate 0.2722 = $27.22
+    /// Returns the same amount without conversion - only currency symbol changes
+    /// Note: Currency conversion has been disabled - only symbol display changes
     /// </summary>
-    /// <param name="amountInBaseCurrency">Amount in AED (base currency)</param>
-    /// <returns>Amount in active currency</returns>
+    /// <param name="amountInBaseCurrency">Amount to display</param>
+    /// <returns>Same amount (no conversion applied)</returns>
     public decimal ConvertFromBaseCurrency(decimal amountInBaseCurrency)
     {
-        try
-        {
-            var rate = ExchangeRate;
-            
-            // If exchange rate is 1, no conversion needed (same as base currency)
-            if (rate == 1.0m)
-            {
-                return amountInBaseCurrency;
-            }
-
-            // Convert: AED × Exchange Rate = Target Currency
-            // Example: 100 AED × 0.2722 (USD rate) = 27.22 USD
-            var convertedAmount = amountInBaseCurrency * rate;
-            
-            System.Diagnostics.Debug.WriteLine($"[ActiveCurrencyService] Convert {amountInBaseCurrency:N2} AED → {convertedAmount:N2} {CurrencyCode} (rate: {rate})");
-            
-            return Math.Round(convertedAmount, 2);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[ActiveCurrencyService] ERROR converting from base currency: {ex.Message}");
-            return amountInBaseCurrency;
-        }
+        // No conversion - only symbol changes when switching currencies
+        // The prices remain the same, only the display symbol updates
+        return amountInBaseCurrency;
     }
 
     /// <summary>
-    /// Convert amount from active currency to base currency (AED)
-    /// Example: $27.22 USD with rate 0.2722 = 100 AED
+    /// Returns the same amount without conversion - only currency symbol changes
+    /// Note: Currency conversion has been disabled - only symbol display changes
     /// </summary>
-    /// <param name="amountInActiveCurrency">Amount in active currency</param>
-    /// <returns>Amount in AED (base currency)</returns>
+    /// <param name="amountInActiveCurrency">Amount to store</param>
+    /// <returns>Same amount (no conversion applied)</returns>
     public decimal ConvertToBaseCurrency(decimal amountInActiveCurrency)
     {
-        try
-        {
-            var rate = ExchangeRate;
-            
-            // If exchange rate is 1, no conversion needed (same as base currency)
-            if (rate == 1.0m)
-            {
-                return amountInActiveCurrency;
-            }
-
-            // Convert: Target Currency ÷ Exchange Rate = AED
-            // Example: 27.22 USD ÷ 0.2722 (USD rate) = 100 AED
-            var convertedAmount = amountInActiveCurrency / rate;
-            
-            System.Diagnostics.Debug.WriteLine($"[ActiveCurrencyService] Convert {amountInActiveCurrency:N2} {CurrencyCode} → {convertedAmount:N2} AED (rate: {rate})");
-            
-            return Math.Round(convertedAmount, 2);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[ActiveCurrencyService] ERROR converting to base currency: {ex.Message}");
-            return amountInActiveCurrency;
-        }
+        // No conversion - only symbol changes when switching currencies
+        // The prices remain the same, only the display symbol updates
+        return amountInActiveCurrency;
     }
 }

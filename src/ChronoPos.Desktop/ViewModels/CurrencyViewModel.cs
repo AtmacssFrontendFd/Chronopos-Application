@@ -339,7 +339,8 @@ public partial class CurrencyViewModel : ObservableObject
         var confirmDialog = new ConfirmationDialog(
             "Confirm Currency Activation",
             $"Are you sure you want to set '{currency.CurrencyName} ({currency.CurrencyCode})' as the active currency for the entire system?\n\n" +
-            "This will affect all price displays, calculations, and reports throughout the application.",
+            "This will change the currency symbol displayed throughout the application.\n" +
+            "Note: Prices will remain the same - only the symbol will change.",
             ConfirmationDialog.DialogType.Warning);
 
         if (confirmDialog.ShowDialog() != true) return;
@@ -358,7 +359,8 @@ public partial class CurrencyViewModel : ObservableObject
             var successDialog = new MessageDialog(
                 "Currency Activated",
                 $"Currency '{currency.CurrencyName} ({currency.Symbol})' is now the active currency for the system.\n\n" +
-                "All prices will now be displayed using this currency.",
+                "All prices will now display with the '{currency.Symbol}' symbol.\n" +
+                "Price values remain unchanged - only the currency symbol is updated.",
                 MessageDialog.MessageType.Success);
             successDialog.ShowDialog();
 
