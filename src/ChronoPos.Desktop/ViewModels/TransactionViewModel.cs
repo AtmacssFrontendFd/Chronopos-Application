@@ -1851,18 +1851,6 @@ public partial class TransactionViewModel : ObservableObject
                 
                 // Process returned items - get modifiers from original transaction product
                 foreach (var exchangeProduct in exchange.ExchangeProducts.Where(p => p.OldProductName != null))
-                // Group returned items by product
-                var returnedGroups = exchange.ExchangeProducts
-                    .Where(p => p.OldProductName != null)
-                    .GroupBy(p => new { p.OldProductName, p.OldProductAmount })
-                    .Select(g => new ExchangeCardItemModel
-                    {
-                        Quantity = $"{g.Sum(x => x.ReturnedQuantity)}x",
-                        ItemName = g.Key.OldProductName ?? "",
-                        Price = _activeCurrencyService.FormatPrice(g.Key.OldProductAmount)
-                    });
-                
-                foreach (var item in returnedGroups)
                 {
                     // Find the original transaction product to get modifiers
                     var originalProduct = originalTransaction?.TransactionProducts
@@ -1879,7 +1867,7 @@ public partial class TransactionViewModel : ObservableObject
                     {
                         Quantity = $"{exchangeProduct.ReturnedQuantity}x",
                         ItemName = exchangeProduct.OldProductName ?? "",
-                        Price = exchangeProduct.OldProductAmount.ToString("C2"),
+                        Price = _activeCurrencyService.FormatPrice(exchangeProduct.OldProductAmount),
                         Modifiers = modifierString
                     });
                 }

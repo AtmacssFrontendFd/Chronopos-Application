@@ -202,11 +202,10 @@ public partial class AddSalesViewModel : ObservableObject
         ITransactionServiceChargeRepository transactionServiceChargeRepository,
         ITransactionModifierRepository transactionModifierRepository,
         IProductBarcodeRepository productBarcodeRepository,
+        IActiveCurrencyService activeCurrencyService,
         Action? navigateToTransactionList = null,
         Action<int>? navigateToRefundTransaction = null,
         Action<int>? navigateToExchangeTransaction = null)
-        IActiveCurrencyService activeCurrencyService,
-        Action? navigateToTransactionList = null)
     {
         _serviceProvider = serviceProvider;
         _productService = productService;
@@ -3110,13 +3109,7 @@ public partial class AddSalesViewModel : ObservableObject
                                         : $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
                                             $"Bill Total: ${billTotal:N2}";
                         }
-                Text = alreadyPaid > 0 
-                    ? $"Remaining Amount: {_activeCurrencyService.FormatPrice(remainingAmount)}\n(Already Paid: {_activeCurrencyService.FormatPrice(alreadyPaid)} | Total: {_activeCurrencyService.FormatPrice(totalAmount)})"
-                    : $"Total Amount: {_activeCurrencyService.FormatPrice(totalAmount)}",
-                FontSize = 18,
-                FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937"))
-            };
+            
             Grid.SetRow(totalLabel, 0);
             grid.Children.Add(totalLabel);
 

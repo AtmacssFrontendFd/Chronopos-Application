@@ -833,10 +833,10 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
                 _serviceProvider.GetRequiredService<ITransactionModifierRepository>(),
                 _productBarcodeRepository,
+                _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
                 navigateToTransactionList: async () => await ShowTransaction(),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
                 navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId)
-                _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
             );
 
             // Create the AddSalesView and set its DataContext
@@ -939,10 +939,10 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
                 _serviceProvider.GetRequiredService<ITransactionModifierRepository>(),
                 _productBarcodeRepository,
+                _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
+                navigateToTransactionList: async () => await ShowTransaction(),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
                 navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId)
-                _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
-                navigateToTransactionList: async () => await ShowTransaction()
             );
 
             // Create the AddSalesView and set its DataContext
@@ -997,10 +997,10 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
                 _serviceProvider.GetRequiredService<ITransactionModifierRepository>(),
                 _productBarcodeRepository,
+                _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
                 navigateToTransactionList: async () => await ShowTransaction(),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
                 navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId)
-                _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
             );
 
             // Create the AddSalesView and set its DataContext
@@ -1064,10 +1064,10 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ITransactionServiceChargeRepository>(),
                 _serviceProvider.GetRequiredService<ITransactionModifierRepository>(),
                 _productBarcodeRepository,
+                _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
                 navigateToTransactionList: async () => await ShowTransaction(),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
                 navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId)
-                _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
             );
 
             // Create the AddSalesView and set its DataContext
