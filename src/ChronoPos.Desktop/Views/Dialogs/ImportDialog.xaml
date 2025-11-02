@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Import Brands"
-        Height="Auto"
-        Width="560"
+        SizeToContent="Height"
+        Width="480"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         WindowStyle="None"
@@ -20,11 +20,11 @@
             <Setter Property="Background" Value="{DynamicResource Primary}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="24,12"/>
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="MinHeight" Value="42"/>
+            <Setter Property="MinHeight" Value="38"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -52,11 +52,11 @@
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
-            <Setter Property="Padding" Value="24,12"/>
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="MinHeight" Value="42"/>
+            <Setter Property="MinHeight" Value="38"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -83,8 +83,8 @@
             <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="20"/>
-            <Setter Property="Margin" Value="0,0,0,16"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
@@ -95,13 +95,13 @@
     </Window.Resources>
 
     <Border Background="{DynamicResource MainBackground}"
-            CornerRadius="12"
+            CornerRadius="10"
             BorderThickness="1"
             BorderBrush="{DynamicResource BorderLight}">
         <Border.Effect>
-            <DropShadowEffect Color="Black" 
+            <DropShadowEffect Color="#000000" 
                             Direction="270" 
-                            ShadowDepth="4" 
+                            ShadowDepth="3" 
                             Opacity="0.15" 
                             BlurRadius="20"/>
         </Border.Effect>
@@ -109,17 +109,17 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Header -->
-            <Border Grid.Row="0"
-                    Background="{DynamicResource SurfaceBackground}"
-                    CornerRadius="12,12,0,0"
-                    BorderThickness="0,0,0,1"
-                    BorderBrush="{DynamicResource BorderLight}"
-                    Padding="24,20">
+        <!-- Header (slimmer) -->
+        <Border Grid.Row="0"
+            Background="{DynamicResource SurfaceBackground}"
+            CornerRadius="10,10,0,0"
+            BorderThickness="0,0,0,1"
+            BorderBrush="{DynamicResource BorderLight}"
+            Padding="14,10">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -129,13 +129,13 @@
 
                     <!-- Icon -->
                     <Border Grid.Column="0"
-                            Width="48"
-                            Height="48"
-                            CornerRadius="24"
+                            Width="36"
+                            Height="36"
+                            CornerRadius="18"
                             Background="#E0F2FE"
-                            Margin="0,0,16,0">
+                            Margin="0,0,12,0">
                         <TextBlock Text="📥"
-                                   FontSize="24"
+                                   FontSize="18"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center"/>
                     </Border>
@@ -143,13 +143,13 @@
                     <!-- Title -->
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="Import Brands"
-                                   FontSize="{DynamicResource FontSizeLarge}"
+                                   FontSize="16"
                                    FontWeight="Bold"
                                    Foreground="{DynamicResource TextPrimary}"/>
                         <TextBlock Text="Download template or upload your CSV file"
-                                   FontSize="{DynamicResource FontSizeSmall}"
+                                   FontSize="11"
                                    Foreground="{DynamicResource TextSecondary}"
-                                   Margin="0,4,0,0"/>
+                                   Margin="0,2,0,0"/>
                     </StackPanel>
 
                     <!-- Close Button -->
@@ -158,12 +158,12 @@
                             Click="CloseButton_Click"
                             Background="Transparent"
                             BorderThickness="0"
-                            FontSize="18"
+                            FontSize="15"
                             FontWeight="Bold"
                             Foreground="{DynamicResource TextSecondary}"
                             Cursor="Hand"
-                            Width="32"
-                            Height="32"
+                            Width="28"
+                            Height="28"
                             ToolTip="Close"/>
                 </Grid>
             </Border>
@@ -171,7 +171,7 @@
             <!-- Content -->
             <ScrollViewer Grid.Row="1"
                          VerticalScrollBarVisibility="Auto"
-                         Padding="24,24">
+                         Padding="20,34,20,40">
                 <StackPanel>
                     <!-- Download Template Option -->
                     <Border Style="{StaticResource OptionCardStyle}"
@@ -185,13 +185,13 @@
 
                             <!-- Icon -->
                             <Border Grid.Column="0"
-                                    Width="56"
-                                    Height="56"
-                                    CornerRadius="8"
+                                    Width="42"
+                                    Height="42"
+                                    CornerRadius="6"
                                     Background="#F0F9FF"
-                                    Margin="0,0,16,0">
+                                    Margin="0,0,12,0">
                                 <TextBlock Text="📄"
-                                           FontSize="28"
+                                           FontSize="20"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center"/>
                             </Border>
@@ -199,19 +199,19 @@
                             <!-- Content -->
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="Download CSV Template"
-                                           FontSize="{DynamicResource FontSizeMedium}"
+                                           FontSize="14"
                                            FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimary}"/>
                                 <TextBlock Text="Get a sample CSV file with the correct format"
-                                           FontSize="{DynamicResource FontSizeSmall}"
+                                           FontSize="11"
                                            Foreground="{DynamicResource TextSecondary}"
-                                           Margin="0,4,0,0"/>
+                                           Margin="0,2,0,0"/>
                             </StackPanel>
 
                             <!-- Arrow -->
                             <TextBlock Grid.Column="2"
                                        Text="→"
-                                       FontSize="24"
+                                       FontSize="18"
                                        FontWeight="Bold"
                                        Foreground="{DynamicResource Primary}"
                                        VerticalAlignment="Center"/>
@@ -230,13 +230,13 @@
 
                             <!-- Icon -->
                             <Border Grid.Column="0"
-                                    Width="56"
-                                    Height="56"
-                                    CornerRadius="8"
+                                    Width="42"
+                                    Height="42"
+                                    CornerRadius="6"
                                     Background="#FEF3C7"
-                                    Margin="0,0,16,0">
+                                    Margin="0,0,12,0">
                                 <TextBlock Text="📤"
-                                           FontSize="28"
+                                           FontSize="20"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center"/>
                             </Border>
@@ -244,19 +244,19 @@
                             <!-- Content -->
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="Upload CSV File"
-                                           FontSize="{DynamicResource FontSizeMedium}"
+                                           FontSize="14"
                                            FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimary}"/>
                                 <TextBlock Text="Import brands from your prepared CSV file"
-                                           FontSize="{DynamicResource FontSizeSmall}"
+                                           FontSize="11"
                                            Foreground="{DynamicResource TextSecondary}"
-                                           Margin="0,4,0,0"/>
+                                           Margin="0,2,0,0"/>
                             </StackPanel>
 
                             <!-- Arrow -->
                             <TextBlock Grid.Column="2"
                                        Text="→"
-                                       FontSize="24"
+                                       FontSize="18"
                                        FontWeight="Bold"
                                        Foreground="{DynamicResource Primary}"
                                        VerticalAlignment="Center"/>
@@ -264,12 +264,12 @@
                     </Border>
 
                     <!-- Info Box -->
-                    <Border Background="#F0F9FF"
-                            BorderBrush="#0EA5E9"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Padding="16"
-                            Margin="0,8,0,0">
+            <Border Background="#F0F9FF"
+                BorderBrush="#0EA5E9"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="8"
+                Margin="0,4,0,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -278,20 +278,20 @@
 
                             <TextBlock Grid.Column="0"
                                        Text="💡"
-                                       FontSize="20"
+                                       FontSize="16"
                                        VerticalAlignment="Top"
-                                       Margin="0,0,12,0"/>
+                                       Margin="0,0,8,0"/>
 
                             <StackPanel Grid.Column="1">
                                 <TextBlock Text="CSV Format Requirements:"
-                                           FontSize="{DynamicResource FontSizeSmall}"
+                                           FontSize="11"
                                            FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimary}"
-                                           Margin="0,0,0,8"/>
-                                <TextBlock FontSize="{DynamicResource FontSizeVerySmall}"
+                                           Margin="0,0,0,4"/>
+                                <TextBlock FontSize="10"
                                            Foreground="{DynamicResource TextSecondary}"
                                            TextWrapping="Wrap"
-                                           LineHeight="20">
+                                           LineHeight="16">
                                     <Run Text="• Columns: Name, NameArabic, Description, LogoUrl, IsActive"/>
                                     <LineBreak/>
                                     <Run Text="• First row must be headers"/>
@@ -307,12 +307,12 @@
             </ScrollViewer>
 
             <!-- Footer Actions -->
-            <Border Grid.Row="2"
-                    Background="{DynamicResource SurfaceBackground}"
-                    CornerRadius="0,0,12,12"
-                    BorderThickness="0,1,0,0"
-                    BorderBrush="{DynamicResource BorderLight}"
-                    Padding="24,16">
+        <Border Grid.Row="2"
+            Background="{DynamicResource SurfaceBackground}"
+            CornerRadius="0,0,10,10"
+            BorderThickness="0,1,0,0"
+            BorderBrush="{DynamicResource BorderLight}"
+            Padding="14,8">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
