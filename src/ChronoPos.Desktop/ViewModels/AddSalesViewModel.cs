@@ -2806,7 +2806,7 @@ public partial class AddSalesViewModel : ObservableObject
                 
                 UpdateButtonVisibility();
                 
-                MessageBox.Show($"Transaction #{CurrentTransactionId} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nBill Total: ${billTotal:C}", 
+                MessageBox.Show($"Transaction #{CurrentTransactionId} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nBill Total: {_activeCurrencyService.FormatPrice(billTotal)}", 
                     "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
@@ -2875,7 +2875,7 @@ public partial class AddSalesViewModel : ObservableObject
                 
                 UpdateButtonVisibility();
 
-                MessageBox.Show($"Transaction #{savedTransaction.Id} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nBill Total: ${billTotal:C}", 
+                MessageBox.Show($"Transaction #{savedTransaction.Id} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nBill Total: {_activeCurrencyService.FormatPrice(billTotal)}", 
                     "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
@@ -3095,19 +3095,19 @@ public partial class AddSalesViewModel : ObservableObject
                         {
                                 // Show customer pending as bill total and transaction remaining
                                 var alreadyPaidFromSale = totalAmount - existingAmountCreditRemaining;
-                                totalLabel.Text = $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
-                                                                    $"Customer Pending: ${customerBalanceAmount:N2}\n" +
-                                                                    $"Remaining Amount of Transaction: ${existingAmountCreditRemaining:N2}\n" +
-                                                                    $"Already Paid: ${alreadyPaidFromSale:N2}";
+                                totalLabel.Text = $"Sale Amount: {_activeCurrencyService.CurrencySymbol}{totalAmount:N2}{balanceInfo}\n" +
+                                                                    $"Customer Pending: {_activeCurrencyService.CurrencySymbol}{customerBalanceAmount:N2}\n" +
+                                                                    $"Remaining Amount of Transaction: {_activeCurrencyService.CurrencySymbol}{existingAmountCreditRemaining:N2}\n" +
+                                                                    $"Already Paid: {_activeCurrencyService.CurrencySymbol}{alreadyPaidFromSale:N2}";
                         }
                         else
                         {
                                 totalLabel.Text = alreadyPaid > 0 
-                                        ? $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
-                                            $"Bill Total: ${billTotal:N2}\n" +
-                                            $"Remaining: ${remainingAmount:N2}\n(Already Paid: ${alreadyPaid:N2})"
-                                        : $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
-                                            $"Bill Total: ${billTotal:N2}";
+                                        ? $"Sale Amount: {_activeCurrencyService.CurrencySymbol}{totalAmount:N2}{balanceInfo}\n" +
+                                            $"Bill Total: {_activeCurrencyService.CurrencySymbol}{billTotal:N2}\n" +
+                                            $"Remaining: {_activeCurrencyService.CurrencySymbol}{remainingAmount:N2}\n(Already Paid: {_activeCurrencyService.CurrencySymbol}{alreadyPaid:N2})"
+                                        : $"Sale Amount: {_activeCurrencyService.CurrencySymbol}{totalAmount:N2}{balanceInfo}\n" +
+                                            $"Bill Total: {_activeCurrencyService.CurrencySymbol}{billTotal:N2}";
                         }
             
             Grid.SetRow(totalLabel, 0);
@@ -3244,7 +3244,7 @@ public partial class AddSalesViewModel : ObservableObject
                     // Validate paid amount against actual remaining amount
                     if (paidAmount < 0 || paidAmount > actualRemainingAmount)
                     {
-                        MessageBox.Show($"Amount paid must be between $0 and ${actualRemainingAmount:N2}.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show($"Amount paid must be between {_activeCurrencyService.CurrencySymbol}0 and {_activeCurrencyService.FormatPrice(actualRemainingAmount)}.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
 
@@ -3532,7 +3532,8 @@ public partial class AddSalesViewModel : ObservableObject
             var refundDialog = new Views.Dialogs.RefundDialog(
                 transaction,
                 _refundService,
-                _currentUserService);
+                _currentUserService,
+                _activeCurrencyService);
 
             var result = refundDialog.ShowDialog();
 

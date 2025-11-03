@@ -66,6 +66,11 @@ public partial class ExchangeSalesViewModel : ObservableObject
     [ObservableProperty]
     private string searchText = string.Empty;
 
+    // Formatted currency properties for display
+    public string TotalReturnAmountFormatted => _activeCurrencyService.FormatPrice(TotalReturnAmount);
+    public string TotalNewAmountFormatted => _activeCurrencyService.FormatPrice(TotalNewAmount);
+    public IActiveCurrencyService ActiveCurrencyService => _activeCurrencyService;
+
     public ExchangeSalesViewModel(
         ITransactionService transactionService,
         IProductService productService,
@@ -278,6 +283,10 @@ public partial class ExchangeSalesViewModel : ObservableObject
         TotalNewAmount = NewItems.Sum(x => x.Quantity * x.UnitPrice);
 
         DifferenceToPay = TotalNewAmount - TotalReturnAmount;
+        
+        // Notify UI of formatted property changes
+        OnPropertyChanged(nameof(TotalReturnAmountFormatted));
+        OnPropertyChanged(nameof(TotalNewAmountFormatted));
 
         if (DifferenceToPay > 0)
         {

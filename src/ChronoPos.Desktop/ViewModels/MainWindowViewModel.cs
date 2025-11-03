@@ -1422,6 +1422,7 @@ public partial class MainWindowViewModel : ObservableObject
             var fontService = _serviceProvider.GetRequiredService<IFontService>();
             var databaseLocalizationService = _serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
             var activeCurrencyService = _serviceProvider.GetRequiredService<IActiveCurrencyService>();
+            var barcodeExportService = _serviceProvider.GetRequiredService<IBarcodeExportService>();
             
             var productManagementViewModel = new ProductManagementViewModel(
                 productService,
@@ -1435,6 +1436,7 @@ public partial class MainWindowViewModel : ObservableObject
                 databaseLocalizationService,
                 _currentUserService,
                 activeCurrencyService,
+                barcodeExportService,
                 navigateToAddProduct: ShowAddProduct,  // Pass the ShowAddProduct method as delegate
                 navigateToEditProduct: async (product) => await ShowEditProduct(product),  // Pass the ShowEditProduct method as delegate
                 navigateBack: () => _ = ShowManagement()  // Async wrapper for back navigation
@@ -1583,6 +1585,7 @@ public partial class MainWindowViewModel : ObservableObject
                 productModifierGroupItemService,
                 _currentUserService,
                 taxTypeService,
+                _activeCurrencyService,
                 () => _ = ShowAddOptions() // Navigate back to Others
             );
             ChronoPos.Desktop.Services.FileLogger.Log("✅ ProductModifierViewModel created successfully");
@@ -1658,6 +1661,7 @@ public partial class MainWindowViewModel : ObservableObject
                 productUnitService,
                 attributeService,
                 _currentUserService,
+                _activeCurrencyService,
                 () => _ = ShowAddOptions() // Navigate back to Others
             );
             
@@ -2367,6 +2371,7 @@ public partial class MainWindowViewModel : ObservableObject
                 uomService,
                 productBatchService,
                 stockService,
+                _activeCurrencyService,
                 themeService,
                 zoomService,
                 localizationService,
@@ -2425,6 +2430,7 @@ public partial class MainWindowViewModel : ObservableObject
                 uomService,
                 productBatchService,
                 stockService,
+                _activeCurrencyService,
                 themeService,
                 zoomService,
                 localizationService,

@@ -774,10 +774,16 @@
                                 </DataGridTextColumn>
 
                                 <!-- Price Column -->
-                                <DataGridTextColumn Header="Price" 
-                                                    Binding="{Binding Price, Converter={StaticResource CurrencyPriceConverter}}" 
+                                <DataGridTextColumn Binding="{Binding Price, Converter={StaticResource CurrencyPriceConverter}}" 
                                                     Width="100"
                                                     MinWidth="80">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock>
+                                            <Run Text="Price ("/>
+                                            <Run Text="{Binding DataContext.ActiveCurrencySymbol, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue='$'}"/>
+                                            <Run Text=")"/>
+                                        </TextBlock>
+                                    </DataGridTextColumn.Header>
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -789,10 +795,16 @@
                                 </DataGridTextColumn>
 
                                 <!-- Cost Column -->
-                                <DataGridTextColumn Header="Cost" 
-                                                    Binding="{Binding Cost, Converter={StaticResource CurrencyPriceConverter}}" 
+                                <DataGridTextColumn Binding="{Binding Cost, Converter={StaticResource CurrencyPriceConverter}}" 
                                                     Width="100"
                                                     MinWidth="80">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock>
+                                            <Run Text="Cost ("/>
+                                            <Run Text="{Binding DataContext.ActiveCurrencySymbol, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue='$'}"/>
+                                            <Run Text=")"/>
+                                        </TextBlock>
+                                    </DataGridTextColumn.Header>
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>

@@ -53,6 +53,11 @@ public partial class StockManagementViewModel : ObservableObject
     #endregion
 
     #region Observable Properties
+    
+    /// <summary>
+    /// Gets the active currency symbol for dynamic table headers
+    /// </summary>
+    public string ActiveCurrencySymbol => _activeCurrencyService?.CurrencySymbol ?? "$";
 
     /// <summary>
     /// Collection of stock management modules

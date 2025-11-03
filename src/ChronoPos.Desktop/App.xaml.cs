@@ -513,6 +513,10 @@ public partial class App : System.Windows.Application
                     // Register Active Currency service (Singleton for system-wide access)
                     services.AddSingleton<IActiveCurrencyService, ActiveCurrencyService>();
                     LogMessage("ActiveCurrencyService registered as Singleton");
+                    
+                    // Register Barcode Export Service
+                    services.AddTransient<IBarcodeExportService, BarcodeExportService>();
+                    LogMessage("BarcodeExportService registered as Transient");
 
                     // Register icon service
                     services.AddSingleton<IIconService, IconService>();

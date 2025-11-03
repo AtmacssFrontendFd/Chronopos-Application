@@ -750,7 +750,14 @@
                                                 </DataGridTemplateColumn>
 
                                                 <!-- Amount Column (Editable - from LineTotal) -->
-                                                <DataGridTemplateColumn Header="Amount" Width="100">
+                                                <DataGridTemplateColumn Width="100">
+                                                    <DataGridTemplateColumn.Header>
+                                                        <TextBlock>
+                                                            <Run Text="Amount ("/>
+                                                            <Run Text="{Binding DataContext.ActiveCurrencySymbol, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue='$'}"/>
+                                                            <Run Text=")"/>
+                                                        </TextBlock>
+                                                    </DataGridTemplateColumn.Header>
                                                     <DataGridTemplateColumn.CellTemplate>
                                                         <DataTemplate>
                                                             <TextBox Text="{Binding Amount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" 
@@ -833,7 +840,7 @@
                                     <!-- Total Amount -->
                                     <StackPanel Grid.Column="2" Margin="10,0,0,0">
                                         <TextBlock Text="{Binding TotalAmountLabel}" Style="{StaticResource FieldLabelStyle}"/>
-                                        <TextBox Text="{Binding TotalAmount, StringFormat=C2}" 
+                                        <TextBox Text="{Binding TotalAmount, Converter={StaticResource CurrencyPriceConverter}}" 
                                                  Style="{StaticResource FormTextBoxStyle}"
                                                  IsReadOnly="True"
                                                  Background="{DynamicResource DisabledBackgroundBrush}"
