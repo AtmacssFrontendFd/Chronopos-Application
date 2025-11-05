@@ -1,0 +1,1169 @@
+<UserControl x:Class="ChronoPos.Desktop.UserControls.CompanySettingsUserControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             mc:Ignorable="d"
+             FlowDirection="{Binding CurrentFlowDirection}"
+             FontFamily="{DynamicResource PoppinsFontFallback}">
+
+    <UserControl.Resources>
+        <!-- Converters -->
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+        <converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
+        
+        <!-- Read-only TextBox Style -->
+        <Style x:Key="ReadOnlyTextBoxStyle" TargetType="TextBox">
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Editable TextBox Style -->
+        <Style x:Key="EditableTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Action Buttons Header -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource CardBackground}"
+                BorderBrush="{DynamicResource BorderLight}"
+                BorderThickness="0,0,0,1"
+                Padding="30,15">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                
+                <!-- Edit Button (Visible when NOT in edit mode) -->
+                <Button Content="✏️ Edit"
+                        Command="{Binding EnableEditCommand}"
+                        Background="{DynamicResource Primary}"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Padding="20,12"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Cursor="Hand"
+                        Margin="0,0,10,0"
+                        Visibility="{Binding IsEditMode, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    CornerRadius="8"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <!-- Save Button (Visible when in edit mode) -->
+                <Button Content="💾 Save"
+                        Command="{Binding SaveCommand}"
+                        Background="#28a745"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Padding="20,12"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Cursor="Hand"
+                        Margin="0,0,10,0">
+                    <Button.Visibility>
+                        <Binding Path="IsEditMode" Converter="{StaticResource BoolToVisibilityConverter}"/>
+                    </Button.Visibility>
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    CornerRadius="8"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <!-- Cancel Button (Visible when in edit mode) -->
+                <Button Content="❌ Cancel"
+                        Command="{Binding CancelCommand}"
+                        Background="#dc3545"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Padding="20,12"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Cursor="Hand">
+                    <Button.Visibility>
+                        <Binding Path="IsEditMode" Converter="{StaticResource BoolToVisibilityConverter}"/>
+                    </Button.Visibility>
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    CornerRadius="8"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+            </StackPanel>
+        </Border>
+
+        <!-- Settings Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="30">
+            <StackPanel>
+
+                <!-- General Settings Section -->
+                <Border Background="{DynamicResource CardBackground}"
+                        BorderBrush="{DynamicResource BorderLight}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="25"
+                        Margin="0,0,0,20">
+                    <StackPanel>
+                        <TextBlock Text="General Settings"
+                                   FontSize="20"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Margin="0,0,0,20"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Currency -->
+                            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,15,20">
+                                <TextBlock Text="Currency"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <ComboBox ItemsSource="{Binding Currencies}"
+                                          SelectedItem="{Binding SelectedCurrency}"
+                                          DisplayMemberPath="CurrencyName"
+                                          IsEnabled="{Binding IsEditMode}"
+                                          Height="40"
+                                          FontSize="14"
+                                          Padding="12,10"
+                                          Background="{DynamicResource CardBackground}"
+                                          BorderBrush="{DynamicResource BorderLight}"
+                                          BorderThickness="1"/>
+                            </StackPanel>
+
+                            <!-- Number of Users -->
+                            <StackPanel Grid.Row="0" Grid.Column="1" Margin="15,0,0,20">
+                                <TextBlock Text="Number of Users"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <TextBox Text="{Binding NumberOfUsers}"
+                                         Height="40"
+                                         IsReadOnly="{Binding IsEditMode, Converter={StaticResource InverseBoolConverter}}">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox" BasedOn="{StaticResource ReadOnlyTextBoxStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                    <Setter Property="IsReadOnly" Value="False"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                            </StackPanel>
+
+                            <!-- Primary Color -->
+                            <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,15,20">
+                                <TextBlock Text="Primary Color"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <TextBox Text="{Binding PrimaryColor}"
+                                         Height="40"
+                                         IsReadOnly="{Binding IsEditMode, Converter={StaticResource InverseBoolConverter}}">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox" BasedOn="{StaticResource ReadOnlyTextBoxStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                    <Setter Property="IsReadOnly" Value="False"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                            </StackPanel>
+
+                            <!-- Secondary Color -->
+                            <StackPanel Grid.Row="1" Grid.Column="1" Margin="15,0,0,20">
+                                <TextBlock Text="Secondary Color"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <TextBox Text="{Binding SecondaryColor}"
+                                         Height="40"
+                                         IsReadOnly="{Binding IsEditMode, Converter={StaticResource InverseBoolConverter}}">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox" BasedOn="{StaticResource ReadOnlyTextBoxStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                    <Setter Property="IsReadOnly" Value="False"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                            </StackPanel>
+
+                            <!-- Subscription Type -->
+                            <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,15,0">
+                                <TextBlock Text="Subscription Type"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <TextBox Text="{Binding CompanySubscriptionType}"
+                                         Height="40"
+                                         IsReadOnly="{Binding IsEditMode, Converter={StaticResource InverseBoolConverter}}">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox" BasedOn="{StaticResource ReadOnlyTextBoxStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                    <Setter Property="IsReadOnly" Value="False"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                            </StackPanel>
+
+                            <!-- Selling Type -->
+                            <StackPanel Grid.Row="2" Grid.Column="1" Margin="15,0,0,0">
+                                <TextBlock Text="Selling Type"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <TextBox Text="{Binding SellingType}"
+                                         Height="40"
+                                         IsReadOnly="{Binding IsEditMode, Converter={StaticResource InverseBoolConverter}}">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox" BasedOn="{StaticResource ReadOnlyTextBoxStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                    <Setter Property="IsReadOnly" Value="False"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Backup Settings Section -->
+                <Border Background="{DynamicResource CardBackground}"
+                        BorderBrush="{DynamicResource BorderLight}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="25"
+                        Margin="0,0,0,20">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <TextBlock Text="Backup Settings"
+                                       FontSize="20"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimary}"/>
+                            <Button Content="🔄 Reload Printers"
+                                    Command="{Binding ReloadPrintersCommand}"
+                                    Background="{DynamicResource Primary}"
+                                    Foreground="White"
+                                    BorderThickness="0"
+                                    Padding="12,6"
+                                    FontSize="12"
+                                    FontWeight="Medium"
+                                    Cursor="Hand"
+                                    Margin="15,0,0,0"
+                                    Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="6"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </StackPanel>
+
+                        <!-- Client Backup -->
+                        <TextBlock Text="Client Backup"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Margin="0,0,0,15"/>
+                        
+                        <Grid Margin="0,0,0,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Client Backup Path -->
+                            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,15,15">
+                                <TextBlock Text="Backup Path"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0"
+                                             Text="{Binding ClientBackupPath}"
+                                             Height="40"
+                                             IsReadOnly="{Binding IsEditMode, Converter={StaticResource InverseBoolConverter}}"
+                                             Margin="0,0,10,0">
+                                        <TextBox.Style>
+                                            <Style TargetType="TextBox" BasedOn="{StaticResource ReadOnlyTextBoxStyle}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                                                        <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                                        <Setter Property="BorderThickness" Value="2"/>
+                                                        <Setter Property="IsReadOnly" Value="False"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBox.Style>
+                                    </TextBox>
+                                    <Button Grid.Column="1"
+                                            Content="📁 Browse"
+                                            Command="{Binding BrowseClientBackupPathCommand}"
+                                            Background="{DynamicResource Primary}"
+                                            Foreground="White"
+                                            BorderThickness="0"
+                                            Padding="15,10"
+                                            FontSize="12"
+                                            Cursor="Hand"
+                                            Height="40"
+                                            Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}"
+                                                        CornerRadius="6"
+                                                        Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Client Backup Frequency -->
+                            <StackPanel Grid.Row="0" Grid.Column="1" Margin="15,0,0,15">
+                                <TextBlock Text="Backup Frequency"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <ComboBox ItemsSource="{Binding BackupFrequencies}"
+                                          SelectedItem="{Binding ClientBackupFrequency}"
+                                          IsEnabled="{Binding IsEditMode}"
+                                          Height="40"
+                                          FontSize="14"
+                                          Padding="12,10"
+                                          Background="{DynamicResource CardBackground}"
+                                          BorderBrush="{DynamicResource BorderLight}"
+                                          BorderThickness="1"/>
+                            </StackPanel>
+
+                            <!-- Last Client Backup -->
+                            <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,15,0">
+                                <TextBlock Text="Last Backup"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <TextBox Text="{Binding LastClientBackup, StringFormat='yyyy-MM-dd HH:mm:ss'}"
+                                         Height="40"
+                                         IsReadOnly="True"
+                                         Style="{StaticResource ReadOnlyTextBoxStyle}"/>
+                            </StackPanel>
+
+                            <!-- Backup Now Button -->
+                            <StackPanel Grid.Row="1" Grid.Column="1" Margin="15,0,0,0">
+                                <TextBlock Text="Manual Backup"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <Button Content="💾 Backup Now"
+                                        Command="{Binding BackupClientNowCommand}"
+                                        Background="#28a745"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        Padding="15,10"
+                                        FontSize="14"
+                                        FontWeight="Medium"
+                                        Cursor="Hand"
+                                        Height="40">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    CornerRadius="6"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- ATMACSS Backup -->
+                        <TextBlock Text="ATMACSS Backup"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Margin="0,15,0,15"/>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- ATMACSS Backup Path -->
+                            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,15,15">
+                                <TextBlock Text="Backup Path"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0"
+                                             Text="{Binding AtmacssBackupPath}"
+                                             Height="40"
+                                             IsReadOnly="{Binding IsEditMode, Converter={StaticResource InverseBoolConverter}}"
+                                             Margin="0,0,10,0">
+                                        <TextBox.Style>
+                                            <Style TargetType="TextBox" BasedOn="{StaticResource ReadOnlyTextBoxStyle}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                                                        <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                                        <Setter Property="BorderThickness" Value="2"/>
+                                                        <Setter Property="IsReadOnly" Value="False"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBox.Style>
+                                    </TextBox>
+                                    <Button Grid.Column="1"
+                                            Content="📁 Browse"
+                                            Command="{Binding BrowseAtmacssBackupPathCommand}"
+                                            Background="{DynamicResource Primary}"
+                                            Foreground="White"
+                                            BorderThickness="0"
+                                            Padding="15,10"
+                                            FontSize="12"
+                                            Cursor="Hand"
+                                            Height="40"
+                                            Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}"
+                                                        CornerRadius="6"
+                                                        Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- ATMACSS Backup Frequency -->
+                            <StackPanel Grid.Row="0" Grid.Column="1" Margin="15,0,0,15">
+                                <TextBlock Text="Backup Frequency"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <ComboBox ItemsSource="{Binding BackupFrequencies}"
+                                          SelectedItem="{Binding AtmacssBackupFrequency}"
+                                          IsEnabled="{Binding IsEditMode}"
+                                          Height="40"
+                                          FontSize="14"
+                                          Padding="12,10"
+                                          Background="{DynamicResource CardBackground}"
+                                          BorderBrush="{DynamicResource BorderLight}"
+                                          BorderThickness="1"/>
+                            </StackPanel>
+
+                            <!-- Last ATMACSS Backup -->
+                            <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,15,0">
+                                <TextBlock Text="Last Backup"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <TextBox Text="{Binding LastAtmacssBackup, StringFormat='yyyy-MM-dd HH:mm:ss'}"
+                                         Height="40"
+                                         IsReadOnly="True"
+                                         Style="{StaticResource ReadOnlyTextBoxStyle}"/>
+                            </StackPanel>
+
+                            <!-- Backup Now Button -->
+                            <StackPanel Grid.Row="1" Grid.Column="1" Margin="15,0,0,0">
+                                <TextBlock Text="Manual Backup"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <Button Content="💾 Backup Now"
+                                        Command="{Binding BackupAtmacssNowCommand}"
+                                        Background="#28a745"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        Padding="15,10"
+                                        FontSize="14"
+                                        FontWeight="Medium"
+                                        Cursor="Hand"
+                                        Height="40">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    CornerRadius="6"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Database Restore Section -->
+                <Border Background="{DynamicResource CardBackground}"
+                        BorderBrush="{DynamicResource BorderLight}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="25"
+                        Margin="0,0,0,20">
+                    <StackPanel>
+                        <TextBlock Text="Database Restore"
+                                   FontSize="20"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Margin="0,0,0,10"/>
+                        
+                        <!-- Warning Notice -->
+                        <Border Background="#FFF3CD"
+                                BorderBrush="#FFC107"
+                                BorderThickness="2"
+                                CornerRadius="6"
+                                Padding="15"
+                                Margin="0,0,0,20">
+                            <StackPanel>
+                                <TextBlock Text="⚠️ Warning: Restore Database from Backup"
+                                           FontSize="14"
+                                           FontWeight="Bold"
+                                           Foreground="#856404"
+                                           Margin="0,0,0,8"/>
+                                <TextBlock TextWrapping="Wrap"
+                                           FontSize="12"
+                                           Foreground="#856404"
+                                           LineHeight="18">
+                                    <Run Text="Restoring will replace your current database with the selected backup."/>
+                                    <LineBreak/>
+                                    <Run Text="• A backup of your current database will be created automatically"/>
+                                    <LineBreak/>
+                                    <Run Text="• The restore will be applied when you restart the application"/>
+                                    <LineBreak/>
+                                    <Run Text="• Make sure the backup file is valid and from the same version"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Restore Backup Path -->
+                        <StackPanel Margin="0,0,0,20">
+                            <TextBlock Text="Backup File to Restore"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,8"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0"
+                                         Text="{Binding RestoreBackupPath}"
+                                         Height="40"
+                                         IsReadOnly="True"
+                                         Margin="0,0,10,0"
+                                         Background="{DynamicResource CardBackground}"
+                                         BorderBrush="{DynamicResource BorderLight}"
+                                         BorderThickness="1"
+                                         Padding="12,10"
+                                         FontSize="14"
+                                         VerticalContentAlignment="Center"/>
+                                <Button Grid.Column="1"
+                                        Content="📁 Browse Backup"
+                                        Command="{Binding BrowseRestoreBackupPathCommand}"
+                                        Background="{DynamicResource Primary}"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        Padding="15,10"
+                                        FontSize="12"
+                                        Cursor="Hand"
+                                        Height="40">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    CornerRadius="6"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Stage Restore and Restart Buttons Row -->
+                        <Grid Margin="0,0,0,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Stage Restore Button -->
+                            <Button Grid.Column="0"
+                                    Content="⚠️ Stage Restore (Requires Restart)"
+                                    Command="{Binding StageRestoreCommand}"
+                                    Background="#DC3545"
+                                    Foreground="White"
+                                    BorderThickness="0"
+                                    Padding="20,12"
+                                    FontSize="14"
+                                    FontWeight="Bold"
+                                    Cursor="Hand"
+                                    Height="50"
+                                    Margin="0,0,10,0">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="8"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+
+                            <!-- Restart Application Button -->
+                            <Button Grid.Column="1"
+                                    Content="🔄 Restart"
+                                    Command="{Binding RestartApplicationCommand}"
+                                    Background="#4CAF50"
+                                    Foreground="White"
+                                    BorderThickness="0"
+                                    Padding="20,12"
+                                    FontSize="14"
+                                    FontWeight="Bold"
+                                    Cursor="Hand"
+                                    Height="50"
+                                    Width="150">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="8"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
+
+                        <!-- Pending Restore Status -->
+                        <Border Background="#D4EDDA"
+                                BorderBrush="#28A745"
+                                BorderThickness="2"
+                                CornerRadius="6"
+                                Padding="15"
+                                Visibility="{Binding HasPendingRestore, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <StackPanel>
+                                <TextBlock Text="✅ Restore Pending - Restart required to apply"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="#155724"
+                                           Margin="0,0,0,10"/>
+                                <Button Content="❌ Cancel Pending Restore"
+                                        Command="{Binding CancelPendingRestoreCommand}"
+                                        Background="#FFC107"
+                                        Foreground="#000000"
+                                        BorderThickness="0"
+                                        Padding="15,10"
+                                        FontSize="12"
+                                        FontWeight="Medium"
+                                        Cursor="Hand"
+                                        Height="40"
+                                        HorizontalAlignment="Left">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    CornerRadius="6"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Refund Settings Section -->
+                <Border Background="{DynamicResource CardBackground}"
+                        BorderBrush="{DynamicResource BorderLight}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="25"
+                        Margin="0,0,0,20">
+                    <StackPanel>
+                        <TextBlock Text="Refund Settings"
+                                   FontSize="20"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Margin="0,0,0,20"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Refund Type -->
+                            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,15,20">
+                                <TextBlock Text="Refund Type"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <TextBox Text="{Binding RefundType}"
+                                         Height="40"
+                                         IsReadOnly="{Binding IsEditMode, Converter={StaticResource InverseBoolConverter}}">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox" BasedOn="{StaticResource ReadOnlyTextBoxStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                    <Setter Property="IsReadOnly" Value="False"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                            </StackPanel>
+
+                            <!-- Period of Validity -->
+                            <StackPanel Grid.Row="0" Grid.Column="1" Margin="15,0,0,20">
+                                <TextBlock Text="Period of Validity (Days)"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <TextBox Text="{Binding PeriodOfValidity}"
+                                         Height="40"
+                                         IsReadOnly="{Binding IsEditMode, Converter={StaticResource InverseBoolConverter}}">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox" BasedOn="{StaticResource ReadOnlyTextBoxStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                    <Setter Property="IsReadOnly" Value="False"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                            </StackPanel>
+
+                            <!-- Allow Return Cash -->
+                            <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,15,20">
+                                <TextBlock Text="Allow Return Cash"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <CheckBox IsChecked="{Binding AllowReturnCash}"
+                                          IsEnabled="{Binding IsEditMode}"
+                                          Content="Enable"
+                                          FontSize="14"
+                                          Foreground="{DynamicResource TextPrimary}"
+                                          Margin="0,8,0,0"/>
+                            </StackPanel>
+
+                            <!-- Allow Credit Note -->
+                            <StackPanel Grid.Row="1" Grid.Column="1" Margin="15,0,0,20">
+                                <TextBlock Text="Allow Credit Note"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <CheckBox IsChecked="{Binding AllowCreditNote}"
+                                          IsEnabled="{Binding IsEditMode}"
+                                          Content="Enable"
+                                          FontSize="14"
+                                          Foreground="{DynamicResource TextPrimary}"
+                                          Margin="0,8,0,0"/>
+                            </StackPanel>
+
+                            <!-- Allow Exchange Transaction -->
+                            <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,15,0">
+                                <TextBlock Text="Allow Exchange Transaction"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <CheckBox IsChecked="{Binding AllowExchangeTransaction}"
+                                          IsEnabled="{Binding IsEditMode}"
+                                          Content="Enable"
+                                          FontSize="14"
+                                          Foreground="{DynamicResource TextPrimary}"
+                                          Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Hardware Settings Section -->
+                <Border Background="{DynamicResource CardBackground}"
+                        BorderBrush="{DynamicResource BorderLight}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="25">
+                    <StackPanel>
+                        <TextBlock Text="Hardware Configuration"
+                                   FontSize="20"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Margin="0,0,0,20"/>
+
+                        <!-- Printers Section -->
+                        <TextBlock Text="Printers"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Margin="0,0,0,15"/>
+
+                        <Grid Margin="0,0,0,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Invoice Printer -->
+                            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,15,15">
+                                <TextBlock Text="Invoice Printer"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox Grid.Column="0"
+                                              ItemsSource="{Binding AvailablePrinters}"
+                                              SelectedItem="{Binding InvoicePrinterName}"
+                                              IsEnabled="{Binding IsEditMode}"
+                                              Height="40"
+                                              FontSize="14"
+                                              Padding="12,10"
+                                              Background="{DynamicResource CardBackground}"
+                                              BorderBrush="{DynamicResource BorderLight}"
+                                              BorderThickness="1"
+                                              Margin="0,0,10,0"/>
+                                    <Button Grid.Column="1"
+                                            Content="🔍 Test"
+                                            Command="{Binding TestInvoicePrinterCommand}"
+                                            Background="{DynamicResource Primary}"
+                                            Foreground="White"
+                                            BorderThickness="0"
+                                            Padding="15,10"
+                                            FontSize="12"
+                                            Cursor="Hand"
+                                            Height="40">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}"
+                                                        CornerRadius="6"
+                                                        Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Normal Printer -->
+                            <StackPanel Grid.Row="0" Grid.Column="1" Margin="15,0,0,15">
+                                <TextBlock Text="Normal Printer"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox Grid.Column="0"
+                                              ItemsSource="{Binding AvailablePrinters}"
+                                              SelectedItem="{Binding NormalPrinterName}"
+                                              IsEnabled="{Binding IsEditMode}"
+                                              Height="40"
+                                              FontSize="14"
+                                              Padding="12,10"
+                                              Background="{DynamicResource CardBackground}"
+                                              BorderBrush="{DynamicResource BorderLight}"
+                                              BorderThickness="1"
+                                              Margin="0,0,10,0"/>
+                                    <Button Grid.Column="1"
+                                            Content="🔍 Test"
+                                            Command="{Binding TestNormalPrinterCommand}"
+                                            Background="{DynamicResource Primary}"
+                                            Foreground="White"
+                                            BorderThickness="0"
+                                            Padding="15,10"
+                                            FontSize="12"
+                                            Cursor="Hand"
+                                            Height="40">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}"
+                                                        CornerRadius="6"
+                                                        Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Barcode Printer -->
+                            <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,15,15">
+                                <TextBlock Text="Barcode Printer"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox Grid.Column="0"
+                                              ItemsSource="{Binding AvailablePrinters}"
+                                              SelectedItem="{Binding BarcodePrinterName}"
+                                              IsEnabled="{Binding IsEditMode}"
+                                              Height="40"
+                                              FontSize="14"
+                                              Padding="12,10"
+                                              Background="{DynamicResource CardBackground}"
+                                              BorderBrush="{DynamicResource BorderLight}"
+                                              BorderThickness="1"
+                                              Margin="0,0,10,0"/>
+                                    <Button Grid.Column="1"
+                                            Content="🔍 Test"
+                                            Command="{Binding TestBarcodePrinterCommand}"
+                                            Background="{DynamicResource Primary}"
+                                            Foreground="White"
+                                            BorderThickness="0"
+                                            Padding="15,10"
+                                            FontSize="12"
+                                            Cursor="Hand"
+                                            Height="40">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}"
+                                                        CornerRadius="6"
+                                                        Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Legacy Hardware Count Fields (Read-only) -->
+                            <StackPanel Grid.Row="1" Grid.Column="1" Margin="15,0,0,15">
+                                <TextBlock Text="Legacy Hardware Count"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <TextBox Text="{Binding InvoicePrinters, StringFormat='Invoice: {0}'}"
+                                         Height="40"
+                                         IsReadOnly="True"
+                                         Style="{StaticResource ReadOnlyTextBoxStyle}"/>
+                            </StackPanel>
+
+                            <!-- Barcode Scanner Port -->
+                            <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,15,0">
+                                <TextBlock Text="Barcode Scanner Port"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <TextBox Text="{Binding BarcodeScannerPort}"
+                                         Height="40"
+                                         IsReadOnly="{Binding IsEditMode, Converter={StaticResource InverseBoolConverter}}"
+                                         ToolTip="e.g., COM1, COM3, etc.">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox" BasedOn="{StaticResource ReadOnlyTextBoxStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                    <Setter Property="IsReadOnly" Value="False"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                            </StackPanel>
+
+                            <!-- Weighing Machine Port -->
+                            <StackPanel Grid.Row="2" Grid.Column="1" Margin="15,0,0,0">
+                                <TextBlock Text="Weighing Machine Port"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Margin="0,0,0,8"/>
+                                <TextBox Text="{Binding WeighingMachinePort}"
+                                         Height="40"
+                                         IsReadOnly="{Binding IsEditMode, Converter={StaticResource InverseBoolConverter}}"
+                                         ToolTip="e.g., COM1, COM3, etc.">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox" BasedOn="{StaticResource ReadOnlyTextBoxStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                    <Setter Property="IsReadOnly" Value="False"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

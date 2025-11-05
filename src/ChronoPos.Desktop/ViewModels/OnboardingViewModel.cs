@@ -9,6 +9,8 @@ using Microsoft.Win32;
 using ChronoPos.Desktop.Models.Licensing;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Application.Logging;
+using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.DTOs;
 
 namespace ChronoPos.Desktop.ViewModels
 {
@@ -18,6 +20,8 @@ namespace ChronoPos.Desktop.ViewModels
         private readonly IHostDiscoveryService _hostDiscoveryService;
         private readonly ICameraService _cameraService;
         private readonly IActiveCurrencyService _activeCurrencyService;
+        private readonly ICompanyService _companyService;
+        private int? _existingCompanyId = null;
 
         [ObservableProperty]
         private int _currentStep = 0; // 0 = Welcome, 1-6 = Steps
@@ -135,14 +139,50 @@ namespace ChronoPos.Desktop.ViewModels
             ILicensingService licensingService,
             IHostDiscoveryService hostDiscoveryService,
             ICameraService cameraService,
-            IActiveCurrencyService activeCurrencyService)
+            IActiveCurrencyService activeCurrencyService,
+            ICompanyService companyService)
         {
             _licensingService = licensingService;
             _hostDiscoveryService = hostDiscoveryService;
             _cameraService = cameraService;
             _activeCurrencyService = activeCurrencyService;
+            _companyService = companyService;
 
             IsCameraAvailable = _cameraService.IsCameraAvailable();
+            
+            // Load existing company if present
+            _ = LoadExistingCompanyAsync();
+        }
+
+        /// <summary>
+        /// Load existing company data to prefill business information
+        /// </summary>
+        private async Task LoadExistingCompanyAsync()
+        {
+            try
+            {
+                var companies = await _companyService.GetAllAsync();
+                var existingCompany = companies.FirstOrDefault(c => c.Status);
+                
+                if (existingCompany != null)
+                {
+                    _existingCompanyId = existingCompany.Id;
+                    
+                    // Prefill the form with existing company data
+                    BusinessName = existingCompany.CompanyName ?? string.Empty;
+                    TradeLicenseNumber = existingCompany.LicenseNumber ?? string.Empty;
+                    VatNumber = existingCompany.VatTrnNumber ?? string.Empty;
+                    Phone = existingCompany.PhoneNo ?? string.Empty;
+                    Email = existingCompany.EmailOfBusiness ?? string.Empty;
+                    SupportPerson = existingCompany.KeyContactName ?? string.Empty;
+                    
+                    AppLogger.LogInfo($"[ONBOARDING] Loaded existing company: {existingCompany.CompanyName}", filename: "onboarding");
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogError($"[ONBOARDING] Error loading existing company: {ex.Message}", filename: "onboarding");
+            }
         }
 
         [RelayCommand]
@@ -405,6 +445,9 @@ namespace ChronoPos.Desktop.ViewModels
 
             try
             {
+                // Create or update company record
+                await CreateOrUpdateCompanyAsync();
+
                 var fingerprint = MachineFingerprint.Generate();
 
                 var salesKeyInfo = new SalesKeyInfo
@@ -445,11 +488,83 @@ namespace ChronoPos.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Error generating sales key: {ex.Message}";
+                var errorMessage = ex.Message;
+                if (ex.InnerException != null)
+                {
+                    errorMessage = ex.InnerException.Message;
+                    if (ex.InnerException.InnerException != null)
+                    {
+                        errorMessage = ex.InnerException.InnerException.Message;
+                    }
+                }
+                
+                ErrorMessage = $"Error generating sales key: {errorMessage}";
+                AppLogger.LogError($"[ONBOARDING] Error generating sales key: {ex.Message}\nInner: {ex.InnerException?.Message}\nStack: {ex.StackTrace}", filename: "onboarding");
             }
             finally
             {
                 IsLoading = false;
+            }
+        }
+
+        /// <summary>
+        /// Create new company or update existing company with business information
+        /// </summary>
+        private async Task CreateOrUpdateCompanyAsync()
+        {
+            try
+            {
+                if (_existingCompanyId.HasValue)
+                {
+                    // Update existing company
+                    var updateDto = new UpdateCompanyDto
+                    {
+                        CompanyName = BusinessName,
+                        LicenseNumber = TradeLicenseNumber,
+                        VatTrnNumber = VatNumber,
+                        PhoneNo = Phone,
+                        EmailOfBusiness = Email,
+                        KeyContactName = SupportPerson,
+                        Status = true
+                    };
+
+                    await _companyService.UpdateAsync(_existingCompanyId.Value, updateDto, "System"); // System user during setup
+                    AppLogger.LogInfo($"[ONBOARDING] Updated existing company: {BusinessName}", filename: "onboarding");
+                }
+                else
+                {
+                    // Create new company
+                    var createDto = new CreateCompanyDto
+                    {
+                        CompanyName = BusinessName,
+                        LicenseNumber = TradeLicenseNumber,
+                        VatTrnNumber = VatNumber,
+                        PhoneNo = Phone,
+                        EmailOfBusiness = Email,
+                        KeyContactName = SupportPerson,
+                        Status = true
+                    };
+
+                    var newCompany = await _companyService.CreateAsync(createDto, "System"); // System user during setup
+                    _existingCompanyId = newCompany.Id;
+                    AppLogger.LogInfo($"[ONBOARDING] Created new company: {BusinessName}", filename: "onboarding");
+                }
+            }
+            catch (Exception ex)
+            {
+                var errorDetails = $"Error: {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorDetails += $"\nInner Exception: {ex.InnerException.Message}";
+                    if (ex.InnerException.InnerException != null)
+                    {
+                        errorDetails += $"\nInner Inner Exception: {ex.InnerException.InnerException.Message}";
+                    }
+                }
+                errorDetails += $"\nStack Trace: {ex.StackTrace}";
+                
+                AppLogger.LogError($"[ONBOARDING] Error creating/updating company: {errorDetails}", filename: "onboarding");
+                throw; // Re-throw to be caught by GenerateSalesKey
             }
         }
 

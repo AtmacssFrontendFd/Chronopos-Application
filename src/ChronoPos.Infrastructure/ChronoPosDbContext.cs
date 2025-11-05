@@ -37,6 +37,10 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.ProductImage> ProductImages { get; set; }
     public DbSet<Domain.Entities.Currency> Currencies { get; set; }
     
+    // Company management entities
+    public DbSet<Domain.Entities.Company> Companies { get; set; }
+    public DbSet<Domain.Entities.CompanySettings> CompanySettings { get; set; }
+    
     // Stock management entities
     public DbSet<Domain.Entities.StockTransaction> StockTransactions { get; set; }
     public DbSet<Domain.Entities.StockAlert> StockAlerts { get; set; }
@@ -348,6 +352,91 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
 
             // Unique constraint on currency code
             entity.HasIndex(e => e.CurrencyCode).IsUnique();
+        });
+
+        // Configure Company entity
+        modelBuilder.Entity<Domain.Entities.Company>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CompanyName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.LogoPath).HasMaxLength(500);
+            entity.Property(e => e.LicenseNumber).HasMaxLength(100);
+            entity.Property(e => e.NumberOfOwners).HasDefaultValue(1);
+            entity.Property(e => e.VatTrnNumber).HasMaxLength(100);
+            entity.Property(e => e.PhoneNo).HasMaxLength(20);
+            entity.Property(e => e.EmailOfBusiness).HasMaxLength(100);
+            entity.Property(e => e.Website).HasMaxLength(200);
+            entity.Property(e => e.KeyContactName).HasMaxLength(100);
+            entity.Property(e => e.KeyContactMobNo).HasMaxLength(20);
+            entity.Property(e => e.KeyContactEmail).HasMaxLength(100);
+            entity.Property(e => e.LocationLatitude).HasMaxLength(50);
+            entity.Property(e => e.LocationLongitude).HasMaxLength(50);
+            entity.Property(e => e.Remarks).HasMaxLength(500);
+            entity.Property(e => e.Status).HasDefaultValue(true);
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.DeletedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Unique constraint on company name
+            entity.HasIndex(e => e.CompanyName).IsUnique();
+        });
+
+        // Configure CompanySettings entity
+        modelBuilder.Entity<Domain.Entities.CompanySettings>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.PrimaryColor).HasMaxLength(20);
+            entity.Property(e => e.SecondaryColor).HasMaxLength(20);
+            entity.Property(e => e.ClientBackupFrequency).HasMaxLength(50);
+            entity.Property(e => e.AtmacssBackupFrequency).HasMaxLength(50);
+            entity.Property(e => e.RefundType).HasMaxLength(50);
+            entity.Property(e => e.AllowReturnCash).HasDefaultValue(false);
+            entity.Property(e => e.AllowCreditNote).HasDefaultValue(false);
+            entity.Property(e => e.AllowExchangeTransaction).HasDefaultValue(false);
+            entity.Property(e => e.HasSkuFormat).HasDefaultValue(false);
+            entity.Property(e => e.HasInvoiceFormat).HasDefaultValue(false);
+            entity.Property(e => e.CompanySubscriptionType).HasMaxLength(50);
+            entity.Property(e => e.NumberOfUsers).HasDefaultValue(1);
+            entity.Property(e => e.SellingType).HasMaxLength(50);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Foreign key relationship with Company
+            entity.HasOne(cs => cs.Company)
+                  .WithMany(c => c.CompanySettings)
+                  .HasForeignKey(cs => cs.CompanyId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Foreign key relationship with Currency
+            entity.HasOne(cs => cs.Currency)
+                  .WithMany()
+                  .HasForeignKey(cs => cs.CurrencyId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Foreign key relationship with Language
+            entity.HasOne(cs => cs.InvoiceDefaultLanguage)
+                  .WithMany()
+                  .HasForeignKey(cs => cs.InvoiceDefaultLanguageId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Foreign key relationships with User
+            entity.HasOne(cs => cs.Creator)
+                  .WithMany()
+                  .HasForeignKey(cs => cs.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(cs => cs.Updater)
+                  .WithMany()
+                  .HasForeignKey(cs => cs.UpdatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(cs => cs.Deleter)
+                  .WithMany()
+                  .HasForeignKey(cs => cs.DeletedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Configure ProductImage entity

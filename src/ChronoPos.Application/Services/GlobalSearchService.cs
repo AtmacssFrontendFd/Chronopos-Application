@@ -31,35 +31,41 @@ public class GlobalSearchService : IGlobalSearchService
 
         var tasks = new List<Task<List<GlobalSearchResultDto>>>();
 
+        // For quick searches, give each category enough results
+        // For full searches, divide evenly
+        int perModuleLimit = filter.MaxResults > 10 
+            ? filter.MaxResults / 8  // Full search: divide evenly
+            : filter.MaxResults;      // Quick search: let each module return up to max, then sort and limit
+
         // Search in different modules based on filter
         if (filter.IncludeProducts)
-            tasks.Add(SearchProductsAsync(filter.Query, filter.MaxResults / 8));
+            tasks.Add(SearchProductsAsync(filter.Query, perModuleLimit));
 
         if (filter.IncludeCustomers)
-            tasks.Add(SearchCustomersAsync(filter.Query, filter.MaxResults / 8));
+            tasks.Add(SearchCustomersAsync(filter.Query, perModuleLimit));
 
         if (filter.IncludeSales)
-            tasks.Add(SearchSalesAsync(filter.Query, filter.MaxResults / 8));
+            tasks.Add(SearchSalesAsync(filter.Query, perModuleLimit));
 
         if (filter.IncludeStock)
-            tasks.Add(SearchStockAsync(filter.Query, filter.MaxResults / 8));
+            tasks.Add(SearchStockAsync(filter.Query, perModuleLimit));
 
         if (filter.IncludeBrands)
-            tasks.Add(SearchBrandsAsync(filter.Query, filter.MaxResults / 8));
+            tasks.Add(SearchBrandsAsync(filter.Query, perModuleLimit));
 
         if (filter.IncludeCategories)
-            tasks.Add(SearchCategoriesAsync(filter.Query, filter.MaxResults / 8));
+            tasks.Add(SearchCategoriesAsync(filter.Query, perModuleLimit));
 
         // Add Suppliers and Transactions
-        tasks.Add(SearchSuppliersAsync(filter.Query, filter.MaxResults / 8));
-        tasks.Add(SearchTransactionsAsync(filter.Query, filter.MaxResults / 8));
+        tasks.Add(SearchSuppliersAsync(filter.Query, perModuleLimit));
+        tasks.Add(SearchTransactionsAsync(filter.Query, perModuleLimit));
         
         // Add Pages/Screens and Features
         if (filter.IncludePages)
-            tasks.Add(Task.FromResult(SearchPagesAsync(filter.Query, filter.MaxResults / 8)));
+            tasks.Add(Task.FromResult(SearchPagesAsync(filter.Query, perModuleLimit)));
         
         if (filter.IncludeFeatures)
-            tasks.Add(Task.FromResult(SearchFeaturesAsync(filter.Query, filter.MaxResults / 8)));
+            tasks.Add(Task.FromResult(SearchFeaturesAsync(filter.Query, perModuleLimit)));
 
         var results = await Task.WhenAll(tasks);
 
@@ -131,7 +137,7 @@ public class GlobalSearchService : IGlobalSearchService
         return suggestions.Take(maxSuggestions).ToList();
     }
 
-    public async Task<List<GlobalSearchResultDto>> GetQuickSearchAsync(string query, int maxResults = 5)
+    public async Task<List<GlobalSearchResultDto>> GetQuickSearchAsync(string query, int maxResults = 10)
     {
         var filter = new GlobalSearchFilterDto
         {
@@ -157,14 +163,19 @@ public class GlobalSearchService : IGlobalSearchService
 
         try
         {
+            // Convert query to lowercase for case-insensitive search
+            var lowerQuery = query.ToLower();
+
             var products = await _context.Products
                 .Include(p => p.Brand)
                 .Include(p => p.Category)
                 .Include(p => p.ProductImages)
-                .Where(p => p.Name.Contains(query) || 
-                           (p.Description != null && p.Description.Contains(query)) ||
-                           (p.Code != null && p.Code.Contains(query)) ||
-                           (p.Brand != null && p.Brand.Name.Contains(query)))
+                .Include(p => p.ProductBarcodes)
+                .Where(p => p.Name.ToLower().Contains(lowerQuery) || 
+                           (p.Description != null && p.Description.ToLower().Contains(lowerQuery)) ||
+                           (p.Code != null && p.Code.ToLower().Contains(lowerQuery)) ||
+                           (p.Brand != null && p.Brand.Name.ToLower().Contains(lowerQuery)) ||
+                           p.ProductBarcodes.Any(pb => pb.Barcode.ToLower().Contains(lowerQuery)))
                 .Take(maxResults)
                 .ToListAsync();
 
@@ -199,10 +210,13 @@ public class GlobalSearchService : IGlobalSearchService
 
         try
         {
+            // Convert query to lowercase for case-insensitive search
+            var lowerQuery = query.ToLower();
+
             var customers = await _context.Customers
-                .Where(c => c.CustomerFullName.Contains(query) || 
-                           c.BusinessFullName.Contains(query) ||
-                           c.OfficialEmail.Contains(query) ||
+                .Where(c => c.CustomerFullName.ToLower().Contains(lowerQuery) || 
+                           c.BusinessFullName.ToLower().Contains(lowerQuery) ||
+                           c.OfficialEmail.ToLower().Contains(lowerQuery) ||
                            c.MobileNo.Contains(query))
                 .Take(maxResults)
                 .ToListAsync();
@@ -315,9 +329,12 @@ public class GlobalSearchService : IGlobalSearchService
 
         try
         {
+            // Convert query to lowercase for case-insensitive search
+            var lowerQuery = query.ToLower();
+
             var brands = await _context.Brands
-                .Where(b => b.Name.Contains(query) || 
-                           (b.Description != null && b.Description.Contains(query)))
+                .Where(b => b.Name.ToLower().Contains(lowerQuery) || 
+                           (b.Description != null && b.Description.ToLower().Contains(lowerQuery)))
                 .Take(maxResults)
                 .ToListAsync();
 
@@ -350,9 +367,12 @@ public class GlobalSearchService : IGlobalSearchService
 
         try
         {
+            // Convert query to lowercase for case-insensitive search
+            var lowerQuery = query.ToLower();
+
             var categories = await _context.Categories
-                .Where(c => c.Name.Contains(query) || 
-                           c.Description.Contains(query))
+                .Where(c => c.Name.ToLower().Contains(lowerQuery) || 
+                           c.Description.ToLower().Contains(lowerQuery))
                 .Take(maxResults)
                 .ToListAsync();
 
@@ -424,10 +444,13 @@ public class GlobalSearchService : IGlobalSearchService
 
         try
         {
+            // Convert query to lowercase for case-insensitive search
+            var lowerQuery = query.ToLower();
+
             var suppliers = await _context.Suppliers
-                .Where(s => s.CompanyName.Contains(query) || 
-                           (s.KeyContactName != null && s.KeyContactName.Contains(query)) ||
-                           (s.Email != null && s.Email.Contains(query)) ||
+                .Where(s => s.CompanyName.ToLower().Contains(lowerQuery) || 
+                           (s.KeyContactName != null && s.KeyContactName.ToLower().Contains(lowerQuery)) ||
+                           (s.Email != null && s.Email.ToLower().Contains(lowerQuery)) ||
                            (s.Mobile != null && s.Mobile.Contains(query)))
                 .Take(maxResults)
                 .ToListAsync();

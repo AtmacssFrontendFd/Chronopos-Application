@@ -1185,11 +1185,12 @@ public partial class AddSalesViewModel : ObservableObject
             var shiftId = 1;
             AppLogger.Log($"SaveTransaction: Using hardcoded shift ID = {shiftId}");
 
-            // Calculate totals
-            var totalAmount = CartItems.Sum(x => x.TotalPrice);
-            var totalVat = totalAmount * (TaxPercentage / 100);
+            // Calculate totals - use the complete net total from cart
+            var subtotalAmount = CartItems.Sum(x => x.TotalPrice); // Product subtotal only
+            var totalVat = TaxAmount; // Use calculated tax from cart
+            var netTotalAmount = Total; // Complete net total: Subtotal + Tax + ServiceCharge - Discount
             
-            AppLogger.Log($"SaveTransaction: Total Amount = {totalAmount}, Total VAT = {totalVat}");
+            AppLogger.Log($"SaveTransaction: Subtotal = {subtotalAmount}, Total VAT = {totalVat}, Net Total = {netTotalAmount}");
             AppLogger.Log($"SaveTransaction: Cart items count = {CartItems.Count}");
 
             // For now, always create new transaction
@@ -1210,7 +1211,7 @@ public partial class AddSalesViewModel : ObservableObject
                     TableId = SelectedTable?.Id,
                     ReservationId = SelectedReservation?.Id,
                     SellingTime = DateTime.Now,
-                    TotalAmount = totalAmount,
+                    TotalAmount = netTotalAmount, // Save complete net total including service charge and discount
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
@@ -2334,7 +2335,7 @@ public partial class AddSalesViewModel : ObservableObject
                         Icon = "🍽️",
                         UnitPrice = transactionProduct.SellingPrice,
                         Quantity = (int)transactionProduct.Quantity,
-                        TotalPrice = transactionProduct.LineTotal,
+                        TotalPrice = transactionProduct.SellingPrice * transactionProduct.Quantity, // Use base price without tax
                         // Store the modifiers for future reference
                         SelectedModifiers = transactionProduct.Modifiers?.Select(m => new ProductModifierGroupItemDto
                         {
@@ -2473,7 +2474,7 @@ public partial class AddSalesViewModel : ObservableObject
                         Icon = "🍽️",
                         UnitPrice = transactionProduct.SellingPrice,
                         Quantity = (int)transactionProduct.Quantity,
-                        TotalPrice = transactionProduct.LineTotal,
+                        TotalPrice = transactionProduct.SellingPrice * transactionProduct.Quantity, // Use base price without tax
                         SelectedModifiers = transactionProduct.Modifiers?.Select(m => new ProductModifierGroupItemDto
                         {
                             Id = m.Id,
@@ -2622,14 +2623,17 @@ public partial class AddSalesViewModel : ObservableObject
             }
 
             var shiftId = 1;
-            var totalAmount = CartItems.Sum(x => x.TotalPrice);
-            var totalVat = totalAmount * (TaxPercentage / 100);
+            
+            // Calculate totals - use the complete net total from cart
+            var subtotalAmount = CartItems.Sum(x => x.TotalPrice); // Product subtotal only
+            var totalVat = TaxAmount; // Use calculated tax from cart
+            var netTotalAmount = Total; // Complete net total: Subtotal + Tax + ServiceCharge - Discount
             
             // Get customer balance
             decimal customerBalanceAmount = SelectedCustomer?.CustomerBalanceAmount ?? 0m;
             
             // Calculate bill total considering customer balance
-            decimal billTotal = totalAmount + customerBalanceAmount;
+            decimal billTotal = netTotalAmount + customerBalanceAmount;
 
             if (CurrentTransactionId > 0)
             {
@@ -2660,7 +2664,7 @@ public partial class AddSalesViewModel : ObservableObject
                     CustomerId = SelectedCustomer?.Id,
                     TableId = SelectedTable?.Id,
                     SellingTime = DateTime.Now,
-                    TotalAmount = totalAmount,
+                    TotalAmount = netTotalAmount, // Save complete net total including service charge and discount
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
@@ -2749,8 +2753,11 @@ public partial class AddSalesViewModel : ObservableObject
             }
 
             var shiftId = 1;
-            var totalAmount = CartItems.Sum(x => x.TotalPrice);
-            var totalVat = totalAmount * (TaxPercentage / 100);
+            
+            // Calculate totals - use the complete net total from cart
+            var subtotalAmount = CartItems.Sum(x => x.TotalPrice); // Product subtotal only
+            var totalVat = TaxAmount; // Use calculated tax from cart
+            var netTotalAmount = Total; // Complete net total: Subtotal + Tax + ServiceCharge - Discount
             
             // Get customer balance
             decimal customerBalanceAmount = SelectedCustomer?.CustomerBalanceAmount ?? 0m;
@@ -2758,7 +2765,7 @@ public partial class AddSalesViewModel : ObservableObject
             // Calculate bill total considering customer balance
             // If customer has pending dues (positive balance), add to bill
             // If customer has credit (negative balance), deduct from bill
-            decimal billTotal = totalAmount + customerBalanceAmount;
+            decimal billTotal = netTotalAmount + customerBalanceAmount;
 
             if (CurrentTransactionId > 0)
             {
@@ -2768,7 +2775,7 @@ public partial class AddSalesViewModel : ObservableObject
                     CustomerId = SelectedCustomer.Id,
                     TableId = SelectedTable?.Id,
                     ReservationId = SelectedReservation?.Id,
-                    TotalAmount = totalAmount,
+                    TotalAmount = netTotalAmount, // Save complete net total including service charge and discount
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
@@ -2820,7 +2827,7 @@ public partial class AddSalesViewModel : ObservableObject
                     TableId = SelectedTable?.Id,
                     ReservationId = SelectedReservation?.Id,
                     SellingTime = DateTime.Now,
-                    TotalAmount = totalAmount,
+                    TotalAmount = netTotalAmount, // Save complete net total including service charge and discount
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
@@ -2917,8 +2924,11 @@ public partial class AddSalesViewModel : ObservableObject
             }
 
             var shiftId = 1;
-            var totalAmount = CartItems.Sum(x => x.TotalPrice);
-            var totalVat = totalAmount * (TaxPercentage / 100);
+            
+            // Calculate totals - use the complete net total from cart
+            var subtotalAmount = CartItems.Sum(x => x.TotalPrice); // Product subtotal only
+            var totalVat = TaxAmount; // Use calculated tax from cart
+            var netTotalAmount = Total; // Complete net total: Subtotal + Tax + ServiceCharge - Discount
 
             if (CurrentTransactionId > 0)
             {
@@ -2941,7 +2951,7 @@ public partial class AddSalesViewModel : ObservableObject
                     TableId = SelectedTable?.Id,
                     ReservationId = SelectedReservation?.Id,
                     SellingTime = DateTime.Now,
-                    TotalAmount = totalAmount,
+                    TotalAmount = netTotalAmount, // Save complete net total including service charge and discount
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
@@ -3000,8 +3010,14 @@ public partial class AddSalesViewModel : ObservableObject
             }
 
             var shiftId = 1;
-            var totalAmount = CartItems.Sum(x => x.TotalPrice);
-            var totalVat = totalAmount * (TaxPercentage / 100);
+            
+            // Use the current cart Total which includes tax, service charge, and discount
+            // This is the actual net total amount shown in the cart UI
+            var saleAmount = Total; // Net total from cart (Subtotal + Tax + ServiceCharge - Discount)
+            
+            // For saving to database, we still need to break down the components
+            var totalAmount = CartItems.Sum(x => x.TotalPrice); // Subtotal (products only)
+            var totalVat = TaxAmount; // Use calculated tax amount from cart
             
             // Get customer balance
             decimal customerBalanceAmount = SelectedCustomer?.CustomerBalanceAmount ?? 0m;
@@ -3009,7 +3025,7 @@ public partial class AddSalesViewModel : ObservableObject
             // Calculate bill total considering customer balance
             // If customer has pending dues (positive balance), add to bill
             // If customer has credit (negative balance), deduct from bill
-            decimal billTotal = totalAmount + customerBalanceAmount;
+            decimal billTotal = saleAmount + customerBalanceAmount;
             
             // For existing transactions with partial/pending payment, get the remaining amount and status
             decimal alreadyPaid = 0m;
@@ -3094,8 +3110,8 @@ public partial class AddSalesViewModel : ObservableObject
                         if (existingStatus == "partial_payment")
                         {
                                 // Show customer pending as bill total and transaction remaining
-                                var alreadyPaidFromSale = totalAmount - existingAmountCreditRemaining;
-                                totalLabel.Text = $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
+                                var alreadyPaidFromSale = saleAmount - existingAmountCreditRemaining;
+                                totalLabel.Text = $"Sale Amount: ${saleAmount:N2}{balanceInfo}\n" +
                                                                     $"Customer Pending: ${customerBalanceAmount:N2}\n" +
                                                                     $"Remaining Amount of Transaction: ${existingAmountCreditRemaining:N2}\n" +
                                                                     $"Already Paid: ${alreadyPaidFromSale:N2}";
@@ -3103,10 +3119,10 @@ public partial class AddSalesViewModel : ObservableObject
                         else
                         {
                                 totalLabel.Text = alreadyPaid > 0 
-                                        ? $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
+                                        ? $"Sale Amount: ${saleAmount:N2}{balanceInfo}\n" +
                                             $"Bill Total: ${billTotal:N2}\n" +
                                             $"Remaining: ${remainingAmount:N2}\n(Already Paid: ${alreadyPaid:N2})"
-                                        : $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
+                                        : $"Sale Amount: ${saleAmount:N2}{balanceInfo}\n" +
                                             $"Bill Total: ${billTotal:N2}";
                         }
             
@@ -3313,7 +3329,7 @@ public partial class AddSalesViewModel : ObservableObject
                             CustomerId = SelectedCustomer?.Id,
                             TableId = SelectedTable?.Id,
                             ReservationId = SelectedReservation?.Id,
-                            TotalAmount = totalAmount,
+                            TotalAmount = saleAmount, // Save complete net total including service charge and discount
                             TotalVat = totalVat,
                             TotalDiscount = DiscountAmount,
                             AmountPaidCash = totalPaidNow, // Total amount paid so far
@@ -3395,7 +3411,7 @@ public partial class AddSalesViewModel : ObservableObject
                             TableId = SelectedTable?.Id,
                             ReservationId = SelectedReservation?.Id,
                             SellingTime = DateTime.Now,
-                            TotalAmount = totalAmount,
+                            TotalAmount = saleAmount, // Save complete net total including service charge and discount
                             TotalVat = totalVat,
                             TotalDiscount = DiscountAmount,
                             AmountPaidCash = paidAmount,

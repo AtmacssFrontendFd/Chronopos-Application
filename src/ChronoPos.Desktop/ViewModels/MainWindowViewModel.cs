@@ -29,7 +29,13 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly ICurrentUserService _currentUserService;
     private readonly IProductBarcodeRepository _productBarcodeRepository;
     private readonly IActiveCurrencyService _activeCurrencyService;
+    private readonly GlobalSearchBarViewModel _globalSearchBarViewModel;
     private System.Timers.Timer? _searchDelayTimer;
+
+    /// <summary>
+    /// Gets the GlobalSearchBarViewModel for the search bar
+    /// </summary>
+    public GlobalSearchBarViewModel GlobalSearchBarViewModel => _globalSearchBarViewModel;
 
     [ObservableProperty]
     private string currentPageTitle = "Dashboard";
@@ -152,15 +158,24 @@ public partial class MainWindowViewModel : ObservableObject
     public ICommand ChangeLanguageCommand { get; }
     public ICommand ToggleLanguageCommand { get; }
 
-    public MainWindowViewModel(IProductService productService, IServiceProvider serviceProvider, IProductBarcodeRepository productBarcodeRepository)
+    public MainWindowViewModel(
+        IProductService productService, 
+        IServiceProvider serviceProvider, 
+        IProductBarcodeRepository productBarcodeRepository,
+        GlobalSearchBarViewModel globalSearchBarViewModel)
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _productBarcodeRepository = productBarcodeRepository ?? throw new ArgumentNullException(nameof(productBarcodeRepository));
+        _globalSearchBarViewModel = globalSearchBarViewModel ?? throw new ArgumentNullException(nameof(globalSearchBarViewModel));
         _databaseLocalizationService = serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
         _globalSearchService = serviceProvider.GetRequiredService<IGlobalSearchService>();
         _currentUserService = serviceProvider.GetRequiredService<ICurrentUserService>();
         _activeCurrencyService = serviceProvider.GetRequiredService<IActiveCurrencyService>();
+        
+        // Wire up GlobalSearchBar navigation events
+        _globalSearchBarViewModel.NavigateToResult += OnNavigateToSearchResult;
+        _globalSearchBarViewModel.ShowAllResults += OnShowAllSearchResults;
         
         // Load current logged-in user name
         var currentUserDto = _currentUserService.CurrentUser;
@@ -1861,6 +1876,86 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Opens the customer management screen with the customer edit side panel visible
+    /// </summary>
+    [RelayCommand]
+    private async Task ShowEditCustomer(CustomerDto customer)
+    {
+        CurrentPageTitle = "Edit Customer";
+        StatusMessage = $"Loading customer: {customer.DisplayName}...";
+        
+        try
+        {
+            // Navigate to Customers screen first
+            await ShowCustomers();
+            
+            // Wait for the view to load
+            await Task.Delay(100);
+            
+            // Now trigger the side panel to open with the customer
+            if (CurrentView is CustomersView customersView && 
+                customersView.DataContext is CustomersViewModel customersViewModel)
+            {
+                // Call the ShowEditCustomerSidePanelCommand to open the side panel
+                customersViewModel.ShowEditCustomerSidePanelCommand?.Execute(customer);
+                StatusMessage = $"Editing customer: {customer.DisplayName}";
+            }
+            else
+            {
+                StatusMessage = "Customer loaded - please select to edit";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading edit customer form: {ex.Message}";
+            AppLogger.LogError($"Error loading edit customer form", ex);
+            
+            // Fallback to customer management
+            await ShowCustomerManagement();
+        }
+    }
+
+    /// <summary>
+    /// Opens the supplier management screen with the supplier edit side panel visible
+    /// </summary>
+    [RelayCommand]
+    private async Task ShowEditSupplier(SupplierDto supplier)
+    {
+        CurrentPageTitle = "Edit Supplier";
+        StatusMessage = $"Loading supplier: {supplier.DisplayName}...";
+        
+        try
+        {
+            // Navigate to Suppliers screen first
+            await ShowSuppliers();
+            
+            // Wait for the view to load
+            await Task.Delay(100);
+            
+            // Now trigger the side panel to open with the supplier
+            if (CurrentView is SuppliersView suppliersView && 
+                suppliersView.DataContext is SuppliersViewModel suppliersViewModel)
+            {
+                // Call the EditSupplierCommand to open the side panel
+                suppliersViewModel.EditSupplierCommand?.Execute(supplier);
+                StatusMessage = $"Editing supplier: {supplier.DisplayName}";
+            }
+            else
+            {
+                StatusMessage = "Supplier loaded - please select to edit";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading edit supplier form: {ex.Message}";
+            AppLogger.LogError($"Error loading edit supplier form", ex);
+            
+            // Fallback to supplier management
+            await ShowSupplierManagement();
+        }
+    }
+
     [RelayCommand]
     private async Task ShowStockManagement(string? selectedSection = null)
     {
@@ -2818,6 +2913,64 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Opens Brand Management with specific brand selected for editing
+    /// </summary>
+    private async Task ShowEditBrand(BrandDto brandDto)
+    {
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.BRAND))
+        {
+            new MessageDialog(
+                "Access Denied",
+                "You don't have permission to access Brand Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
+            return;
+        }
+
+        CurrentPageTitle = "Brand Management";
+        StatusMessage = $"Loading brand: {brandDto.Name}...";
+        
+        try
+        {
+            // Create the BrandViewModel with all required services and navigation callback
+            var brandViewModel = new BrandViewModel(
+                _serviceProvider.GetRequiredService<IBrandService>(),
+                _currentUserService,
+                navigateBack: () => ShowAddOptionsCommand.Execute(null)
+            );
+
+            // Create the BrandView and set its DataContext
+            var brandView = new BrandView
+            {
+                DataContext = brandViewModel
+            };
+
+            CurrentView = brandView;
+            
+            // Wait for the view to load
+            await Task.Delay(100);
+            
+            // Trigger the edit panel with the brand
+            brandViewModel.EditBrandCommand.Execute(brandDto);
+            
+            StatusMessage = $"Editing brand: {brandDto.Name}";
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"Error loading brand for edit", ex);
+            StatusMessage = $"Error loading brand: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
     private async Task ShowCurrency()
     {
         // Check permission using UMAC - Allow if user has ANY permission
@@ -2970,6 +3123,71 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error loading category management: {ex.Message}";
+            var errorContent = new System.Windows.Controls.TextBlock
+            {
+                Text = $"Error: {ex.Message}",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                FontSize = 16
+            };
+            CurrentView = errorContent;
+        }
+    }
+
+    /// <summary>
+    /// Opens Category Management with specific category selected for editing
+    /// </summary>
+    private async Task ShowEditCategory(CategoryDto categoryDto)
+    {
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.CATEGORY))
+        {
+            new MessageDialog(
+                "Access Denied",
+                "You don't have permission to access Category Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
+            return;
+        }
+
+        CurrentPageTitle = "Category Management";
+        StatusMessage = $"Loading category: {categoryDto.Name}...";
+        
+        try
+        {
+            // Create the CategoryViewModel with all required services and navigation callback
+            var categoryViewModel = new CategoryViewModel(
+                _serviceProvider.GetRequiredService<IProductService>(),
+                _serviceProvider.GetRequiredService<IDiscountService>(),
+                _serviceProvider,
+                _serviceProvider.GetRequiredService<ILogger<CategoryViewModel>>(),
+                _currentUserService,
+                navigateBack: () => ShowAddOptionsCommand.Execute(null)
+            );
+
+            // Create the CategoryView and set its DataContext
+            var categoryView = new CategoryView
+            {
+                DataContext = categoryViewModel
+            };
+
+            CurrentView = categoryView;
+            
+            // Wait for the view to load
+            await Task.Delay(100);
+            
+            // Create a CategoryHierarchyItem wrapper and trigger the edit panel
+            var categoryHierarchyItem = new CategoryHierarchyItem
+            {
+                Category = categoryDto
+            };
+            categoryViewModel.EditCategoryCommand.Execute(categoryHierarchyItem);
+            
+            StatusMessage = $"Editing category: {categoryDto.Name}";
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"Error loading category for edit", ex);
+            StatusMessage = $"Error loading category: {ex.Message}";
             var errorContent = new System.Windows.Controls.TextBlock
             {
                 Text = $"Error: {ex.Message}",
@@ -4066,85 +4284,307 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    private void NavigateToSearchResult(GlobalSearchResultDto result)
+    private async void NavigateToSearchResult(GlobalSearchResultDto result)
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"NavigateToSearchResult called - Type: {result.SearchType}, Title: {result.Title}");
+            System.Diagnostics.Debug.WriteLine($"NavigateToSearchResult called - Type: {result.SearchType}, Title: {result.Title}, Module: {result.Module}");
             
             // Clear search to hide results popup
             GlobalSearchQuery = string.Empty;
             
-            switch (result.SearchType.ToLowerInvariant())
+            var searchType = result.SearchType.ToLowerInvariant();
+            var module = result.Module.ToLowerInvariant();
+            
+            // First check if it's a page or feature navigation
+            if (searchType == "page")
             {
-                case "page":
-                    System.Diagnostics.Debug.WriteLine($"Navigating to page: {result.Data}");
-                    // Navigate to the page based on the page name
-                    NavigateToPage(result.Data?.ToString() ?? "");
-                    StatusMessage = $"Navigated to: {result.Title}";
-                    break;
-                
-                case "feature":
-                    System.Diagnostics.Debug.WriteLine($"Executing feature: {result.Data}");
-                    // Execute the feature/action
-                    ExecuteFeature(result.Data?.ToString() ?? "");
-                    StatusMessage = $"Executed: {result.Title}";
-                    break;
-                
+                System.Diagnostics.Debug.WriteLine($"Navigating to page: {result.Data}");
+                NavigateToPage(result.Data?.ToString() ?? "");
+                StatusMessage = $"Navigated to: {result.Title}";
+                return;
+            }
+            
+            if (searchType == "feature")
+            {
+                System.Diagnostics.Debug.WriteLine($"Executing feature: {result.Data}");
+                ExecuteFeature(result.Data?.ToString() ?? "");
+                StatusMessage = $"Executed: {result.Title}";
+                return;
+            }
+            
+            // Handle entity-specific navigation with edit screens
+            switch (searchType)
+            {
                 case "product":
-                    System.Diagnostics.Debug.WriteLine("Navigating to product");
-                    // Navigate to product management and highlight the product
-                    ShowProductManagement(); // Direct to product management
-                    StatusMessage = $"Navigated to product: {result.Title}";
+                    System.Diagnostics.Debug.WriteLine($"Opening product for edit: {result.Title}");
+                    // Open the AddProduct screen with prefilled product data
+                    try
+                    {
+                        ProductDto? productDto = null;
+                        
+                        if (result.Data is ProductDto dto)
+                        {
+                            productDto = dto;
+                        }
+                        else if (result.Data is Product product)
+                        {
+                            // Fetch complete product data from service using ID
+                            productDto = await _productService.GetProductByIdAsync(product.Id);
+                        }
+                        
+                        if (productDto != null)
+                        {
+                            await ShowEditProduct(productDto);
+                            StatusMessage = $"Editing product: {result.Title}";
+                        }
+                        else
+                        {
+                            // Fallback to product management if data not found
+                            ShowProductManagement();
+                            StatusMessage = $"Product not found - navigated to product management";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLogger.LogError($"Error loading product for edit", ex);
+                        ShowProductManagement();
+                        StatusMessage = $"Error loading product - navigated to product management";
+                    }
                     break;
                 
                 case "customer":
-                    System.Diagnostics.Debug.WriteLine("Navigating to customer");
-                    // Navigate to customer management
-                    _ = ShowCustomerManagement(); // Direct to customer management
-                    StatusMessage = $"Navigated to customer: {result.Title}";
+                    System.Diagnostics.Debug.WriteLine($"Opening customer for edit: {result.Title}");
+                    // Open the customer management screen with customer edit side panel
+                    try
+                    {
+                        CustomerDto? customerDto = null;
+                        
+                        if (result.Data is CustomerDto dto)
+                        {
+                            customerDto = dto;
+                        }
+                        else if (result.Data is Customer customer)
+                        {
+                            // Fetch complete customer data from service using ID
+                            var customerService = _serviceProvider.GetRequiredService<ICustomerService>();
+                            customerDto = await customerService.GetByIdAsync(customer.Id);
+                        }
+                        
+                        if (customerDto != null)
+                        {
+                            await ShowEditCustomer(customerDto);
+                            StatusMessage = $"Editing customer: {result.Title}";
+                        }
+                        else
+                        {
+                            // Fallback to customer management if data not found
+                            await ShowCustomerManagement();
+                            StatusMessage = $"Customer not found - navigated to customer management";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLogger.LogError($"Error loading customer for edit", ex);
+                        await ShowCustomerManagement();
+                        StatusMessage = $"Error loading customer - navigated to customer management";
+                    }
                     break;
                 
                 case "supplier":
-                    System.Diagnostics.Debug.WriteLine("Navigating to supplier");
-                    // Navigate to supplier management
-                    _ = ShowSupplierManagement(); // Direct to supplier management
-                    StatusMessage = $"Navigated to supplier: {result.Title}";
+                    System.Diagnostics.Debug.WriteLine($"Opening supplier for edit: {result.Title}");
+                    // Open the supplier management screen with supplier edit side panel
+                    try
+                    {
+                        SupplierDto? supplierDto = null;
+                        
+                        if (result.Data is SupplierDto dto)
+                        {
+                            supplierDto = dto;
+                        }
+                        else if (result.Data is Supplier supplier)
+                        {
+                            // Fetch complete supplier data from service using ID
+                            var supplierService = _serviceProvider.GetRequiredService<ISupplierService>();
+                            supplierDto = await supplierService.GetByIdAsync(supplier.SupplierId);
+                        }
+                        
+                        if (supplierDto != null)
+                        {
+                            await ShowEditSupplier(supplierDto);
+                            StatusMessage = $"Editing supplier: {result.Title}";
+                        }
+                        else
+                        {
+                            // Fallback to supplier management if data not found
+                            await ShowSupplierManagement();
+                            StatusMessage = $"Supplier not found - navigated to supplier management";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLogger.LogError($"Error loading supplier for edit", ex);
+                        await ShowSupplierManagement();
+                        StatusMessage = $"Error loading supplier - navigated to supplier management";
+                    }
                     break;
                 
                 case "sale":
                 case "transaction":
-                    System.Diagnostics.Debug.WriteLine("Navigating to transaction");
-                    // Navigate to sales/transactions
-                    _ = ShowTransaction();
-                    StatusMessage = $"Navigated to transaction: {result.Title}";
+                    System.Diagnostics.Debug.WriteLine($"Navigating to transaction: {result.Title}");
+                    // Navigate to transaction screen
+                    await ShowTransaction();
+                    StatusMessage = $"Navigated to transactions";
                     break;
                 
                 case "stockadjustment":
-                    System.Diagnostics.Debug.WriteLine("Navigating to stock adjustment");
+                    System.Diagnostics.Debug.WriteLine($"Navigating to stock adjustment: {result.Title}");
                     // Navigate to stock management
-                    _ = ShowStockManagement(); // Direct to stock management
-                    StatusMessage = $"Navigated to stock adjustment: {result.Title}";
+                    await ShowStockManagement("StockAdjustment");
+                    StatusMessage = $"Navigated to stock adjustments";
                     break;
                 
                 case "brand":
+                    System.Diagnostics.Debug.WriteLine($"Opening brand for edit: {result.Title}");
+                    // Open the brand management screen with brand edit side panel
+                    try
+                    {
+                        BrandDto? brandDto = null;
+                        
+                        if (result.Data is BrandDto dto)
+                        {
+                            brandDto = dto;
+                        }
+                        else if (result.Data is Brand brand)
+                        {
+                            // Fetch complete brand data from service using ID
+                            var brandService = _serviceProvider.GetRequiredService<IBrandService>();
+                            brandDto = await brandService.GetByIdAsync(brand.Id);
+                        }
+                        
+                        if (brandDto != null)
+                        {
+                            await ShowEditBrand(brandDto);
+                            StatusMessage = $"Editing brand: {result.Title}";
+                        }
+                        else
+                        {
+                            // Fallback to add options if data not found
+                            await ShowAddOptions();
+                            StatusMessage = $"Brand not found - navigated to add options";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLogger.LogError($"Error loading brand for edit", ex);
+                        await ShowAddOptions();
+                        StatusMessage = $"Error loading brand - navigated to add options";
+                    }
+                    break;
+                
                 case "category":
-                    System.Diagnostics.Debug.WriteLine($"Navigating to {result.SearchType}");
-                    // Navigate to add options (categories and brands)
-                    _ = ShowAddOptions(); // Direct to add options
-                    StatusMessage = $"Navigated to {result.SearchType.ToLowerInvariant()}: {result.Title}";
+                    System.Diagnostics.Debug.WriteLine($"Opening category for edit: {result.Title}");
+                    // Open the category management screen with category edit side panel
+                    try
+                    {
+                        CategoryDto? categoryDto = null;
+                        
+                        if (result.Data is CategoryDto cdto)
+                        {
+                            categoryDto = cdto;
+                        }
+                        else if (result.Data is Category category)
+                        {
+                            // Fetch complete category data from service using ID
+                            var categoryService = _serviceProvider.GetRequiredService<ICategoryService>();
+                            categoryDto = await categoryService.GetByIdAsync(category.Id);
+                        }
+                        
+                        if (categoryDto != null)
+                        {
+                            await ShowEditCategory(categoryDto);
+                            StatusMessage = $"Editing category: {result.Title}";
+                        }
+                        else
+                        {
+                            // Fallback to add options if data not found
+                            await ShowAddOptions();
+                            StatusMessage = $"Category not found - navigated to add options";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLogger.LogError($"Error loading category for edit", ex);
+                        await ShowAddOptions();
+                        StatusMessage = $"Error loading category - navigated to add options";
+                    }
                     break;
                 
                 default:
-                    System.Diagnostics.Debug.WriteLine($"Unknown search type: {result.SearchType}");
-                    StatusMessage = $"Opening: {result.Title}";
+                    System.Diagnostics.Debug.WriteLine($"Unknown search type: {result.SearchType}, defaulting to module-based navigation");
+                    // Fallback to module-based navigation
+                    NavigateToModuleByName(module);
+                    StatusMessage = $"Navigated to {module}";
                     break;
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error navigating: {ex.Message}");
+            AppLogger.LogError($"Error navigating to search result", ex);
             StatusMessage = $"Error navigating to result: {ex.Message}";
+        }
+    }
+    
+    /// <summary>
+    /// Navigate to a module by its name (fallback method)
+    /// </summary>
+    private async void NavigateToModuleByName(string moduleName)
+    {
+        switch (moduleName)
+        {
+            case "products":
+                ShowProductManagement();
+                break;
+            case "customers":
+                await ShowCustomerManagement();
+                break;
+            case "suppliers":
+                await ShowSupplierManagement();
+                break;
+            case "stock":
+                await ShowStockManagement();
+                break;
+            case "sales":
+            case "transactions":
+                await ShowTransaction();
+                break;
+            case "brands":
+                await ShowBrand();
+                break;
+            case "categories":
+                await ShowCategory();
+                break;
+            case "productgroups":
+            case "product groups":
+                await ShowProductGroups();
+                break;
+            case "settings":
+                await ShowSettings();
+                break;
+            case "reports":
+                ShowReports();
+                break;
+            case "reservations":
+            case "restaurant":
+                await ShowReservation();
+                break;
+            case "dashboard":
+                await ShowDashboard();
+                break;
+            default:
+                System.Diagnostics.Debug.WriteLine($"Unknown module: {moduleName}");
+                break;
         }
     }
     
@@ -4183,9 +4623,13 @@ public partial class MainWindowViewModel : ObservableObject
                 _ = ShowSupplierManagement(); // Direct to supplier management
                 break;
             case "category management":
+                _ = ShowCategory(); // Direct to category management
+                break;
             case "brand management":
+                _ = ShowBrand(); // Direct to brand management
+                break;
             case "product groups":
-                _ = ShowAddOptions(); // Categories and brands are in add options
+                _ = ShowProductGroups(); // Direct to product groups management
                 break;
             case "stock management":
             case "stock adjustment":
@@ -4269,6 +4713,32 @@ public partial class MainWindowViewModel : ObservableObject
                 break;
         }
     }
+
+    #region GlobalSearchBar Event Handlers
+
+    /// <summary>
+    /// Handle navigation to search result from GlobalSearchBarViewModel
+    /// </summary>
+    private void OnNavigateToSearchResult(GlobalSearchResultDto result)
+    {
+        NavigateToSearchResult(result);
+    }
+
+    /// <summary>
+    /// Handle "Show All Results" from GlobalSearchBarViewModel
+    /// </summary>
+    private void OnShowAllSearchResults(string query)
+    {
+        // You can implement a full search results page here
+        // For now, just show a message
+        StatusMessage = $"Showing all results for: {query}";
+        
+        // TODO: Navigate to a dedicated search results page/view
+        // For now, this is a placeholder
+        System.Diagnostics.Debug.WriteLine($"Show all search results for: {query}");
+    }
+
+    #endregion
 
     #region Language Switching Methods
 

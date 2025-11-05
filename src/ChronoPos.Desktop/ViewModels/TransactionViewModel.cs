@@ -2140,7 +2140,7 @@ public partial class TransactionViewModel : ObservableObject
                         
                         <!-- Total -->
                         <Grid Grid.Row='5' Margin='0,4,0,0'>
-                            <TextBlock Text='Subtotal' FontSize='13' FontWeight='SemiBold' Foreground='#1F2937'/>
+                            <TextBlock Text='Total' FontSize='13' FontWeight='SemiBold' Foreground='#1F2937'/>
                             <TextBlock Text='{Binding Subtotal, Converter={StaticResource CurrencyPriceConverter}}' FontSize='15' FontWeight='Bold' Foreground='#1F2937' HorizontalAlignment='Right'/>
                         </Grid>
                         
