@@ -328,10 +328,26 @@ public class GoodsReturnService : IGoodsReturnService
                 {
                     try
                     {
+                        // Get product to find its ProductUnit (if UomId is specified)
+                        int? productUnitId = null;
+                        if (_productRepository != null && item.UomId > 0)
+                        {
+                            var product = await _productRepository.GetByIdAsync(item.ProductId);
+                            if (product != null)
+                            {
+                                var productUnit = product.ProductUnits?
+                                    .FirstOrDefault(pu => pu.UnitId == item.UomId);
+                                productUnitId = productUnit?.Id;
+                                
+                                AppLogger.LogInfo("ProductUnit lookup for goods return stock ledger", 
+                                    $"ProductId: {item.ProductId}, UomId: {item.UomId}, ProductUnitId: {productUnitId}", "goods_return");
+                            }
+                        }
+                        
                         var stockLedgerDto = new CreateStockLedgerDto
                         {
                             ProductId = item.ProductId,
-                            UnitId = (int)item.UomId,
+                            UnitId = productUnitId, // Nullable - can be null for product-level returns
                             MovementType = StockMovementType.Return,
                             Qty = item.Quantity,
                             Location = "Main Store",
@@ -342,7 +358,7 @@ public class GoodsReturnService : IGoodsReturnService
                         
                         await _stockLedgerService.CreateAsync(stockLedgerDto);
                         AppLogger.LogInfo("Stock ledger entry created for goods return", 
-                            $"ProductId: {item.ProductId}, Qty: {item.Quantity}, ReturnNo: {goodsReturn.ReturnNo}", "goods_return");
+                            $"ProductId: {item.ProductId}, UnitId: {productUnitId}, Qty: {item.Quantity}, ReturnNo: {goodsReturn.ReturnNo}", "goods_return");
                     }
                     catch (Exception ex)
                     {

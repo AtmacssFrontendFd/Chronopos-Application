@@ -458,73 +458,8 @@
                     <!-- Transactions DataGrid -->
                     <DataGrid Grid.Row="1" 
                              ItemsSource="{Binding Transactions}"
-                             AutoGenerateColumns="False"
-                             IsReadOnly="True"
-                             GridLinesVisibility="None"
-                             HeadersVisibility="Column"
-                             RowHeight="56"
-                             BorderThickness="0"
-                             CanUserAddRows="False"
-                             CanUserDeleteRows="False"
-                             CanUserResizeRows="False"
-                             SelectionMode="Single"
-                             SelectionUnit="FullRow"
-                             Background="White"
-                             AlternatingRowBackground="#F9FAFB"
-                             MaxHeight="500"
-                             FontSize="13">
-                        
-                        <!-- DataGrid Styles -->
-                        <DataGrid.Resources>
-                            <!-- Header Style -->
-                            <Style TargetType="DataGridColumnHeader">
-                                <Setter Property="Background" Value="#F8F9FA"/>
-                                <Setter Property="Foreground" Value="#495057"/>
-                                <Setter Property="FontWeight" Value="SemiBold"/>
-                                <Setter Property="FontSize" Value="12"/>
-                                <Setter Property="Padding" Value="16,12"/>
-                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                <Setter Property="BorderBrush" Value="#E9ECEF"/>
-                                <Setter Property="HorizontalContentAlignment" Value="Left"/>
-                            </Style>
-                            
-                            <!-- Row Style -->
-                            <Style TargetType="DataGridRow">
-                                <Setter Property="Background" Value="White"/>
-                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                <Setter Property="BorderBrush" Value="#F1F3F5"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#F0F7FF"/>
-                                    </Trigger>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="#E3F2FD"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                            
-                            <!-- Cell Style -->
-                            <Style TargetType="DataGridCell">
-                                <Setter Property="BorderThickness" Value="0"/>
-                                <Setter Property="Padding" Value="16,0"/>
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="DataGridCell">
-                                            <Border Padding="{TemplateBinding Padding}"
-                                                   Background="{TemplateBinding Background}">
-                                                <ContentPresenter VerticalAlignment="Center"/>
-                                            </Border>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                                <Style.Triggers>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="Transparent"/>
-                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </DataGrid.Resources>
+                             Style="{StaticResource ReportDataGridStyle}"
+                             MaxHeight="500">
                         
                         <DataGrid.Columns>
                             <!-- Invoice Number -->

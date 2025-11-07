@@ -370,34 +370,92 @@ namespace ChronoPos.Infrastructure.Services
                 // Create stock ledger entries AFTER transaction commits (to avoid nested transaction issues)
                 if (_stockLedgerService != null && createDto.Items != null)
                 {
-                    AppLogger.LogInfo($"Creating stock ledger entries for {createDto.Items.Count} items", null, "stock_adjustment");
+                    AppLogger.LogInfo($"🔵 Creating stock ledger entries for {createDto.Items.Count} adjustment items", null, "stock_adjustment");
                     foreach (var item in createDto.Items)
                     {
                         try
                         {
+                            AppLogger.LogInfo($"  → Processing adjustment item: ProductId={item.ProductId}, QtyChange={item.QuantityAfter - item.QuantityBefore}", 
+                                null, "stock_adjustment");
+                            
+                            // Get product to find its ProductUnit
+                            var product = await _context.Products
+                                .Include(p => p.ProductUnits)
+                                .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+                                
+                            if (product == null)
+                            {
+                                AppLogger.LogWarning($"  ❌ Product {item.ProductId} not found for stock ledger", 
+                                    null, "stock_adjustment");
+                                continue;
+                            }
+
+                            // Find ProductUnit for this product
+                            // Stock adjustment can be for product (no unit) or product unit (with unit)
+                            int? productUnitId = null;
+                            if (product.SellingUnitId.HasValue && item.UomId > 0)
+                            {
+                                AppLogger.LogInfo($"  🔍 Product {product.Id} has SellingUnitId={product.SellingUnitId}, UomId={item.UomId}, searching for ProductUnit...", 
+                                    null, "stock_adjustment");
+                                
+                                // Find ProductUnit that matches the UomId from adjustment
+                                var productUnit = product.ProductUnits?
+                                    .FirstOrDefault(pu => pu.UnitId == item.UomId);
+                                productUnitId = productUnit?.Id;
+                                
+                                if (productUnitId == null)
+                                {
+                                    AppLogger.LogWarning($"  ⚠️ ProductUnit NOT FOUND for Product {product.Id} with UomId {item.UomId}. ProductUnits count: {product.ProductUnits?.Count ?? 0}", 
+                                        null, "stock_adjustment");
+                                    AppLogger.LogInfo($"  ℹ️ Will save stock ledger with NULL unit_id (product-level adjustment)", 
+                                        null, "stock_adjustment");
+                                }
+                                else
+                                {
+                                    AppLogger.LogInfo($"  ✅ ProductUnit FOUND: ProductUnitId={productUnitId}", 
+                                        null, "stock_adjustment");
+                                }
+                            }
+                            else
+                            {
+                            AppLogger.LogInfo($"  ℹ️ Product {product.Id} has NO SellingUnitId or UomId is 0 - product-level adjustment (NULL unit_id)", 
+                                null, "stock_adjustment");
+                            }
+                            
+                            // Calculate quantity change: positive for increment, negative for decrement
+                            decimal qtyChange = item.IsIncrement ? item.ChangeAmount : -item.ChangeAmount;
+                            
+                            AppLogger.LogInfo($"  📊 Adjustment details: IsIncrement={item.IsIncrement}, ChangeAmount={item.ChangeAmount}, QtyChange={qtyChange}", 
+                                null, "stock_adjustment");
+                            
                             var ledgerDto = new CreateStockLedgerDto
                             {
                                 ProductId = item.ProductId,
-                                UnitId = (int)item.UomId,
+                                UnitId = productUnitId, // Can be null for product-level adjustments
                                 MovementType = StockMovementType.Adjustment,
-                                Qty = item.QuantityAfter - item.QuantityBefore, // The difference
+                                Qty = qtyChange, // Positive for increment, negative for decrement
                                 Location = "Main Store",
                                 ReferenceType = StockReferenceType.Adjustment,
                                 ReferenceId = adjustment.AdjustmentId,
-                                Note = $"Stock Adjustment - {adjustment.AdjustmentNo}"
+                                Note = $"Stock Adjustment - {adjustment.AdjustmentNo} ({(item.IsIncrement ? "Increment" : "Decrement")} {item.ChangeAmount})"
                             };
                             
-                            await _stockLedgerService.CreateAsync(ledgerDto);
-                            AppLogger.LogInfo($"Stock ledger entry created for ProductId: {item.ProductId}, Qty: {ledgerDto.Qty}", 
+                            AppLogger.LogInfo($"  📝 Creating stock ledger: ProductId={ledgerDto.ProductId}, UnitId={ledgerDto.UnitId?.ToString() ?? "NULL"}, Qty={ledgerDto.Qty}", 
+                                null, "stock_adjustment");                            await _stockLedgerService.CreateAsync(ledgerDto);
+                            
+                            AppLogger.LogInfo($"  ✅ Stock ledger entry CREATED for ProductId {item.ProductId}", 
                                 null, "stock_adjustment");
                         }
                         catch (Exception ledgerEx)
                         {
-                            AppLogger.LogError($"Failed to create stock ledger entry for ProductId: {item.ProductId}", 
+                            AppLogger.LogError($"  ❌ Failed to create stock ledger entry for ProductId: {item.ProductId}", 
                                 ledgerEx, null, "stock_adjustment");
                             // Don't throw - ledger is supplementary
                         }
                     }
+                    
+                    AppLogger.LogInfo($"🔵 Stock ledger entries completed for adjustment {adjustment.AdjustmentNo}", 
+                        null, "stock_adjustment");
                 }
 
                 // Return the created adjustment as DTO
@@ -548,10 +606,37 @@ namespace ChronoPos.Infrastructure.Services
                         {
                             try
                             {
+                                // Get product to find its ProductUnit
+                                var product = await _context.Products
+                                    .Include(p => p.ProductUnits)
+                                    .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+                                    
+                                if (product == null)
+                                {
+                                    AppLogger.LogWarning($"Product {item.ProductId} not found for stock ledger in CompleteStockAdjustment", 
+                                        null, "stock_adjustment");
+                                    continue;
+                                }
+
+                                // Find ProductUnit for this product
+                                int? productUnitId = null;
+                                if (product.SellingUnitId.HasValue && item.UomId > 0)
+                                {
+                                    var productUnit = product.ProductUnits?
+                                        .FirstOrDefault(pu => pu.UnitId == item.UomId);
+                                    productUnitId = productUnit?.Id;
+                                    
+                                    if (productUnitId == null)
+                                    {
+                                        AppLogger.LogWarning($"ProductUnit NOT FOUND for Product {product.Id} with UomId {item.UomId} in CompleteStockAdjustment", 
+                                            null, "stock_adjustment");
+                                    }
+                                }
+                                
                                 var stockLedgerDto = new CreateStockLedgerDto
                                 {
                                     ProductId = item.ProductId,
-                                    UnitId = (int)item.UomId,
+                                    UnitId = productUnitId, // Can be null for product-level adjustments
                                     MovementType = StockMovementType.Adjustment,
                                     Qty = item.DifferenceQty, // Can be positive or negative
                                     Location = "Main Store",
@@ -561,10 +646,13 @@ namespace ChronoPos.Infrastructure.Services
                                 };
                                 
                                 await _stockLedgerService.CreateAsync(stockLedgerDto);
+                                
+                                AppLogger.LogInfo($"Stock ledger created in CompleteStockAdjustment for ProductId {item.ProductId}, UnitId={productUnitId?.ToString() ?? "NULL"}", 
+                                    null, "stock_adjustment");
                             }
                             catch (Exception ex)
                             {
-                                AppLogger.LogError("Failed to create stock ledger entry for adjustment", ex,
+                                AppLogger.LogError("Failed to create stock ledger entry for adjustment in CompleteStockAdjustment", ex,
                                     $"AdjustmentId: {adjustmentId}, ProductId: {item.ProductId}", "stock_adjustment");
                                 // Don't throw - ledger is supplementary
                             }

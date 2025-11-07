@@ -13,8 +13,7 @@ public class StockLedgerDto
     [Required]
     public int ProductId { get; set; }
     
-    [Required]
-    public int UnitId { get; set; }
+    public int? UnitId { get; set; }
     
     [Required]
     public StockMovementType MovementType { get; set; }
@@ -88,8 +87,7 @@ public class CreateStockLedgerDto
     [Required]
     public int ProductId { get; set; }
     
-    [Required]
-    public int UnitId { get; set; }
+    public int? UnitId { get; set; }
     
     [Required]
     public StockMovementType MovementType { get; set; }
@@ -116,8 +114,7 @@ public class UpdateStockLedgerDto
     [Required]
     public int ProductId { get; set; }
     
-    [Required]
-    public int UnitId { get; set; }
+    public int? UnitId { get; set; }
     
     [Required]
     public StockMovementType MovementType { get; set; }

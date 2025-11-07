@@ -3709,7 +3709,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.ProductId).IsRequired();
-            entity.Property(e => e.UnitId).IsRequired();
+            entity.Property(e => e.UnitId).IsRequired(false); // Nullable - product-level adjustments have no unit
             entity.Property(e => e.MovementType).IsRequired();
             entity.Property(e => e.Qty).HasPrecision(10, 2).IsRequired();
             entity.Property(e => e.Balance).HasPrecision(10, 2).IsRequired();

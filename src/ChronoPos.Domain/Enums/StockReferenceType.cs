@@ -48,5 +48,15 @@ public enum StockReferenceType
     /// <summary>
     /// Manual Entry or Correction
     /// </summary>
-    Manual = 9
+    Manual = 9,
+
+    /// <summary>
+    /// Refund Transaction (Customer returning products)
+    /// </summary>
+    Refund = 10,
+
+    /// <summary>
+    /// Exchange Transaction (Customer exchanging products)
+    /// </summary>
+    Exchange = 11
 }

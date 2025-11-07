@@ -366,23 +366,62 @@
                                         <Setter Property="Content">
                                             <Setter.Value>
                                                 <DataGrid ItemsSource="{Binding StockSummaryData}"
-                                                         AutoGenerateColumns="False"
-                                                         IsReadOnly="True"
-                                                         CanUserSortColumns="True"
-                                                         HeadersVisibility="Column"
-                                                         GridLinesVisibility="Horizontal"
-                                                         RowHeight="40">
+                                                         Style="{StaticResource ReportDataGridStyle}"
+                                                         ColumnHeaderStyle="{StaticResource ReportColumnHeaderStyle}"
+                                                         RowStyle="{StaticResource ReportRowStyle}"
+                                                         CellStyle="{StaticResource ReportCellStyle}"
+                                                         CanUserSortColumns="True">
                                                     <DataGrid.Columns>
-                                                        <DataGridTextColumn Header="Product Code" Binding="{Binding ProductCode}" Width="120"/>
-                                                        <DataGridTextColumn Header="Product" Binding="{Binding ProductName}" Width="*"/>
-                                                        <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="150"/>
-                                                        <DataGridTextColumn Header="Unit" Binding="{Binding Unit}" Width="80"/>
-                                                        <DataGridTextColumn Header="Opening" Binding="{Binding OpeningStock, StringFormat=N2}" Width="100"/>
-                                                        <DataGridTextColumn Header="Inward" Binding="{Binding InwardQty, StringFormat=N2}" Width="100"/>
-                                                        <DataGridTextColumn Header="Outward" Binding="{Binding OutwardQty, StringFormat=N2}" Width="100"/>
-                                                        <DataGridTextColumn Header="Closing" Binding="{Binding ClosingStock, StringFormat=N2}" Width="100"/>
-                                                        <DataGridTextColumn Header="Unit Cost" Binding="{Binding UnitCost, StringFormat=C2}" Width="100"/>
-                                                        <DataGridTextColumn Header="Stock Value" Binding="{Binding StockValue, StringFormat=C2}" Width="120"/>
+                                                        <DataGridTextColumn Header="Product Code" Binding="{Binding ProductCode}" Width="120">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportBoldTextCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Product" Binding="{Binding ProductName}" Width="*">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportTextCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="150">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportTextCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Unit" Binding="{Binding Unit}" Width="80">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportTextCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Opening" Binding="{Binding OpeningStock, StringFormat=N2}" Width="100">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportNumericCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Inward" Binding="{Binding InwardQty, StringFormat=N2}" Width="100">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportNumericCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Outward" Binding="{Binding OutwardQty, StringFormat=N2}" Width="100">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportNumericCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Closing" Binding="{Binding ClosingStock, StringFormat=N2}" Width="100">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportNumericCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Unit Cost" Binding="{Binding UnitCost, StringFormat=C2}" Width="100">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportNumericCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Stock Value" Binding="{Binding StockValue, StringFormat=C2}" Width="120">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportNumericCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
                                                     </DataGrid.Columns>
                                                 </DataGrid>
                                             </Setter.Value>
@@ -394,20 +433,61 @@
                                         <Setter Property="Content">
                                             <Setter.Value>
                                                 <DataGrid ItemsSource="{Binding StockLedgerData}"
-                                                         AutoGenerateColumns="False"
-                                                         IsReadOnly="True"
-                                                         RowHeight="40">
+                                                         Style="{StaticResource ReportDataGridStyle}"
+                                                         ColumnHeaderStyle="{StaticResource ReportColumnHeaderStyle}"
+                                                         RowStyle="{StaticResource ReportRowStyle}"
+                                                         CellStyle="{StaticResource ReportCellStyle}">
                                                     <DataGrid.Columns>
-                                                        <DataGridTextColumn Header="Date" Binding="{Binding DateDisplay}" Width="120"/>
-                                                        <DataGridTextColumn Header="Product" Binding="{Binding ProductName}" Width="*"/>
-                                                        <DataGridTextColumn Header="Movement Type" Binding="{Binding TransactionTypeDisplay}" Width="140"/>
-                                                        <DataGridTextColumn Header="Reference Type" Binding="{Binding ReferenceTypeDisplay}" Width="140"/>
-                                                        <DataGridTextColumn Header="Reference" Binding="{Binding RefNo}" Width="120"/>
-                                                        <DataGridTextColumn Header="Location" Binding="{Binding LocationDisplay}" Width="120"/>
-                                                        <DataGridTextColumn Header="Inward" Binding="{Binding InQtyDisplay}" Width="100"/>
-                                                        <DataGridTextColumn Header="Outward" Binding="{Binding OutQtyDisplay}" Width="100"/>
-                                                        <DataGridTextColumn Header="Balance" Binding="{Binding BalanceDisplay}" Width="100"/>
-                                                        <DataGridTextColumn Header="Remarks" Binding="{Binding RemarksDisplay}" Width="150"/>
+                                                        <DataGridTextColumn Header="Date" Binding="{Binding DateDisplay}" Width="120">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportTextCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Product" Binding="{Binding ProductName}" Width="*">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportBoldTextCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Movement Type" Binding="{Binding TransactionTypeDisplay}" Width="140">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportTextCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Reference Type" Binding="{Binding ReferenceTypeDisplay}" Width="140">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportTextCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Reference" Binding="{Binding RefNo}" Width="120">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportTextCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Location" Binding="{Binding LocationDisplay}" Width="120">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportTextCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Inward" Binding="{Binding InQtyDisplay}" Width="100">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportNumericCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Outward" Binding="{Binding OutQtyDisplay}" Width="100">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportNumericCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Balance" Binding="{Binding BalanceDisplay}" Width="100">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportNumericCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
+                                                        <DataGridTextColumn Header="Remarks" Binding="{Binding RemarksDisplay}" Width="150">
+                                                            <DataGridTextColumn.ElementStyle>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource ReportTextCellStyle}"/>
+                                                            </DataGridTextColumn.ElementStyle>
+                                                        </DataGridTextColumn>
                                                     </DataGrid.Columns>
                                                 </DataGrid>
                                             </Setter.Value>
@@ -419,9 +499,9 @@
                                         <Setter Property="Content">
                                             <Setter.Value>
                                                 <DataGrid ItemsSource="{Binding StockValuationData}"
+                                                         Style="{StaticResource ReportDataGridStyle}"
                                                          AutoGenerateColumns="False"
-                                                         IsReadOnly="True"
-                                                         RowHeight="40">
+                                                         IsReadOnly="True">
                                                     <DataGrid.Columns>
                                                         <DataGridTextColumn Header="Product Code" Binding="{Binding ProductCode}" Width="120"/>
                                                         <DataGridTextColumn Header="Product" Binding="{Binding Product}" Width="*"/>
@@ -442,9 +522,9 @@
                                         <Setter Property="Content">
                                             <Setter.Value>
                                                 <DataGrid ItemsSource="{Binding LowStockData}"
+                                                         Style="{StaticResource ReportDataGridStyle}"
                                                          AutoGenerateColumns="False"
-                                                         IsReadOnly="True"
-                                                         RowHeight="40">
+                                                         IsReadOnly="True">
                                                     <DataGrid.Columns>
                                                         <DataGridTextColumn Header="Product Code" Binding="{Binding ProductCode}" Width="120"/>
                                                         <DataGridTextColumn Header="Product" Binding="{Binding Product}" Width="*"/>
@@ -465,9 +545,9 @@
                                         <Setter Property="Content">
                                             <Setter.Value>
                                                 <DataGrid ItemsSource="{Binding GoodsReceivedData}"
+                                                         Style="{StaticResource ReportDataGridStyle}"
                                                          AutoGenerateColumns="False"
-                                                         IsReadOnly="True"
-                                                         RowHeight="40">
+                                                         IsReadOnly="True">
                                                     <DataGrid.Columns>
                                                         <DataGridTextColumn Header="GRN No" Binding="{Binding GrnNo}" Width="120"/>
                                                         <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="100"/>
@@ -489,9 +569,9 @@
                                         <Setter Property="Content">
                                             <Setter.Value>
                                                 <DataGrid ItemsSource="{Binding StockAdjustmentData}"
+                                                         Style="{StaticResource ReportDataGridStyle}"
                                                          AutoGenerateColumns="False"
-                                                         IsReadOnly="True"
-                                                         RowHeight="40">
+                                                         IsReadOnly="True">
                                                     <DataGrid.Columns>
                                                         <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="100"/>
                                                         <DataGridTextColumn Header="Product" Binding="{Binding Product}" Width="*"/>
@@ -511,9 +591,9 @@
                                         <Setter Property="Content">
                                             <Setter.Value>
                                                 <DataGrid ItemsSource="{Binding StockTransferData}"
+                                                         Style="{StaticResource ReportDataGridStyle}"
                                                          AutoGenerateColumns="False"
-                                                         IsReadOnly="True"
-                                                         RowHeight="40">
+                                                         IsReadOnly="True">
                                                     <DataGrid.Columns>
                                                         <DataGridTextColumn Header="Transfer No" Binding="{Binding TransferNo}" Width="120"/>
                                                         <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="100"/>
@@ -533,9 +613,9 @@
                                         <Setter Property="Content">
                                             <Setter.Value>
                                                 <DataGrid ItemsSource="{Binding StockAgingData}"
+                                                         Style="{StaticResource ReportDataGridStyle}"
                                                          AutoGenerateColumns="False"
-                                                         IsReadOnly="True"
-                                                         RowHeight="40">
+                                                         IsReadOnly="True">
                                                     <DataGrid.Columns>
                                                         <DataGridTextColumn Header="Product" Binding="{Binding Product}" Width="*"/>
                                                         <DataGridTextColumn Header="Batch No" Binding="{Binding BatchNo}" Width="120"/>
@@ -557,9 +637,9 @@
                                         <Setter Property="Content">
                                             <Setter.Value>
                                                 <DataGrid ItemsSource="{Binding GoodsReturnData}"
+                                                         Style="{StaticResource ReportDataGridStyle}"
                                                          AutoGenerateColumns="False"
-                                                         IsReadOnly="True"
-                                                         RowHeight="40">
+                                                         IsReadOnly="True">
                                                     <DataGrid.Columns>
                                                         <DataGridTextColumn Header="Return No" Binding="{Binding ReturnNo}" Width="120"/>
                                                         <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="100"/>
@@ -581,9 +661,9 @@
                                         <Setter Property="Content">
                                             <Setter.Value>
                                                 <DataGrid ItemsSource="{Binding InventorySummaryData}"
+                                                         Style="{StaticResource ReportDataGridStyle}"
                                                          AutoGenerateColumns="False"
-                                                         IsReadOnly="True"
-                                                         RowHeight="40">
+                                                         IsReadOnly="True">
                                                     <DataGrid.Columns>
                                                         <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="*"/>
                                                         <DataGridTextColumn Header="No of Items" Binding="{Binding NoOfItems}" Width="110"/>

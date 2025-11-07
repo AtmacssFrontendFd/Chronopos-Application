@@ -631,7 +631,15 @@ public partial class AddStockTransferViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             AppLogger.LogError($"Error creating stock transfer", ex, $"FromStore: {FromStoreId}, ToStore: {ToStoreId}, Items: {TransferItems.Count}", "stock_transfer");
-            ShowValidationError("Failed to create transfer");
+            
+            // Show specific error message for insufficient batch stock
+            string errorMessage = "Failed to create transfer";
+            if (ex.Message.Contains("Insufficient stock in batch"))
+            {
+                errorMessage = ex.Message; // Show the detailed batch stock error
+            }
+            
+            ShowValidationError(errorMessage);
         }
         finally
         {

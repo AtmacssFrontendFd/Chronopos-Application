@@ -339,10 +339,23 @@ public class GoodsReceivedService : IGoodsReceivedService
                 {
                     try
                     {
+                        // Get product to find its ProductUnit
+                        int? productUnitId = null;
+                        if (_productRepository != null && item.UomId > 0)
+                        {
+                            var product = await _productRepository.GetByIdAsync(item.ProductId);
+                            if (product != null && product.SellingUnitId.HasValue)
+                            {
+                                var productUnit = product.ProductUnits?
+                                    .FirstOrDefault(pu => pu.UnitId == item.UomId);
+                                productUnitId = productUnit?.Id;
+                            }
+                        }
+                        
                         var stockLedgerDto = new CreateStockLedgerDto
                         {
                             ProductId = item.ProductId,
-                            UnitId = (int)item.UomId,
+                            UnitId = productUnitId, // Can be null
                             MovementType = StockMovementType.Purchase,
                             Qty = item.Quantity,
                             Location = "Main Store",
