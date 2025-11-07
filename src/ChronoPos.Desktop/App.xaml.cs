@@ -18,6 +18,7 @@ using ChronoPos.Desktop.Views.Dialogs;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.Models.Licensing;
 using Newtonsoft.Json;
+using OfficeOpenXml;
 
 namespace ChronoPos.Desktop;
 
@@ -29,6 +30,15 @@ public partial class App : System.Windows.Application
     private readonly IHost _host;
     private static string _logFilePath = string.Empty;
     private CancellationTokenSource? _broadcastCancellationTokenSource;
+    private static IHost? _staticHost;
+
+    /// <summary>
+    /// Gets a service from the dependency injection container
+    /// </summary>
+    public static T? GetService<T>() where T : class
+    {
+        return _staticHost?.Services.GetService<T>();
+    }
 
     public App()
     {
@@ -140,6 +150,9 @@ public partial class App : System.Windows.Application
                     
                     services.AddTransient<IBrandRepository, BrandRepository>();
                     LogMessage("BrandRepository registered as Transient");
+                    
+                    services.AddTransient<IStockLedgerRepository, StockLedgerRepository>();
+                    LogMessage("StockLedgerRepository registered as Transient");
                     
                     services.AddTransient<ICurrencyRepository, CurrencyRepository>();
                     LogMessage("CurrencyRepository registered as Transient");
@@ -308,6 +321,9 @@ public partial class App : System.Windows.Application
                     
                     services.AddTransient<IBrandService, BrandService>();
                     LogMessage("BrandService registered as Transient");
+                    
+                    services.AddTransient<IStockLedgerService, StockLedgerService>();
+                    LogMessage("StockLedgerService registered as Transient");
                     
                     services.AddTransient<ICurrencyService, CurrencyService>();
                     LogMessage("CurrencyService registered as Transient");
@@ -514,6 +530,18 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IDashboardService, DashboardService>();
                     LogMessage("DashboardService registered as Transient");
                     
+                    // Register Sales Report service
+                    services.AddTransient<ISalesReportService, SalesReportService>();
+                    LogMessage("SalesReportService registered as Transient");
+                    
+                    // Register Customer Report service
+                    services.AddTransient<ICustomerReportService, CustomerReportService>();
+                    LogMessage("CustomerReportService registered as Transient");
+                    
+                    // Register Inventory Report service
+                    services.AddTransient<IInventoryReportService, InventoryReportService>();
+                    LogMessage("InventoryReportService registered as Transient");
+                    
                     // Register theme service
                     services.AddSingleton<IThemeService, ThemeService>();
                     LogMessage("ThemeService registered");
@@ -549,6 +577,10 @@ public partial class App : System.Windows.Application
                     // Register Active Currency service (Singleton for system-wide access)
                     services.AddSingleton<IActiveCurrencyService, ActiveCurrencyService>();
                     LogMessage("ActiveCurrencyService registered as Singleton");
+                    
+                    // Register Barcode Export Service
+                    services.AddTransient<IBarcodeExportService, BarcodeExportService>();
+                    LogMessage("BarcodeExportService registered as Transient");
 
                     // Register icon service
                     services.AddSingleton<IIconService, IconService>();
@@ -589,6 +621,12 @@ public partial class App : System.Windows.Application
                     LogMessage("SalesViewModel registered as Transient");
                     services.AddTransient<DashboardViewModel>();
                     LogMessage("DashboardViewModel registered as Transient");
+                    services.AddTransient<ReportsHubViewModel>();
+                    LogMessage("ReportsHubViewModel registered as Transient");
+                    services.AddTransient<SalesReportViewModel>();
+                    LogMessage("SalesReportViewModel registered as Transient");
+                    services.AddTransient<CustomerReportViewModel>();
+                    LogMessage("CustomerReportViewModel registered as Transient");
                     services.AddTransient<AddSalesViewModel>();
                     LogMessage("AddSalesViewModel registered as Transient");
                     services.AddTransient<CustomersViewModel>();
@@ -667,6 +705,7 @@ public partial class App : System.Windows.Application
                     LogMessage("All services configured successfully");
                 })
                 .Build();
+            _staticHost = _host;
             LogMessage("Host created successfully");
         }
         catch (Exception ex)
@@ -694,6 +733,9 @@ public partial class App : System.Windows.Application
     protected override void OnStartup(StartupEventArgs e)
     {
         LogMessage("=== OnStartup called ===");
+        
+        // Configure third-party library licenses
+        ConfigureLibraryLicenses();
         
         // Call base.OnStartup FIRST (standard WPF pattern)
         base.OnStartup(e);
@@ -755,6 +797,12 @@ public partial class App : System.Windows.Application
             
             this.Shutdown(1);
         }
+    }
+
+    private void ConfigureLibraryLicenses()
+    {
+        // No license configuration needed - ClosedXML and PdfSharpCore are MIT licensed and completely free
+        LogMessage("Using free libraries: ClosedXML (Excel) and PdfSharpCore (PDF)");
     }
 
     private void InitializeServices()
@@ -873,6 +921,10 @@ public partial class App : System.Windows.Application
             ChronoPos.Desktop.Converters.CurrencyPriceConverter.Initialize(_host.Services);
             ChronoPos.Desktop.Converters.NegativeCurrencyPriceConverter.Initialize(_host.Services);
             LogMessage("  - Currency price converters initialized ✓");
+            
+            // Initialize the localization converter
+            ChronoPos.Desktop.Converters.LocalizationConverter.Initialize(_host.Services);
+            LogMessage("  - Localization converter initialized ✓");
         }
         catch (Exception ex)
         {

@@ -14,11 +14,19 @@ public interface IChronoPosDbContext
     DbSet<Sale> Sales { get; set; }
     DbSet<SaleItem> SaleItems { get; set; }
     DbSet<Transaction> Transactions { get; set; }
+    DbSet<TransactionProduct> TransactionProducts { get; set; }
     DbSet<StockAdjustment> StockAdjustments { get; set; }
     DbSet<StockAdjustmentItem> StockAdjustmentItems { get; set; }
     DbSet<StockAdjustmentReason> StockAdjustmentReasons { get; set; }
     DbSet<StockTransfer> StockTransfers { get; set; }
     DbSet<StockTransferItem> StockTransferItems { get; set; }
+    DbSet<GoodsReceived> GoodsReceived { get; set; }
+    DbSet<GoodsReceivedItem> GoodsReceivedItems { get; set; }
+    DbSet<GoodsReturnItem> GoodsReturnItems { get; set; }
+    DbSet<GoodsReplaceItem> GoodsReplaceItems { get; set; }
+    DbSet<ProductBatch> ProductBatches { get; set; }
+    DbSet<ProductUnit> ProductUnits { get; set; }
+    DbSet<StockLedger> StockLedgers { get; set; }
     
     // Product module entities
     DbSet<Store> Stores { get; set; }

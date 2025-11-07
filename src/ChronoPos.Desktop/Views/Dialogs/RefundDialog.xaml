@@ -188,7 +188,8 @@
                                                           FontWeight="SemiBold" 
                                                           Foreground="#111827"/>
                                                 <TextBlock Margin="0,4,0,0">
-                                                    <Run Text="Unit Price: $" Foreground="#6B7280" FontSize="11"/>
+                                                    <Run Text="Unit Price: " Foreground="#6B7280" FontSize="11"/>
+                                                    <Run Text="{Binding DataContext.ActiveCurrencyService.CurrencySymbol, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="#6B7280" FontSize="11"/>
                                                     <Run Text="{Binding UnitPrice, StringFormat=N2}" Foreground="#6B7280" FontSize="11"/>
                                                     <Run Text=" | Original Qty: " Foreground="#6B7280" FontSize="11"/>
                                                     <Run Text="{Binding MaxRefundQuantity}" Foreground="#6B7280" FontSize="11"/>

@@ -1,4 +1,5 @@
 using ChronoPos.Application.DTOs;
+using ChronoPos.Application.DTOs.Inventory;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Logging;
 using ChronoPos.Domain.Entities;
@@ -14,10 +15,12 @@ namespace ChronoPos.Infrastructure.Services
     public class StockAdjustmentService : IStockAdjustmentService
     {
         private readonly ChronoPosDbContext _context;
+        private readonly IStockLedgerService? _stockLedgerService;
 
-        public StockAdjustmentService(ChronoPosDbContext context)
+        public StockAdjustmentService(ChronoPosDbContext context, IStockLedgerService? stockLedgerService = null)
         {
             _context = context;
+            _stockLedgerService = stockLedgerService;
         }
 
         /// <summary>
@@ -364,6 +367,39 @@ namespace ChronoPos.Infrastructure.Services
                 await transaction.CommitAsync();
                 AppLogger.LogInfo("Transaction committed successfully", null, "stock_adjustment");
 
+                // Create stock ledger entries AFTER transaction commits (to avoid nested transaction issues)
+                if (_stockLedgerService != null && createDto.Items != null)
+                {
+                    AppLogger.LogInfo($"Creating stock ledger entries for {createDto.Items.Count} items", null, "stock_adjustment");
+                    foreach (var item in createDto.Items)
+                    {
+                        try
+                        {
+                            var ledgerDto = new CreateStockLedgerDto
+                            {
+                                ProductId = item.ProductId,
+                                UnitId = (int)item.UomId,
+                                MovementType = StockMovementType.Adjustment,
+                                Qty = item.QuantityAfter - item.QuantityBefore, // The difference
+                                Location = "Main Store",
+                                ReferenceType = StockReferenceType.Adjustment,
+                                ReferenceId = adjustment.AdjustmentId,
+                                Note = $"Stock Adjustment - {adjustment.AdjustmentNo}"
+                            };
+                            
+                            await _stockLedgerService.CreateAsync(ledgerDto);
+                            AppLogger.LogInfo($"Stock ledger entry created for ProductId: {item.ProductId}, Qty: {ledgerDto.Qty}", 
+                                null, "stock_adjustment");
+                        }
+                        catch (Exception ledgerEx)
+                        {
+                            AppLogger.LogError($"Failed to create stock ledger entry for ProductId: {item.ProductId}", 
+                                ledgerEx, null, "stock_adjustment");
+                            // Don't throw - ledger is supplementary
+                        }
+                    }
+                }
+
                 // Return the created adjustment as DTO
                 AppLogger.LogInfo($"Retrieving created adjustment with ID: {adjustment.AdjustmentId}", null, "stock_adjustment");
                 var result = await GetStockAdjustmentByIdAsync(adjustment.AdjustmentId);
@@ -383,6 +419,18 @@ namespace ChronoPos.Infrastructure.Services
                 AppLogger.LogError($"ERROR in CreateStockAdjustmentAsync: {ex.Message}", ex, null, "stock_adjustment");
                 AppLogger.LogError($"Exception type: {ex.GetType().Name}", null, null, "stock_adjustment");
                 AppLogger.LogError($"Stack trace: {ex.StackTrace}", null, null, "stock_adjustment");
+                
+                // Log inner exception details
+                if (ex.InnerException != null)
+                {
+                    AppLogger.LogError($"INNER EXCEPTION: {ex.InnerException.Message}", ex.InnerException, null, "stock_adjustment");
+                    AppLogger.LogError($"Inner exception type: {ex.InnerException.GetType().Name}", null, null, "stock_adjustment");
+                    
+                    if (ex.InnerException.InnerException != null)
+                    {
+                        AppLogger.LogError($"INNER INNER EXCEPTION: {ex.InnerException.InnerException.Message}", ex.InnerException.InnerException, null, "stock_adjustment");
+                    }
+                }
                 
                 AppLogger.LogWarning("Rolling back transaction...", null, "stock_adjustment");
                 await transaction.RollbackAsync();
@@ -494,6 +542,33 @@ namespace ChronoPos.Infrastructure.Services
                         };
 
                         _context.StockMovements.Add(movement);
+                        
+                        // Create stock ledger entry
+                        if (_stockLedgerService != null)
+                        {
+                            try
+                            {
+                                var stockLedgerDto = new CreateStockLedgerDto
+                                {
+                                    ProductId = item.ProductId,
+                                    UnitId = (int)item.UomId,
+                                    MovementType = StockMovementType.Adjustment,
+                                    Qty = item.DifferenceQty, // Can be positive or negative
+                                    Location = "Main Store",
+                                    ReferenceType = StockReferenceType.Adjustment,
+                                    ReferenceId = adjustment.AdjustmentId,
+                                    Note = $"Stock Adjustment - {adjustment.AdjustmentNo}"
+                                };
+                                
+                                await _stockLedgerService.CreateAsync(stockLedgerDto);
+                            }
+                            catch (Exception ex)
+                            {
+                                AppLogger.LogError("Failed to create stock ledger entry for adjustment", ex,
+                                    $"AdjustmentId: {adjustmentId}, ProductId: {item.ProductId}", "stock_adjustment");
+                                // Don't throw - ledger is supplementary
+                            }
+                        }
                     }
                 }
 

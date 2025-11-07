@@ -810,7 +810,7 @@
                                     <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding TotalReturnItems}" Margin="0,5"/>
 
                                     <TextBlock Grid.Row="3" Grid.Column="0" Text="Total Amount:" FontWeight="SemiBold" Margin="0,5"/>
-                                    <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding TotalReturnAmount, StringFormat=C}" Margin="0,5"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding TotalReturnAmount, Converter={StaticResource CurrencyPriceConverter}}" Margin="0,5"/>
                                 </Grid>
 
                                 <!-- Validation Message -->

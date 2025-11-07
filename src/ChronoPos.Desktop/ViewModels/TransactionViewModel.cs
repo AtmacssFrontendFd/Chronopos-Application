@@ -336,7 +336,8 @@ public partial class TransactionViewModel : ObservableObject
             var refundDialog = new Views.Dialogs.RefundDialog(
                 transaction,
                 _refundService,
-                _currentUserService);
+                _currentUserService,
+                _activeCurrencyService);
 
             var result = refundDialog.ShowDialog();
 
@@ -572,22 +573,22 @@ public partial class TransactionViewModel : ObservableObject
             {
                 // For partial payment transactions, show customer pending as bill total
                 var alreadyPaidFromSale = totalAmount - freshTransaction.AmountCreditRemaining;
-                totalLabel.Text = $"Customer Pending Amount: ${customerBalanceAmount:N2}\n" +
-                                  $"Remaining Amount of Transaction: ${remainingAmount:N2}\n" +
-                                  $"Already Paid: ${alreadyPaidFromSale:N2}";
+                totalLabel.Text = $"Customer Pending Amount: {_activeCurrencyService.CurrencySymbol}{customerBalanceAmount:N2}\n" +
+                                  $"Remaining Amount of Transaction: {_activeCurrencyService.CurrencySymbol}{remainingAmount:N2}\n" +
+                                  $"Already Paid: {_activeCurrencyService.CurrencySymbol}{alreadyPaidFromSale:N2}";
             }
             else if (alreadyPaid > 0)
             {
                 // For transactions with some payment already made
-                totalLabel.Text = $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
-                                  $"Bill Total: ${billTotal:N2}\n" +
-                                  $"Remaining: ${remainingAmount:N2}\n(Already Paid: ${alreadyPaid:N2})";
+                totalLabel.Text = $"Sale Amount: {_activeCurrencyService.CurrencySymbol}{totalAmount:N2}{balanceInfo}\n" +
+                                  $"Bill Total: {_activeCurrencyService.CurrencySymbol}{billTotal:N2}\n" +
+                                  $"Remaining: {_activeCurrencyService.CurrencySymbol}{remainingAmount:N2}\n(Already Paid: {_activeCurrencyService.CurrencySymbol}{alreadyPaid:N2})";
             }
             else
             {
                 // For new transactions with no payment yet
-                totalLabel.Text = $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
-                                  $"Bill Total: ${billTotal:N2}";
+                totalLabel.Text = $"Sale Amount: {_activeCurrencyService.CurrencySymbol}{totalAmount:N2}{balanceInfo}\n" +
+                                  $"Bill Total: {_activeCurrencyService.CurrencySymbol}{billTotal:N2}";
             }
             
             Grid.SetRow(totalLabel, 0);
@@ -1076,7 +1077,7 @@ public partial class TransactionViewModel : ObservableObject
 
                 var priceText = new TextBlock
                 {
-                    Text = $"{product.TotalAmount:C2}",
+                    Text = _activeCurrencyService.FormatPrice(product.TotalAmount),
                     FontSize = 14,
                     FontWeight = FontWeights.Bold,
                     VerticalAlignment = VerticalAlignment.Center,
@@ -1111,7 +1112,7 @@ public partial class TransactionViewModel : ObservableObject
 
             if (refund.TotalVat > 0)
             {
-                totalsStack.Children.Add(new TextBlock { Text = $"(Includes VAT: {refund.TotalVat:C2})", FontSize = 11, Foreground = Brushes.Gray });
+                totalsStack.Children.Add(new TextBlock { Text = $"(Includes VAT: {_activeCurrencyService.FormatPrice(refund.TotalVat)})", FontSize = 11, Foreground = Brushes.Gray });
             }
 
             totalsBorder.Child = totalsStack;
@@ -1412,7 +1413,7 @@ public partial class TransactionViewModel : ObservableObject
 
                 var priceText = new TextBlock
                 {
-                    Text = $"{product.OldProductAmount:C2}",
+                    Text = _activeCurrencyService.FormatPrice(product.OldProductAmount),
                     FontSize = 14,
                     FontWeight = FontWeights.Bold,
                     VerticalAlignment = VerticalAlignment.Center,
@@ -1460,7 +1461,7 @@ public partial class TransactionViewModel : ObservableObject
 
                 var priceText = new TextBlock
                 {
-                    Text = $"{product.NewProductAmount:C2}",
+                    Text = _activeCurrencyService.FormatPrice(product.NewProductAmount),
                     FontSize = 14,
                     FontWeight = FontWeights.Bold,
                     VerticalAlignment = VerticalAlignment.Center,
@@ -1490,7 +1491,7 @@ public partial class TransactionViewModel : ObservableObject
             differenceGrid.Children.Add(new TextBlock { Text = "Price Difference", FontSize = 16, FontWeight = FontWeights.Bold });
             var differenceAmount = new TextBlock 
             { 
-                Text = $"{Math.Abs(exchange.TotalExchangedAmount):C2} {(exchange.TotalExchangedAmount > 0 ? "(Customer pays)" : exchange.TotalExchangedAmount < 0 ? "(Customer refund)" : "(Even)")}",
+                Text = $"{_activeCurrencyService.FormatPrice(Math.Abs(exchange.TotalExchangedAmount))} {(exchange.TotalExchangedAmount > 0 ? "(Customer pays)" : exchange.TotalExchangedAmount < 0 ? "(Customer refund)" : "(Even)")}",
                 FontSize = 16, 
                 FontWeight = FontWeights.Bold, 
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B45309")) 
@@ -1501,7 +1502,7 @@ public partial class TransactionViewModel : ObservableObject
 
             if (exchange.TotalExchangedVat > 0)
             {
-                differenceStack.Children.Add(new TextBlock { Text = $"(Includes VAT: {exchange.TotalExchangedVat:C2})", FontSize = 11, Foreground = Brushes.Gray });
+                differenceStack.Children.Add(new TextBlock { Text = $"(Includes VAT: {_activeCurrencyService.FormatPrice(exchange.TotalExchangedVat)})", FontSize = 11, Foreground = Brushes.Gray });
             }
 
             differenceBorder.Child = differenceStack;
@@ -1714,7 +1715,7 @@ public partial class TransactionViewModel : ObservableObject
                     {
                         Quantity = product.Quantity.ToString("0.##"),
                         ItemName = productNameWithModifiers,
-                        Price = totalPrice.ToString("C2")
+                        Price = _activeCurrencyService.FormatPrice(totalPrice)
                     });
                 }
 
@@ -1800,7 +1801,7 @@ public partial class TransactionViewModel : ObservableObject
                     {
                         Quantity = product.TotalQuantityReturned.ToString("0.##"),
                         ItemName = product.ProductName ?? "Unknown",
-                        Price = product.TotalAmount.ToString("C2"),
+                        Price = _activeCurrencyService.FormatPrice(product.TotalAmount),
                         Modifiers = modifierString
                     });
                 }
@@ -1893,7 +1894,7 @@ public partial class TransactionViewModel : ObservableObject
                     {
                         Quantity = $"{exchangeProduct.NewQuantity}x",
                         ItemName = exchangeProduct.NewProductName ?? "",
-                        Price = exchangeProduct.NewProductAmount.ToString("C2"),
+                        Price = _activeCurrencyService.FormatPrice(exchangeProduct.NewProductAmount),
                         Modifiers = string.Empty // New products don't have modifiers in exchange DTO
                     });
                 }

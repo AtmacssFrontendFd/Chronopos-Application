@@ -26,6 +26,7 @@ public partial class AddGoodsReplaceViewModel : ObservableObject, IDisposable
     private readonly IUomService _uomService;
     private readonly IProductBatchService _productBatchService;
     internal readonly IStockService _stockService;
+    private readonly IActiveCurrencyService _activeCurrencyService;
     private readonly Action? _navigateBack;
     private readonly int? _replaceId;
     
@@ -41,6 +42,11 @@ public partial class AddGoodsReplaceViewModel : ObservableObject, IDisposable
     #endregion
 
     #region Observable Properties
+    
+    /// <summary>
+    /// Gets the active currency symbol for dynamic table headers
+    /// </summary>
+    public string ActiveCurrencySymbol => _activeCurrencyService?.CurrencySymbol ?? "$";
 
     // Goods Replace Header Properties
     [ObservableProperty]
@@ -203,6 +209,7 @@ public partial class AddGoodsReplaceViewModel : ObservableObject, IDisposable
         IUomService uomService,
         IProductBatchService productBatchService,
         IStockService stockService,
+        IActiveCurrencyService activeCurrencyService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -221,6 +228,7 @@ public partial class AddGoodsReplaceViewModel : ObservableObject, IDisposable
         _uomService = uomService ?? throw new ArgumentNullException(nameof(uomService));
         _productBatchService = productBatchService ?? throw new ArgumentNullException(nameof(productBatchService));
         _stockService = stockService ?? throw new ArgumentNullException(nameof(stockService));
+        _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));

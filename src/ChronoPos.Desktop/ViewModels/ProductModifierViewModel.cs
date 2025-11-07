@@ -18,6 +18,7 @@ namespace ChronoPos.Desktop.ViewModels
         private readonly IProductModifierGroupItemService _modifierGroupItemService;
         private readonly ICurrentUserService _currentUserService;
         private readonly ITaxTypeService _taxTypeService;
+        private readonly IActiveCurrencyService _activeCurrencyService;
         private readonly Action? _navigateBack;
 
         #region Observable Properties - Modifier Groups
@@ -95,6 +96,11 @@ namespace ChronoPos.Desktop.ViewModels
         public int TotalModifiers => Modifiers?.Count ?? 0;
         public bool HasModifierGroups => FilteredModifierGroups != null && FilteredModifierGroups.Count > 0;
         public bool HasModifiers => FilteredModifiers != null && FilteredModifiers.Count > 0;
+        
+        /// <summary>
+        /// Gets the active currency symbol for dynamic table headers
+        /// </summary>
+        public string ActiveCurrencySymbol => _activeCurrencyService?.CurrencySymbol ?? "$";
 
         #endregion
 
@@ -104,6 +110,7 @@ namespace ChronoPos.Desktop.ViewModels
             IProductModifierGroupItemService modifierGroupItemService,
             ICurrentUserService currentUserService,
             ITaxTypeService taxTypeService,
+            IActiveCurrencyService activeCurrencyService,
             Action? navigateBack = null)
         {
             _modifierService = modifierService ?? throw new ArgumentNullException(nameof(modifierService));
@@ -111,6 +118,7 @@ namespace ChronoPos.Desktop.ViewModels
             _modifierGroupItemService = modifierGroupItemService ?? throw new ArgumentNullException(nameof(modifierGroupItemService));
             _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
             _taxTypeService = taxTypeService ?? throw new ArgumentNullException(nameof(taxTypeService));
+            _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
             _navigateBack = navigateBack;
 
             FileLogger.Log("🔧 ProductModifierViewModel constructor started");

@@ -3079,7 +3079,7 @@ public partial class AddSalesViewModel : ObservableObject
                 
                 UpdateButtonVisibility();
                 
-                MessageBox.Show($"Transaction #{CurrentTransactionId} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nBill Total: ${billTotal:C}", 
+                MessageBox.Show($"Transaction #{CurrentTransactionId} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nBill Total: {_activeCurrencyService.FormatPrice(billTotal)}", 
                     "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
@@ -3150,7 +3150,7 @@ public partial class AddSalesViewModel : ObservableObject
                 
                 UpdateButtonVisibility();
 
-                MessageBox.Show($"Transaction #{savedTransaction.Id} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nBill Total: ${billTotal:C}", 
+                MessageBox.Show($"Transaction #{savedTransaction.Id} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nBill Total: {_activeCurrencyService.FormatPrice(billTotal)}", 
                     "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
@@ -3528,7 +3528,7 @@ public partial class AddSalesViewModel : ObservableObject
                     // Validate paid amount against actual remaining amount
                     if (paidAmount < 0 || paidAmount > actualRemainingAmount)
                     {
-                        MessageBox.Show($"Amount paid must be between $0 and ${actualRemainingAmount:N2}.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show($"Amount paid must be between {_activeCurrencyService.CurrencySymbol}0 and {_activeCurrencyService.FormatPrice(actualRemainingAmount)}.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
 
@@ -3816,7 +3816,8 @@ public partial class AddSalesViewModel : ObservableObject
             var refundDialog = new Views.Dialogs.RefundDialog(
                 transaction,
                 _refundService,
-                _currentUserService);
+                _currentUserService,
+                _activeCurrencyService);
 
             var result = refundDialog.ShowDialog();
 

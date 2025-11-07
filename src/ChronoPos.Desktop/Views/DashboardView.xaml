@@ -179,7 +179,7 @@
                                   Margin="0,0,0,8"/>
                         
                         <TextBlock Grid.Row="1" 
-                                  Text="{Binding TodaysSales, StringFormat='{}{0:N2}'}" 
+                                  Text="{Binding TodaysSales, Converter={StaticResource CurrencyPriceConverter}}" 
                                   Style="{StaticResource CurrencyTextStyle}"
                                   Foreground="#10B981"/>
                         
@@ -212,7 +212,7 @@
                                   Margin="0,0,0,8"/>
                         
                         <TextBlock Grid.Row="1" 
-                                  Text="{Binding MonthlySales, StringFormat='{}{0:N2}'}" 
+                                  Text="{Binding MonthlySales, Converter={StaticResource CurrencyPriceConverter}}" 
                                   Style="{StaticResource CurrencyTextStyle}"
                                   Foreground="#3B82F6"/>
                         
@@ -390,7 +390,7 @@
 
                                             <!-- Revenue -->
                                             <TextBlock Grid.Column="2" 
-                                                      Text="{Binding Revenue, StringFormat='{}{0:N2}'}" 
+                                                      Text="{Binding Revenue, Converter={StaticResource CurrencyPriceConverter}}" 
                                                       FontSize="14" 
                                                       FontWeight="Bold"
                                                       Foreground="#10B981"
@@ -459,7 +459,7 @@
                                                     </StackPanel>
 
                                                     <TextBlock Grid.Column="1" 
-                                                              Text="{Binding TotalAmount, StringFormat='{}{0:N2}'}" 
+                                                              Text="{Binding TotalAmount, Converter={StaticResource CurrencyPriceConverter}}" 
                                                               FontSize="16" 
                                                               FontWeight="Bold"
                                                               Foreground="#10B981"
@@ -834,7 +834,7 @@
                                                   Margin="0,0,12,0"/>
 
                                         <TextBlock Grid.Column="2" 
-                                                  Text="{Binding Revenue, StringFormat='{}{0:N2}'}" 
+                                                  Text="{Binding Revenue, Converter={StaticResource CurrencyPriceConverter}}" 
                                                   FontSize="14" 
                                                   FontWeight="Bold"
                                                   Foreground="#10B981"
@@ -926,7 +926,7 @@
                                             </StackPanel>
 
                                             <TextBlock Grid.Column="1" 
-                                                      Text="{Binding TotalSpent, StringFormat='{}{0:N2}'}" 
+                                                      Text="{Binding TotalSpent, Converter={StaticResource CurrencyPriceConverter}}" 
                                                       FontSize="13" 
                                                       FontWeight="Bold"
                                                       Foreground="#10B981"

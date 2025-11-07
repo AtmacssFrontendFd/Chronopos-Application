@@ -784,7 +784,7 @@
                                     <!-- Total Amount -->
                                     <StackPanel Grid.Column="2" Margin="10,0,0,0">
                                         <TextBlock Text="{Binding TotalAmountLabel}" Style="{StaticResource FieldLabelStyle}"/>
-                                        <TextBox Text="{Binding TotalAmount, StringFormat=C2}" 
+                                        <TextBox Text="{Binding TotalAmount, Converter={StaticResource CurrencyPriceConverter}}" 
                                                  Style="{StaticResource FormTextBoxStyle}"
                                                  IsReadOnly="True"
                                                  Background="{DynamicResource DisabledBackgroundBrush}"
