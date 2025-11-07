@@ -1,7 +1,9 @@
 using ChronoPos.Application.DTOs;
+using ChronoPos.Application.DTOs.Inventory;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Logging;
 using ChronoPos.Domain.Entities;
+using ChronoPos.Domain.Enums;
 using ChronoPos.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +20,7 @@ public class GoodsReturnService : IGoodsReturnService
     private readonly ISupplierRepository _supplierRepository;
     private readonly IStoreRepository _storeRepository;
     private readonly IProductRepository _productRepository;
+    private readonly IStockLedgerService? _stockLedgerService;
 
     public GoodsReturnService(
         ChronoPosDbContext context,
@@ -25,7 +28,8 @@ public class GoodsReturnService : IGoodsReturnService
         IGoodsReturnItemRepository goodsReturnItemRepository,
         ISupplierRepository supplierRepository,
         IStoreRepository storeRepository,
-        IProductRepository productRepository)
+        IProductRepository productRepository,
+        IStockLedgerService? stockLedgerService = null)
     {
         _context = context;
         _goodsReturnRepository = goodsReturnRepository;
@@ -33,6 +37,7 @@ public class GoodsReturnService : IGoodsReturnService
         _supplierRepository = supplierRepository;
         _storeRepository = storeRepository;
         _productRepository = productRepository;
+        _stockLedgerService = stockLedgerService;
     }
 
     public async Task<GoodsReturnDto?> CreateGoodsReturnAsync(CreateGoodsReturnDto dto)
@@ -315,6 +320,38 @@ public class GoodsReturnService : IGoodsReturnService
 
             await _goodsReturnRepository.UpdateAsync(goodsReturn);
             await _context.SaveChangesAsync();
+            
+            // Create stock ledger entries AFTER saving (to avoid nested transaction conflict)
+            if (_stockLedgerService != null)
+            {
+                foreach (var item in goodsReturn.Items)
+                {
+                    try
+                    {
+                        var stockLedgerDto = new CreateStockLedgerDto
+                        {
+                            ProductId = item.ProductId,
+                            UnitId = (int)item.UomId,
+                            MovementType = StockMovementType.Return,
+                            Qty = item.Quantity,
+                            Location = "Main Store",
+                            ReferenceType = StockReferenceType.Return,
+                            ReferenceId = (int)goodsReturn.Id,
+                            Note = $"Goods Return - {goodsReturn.ReturnNo}"
+                        };
+                        
+                        await _stockLedgerService.CreateAsync(stockLedgerDto);
+                        AppLogger.LogInfo("Stock ledger entry created for goods return", 
+                            $"ProductId: {item.ProductId}, Qty: {item.Quantity}, ReturnNo: {goodsReturn.ReturnNo}", "goods_return");
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLogger.LogError("Failed to create stock ledger entry for goods return", ex,
+                            $"ReturnId: {returnId}, ProductId: {item.ProductId}", "goods_return");
+                        // Don't throw - ledger is supplementary
+                    }
+                }
+            }
 
             AppLogger.LogInfo("PostGoodsReturnService", $"Successfully posted goods return {goodsReturn.ReturnNo}");
             return true;

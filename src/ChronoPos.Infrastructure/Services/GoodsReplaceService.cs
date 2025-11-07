@@ -1,7 +1,9 @@
 using ChronoPos.Application.DTOs;
+using ChronoPos.Application.DTOs.Inventory;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Logging;
 using ChronoPos.Domain.Entities;
+using ChronoPos.Domain.Enums;
 using ChronoPos.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,17 +18,20 @@ public class GoodsReplaceService : IGoodsReplaceService
     private readonly IGoodsReplaceRepository _goodsReplaceRepository;
     private readonly ISupplierRepository _supplierRepository;
     private readonly IShopLocationRepository _shopLocationRepository;
+    private readonly IStockLedgerService? _stockLedgerService;
 
     public GoodsReplaceService(
         ChronoPosDbContext context,
         IGoodsReplaceRepository goodsReplaceRepository,
         ISupplierRepository supplierRepository,
-        IShopLocationRepository shopLocationRepository)
+        IShopLocationRepository shopLocationRepository,
+        IStockLedgerService? stockLedgerService = null)
     {
         _context = context;
         _goodsReplaceRepository = goodsReplaceRepository;
         _supplierRepository = supplierRepository;
         _shopLocationRepository = shopLocationRepository;
+        _stockLedgerService = stockLedgerService;
     }
 
     /// <summary>
@@ -427,16 +432,45 @@ public class GoodsReplaceService : IGoodsReplaceService
         replace.Status = "Posted";
         replace.UpdatedAt = DateTime.UtcNow;
 
-        // Save all stock and tracking updates first
-        await _context.SaveChangesAsync();
-
-        // 4. Check if the entire return is now fully replaced
-        // IMPORTANT: This must be called AFTER SaveChangesAsync so tracking updates are committed
+        // 4. Check if the entire return is now fully replaced (before saving)
         if (replace.ReferenceReturnId.HasValue)
         {
             await CheckAndMarkReturnAsFullyReplacedAsync(replace.ReferenceReturnId.Value);
-            // Save the IsTotallyReplaced flag update
-            await _context.SaveChangesAsync();
+        }
+
+        // Save all stock and tracking updates in one transaction
+        await _context.SaveChangesAsync();
+        
+        // Create stock ledger entries AFTER saving (to avoid nested transaction conflict)
+        if (_stockLedgerService != null)
+        {
+            foreach (var item in replace.Items)
+            {
+                try
+                {
+                    var stockLedgerDto = new CreateStockLedgerDto
+                    {
+                        ProductId = item.ProductId,
+                        UnitId = (int)item.UomId,
+                        MovementType = StockMovementType.Purchase, // Goods replaced adds stock back (like purchase)
+                        Qty = item.Quantity,
+                        Location = "Main Store",
+                        ReferenceType = StockReferenceType.GRN, // Using GRN type as replacement is similar to receiving goods
+                        ReferenceId = replace.Id,
+                        Note = $"Goods Replaced - {replace.ReplaceNo}"
+                    };
+                    
+                    await _stockLedgerService.CreateAsync(stockLedgerDto);
+                    AppLogger.LogInfo("Stock ledger entry created for goods replace", 
+                        $"ProductId: {item.ProductId}, Qty: {item.Quantity}, ReplaceNo: {replace.ReplaceNo}", "goods_replace");
+                }
+                catch (Exception ex)
+                {
+                    AppLogger.LogError("Failed to create stock ledger entry for goods replace", ex,
+                        $"ReplaceId: {replaceId}, ProductId: {item.ProductId}", "goods_replace");
+                    // Don't throw - ledger is supplementary
+                }
+            }
         }
 
         return true;

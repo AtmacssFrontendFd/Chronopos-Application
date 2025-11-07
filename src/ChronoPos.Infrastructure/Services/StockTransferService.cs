@@ -1,7 +1,9 @@
 using ChronoPos.Application.DTOs;
+using ChronoPos.Application.DTOs.Inventory;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Logging;
 using ChronoPos.Domain.Entities;
+using ChronoPos.Domain.Enums;
 using ChronoPos.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,15 +17,18 @@ namespace ChronoPos.Infrastructure.Services
         private readonly ChronoPosDbContext _context;
         private readonly IStockTransferRepository _stockTransferRepository;
         private readonly IShopLocationRepository _shopLocationRepository;
+        private readonly IStockLedgerService? _stockLedgerService;
 
         public StockTransferService(
             ChronoPosDbContext context,
             IStockTransferRepository stockTransferRepository,
-            IShopLocationRepository shopLocationRepository)
+            IShopLocationRepository shopLocationRepository,
+            IStockLedgerService? stockLedgerService = null)
         {
             _context = context;
             _stockTransferRepository = stockTransferRepository;
             _shopLocationRepository = shopLocationRepository;
+            _stockLedgerService = stockLedgerService;
         }
 
         /// <summary>
@@ -399,6 +404,58 @@ namespace ChronoPos.Infrastructure.Services
             transfer.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+            
+            // Create stock ledger entries AFTER saving (to avoid nested transaction conflict)
+            if (_stockLedgerService != null)
+            {
+                foreach (var receivedItem in receivedItems)
+                {
+                    var item = transfer.Items.FirstOrDefault(i => i.Id == receivedItem.Id);
+                    if (item != null && receivedItem.QuantityReceived > 0)
+                    {
+                        try
+                        {
+                            // Transfer OUT from source location
+                            var transferOutDto = new CreateStockLedgerDto
+                            {
+                                ProductId = item.ProductId,
+                                UnitId = (int)item.UomId,
+                                MovementType = StockMovementType.TransferOut,
+                                Qty = receivedItem.QuantityReceived,
+                                Location = transfer.FromStore?.Name ?? "Source Store",
+                                ReferenceType = StockReferenceType.Transfer,
+                                ReferenceId = transferId,
+                                Note = $"Transfer Out - {transfer.TransferNo}"
+                            };
+                            await _stockLedgerService.CreateAsync(transferOutDto);
+                            
+                            // Transfer IN to destination location
+                            var transferInDto = new CreateStockLedgerDto
+                            {
+                                ProductId = item.ProductId,
+                                UnitId = (int)item.UomId,
+                                MovementType = StockMovementType.TransferIn,
+                                Qty = receivedItem.QuantityReceived,
+                                Location = transfer.ToStore?.Name ?? "Destination Store",
+                                ReferenceType = StockReferenceType.Transfer,
+                                ReferenceId = transferId,
+                                Note = $"Transfer In - {transfer.TransferNo}"
+                            };
+                            await _stockLedgerService.CreateAsync(transferInDto);
+                            
+                            AppLogger.LogInfo("Stock ledger entries created for transfer", 
+                                $"ProductId: {item.ProductId}, Qty: {receivedItem.QuantityReceived}, TransferNo: {transfer.TransferNo}", "stock_transfer");
+                        }
+                        catch (Exception ex)
+                        {
+                            AppLogger.LogError("Failed to create stock ledger entries for transfer", ex,
+                                $"TransferId: {transferId}, ProductId: {item.ProductId}", "stock_transfer");
+                            // Don't throw - ledger is supplementary
+                        }
+                    }
+                }
+            }
+            
             return true;
         }
 

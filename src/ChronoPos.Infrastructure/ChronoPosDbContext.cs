@@ -120,6 +120,9 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.ExchangeTransaction> ExchangeTransactions { get; set; }
     public DbSet<Domain.Entities.ExchangeTransactionProduct> ExchangeTransactionProducts { get; set; }
 
+    // Stock Ledger
+    public DbSet<Domain.Entities.StockLedger> StockLedgers { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -3513,6 +3516,36 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasIndex(e => e.ExchangeTransactionId);
             entity.HasIndex(e => e.OriginalTransactionProductId);
             entity.HasIndex(e => e.NewProductId);
+        });
+
+        // Configure StockLedger entity
+        modelBuilder.Entity<Domain.Entities.StockLedger>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ProductId).IsRequired();
+            entity.Property(e => e.UnitId).IsRequired();
+            entity.Property(e => e.MovementType).IsRequired();
+            entity.Property(e => e.Qty).HasPrecision(10, 2).IsRequired();
+            entity.Property(e => e.Balance).HasPrecision(10, 2).IsRequired();
+            entity.Property(e => e.Location).HasMaxLength(200);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(sl => sl.Product)
+                  .WithMany()
+                  .HasForeignKey(sl => sl.ProductId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(sl => sl.Unit)
+                  .WithMany()
+                  .HasForeignKey(sl => sl.UnitId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.ProductId);
+            entity.HasIndex(e => new { e.ProductId, e.CreatedAt });
+            entity.HasIndex(e => e.MovementType);
+            entity.HasIndex(e => e.ReferenceType);
         });
     }
 }

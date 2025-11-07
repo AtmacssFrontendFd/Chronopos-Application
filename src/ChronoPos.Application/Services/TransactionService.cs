@@ -1,6 +1,9 @@
 using ChronoPos.Application.DTOs;
+using ChronoPos.Application.DTOs.Inventory;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.Logging;
 using ChronoPos.Domain.Entities;
+using ChronoPos.Domain.Enums;
 using ChronoPos.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -15,6 +18,7 @@ namespace ChronoPos.Application.Services
         private readonly IShiftRepository _shiftRepository;
         private readonly IProductRepository _productRepository;
         private readonly IServiceChargeRepository _serviceChargeRepository;
+        private readonly IStockLedgerService _stockLedgerService;
         private readonly IUnitOfWork _unitOfWork;
 
         public TransactionService(
@@ -22,12 +26,14 @@ namespace ChronoPos.Application.Services
             IShiftRepository shiftRepository,
             IProductRepository productRepository,
             IServiceChargeRepository serviceChargeRepository,
+            IStockLedgerService stockLedgerService,
             IUnitOfWork unitOfWork)
         {
             _transactionRepository = transactionRepository;
             _shiftRepository = shiftRepository;
             _productRepository = productRepository;
             _serviceChargeRepository = serviceChargeRepository;
+            _stockLedgerService = stockLedgerService;
             _unitOfWork = unitOfWork;
         }
 
@@ -298,20 +304,34 @@ namespace ChronoPos.Application.Services
 
         public async Task<TransactionDto> ChangeStatusAsync(int id, string newStatus, int currentUserId)
         {
+            AppLogger.LogInfo("ChangeStatusAsync", 
+                $"Called with id={id}, newStatus={newStatus}, currentUserId={currentUserId}", "transaction");
+            
             var transaction = await _transactionRepository.GetByIdWithDetailsAsync(id);
             if (transaction == null)
             {
+                AppLogger.LogWarning("ChangeStatusAsync", $"Transaction {id} not found", "transaction");
                 throw new ArgumentException("Transaction not found.");
             }
+
+            AppLogger.LogInfo("ChangeStatusAsync", 
+                $"Transaction {id} found. Current status: {transaction.Status}, Products count: {transaction.TransactionProducts?.Count ?? 0}", 
+                "transaction");
 
             // Validate status transition
             if (!IsValidStatusTransition(transaction.Status, newStatus))
             {
+                AppLogger.LogWarning("ChangeStatusAsync", 
+                    $"Invalid status transition from {transaction.Status} to {newStatus}", "transaction");
                 throw new InvalidOperationException($"Invalid status transition from {transaction.Status} to {newStatus}.");
             }
 
+            var oldStatus = transaction.Status;
             transaction.Status = newStatus;
             transaction.UpdatedAt = DateTime.Now;
+
+            AppLogger.LogInfo("ChangeStatusAsync", 
+                $"Status transition approved: {oldStatus} -> {newStatus}", "transaction");
 
             // Generate invoice number when billing
             if (newStatus == "billed" && string.IsNullOrEmpty(transaction.InvoiceNumber))
@@ -320,8 +340,44 @@ namespace ChronoPos.Application.Services
             }
 
             _transactionRepository.Update(transaction);
+            
             await _unitOfWork.SaveChangesAsync();
+            
+            AppLogger.LogInfo("ChangeStatusAsync", 
+                $"Transaction {id} saved with new status {newStatus}", "transaction");
+            
+            // Create stock ledger entries AFTER saving (to avoid nested transaction conflict)
+            // when transaction is settled or billed
+            if ((newStatus == "settled" || newStatus == "billed") && 
+                (oldStatus != "settled" && oldStatus != "billed"))
+            {
+                AppLogger.LogInfo("ChangeStatusAsync", 
+                    $"Condition met for stock ledger creation: newStatus={newStatus}, oldStatus={oldStatus}", 
+                    "transaction");
+                
+                // Reload transaction with products to ensure navigation properties are loaded
+                var transactionWithProducts = await _transactionRepository.GetByIdWithDetailsAsync(id);
+                if (transactionWithProducts != null)
+                {
+                    AppLogger.LogInfo("ChangeStatusAsync", 
+                        $"Transaction reloaded with {transactionWithProducts.TransactionProducts?.Count ?? 0} products", 
+                        "transaction");
+                    await CreateStockLedgerEntriesForTransaction(transactionWithProducts);
+                }
+                else
+                {
+                    AppLogger.LogWarning("ChangeStatusAsync", 
+                        $"Failed to reload transaction {id} for stock ledger creation", "transaction");
+                }
+            }
+            else
+            {
+                AppLogger.LogInfo("ChangeStatusAsync", 
+                    $"Stock ledger creation skipped: newStatus={newStatus}, oldStatus={oldStatus}", 
+                    "transaction");
+            }
 
+            AppLogger.LogInfo("ChangeStatusAsync", $"Completed for transaction {id}", "transaction");
             return MapToDto(transaction);
         }
 
@@ -393,6 +449,64 @@ namespace ChronoPos.Application.Services
         private string GenerateInvoiceNumber()
         {
             return $"INV-{DateTime.Now:yyyyMMddHHmmss}";
+        }
+
+        /// <summary>
+        /// Creates stock ledger entries for all products in a transaction
+        /// </summary>
+        private async Task CreateStockLedgerEntriesForTransaction(Transaction transaction)
+        {
+            AppLogger.LogInfo("CreateStockLedgerEntriesForTransaction", 
+                $"Starting stock ledger creation for transaction {transaction.Id}", "transaction");
+            
+            if (transaction.TransactionProducts == null || !transaction.TransactionProducts.Any())
+            {
+                AppLogger.LogWarning("CreateStockLedgerEntriesForTransaction", 
+                    $"No transaction products found for transaction {transaction.Id}", "transaction");
+                return;
+            }
+
+            AppLogger.LogInfo("CreateStockLedgerEntriesForTransaction", 
+                $"Processing {transaction.TransactionProducts.Count} products", "transaction");
+
+            foreach (var transactionProduct in transaction.TransactionProducts)
+            {
+                try
+                {
+                    // Get product to find its unit
+                    var product = await _productRepository.GetByIdAsync(transactionProduct.ProductId);
+                    if (product == null)
+                    {
+                        AppLogger.LogWarning("CreateStockLedgerEntriesForTransaction", 
+                            $"Product {transactionProduct.ProductId} not found", "transaction");
+                        continue;
+                    }
+
+                    // Create stock ledger entry for this sale
+                    var stockLedgerDto = new CreateStockLedgerDto
+                    {
+                        ProductId = transactionProduct.ProductId,
+                        UnitId = (int)(product.SellingUnitId ?? 1), // Use product's selling unit or default to 1
+                        MovementType = StockMovementType.Sale,
+                        Qty = transactionProduct.Quantity,
+                        Location = "Main Store",
+                        ReferenceType = StockReferenceType.Sale,
+                        ReferenceId = transaction.Id,
+                        Note = $"Sale from Transaction #{transaction.Id}"
+                    };
+
+                    await _stockLedgerService.CreateAsync(stockLedgerDto);
+                    
+                    AppLogger.LogInfo("Stock ledger entry created for sale", 
+                        $"ProductId: {transactionProduct.ProductId}, Qty: {transactionProduct.Quantity}, TransactionId: {transaction.Id}", "transaction");
+                }
+                catch (Exception ex)
+                {
+                    AppLogger.LogError("Failed to create stock ledger entry for sale", ex,
+                        $"TransactionId: {transaction.Id}, ProductId: {transactionProduct.ProductId}", "transaction");
+                    // Don't throw - ledger is supplementary
+                }
+            }
         }
 
         private TransactionDto MapToDto(Transaction transaction)

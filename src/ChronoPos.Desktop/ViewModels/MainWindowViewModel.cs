@@ -3197,6 +3197,15 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Navigate to a specific view
+    /// </summary>
+    /// <param name="view">The view to navigate to</param>
+    public void NavigateToView(object view)
+    {
+        CurrentView = view;
+    }
+
     private async Task ShowCustomerGroups()
     {
         // Check permission using UMAC - Allow if user has ANY permission
@@ -3500,14 +3509,30 @@ public partial class MainWindowViewModel : ObservableObject
         CurrentPageTitle = "Reports";
         StatusMessage = "Reports interface loaded";
         
-        var reportsContent = new System.Windows.Controls.TextBlock
+        try
         {
-            Text = "Reports & Analytics\n(Business reports and analytics will be displayed here)",
-            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-            VerticalAlignment = System.Windows.VerticalAlignment.Center,
-            FontSize = 16
-        };
-        CurrentView = reportsContent;
+            // Create the Reports Hub view with ViewModel
+            var reportsHubViewModel = _serviceProvider.GetRequiredService<ReportsHubViewModel>();
+            var reportsHubView = new ReportsHubView
+            {
+                DataContext = reportsHubViewModel
+            };
+            CurrentView = reportsHubView;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading reports hub: {ex.Message}");
+            AppLogger.LogError(
+                $"Failed to load reports hub: {ex.Message}", 
+                ex, 
+                "MainWindowViewModel.ShowReports");
+            
+            StatusMessage = "Error loading reports";
+            new MessageDialog(
+                "Error",
+                "Failed to load the reports. Please try again.",
+                MessageDialog.MessageType.Error).ShowDialog();
+        }
     }
 
     [RelayCommand]
