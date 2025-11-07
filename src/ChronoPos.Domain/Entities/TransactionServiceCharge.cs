@@ -12,8 +12,8 @@ public class TransactionServiceCharge
     [Required]
     public int TransactionId { get; set; }
     
-    // Nullable to support manual/custom service charges not linked to predefined service charge
-    public int? ServiceChargeId { get; set; }
+    // Nullable to support manual/custom service charges not linked to predefined service charge option
+    public int? ServiceChargeOptionId { get; set; }
     
     public decimal TotalAmount { get; set; } = 0;
     
@@ -29,7 +29,8 @@ public class TransactionServiceCharge
     // Navigation Properties
     public virtual Transaction Transaction { get; set; } = null!;
     
-    public virtual ServiceCharge ServiceCharge { get; set; } = null!;
+    // Nullable navigation property - allows null for manual/custom service charges
+    public virtual ServiceChargeOption? ServiceChargeOption { get; set; }
     
     public virtual User? Creator { get; set; }
     

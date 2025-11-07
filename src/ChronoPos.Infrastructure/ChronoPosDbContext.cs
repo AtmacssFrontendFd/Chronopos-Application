@@ -83,6 +83,10 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     // Payment Types
     public DbSet<Domain.Entities.PaymentType> PaymentTypes { get; set; }
 
+    // Service Charge Types
+    public DbSet<Domain.Entities.ServiceChargeType> ServiceChargeTypes { get; set; }
+    public DbSet<Domain.Entities.ServiceChargeOption> ServiceChargeOptions { get; set; }
+
     // Product Attribute system entities
     public DbSet<ProductAttribute> ProductAttributes { get; set; }
     public DbSet<ProductAttributeValue> ProductAttributeValues { get; set; }
@@ -299,6 +303,99 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             // Unique constraints
             entity.HasIndex(e => e.Name).IsUnique();
             entity.HasIndex(e => e.PaymentCode).IsUnique();
+        });
+
+        // Configure ServiceChargeType entity
+        modelBuilder.Entity<Domain.Entities.ServiceChargeType>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("service_charge_type");
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Code).IsRequired().HasMaxLength(50).HasColumnName("code");
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(255).HasColumnName("name");
+            entity.Property(e => e.ChargeOptionScope).HasMaxLength(100).HasColumnName("charge_option_scope");
+            entity.Property(e => e.IsDefault).HasDefaultValue(false).HasColumnName("is_default");
+            entity.Property(e => e.Status).HasDefaultValue(true).HasColumnName("status");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(e => e.DeletedBy).HasColumnName("deleted_by");
+            entity.Property(e => e.DeletedAt).HasColumnName("deleted_at");
+
+            // Indexes
+            entity.HasIndex(e => e.Code).IsUnique();
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.IsDefault);
+
+            // Foreign key relationships
+            entity.HasOne(e => e.CreatedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.CreatedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.UpdatedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.UpdatedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.DeletedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.DeletedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Configure ServiceChargeOption entity
+        modelBuilder.Entity<Domain.Entities.ServiceChargeOption>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("service_charge_option");
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ServiceChargeTypeId).IsRequired().HasColumnName("service_charge_type_id");
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(255).HasColumnName("name");
+            entity.Property(e => e.Cost).HasColumnType("decimal(18,2)").HasColumnName("cost");
+            entity.Property(e => e.Price).HasColumnType("decimal(18,2)").HasColumnName("price");
+            entity.Property(e => e.LanguageId).HasColumnName("language_id");
+            entity.Property(e => e.Status).HasDefaultValue(true).HasColumnName("status");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(e => e.DeletedBy).HasColumnName("deleted_by");
+            entity.Property(e => e.DeletedAt).HasColumnName("deleted_at");
+
+            // Indexes
+            entity.HasIndex(e => e.ServiceChargeTypeId);
+            entity.HasIndex(e => e.LanguageId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => new { e.ServiceChargeTypeId, e.Name });
+
+            // Foreign key relationships
+            entity.HasOne(e => e.ServiceChargeType)
+                  .WithMany(t => t.ServiceChargeOptions)
+                  .HasForeignKey(e => e.ServiceChargeTypeId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Language)
+                  .WithMany()
+                  .HasForeignKey(e => e.LanguageId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.CreatedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.CreatedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.UpdatedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.UpdatedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.DeletedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.DeletedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Configure ProductTax entity
@@ -3443,7 +3540,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.TransactionId).IsRequired();
-            entity.Property(e => e.ServiceChargeId).IsRequired(false); // Nullable to support manual/custom service charges
+            entity.Property(e => e.ServiceChargeOptionId).IsRequired(false); // Nullable to support manual/custom service charges
             entity.Property(e => e.TotalAmount).HasPrecision(12, 2);
             entity.Property(e => e.TotalVat).HasPrecision(12, 2);
             entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
@@ -3455,15 +3552,15 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                   .HasForeignKey(tsc => tsc.TransactionId)
                   .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(tsc => tsc.ServiceCharge)
-                  .WithMany(sc => sc.TransactionServiceCharges)
-                  .HasForeignKey(tsc => tsc.ServiceChargeId)
+            entity.HasOne(tsc => tsc.ServiceChargeOption)
+                  .WithMany()
+                  .HasForeignKey(tsc => tsc.ServiceChargeOptionId)
                   .OnDelete(DeleteBehavior.Restrict)
-                  .IsRequired(false); // Allow null ServiceChargeId for manual charges
+                  .IsRequired(false); // Allow null ServiceChargeOptionId for manual charges
 
             // Indexes
             entity.HasIndex(e => e.TransactionId);
-            entity.HasIndex(e => e.ServiceChargeId);
+            entity.HasIndex(e => e.ServiceChargeOptionId);
         });
 
         // Configure RefundTransaction entity

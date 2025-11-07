@@ -28,7 +28,7 @@ public class TransactionRepository : Repository<Transaction>, ITransactionReposi
                 .ThenInclude(tp => tp.TransactionModifiers)
                     .ThenInclude(tm => tm.ProductModifier)
             .Include(t => t.TransactionServiceCharges)
-                .ThenInclude(tsc => tsc.ServiceCharge)
+                .ThenInclude(tsc => tsc.ServiceChargeOption)
             .FirstOrDefaultAsync(t => t.Id == id);
     }
 
@@ -125,7 +125,7 @@ public class TransactionRepository : Repository<Transaction>, ITransactionReposi
                 .ThenInclude(tp => tp.TransactionModifiers)
                     .ThenInclude(tm => tm.ProductModifier)
             .Include(t => t.TransactionServiceCharges)
-                .ThenInclude(tsc => tsc.ServiceCharge)
+                .ThenInclude(tsc => tsc.ServiceChargeOption)
             .OrderByDescending(t => t.SellingTime)
             .ToListAsync();
     }

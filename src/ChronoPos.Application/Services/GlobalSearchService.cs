@@ -539,12 +539,14 @@ public class GlobalSearchService : IGlobalSearchService
             
             // Back Office / Management
             ("Product Management", "Manage products, inventory, and pricing", "Management", "Products", new[] { "products", "items", "inventory", "stock", "catalog", "manage products" }),
-            ("Customer Management", "Manage customer information and groups", "Management", "Customers", new[] { "customers", "clients", "contacts", "customer list", "manage customers" }),
-            ("Supplier Management", "Manage supplier details and relationships", "Management", "Suppliers", new[] { "suppliers", "vendors", "provider", "supplier list", "manage suppliers" }),
+            ("Customer Management", "Customer management landing page", "Management", "Customers", new[] { "customer management", "manage customers" }),
+            ("Customers", "View and manage customer list", "Management", "Customers", new[] { "customer", "customers", "client", "clients", "customer list" }),
+            ("Supplier Management", "Supplier management landing page", "Management", "Suppliers", new[] { "supplier management", "manage suppliers" }),
+            ("Suppliers", "View and manage supplier list", "Management", "Suppliers", new[] { "supplier", "suppliers", "vendor", "vendors", "supplier list" }),
             ("Category Management", "Organize products into categories", "Management", "Categories", new[] { "categories", "groups", "classification", "product categories" }),
             ("Brand Management", "Manage product brands", "Management", "Brands", new[] { "brands", "manufacturers", "labels", "brand list" }),
             ("Stock Management", "Inventory and stock control", "Management", "Stock", new[] { "stock", "inventory", "warehouse", "stock levels", "stock adjustment" }),
-            ("Customer Groups", "Manage customer groups and segments", "Management", "Customers", new[] { "customer groups", "segments", "customer categories" }),
+            ("Customer Groups", "Manage customer groups and segments", "Management", "Customers", new[] { "customer group", "customer groups", "segments", "customer segment", "customer categories" }),
             ("Product Groups", "Manage product groupings", "Management", "Products", new[] { "product groups", "product sets", "bundles" }),
             
             // Settings
@@ -573,11 +575,35 @@ public class GlobalSearchService : IGlobalSearchService
             
             // Product Features
             ("Add Product", "Add new product to inventory", "Products", "Products", new[] { "add product", "new product", "create product", "product entry" }),
-            ("Product Attributes", "Manage product attributes and variations", "Products", "Products", new[] { "attributes", "variants", "variations", "product attributes", "size", "color" }),
-            ("Product Modifiers", "Manage product add-ons and modifiers", "Products", "Products", new[] { "modifiers", "add-ons", "extras", "toppings", "customization" }),
-            ("Product Combinations", "Manage product variant combinations", "Products", "Products", new[] { "combinations", "variants", "product combinations", "sku" }),
+            ("Add Customer", "Add new customer to system", "Management", "Customers", new[] { "add customer", "new customer", "create customer", "customer entry" }),
+            ("Add Product Attribute", "Add new product attribute", "Products", "Attributes", new[] { "add product attribute", "add attribute", "new attribute", "create attribute" }),
+            ("Add Product Modifier", "Add new product modifier", "Products", "Modifiers", new[] { "add product modifier", "add modifier", "new modifier", "create modifier" }),
+            ("Add Product Combination", "Add new product combination", "Products", "Combinations", new[] { "add product combination", "add combination", "new combination", "create combination" }),
+            ("Add Product Group", "Add new product group", "Products", "Groups", new[] { "add product group", "add group", "new group", "create group" }),
+            ("Add Price Type", "Add new price type", "Settings", "Finance", new[] { "add price type", "new price type", "create price type" }),
+            ("Add Payment Type", "Add new payment type", "Settings", "Finance", new[] { "add payment type", "new payment type", "create payment type", "payment method" }),
+            ("Add Tax Rate", "Add new tax rate", "Settings", "Finance", new[] { "add tax rate", "add tax type", "new tax", "create tax" }),
+            ("Add Currency", "Add new currency", "Settings", "Finance", new[] { "add currency", "new currency", "create currency" }),
+            ("Add Discount", "Add new discount", "Settings", "Finance", new[] { "add discount", "new discount", "create discount", "add offer" }),
+            ("Add Shop", "Add new shop/store", "Settings", "Store", new[] { "add shop", "add store", "new shop", "new store", "create shop" }),
+            ("Add UOM", "Add new unit of measurement", "Settings", "Products", new[] { "add uom", "add unit", "new uom", "create uom", "add unit of measurement" }),
+            ("Add Supplier", "Add new supplier", "Management", "Suppliers", new[] { "add supplier", "new supplier", "create supplier", "supplier entry" }),
+            ("Add Customer Group", "Add new customer group", "Management", "Customers", new[] { "add customer group", "new customer group", "create customer group" }),
+            ("Product Attributes", "Manage product attributes and variations", "Products", "Products", new[] { "attributes", "variants", "variations", "product attributes", "size", "color", "attribute management" }),
+            ("Product Modifiers", "Manage product add-ons and modifiers", "Products", "Products", new[] { "modifiers", "add-ons", "extras", "toppings", "customization", "modifier management" }),
+            ("Product Combinations", "Manage product variant combinations", "Products", "Products", new[] { "combinations", "variants", "product combinations", "sku", "combination management" }),
+            ("Product Groups", "Manage product groupings and sets", "Products", "Products", new[] { "product groups", "product sets", "bundles", "group management", "product grouping" }),
             ("Barcodes", "Manage product barcodes", "Products", "Products", new[] { "barcode", "ean", "upc", "qr code", "sku code" }),
             ("Product Batches", "Manage product batches and expiry", "Products", "Products", new[] { "batches", "batch number", "expiry", "lot number", "manufacturing date" }),
+            
+            // Finance & Configuration
+            ("Price Types", "Manage selling price types", "Settings", "Finance", new[] { "price types", "selling price", "price list", "pricing", "mrp", "retail price" }),
+            ("Payment Types", "Manage payment methods and types", "Settings", "Finance", new[] { "payment types", "payment methods", "cash", "card", "upi", "payment management" }),
+            ("Tax Rates", "Configure tax rates and types", "Settings", "Finance", new[] { "tax rates", "tax", "vat", "gst", "tax types", "taxation", "tax management" }),
+            ("Currencies", "Manage currencies and exchange rates", "Settings", "Finance", new[] { "currency", "currencies", "exchange rate", "multi-currency", "currency management" }),
+            ("Discounts", "Configure discount rules and offers", "Settings", "Finance", new[] { "discounts", "offers", "promotions", "sales", "coupon", "discount management" }),
+            ("Shop Management", "Manage shop/store information", "Settings", "Store", new[] { "shop", "store", "shop management", "store management", "outlet", "branch" }),
+            ("Units of Measurement", "Manage UOM for products", "Settings", "Products", new[] { "uom", "units", "measurement", "unit of measurement", "kg", "liter", "units of measurement" }),
             
             // Reports
             ("Reports", "View sales and inventory reports", "Reports", "Reports", new[] { "reports", "analytics", "insights", "sales report", "inventory report" }),

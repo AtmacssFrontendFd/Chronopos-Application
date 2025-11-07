@@ -849,6 +849,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ITransactionModifierRepository>(),
                 _productBarcodeRepository,
                 _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
+                _serviceProvider.GetRequiredService<IServiceChargeOptionService>(),
                 navigateToTransactionList: async () => await ShowTransaction(),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
                 navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId)
@@ -873,7 +874,7 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task ShowTransaction()
+    private async Task ShowTransaction(string? selectedTab = null)
     {
         // Check permission using UMAC - Allow if user has ANY permission (Create, Edit, Delete, Import, Export, View, Print)
         if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.TRANSACTION))
@@ -915,6 +916,25 @@ public partial class MainWindowViewModel : ObservableObject
             };
 
             CurrentView = transactionView;
+            
+            // If a specific tab is requested, switch to it
+            if (!string.IsNullOrEmpty(selectedTab))
+            {
+                await Task.Delay(100); // Wait for view to render
+                
+                switch (selectedTab.ToLowerInvariant())
+                {
+                    case "sales":
+                        transactionViewModel.SwitchToSalesCommand.Execute(null);
+                        break;
+                    case "refund":
+                        transactionViewModel.SwitchToRefundCommand.Execute(null);
+                        break;
+                    case "exchange":
+                        transactionViewModel.SwitchToExchangeCommand.Execute(null);
+                        break;
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -955,6 +975,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ITransactionModifierRepository>(),
                 _productBarcodeRepository,
                 _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
+                _serviceProvider.GetRequiredService<IServiceChargeOptionService>(),
                 navigateToTransactionList: async () => await ShowTransaction(),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
                 navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId)
@@ -1013,6 +1034,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ITransactionModifierRepository>(),
                 _productBarcodeRepository,
                 _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
+                _serviceProvider.GetRequiredService<IServiceChargeOptionService>(),
                 navigateToTransactionList: async () => await ShowTransaction(),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
                 navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId)
@@ -1080,6 +1102,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ITransactionModifierRepository>(),
                 _productBarcodeRepository,
                 _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
+                _serviceProvider.GetRequiredService<IServiceChargeOptionService>(),
                 navigateToTransactionList: async () => await ShowTransaction(),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
                 navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId)
@@ -1563,6 +1586,26 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private async Task ShowProductAttributesWithAddPanel()
+    {
+        // First open the Product Attributes screen
+        ShowProductAttributes();
+        
+        // Wait for the view to render
+        await Task.Delay(100);
+        
+        // Try to get the ProductAttributeViewModel from the CurrentView
+        if (CurrentView is ProductAttributeView attributeView && 
+            attributeView.DataContext is ProductAttributeViewModel attributeViewModel)
+        {
+            // Trigger the AddAttributeCommand
+            if (attributeViewModel.AddAttributeCommand.CanExecute(null))
+            {
+                attributeViewModel.AddAttributeCommand.Execute(null);
+            }
+        }
+    }
+
     private void ShowProductModifiers()
     {
         ChronoPos.Desktop.Services.FileLogger.Log("🔧 ShowProductModifiers method started");
@@ -1645,6 +1688,92 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private async Task ShowProductModifiersWithAddPanel()
+    {
+        // First open the Product Modifiers screen
+        ShowProductModifiers();
+        
+        // Wait for the view to render
+        await Task.Delay(100);
+        
+        // Try to get the ProductModifierViewModel from the CurrentView
+        if (CurrentView is ProductModifierView modifierView && 
+            modifierView.DataContext is ProductModifierViewModel modifierViewModel)
+        {
+            // Trigger the AddModifierGroupCommand
+            if (modifierViewModel.AddModifierGroupCommand.CanExecute(null))
+            {
+                modifierViewModel.AddModifierGroupCommand.Execute(null);
+            }
+        }
+    }
+
+    private async Task ShowServiceCharges()
+    {
+        ChronoPos.Desktop.Services.FileLogger.Log("🔧 ShowServiceCharges method started");
+        
+        // Check permission using UMAC - Allow if user has ANY permission
+        if (!_currentUserService.HasAnyScreenPermission(ChronoPos.Application.Constants.ScreenNames.SERVICE_CHARGE))
+        {
+            new MessageDialog(
+                "Access Denied",
+                "You don't have permission to access Service Charge Management.",
+                MessageDialog.MessageType.Warning).ShowDialog();
+            return;
+        }
+
+        // Don't change SelectedPage - keep it as "Settings" so sidebar stays highlighted
+        CurrentPageTitle = "Service Charges";
+        StatusMessage = "Loading service charges...";
+        
+        try
+        {
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Getting ServiceChargeTypeService and ServiceChargeOptionService from DI container");
+            // Create the ServiceChargeViewModel
+            var serviceChargeTypeService = _serviceProvider.GetRequiredService<IServiceChargeTypeService>();
+            var serviceChargeOptionService = _serviceProvider.GetRequiredService<IServiceChargeOptionService>();
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ Services retrieved successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Creating ServiceChargeViewModel");
+            var serviceChargeViewModel = new ServiceChargeViewModel(
+                serviceChargeTypeService,
+                serviceChargeOptionService,
+                _currentUserService,
+                () => _ = ShowSettings() // Navigate back to Settings
+            );
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ ServiceChargeViewModel created successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Creating ServiceChargeView");
+            // Create the view and set the ViewModel
+            var serviceChargeView = new ServiceChargeView();
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ ServiceChargeView created successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Setting DataContext");
+            serviceChargeView.DataContext = serviceChargeViewModel;
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ DataContext set successfully");
+            
+            ChronoPos.Desktop.Services.FileLogger.Log("🔧 Setting CurrentView");
+            CurrentView = serviceChargeView;
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ CurrentView set successfully");
+            
+            StatusMessage = "Service charges loaded successfully";
+            ChronoPos.Desktop.Services.FileLogger.Log("✅ ShowServiceCharges completed successfully");
+        }
+        catch (Exception ex)
+        {
+            ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error in ShowServiceCharges: {ex.Message}");
+            ChronoPos.Desktop.Services.FileLogger.Log($"❌ ShowServiceCharges stack trace: {ex.StackTrace}");
+            StatusMessage = $"Error loading service charges: {ex.Message}";
+            
+            new MessageDialog(
+                "Service Charges Error",
+                $"Failed to load service charges: {ex.Message}\n\nStack trace:\n{ex.StackTrace}",
+                MessageDialog.MessageType.Error).ShowDialog();
+        }
+
+        await Task.CompletedTask;
+    }
+
     private async Task ShowProductCombinations()
     {
         // Check permission using UMAC - Allow if user has ANY permission
@@ -1708,6 +1837,26 @@ public partial class MainWindowViewModel : ObservableObject
             });
             
             CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowProductCombinationsWithAddPanel()
+    {
+        // First open the Product Combinations screen
+        await ShowProductCombinations();
+        
+        // Wait for the view to render
+        await Task.Delay(100);
+        
+        // Try to get the ProductCombinationViewModel from the CurrentView
+        if (CurrentView is ProductCombinationView combinationView && 
+            combinationView.DataContext is ProductCombinationViewModel combinationViewModel)
+        {
+            // Trigger the AddCombinationCommand (passing null to add for all product units)
+            if (combinationViewModel.AddCombinationCommand.CanExecute(null))
+            {
+                combinationViewModel.AddCombinationCommand.Execute(null);
+            }
         }
     }
 
@@ -2739,6 +2888,23 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private async Task ShowDiscountsWithAddPanel()
+    {
+        await ShowDiscounts();
+        
+        // Wait for view to be created
+        await Task.Delay(100);
+        
+        if (CurrentView is DiscountView discountView && 
+            discountView.DataContext is DiscountViewModel discountViewModel)
+        {
+            if (discountViewModel.AddDiscountCommand.CanExecute(null))
+            {
+                discountViewModel.AddDiscountCommand.Execute(null);
+            }
+        }
+    }
+
     [RelayCommand]
     private async Task ShowUom()
     {
@@ -2798,6 +2964,23 @@ public partial class MainWindowViewModel : ObservableObject
                 FontSize = 16
             };
             CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowUomWithAddPanel()
+    {
+        await ShowUom();
+        
+        // Wait for view to be created
+        await Task.Delay(100);
+        
+        if (CurrentView is UomView uomView && 
+            uomView.DataContext is UomViewModel uomViewModel)
+        {
+            if (uomViewModel.AddUomCommand.CanExecute(null))
+            {
+                uomViewModel.AddUomCommand.Execute(null);
+            }
         }
     }
 
@@ -3021,6 +3204,46 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private async Task ShowCurrencyWithAddPanel()
+    {
+        // First open the Currency screen
+        await ShowCurrency();
+        
+        // Wait for the view to render
+        await Task.Delay(100);
+        
+        // Try to get the CurrencyViewModel from the CurrentView
+        if (CurrentView is CurrencyView currencyView && 
+            currencyView.DataContext is CurrencyViewModel currencyViewModel)
+        {
+            // Trigger the AddCurrencyCommand
+            if (currencyViewModel.AddCurrencyCommand.CanExecute(null))
+            {
+                currencyViewModel.AddCurrencyCommand.Execute(null);
+            }
+        }
+    }
+
+    private async Task ShowPriceTypesWithAddPanel()
+    {
+        // First open the Price Types screen
+        await ShowPriceTypes();
+        
+        // Wait for the view to render
+        await Task.Delay(100);
+        
+        // Try to get the PriceTypesViewModel from the CurrentView
+        if (CurrentView is PriceTypesView priceTypesView && 
+            priceTypesView.DataContext is PriceTypesViewModel priceTypesViewModel)
+        {
+            // Trigger the AddPriceTypeCommand
+            if (priceTypesViewModel.AddPriceTypeCommand.CanExecute(null))
+            {
+                priceTypesViewModel.AddPriceTypeCommand.Execute(null);
+            }
+        }
+    }
+
     private async Task ShowPaymentTypes()
     {
         // Check permission using UMAC - Allow if user has ANY permission
@@ -3079,6 +3302,26 @@ public partial class MainWindowViewModel : ObservableObject
                 FontSize = 16
             };
             CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowPaymentTypesWithAddPanel()
+    {
+        // First open the Payment Types screen
+        await ShowPaymentTypes();
+        
+        // Wait for the view to render
+        await Task.Delay(100);
+        
+        // Try to get the PaymentTypesViewModel from the CurrentView
+        if (CurrentView is PaymentTypesView paymentView && 
+            paymentView.DataContext is PaymentTypesViewModel paymentViewModel)
+        {
+            // Trigger the AddNewCommand
+            if (paymentViewModel.AddNewCommand.CanExecute(null))
+            {
+                paymentViewModel.AddNewCommand.Execute(null);
+            }
         }
     }
 
@@ -3249,6 +3492,23 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private async Task ShowStoreWithAddPanel()
+    {
+        await ShowStore();
+        
+        // Wait for view to be created
+        await Task.Delay(100);
+        
+        if (CurrentView is StoreView storeView && 
+            storeView.DataContext is StoreViewModel storeViewModel)
+        {
+            if (storeViewModel.AddStoreCommand.CanExecute(null))
+            {
+                storeViewModel.AddStoreCommand.Execute(null);
+            }
+        }
+    }
+
     [RelayCommand]
     private async Task ShowTaxTypes()
     {
@@ -3311,6 +3571,26 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private async Task ShowTaxTypesWithAddPanel()
+    {
+        // First open the Tax Types screen
+        await ShowTaxTypes();
+        
+        // Wait for the view to render
+        await Task.Delay(100);
+        
+        // Try to get the TaxTypesViewModel from the CurrentView
+        if (CurrentView is TaxTypesView taxView && 
+            taxView.DataContext is TaxTypesViewModel taxViewModel)
+        {
+            // Trigger the AddNewCommand
+            if (taxViewModel.AddNewCommand.CanExecute(null))
+            {
+                taxViewModel.AddNewCommand.Execute(null);
+            }
+        }
+    }
+
     private async Task ShowCustomers()
     {
         // Check permission using UMAC - Allow if user has ANY permission
@@ -3367,6 +3647,27 @@ public partial class MainWindowViewModel : ObservableObject
                 FontSize = 16
             };
             CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowCustomersWithAddPanel()
+    {
+        // First open the Customers screen
+        await ShowCustomers();
+        
+        // Then trigger the add customer sidepanel
+        // Wait a moment for the view to be rendered
+        await Task.Delay(100);
+        
+        // Try to get the CustomersViewModel from the CurrentView
+        if (CurrentView is CustomersView customersView && 
+            customersView.DataContext is CustomersViewModel customersViewModel)
+        {
+            // Trigger the ShowAddCustomerSidePanelCommand
+            if (customersViewModel.ShowAddCustomerSidePanelCommand.CanExecute(null))
+            {
+                customersViewModel.ShowAddCustomerSidePanelCommand.Execute(null);
+            }
         }
     }
 
@@ -3467,6 +3768,23 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private async Task ShowCustomerGroupsWithAddPanel()
+    {
+        await ShowCustomerGroups();
+        
+        // Wait for view to be created
+        await Task.Delay(100);
+        
+        if (CurrentView is CustomerGroupsView customerGroupsView && 
+            customerGroupsView.DataContext is CustomerGroupsViewModel customerGroupsViewModel)
+        {
+            if (customerGroupsViewModel.AddCustomerGroupCommand.CanExecute(null))
+            {
+                customerGroupsViewModel.AddCustomerGroupCommand.Execute(null);
+            }
+        }
+    }
+
     private async Task ShowProductGroups()
     {
         // Check permission using UMAC - Allow if user has ANY permission
@@ -3527,6 +3845,26 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private async Task ShowProductGroupsWithAddPanel()
+    {
+        // First open the Product Groups screen
+        await ShowProductGroups();
+        
+        // Wait for the view to render
+        await Task.Delay(100);
+        
+        // Try to get the ProductGroupsViewModel from the CurrentView
+        if (CurrentView is ProductGroupsView groupsView && 
+            groupsView.DataContext is ProductGroupsViewModel groupsViewModel)
+        {
+            // Trigger the AddProductGroupCommand
+            if (groupsViewModel.AddProductGroupCommand.CanExecute(null))
+            {
+                groupsViewModel.AddProductGroupCommand.Execute(null);
+            }
+        }
+    }
+
     private async Task ShowSuppliers()
     {
         // Check permission using UMAC - Allow if user has ANY permission
@@ -3578,6 +3916,23 @@ public partial class MainWindowViewModel : ObservableObject
                 FontSize = 16
             };
             CurrentView = errorContent;
+        }
+    }
+
+    private async Task ShowSuppliersWithAddPanel()
+    {
+        await ShowSuppliers();
+        
+        // Wait for view to be created
+        await Task.Delay(100);
+        
+        if (CurrentView is SuppliersView suppliersView && 
+            suppliersView.DataContext is SuppliersViewModel suppliersViewModel)
+        {
+            if (suppliersViewModel.AddSupplierCommand.CanExecute(null))
+            {
+                suppliersViewModel.AddSupplierCommand.Execute(null);
+            }
         }
     }
 
@@ -3768,7 +4123,7 @@ public partial class MainWindowViewModel : ObservableObject
                         break;
                     case "Services":
                         AppLogger.Log("MainWindowViewModel: Navigating to Services");
-                        StatusMessage = "Services module - Coming Soon";
+                        _ = ShowServiceCharges();
                         break;
                     case "Permissions":
                         AppLogger.Log("MainWindowViewModel: Navigating to Permissions");
@@ -4607,20 +4962,89 @@ public partial class MainWindowViewModel : ObservableObject
                 _ = ShowManagement(); // General management landing page
                 break;
             case "product management":
-            case "add product":
-            case "product attributes":
-            case "product modifiers":
-            case "product combinations":
-            case "barcodes":
-            case "product batches":
                 ShowProductManagement(); // Direct to product management
                 break;
+            case "add product":
+                ShowAddProduct(); // Direct to add product screen
+                break;
+            case "add customer":
+                _ = ShowCustomersWithAddPanel(); // Open customers screen with add sidepanel
+                break;
+            case "add product attribute":
+            case "add attribute":
+                _ = ShowProductAttributesWithAddPanel(); // Open product attributes with add sidepanel
+                break;
+            case "add product modifier":
+            case "add modifier":
+                _ = ShowProductModifiersWithAddPanel(); // Open product modifiers with add sidepanel
+                break;
+            case "add product combination":
+            case "add combination":
+                _ = ShowProductCombinationsWithAddPanel(); // Open product combinations with add sidepanel
+                break;
+            case "add product group":
+            case "add group":
+                _ = ShowProductGroupsWithAddPanel(); // Open product groups with add sidepanel
+                break;
+            case "add price type":
+                _ = ShowPriceTypesWithAddPanel(); // Open price types with add sidepanel
+                break;
+            case "add payment type":
+                _ = ShowPaymentTypesWithAddPanel(); // Open payment types with add sidepanel
+                break;
+            case "add tax rate":
+            case "add tax type":
+                _ = ShowTaxTypesWithAddPanel(); // Open tax types with add sidepanel
+                break;
+            case "add currency":
+                _ = ShowCurrencyWithAddPanel(); // Open currency with add sidepanel
+                break;
+            case "add discount":
+                _ = ShowDiscountsWithAddPanel(); // Open discounts with add sidepanel
+                break;
+            case "add shop":
+            case "add store":
+                _ = ShowStoreWithAddPanel(); // Open store with add sidepanel
+                break;
+            case "add uom":
+            case "add unit of measurement":
+                _ = ShowUomWithAddPanel(); // Open UOM with add sidepanel
+                break;
+            case "add supplier":
+                _ = ShowSuppliersWithAddPanel(); // Open suppliers with add sidepanel
+                break;
+            case "add customer group":
+                _ = ShowCustomerGroupsWithAddPanel(); // Open customer groups with add sidepanel
+                break;
+            case "product attributes":
+                ShowProductAttributes(); // Dedicated screen for attributes
+                break;
+            case "product modifiers":
+                ShowProductModifiers(); // Dedicated screen for modifiers
+                break;
+            case "product combinations":
+                _ = ShowProductCombinations(); // Dedicated screen for combinations
+                break;
+            case "barcodes":
+            case "product batches":
+                ShowProductManagement(); // Barcodes/batches are in product management
+                break;
             case "customer management":
+                _ = ShowCustomerManagement(); // Customer Management landing screen
+                break;
+            case "customer":
+            case "customers":
+                _ = ShowCustomers(); // Customer list screen
+                break;
             case "customer groups":
-                _ = ShowCustomerManagement(); // Direct to customer management
+                _ = ShowCustomerGroups(); // Customer Groups screen
                 break;
             case "supplier management":
-                _ = ShowSupplierManagement(); // Direct to supplier management
+                _ = ShowSupplierManagement(); // Supplier Management landing screen
+                break;
+            case "supplier":
+            case "suppliers":
+                _ = ShowSuppliers(); // Supplier list screen
                 break;
             case "category management":
                 _ = ShowCategory(); // Direct to category management
@@ -4632,12 +5056,22 @@ public partial class MainWindowViewModel : ObservableObject
                 _ = ShowProductGroups(); // Direct to product groups management
                 break;
             case "stock management":
+                _ = ShowStockManagement(); // Direct to stock management (default section)
+                break;
             case "stock adjustment":
+                _ = ShowStockManagement("StockAdjustment"); // Stock management with Stock Adjustment section
+                break;
             case "stock transfer":
+                _ = ShowStockManagement("StockTransfer"); // Stock management with Stock Transfer section
+                break;
             case "goods received":
+                _ = ShowStockManagement("GoodsReceived"); // Stock management with Goods Received section
+                break;
             case "goods return":
+                _ = ShowStockManagement("GoodsReturn"); // Stock management with Goods Return section
+                break;
             case "goods replace":
-                _ = ShowStockManagement(); // Direct to stock management
+                _ = ShowStockManagement("GoodsReplace"); // Stock management with Goods Replace section
                 break;
             case "settings":
                 _ = ShowSettings();
@@ -4655,14 +5089,47 @@ public partial class MainWindowViewModel : ObservableObject
                 _ = ShowRoles();
                 break;
             case "tax types":
+            case "tax rates":
+                _ = ShowTaxTypes(); // Dedicated screen for tax types
+                break;
             case "payment types":
+                _ = ShowPaymentTypes(); // Dedicated screen for payment types
+                break;
             case "units of measurement":
+                _ = ShowUom(); // Dedicated screen for UOM
+                break;
             case "discounts":
-            case "service charges":
+                _ = ShowDiscounts(); // Dedicated screen for discounts
+                break;
             case "currencies":
+                _ = ShowCurrency(); // Dedicated screen for currencies
+                break;
+            case "price types":
+                _ = ShowPriceTypes(); // Dedicated screen for price types
+                break;
+            case "shop management":
+            case "store management":
+                _ = ShowStore(); // Dedicated screen for shop/store
+                break;
+            case "service charge":
+            case "service charges":
+                _ = ShowServiceCharges(); // Dedicated screen for service charges
+                break;
             case "themes":
             case "languages":
-                _ = ShowSettings(); // Navigate to settings, then to specific module
+                _ = ShowSettings(); // Navigate to settings for these
+                break;
+            case "exchange transaction":
+                _ = ShowTransaction("Exchange"); // Transaction screen with Exchange tab
+                break;
+            case "sales":
+                _ = ShowTransaction("Sales"); // Transaction screen with Sales tab
+                break;
+            case "refund":
+                _ = ShowTransaction("Refund"); // Transaction screen with Refund tab
+                break;
+            case "exchange":
+                _ = ShowTransaction("Exchange"); // Transaction screen with Exchange tab
                 break;
             case "reservations":
             case "restaurant tables":
@@ -4684,12 +5151,10 @@ public partial class MainWindowViewModel : ObservableObject
         {
             case "add new product":
             case "add product":
-                ShowProductManagement(); // Go directly to product management
-                StatusMessage = "Click the Add Product button in Product Management";
+                ShowAddProduct(); // Go directly to add product screen
                 break;
             case "add customer":
-                _ = ShowCustomerManagement(); // Go directly to customer management
-                StatusMessage = "Click the Add Customer button in Customer Management";
+                _ = ShowCustomersWithAddPanel(); // Open customers screen with add sidepanel
                 break;
             case "add supplier":
                 _ = ShowSupplierManagement(); // Go directly to supplier management

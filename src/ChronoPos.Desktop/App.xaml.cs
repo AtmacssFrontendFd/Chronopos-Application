@@ -181,6 +181,14 @@ public partial class App : System.Windows.Application
                     services.AddTransient<IDiscountRepository, DiscountRepository>();
                     LogMessage("DiscountRepository registered as Transient");
                     
+                    // Register ServiceChargeType repository
+                    services.AddTransient<IServiceChargeTypeRepository, ServiceChargeTypeRepository>();
+                    LogMessage("ServiceChargeTypeRepository registered as Transient");
+                    
+                    // Register ServiceChargeOption repository
+                    services.AddTransient<IServiceChargeOptionRepository, ServiceChargeOptionRepository>();
+                    LogMessage("ServiceChargeOptionRepository registered as Transient");
+                    
                     // Register Category repository
                     services.AddTransient<ICategoryRepository, CategoryRepository>();
                     LogMessage("CategoryRepository registered as Transient");
@@ -309,6 +317,14 @@ public partial class App : System.Windows.Application
                     
                     services.AddTransient<ICompanySettingsService, CompanySettingsService>();
                     LogMessage("CompanySettingsService registered as Transient");
+                    
+                    // Register ServiceChargeType service
+                    services.AddTransient<IServiceChargeTypeService, ServiceChargeTypeService>();
+                    LogMessage("ServiceChargeTypeService registered as Transient");
+                    
+                    // Register ServiceChargeOption service
+                    services.AddTransient<IServiceChargeOptionService, ServiceChargeOptionService>();
+                    LogMessage("ServiceChargeOptionService registered as Transient");
                     
                     // Register Printer service
                     services.AddSingleton<IPrinterService, PrinterService>();
@@ -1082,23 +1098,39 @@ public partial class App : System.Windows.Application
             
             // Check if database file exists
             var dbPath = GetSourceDatabasePath();
-            var dbExists = File.Exists(dbPath);
+            var dbFileExists = File.Exists(dbPath);
             
-            AppLogger.LogInfo($"[DB INIT] Database file exists: {dbExists}", filename: "host_discovery");
+            AppLogger.LogInfo($"[DB INIT] Database file exists: {dbFileExists}", filename: "host_discovery");
             
-            if (!dbExists)
+            // Check if database schema is initialized (check for tables)
+            bool schemaExists = false;
+            try
             {
-                // Only create if it doesn't exist (fresh install)
-                AppLogger.LogInfo($"[DB INIT] Creating new database...", filename: "host_discovery");
+                // Try to query a core table to verify schema exists
+                schemaExists = dbContext.Database.CanConnect() && 
+                               dbContext.Model.GetEntityTypes().Any() &&
+                               dbContext.Database.ExecuteSqlRaw("SELECT 1 FROM sqlite_master WHERE type='table' AND name='Users' LIMIT 1") >= 0;
+                AppLogger.LogInfo($"[DB INIT] Database schema exists: {schemaExists}", filename: "host_discovery");
+            }
+            catch
+            {
+                schemaExists = false;
+                AppLogger.LogInfo($"[DB INIT] Database schema check failed - assuming schema does not exist", filename: "host_discovery");
+            }
+            
+            if (!dbFileExists || !schemaExists)
+            {
+                // Create database if file doesn't exist OR if schema is missing
+                AppLogger.LogInfo($"[DB INIT] Creating/initializing database schema...", filename: "host_discovery");
                 dbContext.Database.EnsureCreated();
-                LogMessage("  - New database created ✓");
+                LogMessage("  - Database schema created ✓");
+                AppLogger.LogInfo($"[DB INIT] ✅ Database schema initialized successfully", filename: "host_discovery");
             }
             else
             {
-                // Database exists - just verify connection, don't recreate!
-                AppLogger.LogInfo($"[DB INIT] Database exists, verifying connection...", filename: "host_discovery");
+                // Database exists with schema - just verify connection
+                AppLogger.LogInfo($"[DB INIT] Database exists with schema, verifying connection...", filename: "host_discovery");
                 
-                // Test connection by opening it
                 var canConnect = dbContext.Database.CanConnect();
                 if (canConnect)
                 {

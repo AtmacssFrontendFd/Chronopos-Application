@@ -16,6 +16,7 @@ using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Logging;
 using ChronoPos.Desktop.Views.Dialogs;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Converters;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -57,6 +58,11 @@ public partial class TransactionViewModel : ObservableObject
 
     [ObservableProperty]
     private ObservableCollection<ExchangeCardModel> exchangeTransactions = new();
+
+    // Computed properties for empty states
+    public bool HasSalesTransactions => SalesTransactions?.Count > 0;
+    public bool HasRefundTransactions => RefundTransactions?.Count > 0;
+    public bool HasExchangeTransactions => ExchangeTransactions?.Count > 0;
 
     public TransactionViewModel(
         ITransactionService transactionService,
@@ -1745,6 +1751,9 @@ public partial class TransactionViewModel : ObservableObject
 
                 SalesTransactions.Add(cardModel);
             }
+            
+            // Notify empty state property changed
+            OnPropertyChanged(nameof(HasSalesTransactions));
         }
         catch (Exception ex)
         {
@@ -1818,6 +1827,9 @@ public partial class TransactionViewModel : ObservableObject
                     StatusColor = GetStatusColor(refund.Status)
                 });
             }
+            
+            // Notify empty state property changed
+            OnPropertyChanged(nameof(HasRefundTransactions));
         }
         catch (Exception ex)
         {
@@ -1907,6 +1919,9 @@ public partial class TransactionViewModel : ObservableObject
                 
                 ExchangeTransactions.Add(exchangeCard);
             }
+            
+            // Notify empty state property changed
+            OnPropertyChanged(nameof(HasExchangeTransactions));
         }
         catch (Exception ex)
         {
@@ -1958,6 +1973,10 @@ public partial class TransactionViewModel : ObservableObject
 
     private UIElement CreateSalesGrid()
     {
+        // Create main grid container
+        var mainGrid = new Grid();
+        
+        // Create ItemsControl for data
         var itemsControl = new ItemsControl
         {
             ItemsSource = SalesTransactions
@@ -1969,8 +1988,63 @@ public partial class TransactionViewModel : ObservableObject
         
         itemsControl.ItemsPanel = new ItemsPanelTemplate(wrapPanelFactory);
         itemsControl.ItemTemplate = CreateSalesCardTemplate();
+        
+        // Bind visibility - show when HasSalesTransactions is true
+        itemsControl.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasSalesTransactions")
+        {
+            Source = this,
+            Converter = new System.Windows.Controls.BooleanToVisibilityConverter()
+        });
+        
+        // Create empty state
+        var emptyState = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        
+        var icon = new TextBlock
+        {
+            Text = "💳",
+            FontSize = 48,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 16)
+        };
+        
+        var primaryMessage = new TextBlock
+        {
+            Text = "No sales transactions found",
+            FontSize = 16,
+            FontWeight = FontWeights.Medium,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937")),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        
+        var secondaryMessage = new TextBlock
+        {
+            Text = "Click 'Create New Transaction' to add your first transaction",
+            FontSize = 12,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280")),
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        
+        emptyState.Children.Add(icon);
+        emptyState.Children.Add(primaryMessage);
+        emptyState.Children.Add(secondaryMessage);
+        
+        // Bind visibility - show when HasSalesTransactions is false
+        emptyState.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasSalesTransactions")
+        {
+            Source = this,
+            Converter = new InverseBoolToVisibilityConverter()
+        });
+        
+        // Add both to grid
+        mainGrid.Children.Add(emptyState);
+        mainGrid.Children.Add(itemsControl);
 
-        return itemsControl;
+        return mainGrid;
     }
 
     private DataTemplate CreateSalesCardTemplate()
@@ -2279,6 +2353,10 @@ public partial class TransactionViewModel : ObservableObject
 
     private UIElement CreateRefundGrid()
     {
+        // Create main grid container
+        var mainGrid = new Grid();
+        
+        // Create ItemsControl for data
         var itemsControl = new ItemsControl
         {
             ItemsSource = RefundTransactions
@@ -2290,8 +2368,63 @@ public partial class TransactionViewModel : ObservableObject
         
         itemsControl.ItemsPanel = new ItemsPanelTemplate(wrapPanelFactory);
         itemsControl.ItemTemplate = CreateRefundCardTemplate();
+        
+        // Bind visibility - show when HasRefundTransactions is true
+        itemsControl.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasRefundTransactions")
+        {
+            Source = this,
+            Converter = new System.Windows.Controls.BooleanToVisibilityConverter()
+        });
+        
+        // Create empty state
+        var emptyState = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        
+        var icon = new TextBlock
+        {
+            Text = "🔄",
+            FontSize = 48,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 16)
+        };
+        
+        var primaryMessage = new TextBlock
+        {
+            Text = "No refund transactions found",
+            FontSize = 16,
+            FontWeight = FontWeights.Medium,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937")),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        
+        var secondaryMessage = new TextBlock
+        {
+            Text = "Refunds will appear here when transactions are refunded",
+            FontSize = 12,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280")),
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        
+        emptyState.Children.Add(icon);
+        emptyState.Children.Add(primaryMessage);
+        emptyState.Children.Add(secondaryMessage);
+        
+        // Bind visibility - show when HasRefundTransactions is false
+        emptyState.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasRefundTransactions")
+        {
+            Source = this,
+            Converter = new InverseBoolToVisibilityConverter()
+        });
+        
+        // Add both to grid
+        mainGrid.Children.Add(emptyState);
+        mainGrid.Children.Add(itemsControl);
 
-        return itemsControl;
+        return mainGrid;
     }
 
     private DataTemplate CreateRefundCardTemplate()
@@ -2497,6 +2630,10 @@ public partial class TransactionViewModel : ObservableObject
 
     private UIElement CreateExchangeGrid()
     {
+        // Create main grid container
+        var mainGrid = new Grid();
+        
+        // Create ItemsControl for data
         var itemsControl = new ItemsControl
         {
             ItemsSource = ExchangeTransactions
@@ -2508,8 +2645,63 @@ public partial class TransactionViewModel : ObservableObject
         
         itemsControl.ItemsPanel = new ItemsPanelTemplate(wrapPanelFactory);
         itemsControl.ItemTemplate = CreateExchangeCardTemplate();
+        
+        // Bind visibility - show when HasExchangeTransactions is true
+        itemsControl.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasExchangeTransactions")
+        {
+            Source = this,
+            Converter = new System.Windows.Controls.BooleanToVisibilityConverter()
+        });
+        
+        // Create empty state
+        var emptyState = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        
+        var icon = new TextBlock
+        {
+            Text = "🔁",
+            FontSize = 48,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 16)
+        };
+        
+        var primaryMessage = new TextBlock
+        {
+            Text = "No exchange transactions found",
+            FontSize = 16,
+            FontWeight = FontWeights.Medium,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937")),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        
+        var secondaryMessage = new TextBlock
+        {
+            Text = "Product exchanges will appear here when processed",
+            FontSize = 12,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280")),
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        
+        emptyState.Children.Add(icon);
+        emptyState.Children.Add(primaryMessage);
+        emptyState.Children.Add(secondaryMessage);
+        
+        // Bind visibility - show when HasExchangeTransactions is false
+        emptyState.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasExchangeTransactions")
+        {
+            Source = this,
+            Converter = new InverseBoolToVisibilityConverter()
+        });
+        
+        // Add both to grid
+        mainGrid.Children.Add(emptyState);
+        mainGrid.Children.Add(itemsControl);
 
-        return itemsControl;
+        return mainGrid;
     }
 
     private DataTemplate CreateExchangeCardTemplate()

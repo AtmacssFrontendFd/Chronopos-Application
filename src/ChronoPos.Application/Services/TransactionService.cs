@@ -181,11 +181,11 @@ namespace ChronoPos.Application.Services
             }
 
             // Add service charges if any
-            if (createDto.ServiceChargeIds != null && createDto.ServiceChargeIds.Any())
+            if (createDto.ServiceChargeOptionIds != null && createDto.ServiceChargeOptionIds.Any())
             {
-                foreach (var serviceChargeId in createDto.ServiceChargeIds)
+                foreach (var serviceChargeOptionId in createDto.ServiceChargeOptionIds)
                 {
-                    var serviceCharge = await _serviceChargeRepository.GetByIdAsync(serviceChargeId);
+                    var serviceCharge = await _serviceChargeRepository.GetByIdAsync(serviceChargeOptionId);
                     if (serviceCharge != null && serviceCharge.IsActive)
                     {
                         var chargeAmount = CalculateServiceChargeAmount(serviceCharge, transaction.TotalAmount);
@@ -195,7 +195,7 @@ namespace ChronoPos.Application.Services
 
                         transaction.TransactionServiceCharges.Add(new TransactionServiceCharge
                         {
-                            ServiceChargeId = serviceChargeId,
+                            ServiceChargeOptionId = serviceChargeOptionId,
                             TotalAmount = chargeAmount,
                             TotalVat = chargeVat,
                             Status = "Active",
@@ -458,8 +458,8 @@ namespace ChronoPos.Application.Services
                 {
                     Id = sc.Id,
                     TransactionId = sc.TransactionId,
-                    ServiceChargeId = sc.ServiceChargeId,
-                    ServiceChargeName = sc.ServiceCharge?.Name,
+                    ServiceChargeOptionId = sc.ServiceChargeOptionId,
+                    ServiceChargeName = sc.ServiceChargeOption?.Name,
                     TotalAmount = sc.TotalAmount,
                     TotalVat = sc.TotalVat,
                     Status = sc.Status
