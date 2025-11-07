@@ -43,6 +43,12 @@ public partial class UserSettingsViewModel : ObservableObject
     [ObservableProperty]
     private UsersManagementViewModel? _usersManagementViewModel;
 
+    [ObservableProperty]
+    private CompanyDetailsViewModel? _companyDetailsViewModel;
+
+    [ObservableProperty]
+    private CompanySettingsViewModel? _companySettingsViewModel;
+
     /// <summary>
     /// Action to navigate back to settings
     /// </summary>
@@ -67,6 +73,17 @@ public partial class UserSettingsViewModel : ObservableObject
             var rolePermissionRepository = _serviceProvider.GetRequiredService<ChronoPos.Domain.Interfaces.IRolePermissionRepository>();
             var userPermissionOverrideService = _serviceProvider.GetRequiredService<IUserPermissionOverrideService>();
             UsersManagementViewModel = new UsersManagementViewModel(userService, roleService, permissionService, rolePermissionRepository, userPermissionOverrideService);
+
+            // Initialize CompanyDetailsViewModel
+            var companyService = _serviceProvider.GetRequiredService<ICompanyService>();
+            CompanyDetailsViewModel = new CompanyDetailsViewModel(companyService);
+
+            // Initialize CompanySettingsViewModel
+            var companySettingsService = _serviceProvider.GetRequiredService<ICompanySettingsService>();
+            var currencyService = _serviceProvider.GetRequiredService<ICurrencyService>();
+            var printerService = _serviceProvider.GetRequiredService<IPrinterService>();
+            var backupService = _serviceProvider.GetRequiredService<IBackupService>();
+            CompanySettingsViewModel = new CompanySettingsViewModel(companySettingsService, currencyService, currentUserService, printerService, backupService, companyService);
 
             // Initialize with Profile tab
             ChronoPos.Application.Logging.AppLogger.Log("UserSettingsViewModel: Calling SelectTab(Profile)");

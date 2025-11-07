@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Confirmation"
-        Height="Auto"
-        Width="460"
+        SizeToContent="Height"
+        Width="420"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         WindowStyle="None"
@@ -20,17 +20,17 @@
             <Setter Property="Background" Value="{DynamicResource Primary}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="32,14"/>
-            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Padding" Value="28,12"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="MinHeight" Value="48"/>
-            <Setter Property="MinWidth" Value="130"/>
+            <Setter Property="MinHeight" Value="42"/>
+            <Setter Property="MinWidth" Value="110"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                                CornerRadius="8"
+                                CornerRadius="6"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -52,17 +52,17 @@
             <Setter Property="Background" Value="#F3F4F6"/>
             <Setter Property="Foreground" Value="#6B7280"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="32,14"/>
-            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Padding" Value="28,12"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="MinHeight" Value="48"/>
-            <Setter Property="MinWidth" Value="130"/>
+            <Setter Property="MinHeight" Value="42"/>
+            <Setter Property="MinWidth" Value="110"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                                CornerRadius="8"
+                                CornerRadius="6"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -84,17 +84,17 @@
             <Setter Property="Background" Value="#EF4444"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="32,14"/>
-            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Padding" Value="28,12"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="MinHeight" Value="48"/>
-            <Setter Property="MinWidth" Value="130"/>
+            <Setter Property="MinHeight" Value="42"/>
+            <Setter Property="MinWidth" Value="110"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                                CornerRadius="8"
+                                CornerRadius="6"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -112,76 +112,79 @@
         </Style>
     </Window.Resources>
 
-    <Border Background="White"
-            CornerRadius="16"
-            BorderThickness="0">
+    <Border Background="{DynamicResource MainBackground}"
+            CornerRadius="12"
+            BorderThickness="1"
+            BorderBrush="{DynamicResource BorderLight}">
         <Border.Effect>
             <DropShadowEffect Color="#000000" 
                             Direction="270" 
-                            ShadowDepth="2" 
-                            Opacity="0.1" 
-                            BlurRadius="24"/>
+                            ShadowDepth="3" 
+                            Opacity="0.15" 
+                            BlurRadius="20"/>
         </Border.Effect>
 
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Content Section -->
-            <StackPanel Grid.Row="0"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       Margin="40,50,40,30">
+        <!-- Content Section (reduced vertical spacing) -->
+        <StackPanel Grid.Row="0"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"
+               Margin="32,45,32,40">
                 
-                <!-- Icon -->
-                <Border x:Name="IconBorder"
-                        Width="90"
-                        Height="90"
-                        CornerRadius="45"
-                        Background="#FEF3C7"
-                        HorizontalAlignment="Center"
-                        Margin="0,0,0,24">
-                    <TextBlock x:Name="IconText"
-                               Text="⚠"
-                               FontSize="40"
-                               FontWeight="Bold"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               Foreground="#F59E0B"/>
-                </Border>
+        <!-- Icon -->
+        <Border x:Name="IconBorder"
+            Width="56"
+            Height="56"
+            CornerRadius="28"
+            Background="#FEF3C7"
+            HorizontalAlignment="Center"
+            Margin="0,0,0,25">
+            <TextBlock x:Name="IconText"
+                   Text="⚠"
+                   FontSize="26"
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Foreground="#F59E0B"/>
+        </Border>
 
-                <!-- Title -->
-                <TextBlock x:Name="TitleText"
-                           Text="Confirm Action"
-                           FontSize="22"
-                           FontWeight="Bold"
-                           Foreground="#1F2937"
-                           HorizontalAlignment="Center"
-                           TextAlignment="Center"
-                           Margin="0,0,0,12"/>
+        <!-- Title -->
+        <TextBlock x:Name="TitleText"
+               Text="Confirm Action"
+               FontSize="18"
+               FontWeight="Bold"
+               Foreground="{DynamicResource TextPrimary}"
+               HorizontalAlignment="Center"
+               TextAlignment="Center"
+               Margin="0,0,0,17"/>
 
-                <!-- Message -->
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
-                             HorizontalScrollBarVisibility="Disabled"
-                             MaxHeight="200">
-                    <TextBlock x:Name="MessageText"
-                               Text="Are you sure you want to proceed with this action?"
-                               FontSize="15"
-                               Foreground="#6B7280"
-                               TextWrapping="Wrap"
-                               LineHeight="24"
-                               HorizontalAlignment="Center"
-                               TextAlignment="Center"/>
-                </ScrollViewer>
-            </StackPanel>
+        <!-- Message -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                 HorizontalScrollBarVisibility="Disabled"
+                 MaxHeight="110">
+            <TextBlock x:Name="MessageText"
+                   Text="Are you sure you want to proceed with this action?"
+                   FontSize="13"
+                   Foreground="{DynamicResource SecondaryText}"
+                   TextWrapping="Wrap"
+                   LineHeight="18"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center"/>
+        </ScrollViewer>
+        </StackPanel>
 
-            <!-- Button Section -->
-            <Border Grid.Row="1"
-                    Background="#F9FAFB"
-                    CornerRadius="0,0,16,16"
-                    Padding="32,24">
+        <!-- Button Section -->
+        <Border Grid.Row="1"
+            Background="{DynamicResource SurfaceBackground}"
+            CornerRadius="0,0,12,12"
+            BorderThickness="0,1,0,0"
+            BorderBrush="{DynamicResource BorderLight}"
+            Padding="16,10">
                 <StackPanel Orientation="Horizontal"
                            HorizontalAlignment="Center">
                     
@@ -190,7 +193,7 @@
                             Content="Cancel"
                             Click="CancelButton_Click"
                             Style="{StaticResource CancelButtonStyle}"
-                            Margin="0,0,12,0"/>
+                            Margin="0,0,10,0"/>
 
                     <!-- Confirm Button -->
                     <Button x:Name="ConfirmButton"

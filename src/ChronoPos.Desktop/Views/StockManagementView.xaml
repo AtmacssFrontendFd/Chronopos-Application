@@ -1424,10 +1424,16 @@
                                         </DataGridTextColumn>
 
                                         <!-- Amount Column -->
-                                        <DataGridTextColumn Header="Amount" 
-                                                            Binding="{Binding TotalAmount, StringFormat=C}" 
+                                        <DataGridTextColumn Binding="{Binding TotalAmount, StringFormat=C}" 
                                                             Width="120"
                                                             MinWidth="100">
+                                            <DataGridTextColumn.Header>
+                                                <TextBlock>
+                                                    <Run Text="Amount ("/>
+                                                    <Run Text="{Binding DataContext.ActiveCurrencySymbol, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue='$'}"/>
+                                                    <Run Text=")"/>
+                                                </TextBlock>
+                                            </DataGridTextColumn.Header>
                                             <DataGridTextColumn.ElementStyle>
                                                 <Style TargetType="TextBlock">
                                                     <Setter Property="VerticalAlignment" Value="Center"/>
@@ -1711,7 +1717,7 @@
 
                                         <!-- Total Amount Column -->
                                         <DataGridTextColumn Header="Total Amount" 
-                                                            Binding="{Binding TotalAmount, StringFormat=C2}" 
+                                                            Binding="{Binding TotalAmount, Converter={StaticResource CurrencyPriceConverter}}" 
                                                             Width="130"
                                                             MinWidth="110">
                                             <DataGridTextColumn.ElementStyle>

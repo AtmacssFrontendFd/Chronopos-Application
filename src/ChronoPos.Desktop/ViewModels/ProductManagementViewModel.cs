@@ -25,6 +25,8 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
     private readonly Action? _navigateBack;
     private readonly ICurrentUserService _currentUserService;
     private readonly IActiveCurrencyService _activeCurrencyService;
+    private readonly IBarcodeExportService _barcodeExportService;
+    private readonly BarcodePdfExportService _barcodePdfExportService;
     
     // Settings services
     private readonly IThemeService _themeService;
@@ -38,6 +40,11 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
     #endregion
 
     #region Observable Properties
+    
+    /// <summary>
+    /// Gets the active currency symbol for dynamic table headers
+    /// </summary>
+    public string ActiveCurrencySymbol => _activeCurrencyService?.CurrencySymbol ?? "$";
 
     [ObservableProperty]
     private ObservableCollection<CategoryDto> categories = new();
@@ -279,6 +286,7 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
         InfrastructureServices.IDatabaseLocalizationService databaseLocalizationService,
         ICurrentUserService currentUserService,
         IActiveCurrencyService activeCurrencyService,
+        IBarcodeExportService barcodeExportService,
         Action? navigateToAddProduct = null, 
         Action<ProductDto>? navigateToEditProduct = null,
         Action? navigateBack = null)
@@ -294,6 +302,8 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
         _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
+        _barcodeExportService = barcodeExportService ?? throw new ArgumentNullException(nameof(barcodeExportService));
+        _barcodePdfExportService = new BarcodePdfExportService(); // Initialize PDF export service
         _navigateToAddProduct = navigateToAddProduct;
         _navigateToEditProduct = navigateToEditProduct;
         _navigateBack = navigateBack;
@@ -519,6 +529,139 @@ public partial class ProductManagementViewModel : ObservableObject, IDisposable
             };
             IsEditMode = false;
             IsProductFormVisible = true;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ExportProductBarcodes()
+    {
+        try
+        {
+            // Check if there are products to export
+            if (FilteredProducts == null || !FilteredProducts.Any())
+            {
+                MessageBox.Show("No products available to export.", "Export Barcodes", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // Open file save dialog
+            var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "Excel Files (*.xlsx)|*.xlsx",
+                FileName = $"Product_Barcodes_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx",
+                Title = "Export Product Barcodes"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                IsLoading = true;
+                StatusMessage = "Exporting barcodes...";
+
+                // Export to Excel with barcodes
+                var filePath = await _barcodeExportService.ExportProductBarcodesToExcel(
+                    FilteredProducts, 
+                    saveFileDialog.FileName);
+
+                IsLoading = false;
+                StatusMessage = $"Loaded {Categories.Count} categories and {Products.Count} products";
+
+                // Show success message
+                var result = MessageBox.Show(
+                    $"Barcodes exported successfully!\n\nFile: {filePath}\n\nDo you want to open the file?",
+                    "Export Successful",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information);
+
+                // Open the file if user clicks Yes
+                if (result == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = filePath,
+                            UseShellExecute = true
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Failed to open file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            IsLoading = false;
+            StatusMessage = $"Loaded {Categories.Count} categories and {Products.Count} products";
+            MessageBox.Show($"Failed to export barcodes: {ex.Message}", "Export Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ExportBarcodesPdf()
+    {
+        if (!FilteredProducts.Any())
+        {
+            MessageBox.Show("No products available to export.", "Export Barcodes (PDF)", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        // Open file save dialog
+        var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = "PDF Files (*.pdf)|*.pdf",
+            FileName = $"ChronoPOS_Barcodes_{DateTime.Now:yyyyMMdd_HHmm}.pdf",
+            Title = "Export Product Barcodes to PDF"
+        };
+
+        if (saveFileDialog.ShowDialog() == true)
+        {
+            IsLoading = true;
+            StatusMessage = "Generating PDF with barcodes...";
+
+            try
+            {
+                // Export to PDF with barcodes
+                var filePath = await _barcodePdfExportService.ExportProductBarcodesToPdf(
+                    FilteredProducts,
+                    saveFileDialog.FileName,
+                    BarcodePdfExportService.BarcodeFormat.CODE_128,
+                    BarcodePdfExportService.PageOrientation.Portrait);
+
+                IsLoading = false;
+                StatusMessage = $"Loaded {Categories.Count} categories and {Products.Count} products";
+
+                // Show success message
+                var result = MessageBox.Show(
+                    $"PDF exported successfully!\n\nFile: {filePath}\n\nTotal Products: {FilteredProducts.Count()}\n\nDo you want to open the file?",
+                    "Export Successful",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information);
+
+                // Open the file if user clicks Yes
+                if (result == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = filePath,
+                            UseShellExecute = true
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Failed to open file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                IsLoading = false;
+                StatusMessage = $"Loaded {Categories.Count} categories and {Products.Count} products";
+                MessageBox.Show($"Failed to export PDF: {ex.Message}", "Export Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 

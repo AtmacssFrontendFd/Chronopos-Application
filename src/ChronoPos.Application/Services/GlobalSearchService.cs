@@ -31,35 +31,41 @@ public class GlobalSearchService : IGlobalSearchService
 
         var tasks = new List<Task<List<GlobalSearchResultDto>>>();
 
+        // For quick searches, give each category enough results
+        // For full searches, divide evenly
+        int perModuleLimit = filter.MaxResults > 10 
+            ? filter.MaxResults / 8  // Full search: divide evenly
+            : filter.MaxResults;      // Quick search: let each module return up to max, then sort and limit
+
         // Search in different modules based on filter
         if (filter.IncludeProducts)
-            tasks.Add(SearchProductsAsync(filter.Query, filter.MaxResults / 8));
+            tasks.Add(SearchProductsAsync(filter.Query, perModuleLimit));
 
         if (filter.IncludeCustomers)
-            tasks.Add(SearchCustomersAsync(filter.Query, filter.MaxResults / 8));
+            tasks.Add(SearchCustomersAsync(filter.Query, perModuleLimit));
 
         if (filter.IncludeSales)
-            tasks.Add(SearchSalesAsync(filter.Query, filter.MaxResults / 8));
+            tasks.Add(SearchSalesAsync(filter.Query, perModuleLimit));
 
         if (filter.IncludeStock)
-            tasks.Add(SearchStockAsync(filter.Query, filter.MaxResults / 8));
+            tasks.Add(SearchStockAsync(filter.Query, perModuleLimit));
 
         if (filter.IncludeBrands)
-            tasks.Add(SearchBrandsAsync(filter.Query, filter.MaxResults / 8));
+            tasks.Add(SearchBrandsAsync(filter.Query, perModuleLimit));
 
         if (filter.IncludeCategories)
-            tasks.Add(SearchCategoriesAsync(filter.Query, filter.MaxResults / 8));
+            tasks.Add(SearchCategoriesAsync(filter.Query, perModuleLimit));
 
         // Add Suppliers and Transactions
-        tasks.Add(SearchSuppliersAsync(filter.Query, filter.MaxResults / 8));
-        tasks.Add(SearchTransactionsAsync(filter.Query, filter.MaxResults / 8));
+        tasks.Add(SearchSuppliersAsync(filter.Query, perModuleLimit));
+        tasks.Add(SearchTransactionsAsync(filter.Query, perModuleLimit));
         
         // Add Pages/Screens and Features
         if (filter.IncludePages)
-            tasks.Add(Task.FromResult(SearchPagesAsync(filter.Query, filter.MaxResults / 8)));
+            tasks.Add(Task.FromResult(SearchPagesAsync(filter.Query, perModuleLimit)));
         
         if (filter.IncludeFeatures)
-            tasks.Add(Task.FromResult(SearchFeaturesAsync(filter.Query, filter.MaxResults / 8)));
+            tasks.Add(Task.FromResult(SearchFeaturesAsync(filter.Query, perModuleLimit)));
 
         var results = await Task.WhenAll(tasks);
 
@@ -131,7 +137,7 @@ public class GlobalSearchService : IGlobalSearchService
         return suggestions.Take(maxSuggestions).ToList();
     }
 
-    public async Task<List<GlobalSearchResultDto>> GetQuickSearchAsync(string query, int maxResults = 5)
+    public async Task<List<GlobalSearchResultDto>> GetQuickSearchAsync(string query, int maxResults = 10)
     {
         var filter = new GlobalSearchFilterDto
         {
@@ -157,14 +163,19 @@ public class GlobalSearchService : IGlobalSearchService
 
         try
         {
+            // Convert query to lowercase for case-insensitive search
+            var lowerQuery = query.ToLower();
+
             var products = await _context.Products
                 .Include(p => p.Brand)
                 .Include(p => p.Category)
                 .Include(p => p.ProductImages)
-                .Where(p => p.Name.Contains(query) || 
-                           (p.Description != null && p.Description.Contains(query)) ||
-                           (p.Code != null && p.Code.Contains(query)) ||
-                           (p.Brand != null && p.Brand.Name.Contains(query)))
+                .Include(p => p.ProductBarcodes)
+                .Where(p => p.Name.ToLower().Contains(lowerQuery) || 
+                           (p.Description != null && p.Description.ToLower().Contains(lowerQuery)) ||
+                           (p.Code != null && p.Code.ToLower().Contains(lowerQuery)) ||
+                           (p.Brand != null && p.Brand.Name.ToLower().Contains(lowerQuery)) ||
+                           p.ProductBarcodes.Any(pb => pb.Barcode.ToLower().Contains(lowerQuery)))
                 .Take(maxResults)
                 .ToListAsync();
 
@@ -199,10 +210,13 @@ public class GlobalSearchService : IGlobalSearchService
 
         try
         {
+            // Convert query to lowercase for case-insensitive search
+            var lowerQuery = query.ToLower();
+
             var customers = await _context.Customers
-                .Where(c => c.CustomerFullName.Contains(query) || 
-                           c.BusinessFullName.Contains(query) ||
-                           c.OfficialEmail.Contains(query) ||
+                .Where(c => c.CustomerFullName.ToLower().Contains(lowerQuery) || 
+                           c.BusinessFullName.ToLower().Contains(lowerQuery) ||
+                           c.OfficialEmail.ToLower().Contains(lowerQuery) ||
                            c.MobileNo.Contains(query))
                 .Take(maxResults)
                 .ToListAsync();
@@ -315,9 +329,12 @@ public class GlobalSearchService : IGlobalSearchService
 
         try
         {
+            // Convert query to lowercase for case-insensitive search
+            var lowerQuery = query.ToLower();
+
             var brands = await _context.Brands
-                .Where(b => b.Name.Contains(query) || 
-                           (b.Description != null && b.Description.Contains(query)))
+                .Where(b => b.Name.ToLower().Contains(lowerQuery) || 
+                           (b.Description != null && b.Description.ToLower().Contains(lowerQuery)))
                 .Take(maxResults)
                 .ToListAsync();
 
@@ -350,9 +367,12 @@ public class GlobalSearchService : IGlobalSearchService
 
         try
         {
+            // Convert query to lowercase for case-insensitive search
+            var lowerQuery = query.ToLower();
+
             var categories = await _context.Categories
-                .Where(c => c.Name.Contains(query) || 
-                           c.Description.Contains(query))
+                .Where(c => c.Name.ToLower().Contains(lowerQuery) || 
+                           c.Description.ToLower().Contains(lowerQuery))
                 .Take(maxResults)
                 .ToListAsync();
 
@@ -424,10 +444,13 @@ public class GlobalSearchService : IGlobalSearchService
 
         try
         {
+            // Convert query to lowercase for case-insensitive search
+            var lowerQuery = query.ToLower();
+
             var suppliers = await _context.Suppliers
-                .Where(s => s.CompanyName.Contains(query) || 
-                           (s.KeyContactName != null && s.KeyContactName.Contains(query)) ||
-                           (s.Email != null && s.Email.Contains(query)) ||
+                .Where(s => s.CompanyName.ToLower().Contains(lowerQuery) || 
+                           (s.KeyContactName != null && s.KeyContactName.ToLower().Contains(lowerQuery)) ||
+                           (s.Email != null && s.Email.ToLower().Contains(lowerQuery)) ||
                            (s.Mobile != null && s.Mobile.Contains(query)))
                 .Take(maxResults)
                 .ToListAsync();
@@ -516,12 +539,14 @@ public class GlobalSearchService : IGlobalSearchService
             
             // Back Office / Management
             ("Product Management", "Manage products, inventory, and pricing", "Management", "Products", new[] { "products", "items", "inventory", "stock", "catalog", "manage products" }),
-            ("Customer Management", "Manage customer information and groups", "Management", "Customers", new[] { "customers", "clients", "contacts", "customer list", "manage customers" }),
-            ("Supplier Management", "Manage supplier details and relationships", "Management", "Suppliers", new[] { "suppliers", "vendors", "provider", "supplier list", "manage suppliers" }),
+            ("Customer Management", "Customer management landing page", "Management", "Customers", new[] { "customer management", "manage customers" }),
+            ("Customers", "View and manage customer list", "Management", "Customers", new[] { "customer", "customers", "client", "clients", "customer list" }),
+            ("Supplier Management", "Supplier management landing page", "Management", "Suppliers", new[] { "supplier management", "manage suppliers" }),
+            ("Suppliers", "View and manage supplier list", "Management", "Suppliers", new[] { "supplier", "suppliers", "vendor", "vendors", "supplier list" }),
             ("Category Management", "Organize products into categories", "Management", "Categories", new[] { "categories", "groups", "classification", "product categories" }),
             ("Brand Management", "Manage product brands", "Management", "Brands", new[] { "brands", "manufacturers", "labels", "brand list" }),
             ("Stock Management", "Inventory and stock control", "Management", "Stock", new[] { "stock", "inventory", "warehouse", "stock levels", "stock adjustment" }),
-            ("Customer Groups", "Manage customer groups and segments", "Management", "Customers", new[] { "customer groups", "segments", "customer categories" }),
+            ("Customer Groups", "Manage customer groups and segments", "Management", "Customers", new[] { "customer group", "customer groups", "segments", "customer segment", "customer categories" }),
             ("Product Groups", "Manage product groupings", "Management", "Products", new[] { "product groups", "product sets", "bundles" }),
             
             // Settings
@@ -550,11 +575,35 @@ public class GlobalSearchService : IGlobalSearchService
             
             // Product Features
             ("Add Product", "Add new product to inventory", "Products", "Products", new[] { "add product", "new product", "create product", "product entry" }),
-            ("Product Attributes", "Manage product attributes and variations", "Products", "Products", new[] { "attributes", "variants", "variations", "product attributes", "size", "color" }),
-            ("Product Modifiers", "Manage product add-ons and modifiers", "Products", "Products", new[] { "modifiers", "add-ons", "extras", "toppings", "customization" }),
-            ("Product Combinations", "Manage product variant combinations", "Products", "Products", new[] { "combinations", "variants", "product combinations", "sku" }),
+            ("Add Customer", "Add new customer to system", "Management", "Customers", new[] { "add customer", "new customer", "create customer", "customer entry" }),
+            ("Add Product Attribute", "Add new product attribute", "Products", "Attributes", new[] { "add product attribute", "add attribute", "new attribute", "create attribute" }),
+            ("Add Product Modifier", "Add new product modifier", "Products", "Modifiers", new[] { "add product modifier", "add modifier", "new modifier", "create modifier" }),
+            ("Add Product Combination", "Add new product combination", "Products", "Combinations", new[] { "add product combination", "add combination", "new combination", "create combination" }),
+            ("Add Product Group", "Add new product group", "Products", "Groups", new[] { "add product group", "add group", "new group", "create group" }),
+            ("Add Price Type", "Add new price type", "Settings", "Finance", new[] { "add price type", "new price type", "create price type" }),
+            ("Add Payment Type", "Add new payment type", "Settings", "Finance", new[] { "add payment type", "new payment type", "create payment type", "payment method" }),
+            ("Add Tax Rate", "Add new tax rate", "Settings", "Finance", new[] { "add tax rate", "add tax type", "new tax", "create tax" }),
+            ("Add Currency", "Add new currency", "Settings", "Finance", new[] { "add currency", "new currency", "create currency" }),
+            ("Add Discount", "Add new discount", "Settings", "Finance", new[] { "add discount", "new discount", "create discount", "add offer" }),
+            ("Add Shop", "Add new shop/store", "Settings", "Store", new[] { "add shop", "add store", "new shop", "new store", "create shop" }),
+            ("Add UOM", "Add new unit of measurement", "Settings", "Products", new[] { "add uom", "add unit", "new uom", "create uom", "add unit of measurement" }),
+            ("Add Supplier", "Add new supplier", "Management", "Suppliers", new[] { "add supplier", "new supplier", "create supplier", "supplier entry" }),
+            ("Add Customer Group", "Add new customer group", "Management", "Customers", new[] { "add customer group", "new customer group", "create customer group" }),
+            ("Product Attributes", "Manage product attributes and variations", "Products", "Products", new[] { "attributes", "variants", "variations", "product attributes", "size", "color", "attribute management" }),
+            ("Product Modifiers", "Manage product add-ons and modifiers", "Products", "Products", new[] { "modifiers", "add-ons", "extras", "toppings", "customization", "modifier management" }),
+            ("Product Combinations", "Manage product variant combinations", "Products", "Products", new[] { "combinations", "variants", "product combinations", "sku", "combination management" }),
+            ("Product Groups", "Manage product groupings and sets", "Products", "Products", new[] { "product groups", "product sets", "bundles", "group management", "product grouping" }),
             ("Barcodes", "Manage product barcodes", "Products", "Products", new[] { "barcode", "ean", "upc", "qr code", "sku code" }),
             ("Product Batches", "Manage product batches and expiry", "Products", "Products", new[] { "batches", "batch number", "expiry", "lot number", "manufacturing date" }),
+            
+            // Finance & Configuration
+            ("Price Types", "Manage selling price types", "Settings", "Finance", new[] { "price types", "selling price", "price list", "pricing", "mrp", "retail price" }),
+            ("Payment Types", "Manage payment methods and types", "Settings", "Finance", new[] { "payment types", "payment methods", "cash", "card", "upi", "payment management" }),
+            ("Tax Rates", "Configure tax rates and types", "Settings", "Finance", new[] { "tax rates", "tax", "vat", "gst", "tax types", "taxation", "tax management" }),
+            ("Currencies", "Manage currencies and exchange rates", "Settings", "Finance", new[] { "currency", "currencies", "exchange rate", "multi-currency", "currency management" }),
+            ("Discounts", "Configure discount rules and offers", "Settings", "Finance", new[] { "discounts", "offers", "promotions", "sales", "coupon", "discount management" }),
+            ("Shop Management", "Manage shop/store information", "Settings", "Store", new[] { "shop", "store", "shop management", "store management", "outlet", "branch" }),
+            ("Units of Measurement", "Manage UOM for products", "Settings", "Products", new[] { "uom", "units", "measurement", "unit of measurement", "kg", "liter", "units of measurement" }),
             
             // Reports
             ("Reports", "View sales and inventory reports", "Reports", "Reports", new[] { "reports", "analytics", "insights", "sales report", "inventory report" }),

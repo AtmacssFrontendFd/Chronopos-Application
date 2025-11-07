@@ -17,14 +17,14 @@ public class TransactionServiceChargeRepository : Repository<TransactionServiceC
     {
         return await _context.Set<TransactionServiceCharge>()
             .Where(tsc => tsc.TransactionId == transactionId)
-            .Include(tsc => tsc.ServiceCharge)
+            .Include(tsc => tsc.ServiceChargeOption)
             .ToListAsync();
     }
 
     public async Task<IEnumerable<TransactionServiceCharge>> GetByServiceChargeIdAsync(int serviceChargeId)
     {
         return await _context.Set<TransactionServiceCharge>()
-            .Where(tsc => tsc.ServiceChargeId == serviceChargeId)
+            .Where(tsc => tsc.ServiceChargeOptionId == serviceChargeId)
             .Include(tsc => tsc.Transaction)
             .ToListAsync();
     }

@@ -4,6 +4,7 @@ using ChronoPos.Application.Constants;
 using ChronoPos.Domain.Entities;
 using ChronoPos.Desktop.Models;
 using ChronoPos.Desktop.Views.Dialogs;
+using ChronoPos.Desktop.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -19,6 +20,7 @@ public partial class ProductCombinationViewModel : ObservableObject
     private readonly IProductUnitService _productUnitService;
     private readonly IProductAttributeService _attributeService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IActiveCurrencyService _activeCurrencyService;
     private readonly Action? _navigateBack;
 
     [ObservableProperty]
@@ -60,15 +62,22 @@ public partial class ProductCombinationViewModel : ObservableObject
 
     public bool HasCombinations => ProductUnits.Count > 0;
     public int TotalCombinations => ProductUnits.Count;
+    
+    public string ActiveCurrencySymbol => _activeCurrencyService?.CurrencySymbol ?? "$";
 
     public ProductCombinationViewModel(
         IProductCombinationItemService combinationService,
         IProductUnitService productUnitService,
         IProductAttributeService attributeService,
         ICurrentUserService currentUserService,
+        IActiveCurrencyService activeCurrencyService,
         Action? navigateBack = null)
     {
         _combinationService = combinationService;
+        _productUnitService = productUnitService;
+        _attributeService = attributeService;
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
         _productUnitService = productUnitService;
         _attributeService = attributeService;
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));

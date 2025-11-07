@@ -41,6 +41,7 @@ public partial class AddSalesViewModel : ObservableObject
     private readonly ITransactionModifierRepository _transactionModifierRepository;
     private readonly IProductBarcodeRepository _productBarcodeRepository;
     private readonly IActiveCurrencyService _activeCurrencyService;
+    private readonly IServiceChargeOptionService _serviceChargeOptionService;
     private readonly Action? _navigateToTransactionList;
     private readonly Action<int>? _navigateToRefundTransaction;
     private readonly Action<int>? _navigateToExchangeTransaction;
@@ -126,6 +127,9 @@ public partial class AddSalesViewModel : ObservableObject
     private decimal serviceCharge = 0m;
 
     [ObservableProperty]
+    private int? selectedServiceChargeOptionId = null; // Stores the ID of selected service charge option
+
+    [ObservableProperty]
     private ObservableCollection<DiscountDto> availableDiscounts = new();
 
     [ObservableProperty]
@@ -203,6 +207,7 @@ public partial class AddSalesViewModel : ObservableObject
         ITransactionModifierRepository transactionModifierRepository,
         IProductBarcodeRepository productBarcodeRepository,
         IActiveCurrencyService activeCurrencyService,
+        IServiceChargeOptionService serviceChargeOptionService,
         Action? navigateToTransactionList = null,
         Action<int>? navigateToRefundTransaction = null,
         Action<int>? navigateToExchangeTransaction = null)
@@ -224,6 +229,7 @@ public partial class AddSalesViewModel : ObservableObject
         _transactionModifierRepository = transactionModifierRepository;
         _productBarcodeRepository = productBarcodeRepository;
         _activeCurrencyService = activeCurrencyService;
+        _serviceChargeOptionService = serviceChargeOptionService;
         _navigateToTransactionList = navigateToTransactionList;
         _navigateToRefundTransaction = navigateToRefundTransaction;
         _navigateToExchangeTransaction = navigateToExchangeTransaction;
@@ -1185,11 +1191,12 @@ public partial class AddSalesViewModel : ObservableObject
             var shiftId = 1;
             AppLogger.Log($"SaveTransaction: Using hardcoded shift ID = {shiftId}");
 
-            // Calculate totals
-            var totalAmount = CartItems.Sum(x => x.TotalPrice);
-            var totalVat = totalAmount * (TaxPercentage / 100);
+            // Calculate totals - use the complete net total from cart
+            var subtotalAmount = CartItems.Sum(x => x.TotalPrice); // Product subtotal only
+            var totalVat = TaxAmount; // Use calculated tax from cart
+            var netTotalAmount = Total; // Complete net total: Subtotal + Tax + ServiceCharge - Discount
             
-            AppLogger.Log($"SaveTransaction: Total Amount = {totalAmount}, Total VAT = {totalVat}");
+            AppLogger.Log($"SaveTransaction: Subtotal = {subtotalAmount}, Total VAT = {totalVat}, Net Total = {netTotalAmount}");
             AppLogger.Log($"SaveTransaction: Cart items count = {CartItems.Count}");
 
             // For now, always create new transaction
@@ -1210,7 +1217,7 @@ public partial class AddSalesViewModel : ObservableObject
                     TableId = SelectedTable?.Id,
                     ReservationId = SelectedReservation?.Id,
                     SellingTime = DateTime.Now,
-                    TotalAmount = totalAmount,
+                    TotalAmount = netTotalAmount, // Save complete net total including service charge and discount
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
@@ -1250,8 +1257,8 @@ public partial class AddSalesViewModel : ObservableObject
                 AppLogger.Log($"SaveTransaction: Checking service charge - ServiceCharge={ServiceCharge}");
                 if (ServiceCharge > 0)
                 {
-                    AppLogger.Log($"SaveTransaction: Calling AddServiceChargeToTransaction for transaction #{savedTransaction.Id} with amount ${ServiceCharge}");
-                    await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge);
+                    AppLogger.Log($"SaveTransaction: Calling AddServiceChargeToTransaction for transaction #{savedTransaction.Id} with amount ${ServiceCharge}, OptionId={SelectedServiceChargeOptionId}");
+                    await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge, SelectedServiceChargeOptionId);
                     AppLogger.Log($"SaveTransaction: AddServiceChargeToTransaction call completed");
                 }
                 else
@@ -2078,37 +2085,218 @@ public partial class AddSalesViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ShowServiceChargePopup()
+    private async void ShowServiceChargePopup()
     {
         try
         {
-            // Create dialog window
+            // Load service charge options
+            var serviceChargeOptions = await _serviceChargeOptionService.GetAllAsync();
+            var activeOptions = serviceChargeOptions.Where(o => o.Status).ToList();
+
+            // Create dialog window - matching discount popup size
             var dialog = new Window
             {
-                Title = "Add Service Charge",
-                Width = 400,
-                Height = 200,
+                Title = "Apply Service Charges",
+                Width = SystemParameters.PrimaryScreenWidth * 0.3,
+                Height = SystemParameters.PrimaryScreenHeight * 0.43,
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
                 ResizeMode = ResizeMode.NoResize
             };
 
-            var stackPanel = new StackPanel { Margin = new Thickness(20) };
+            var mainPanel = new StackPanel { Margin = new Thickness(15) };
 
-            // Service Charge Amount
-            stackPanel.Children.Add(new TextBlock 
+            // Title
+            mainPanel.Children.Add(new TextBlock 
             { 
-                Text = "Service Charge ($)", 
-                FontSize = 12, 
-                Margin = new Thickness(0, 0, 0, 5) 
+                Text = "Select Service Charges", 
+                FontSize = 14,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 0, 0, 10)
             });
-            var chargeTextBox = new TextBox 
-            { 
-                Text = ServiceCharge.ToString("F2"),
-                Height = 35, 
-                FontSize = 14, 
-                Margin = new Thickness(0, 0, 0, 15) 
+
+            // Dropdown + Add Button Row
+            var dropdownPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(0, 0, 0, 8)
             };
-            stackPanel.Children.Add(chargeTextBox);
+
+            var serviceChargeComboBox = new System.Windows.Controls.ComboBox
+            {
+                Width = 200,
+                Height = 32,
+                Margin = new Thickness(0, 0, 8, 0),
+                DisplayMemberPath = "Name",
+                ItemsSource = activeOptions
+            };
+
+            var addButton = new Button
+            {
+                Content = "Add",
+                Width = 80,
+                Height = 32,
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B")),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                Cursor = Cursors.Hand,
+                FontWeight = FontWeights.SemiBold
+            };
+
+            dropdownPanel.Children.Add(serviceChargeComboBox);
+            dropdownPanel.Children.Add(addButton);
+            mainPanel.Children.Add(dropdownPanel);
+
+            // Manual Entry Section
+            mainPanel.Children.Add(new TextBlock
+            {
+                Text = "Or enter manual service charge amount:",
+                FontSize = 11,
+                Foreground = Brushes.Gray,
+                Margin = new Thickness(0, 8, 0, 4)
+            });
+
+            var manualPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+
+            var manualTextBox = new TextBox
+            {
+                Width = 200,
+                Height = 32,
+                Margin = new Thickness(0, 0, 8, 0),
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Text = "0.00"
+            };
+
+            var addManualButton = new Button
+            {
+                Content = "Add Manual",
+                Width = 80,
+                Height = 32,
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981")),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                Cursor = Cursors.Hand,
+                FontWeight = FontWeights.SemiBold
+            };
+
+            manualPanel.Children.Add(manualTextBox);
+            manualPanel.Children.Add(addManualButton);
+            mainPanel.Children.Add(manualPanel);
+
+            // Selected Service Charges Label
+            mainPanel.Children.Add(new TextBlock
+            {
+                Text = "Selected Service Charges:",
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 8, 0, 6)
+            });
+
+            // Chips Container (WrapPanel for selected service charges)
+            var chipsPanel = new System.Windows.Controls.WrapPanel
+            {
+                Orientation = Orientation.Horizontal,
+                MaxHeight = 80,
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+
+            var chipsScrollViewer = new ScrollViewer
+            {
+                Content = chipsPanel,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                MaxHeight = 80,
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+
+            mainPanel.Children.Add(chipsScrollViewer);
+
+            // Temporary list to store selected service charges for this dialog session
+            var selectedServiceCharges = new List<ServiceChargeOptionDto>();
+
+            // Pre-populate chip if there's already a service charge applied
+            if (ServiceCharge > 0)
+            {
+                ServiceChargeOptionDto? existingCharge = null;
+                if (SelectedServiceChargeOptionId.HasValue)
+                {
+                    // Find the option by ID
+                    existingCharge = activeOptions.FirstOrDefault(o => o.Id == SelectedServiceChargeOptionId.Value);
+                    if (existingCharge != null)
+                    {
+                        selectedServiceCharges.Add(existingCharge);
+                        var chip = CreateServiceChargeChip(existingCharge, chipsPanel);
+                        chipsPanel.Children.Add(chip);
+                    }
+                }
+                else
+                {
+                    // Manual service charge
+                    existingCharge = new ServiceChargeOptionDto
+                    {
+                        Id = -1,
+                        Name = "Manual Service Charge",
+                        Price = ServiceCharge,
+                        Status = true
+                    };
+                    selectedServiceCharges.Add(existingCharge);
+                    var chip = CreateServiceChargeChip(existingCharge, chipsPanel);
+                    chipsPanel.Children.Add(chip);
+                }
+            }
+
+            // Add Button Click Handler
+            addButton.Click += (s, e) =>
+            {
+                if (serviceChargeComboBox.SelectedItem is ServiceChargeOptionDto selectedOption)
+                {
+                    // Check if already added
+                    if (!selectedServiceCharges.Any(sc => sc.Id == selectedOption.Id))
+                    {
+                        selectedServiceCharges.Add(selectedOption);
+                        var chip = CreateServiceChargeChip(selectedOption, chipsPanel);
+                        chipsPanel.Children.Add(chip);
+                    }
+                    serviceChargeComboBox.SelectedIndex = -1;
+                }
+            };
+
+            // Add Manual Button Click Handler
+            addManualButton.Click += (s, e) =>
+            {
+                if (decimal.TryParse(manualTextBox.Text, out var manualAmount) && manualAmount > 0)
+                {
+                    var manualServiceCharge = new ServiceChargeOptionDto
+                    {
+                        Id = -1,
+                        Name = "Manual Service Charge",
+                        Price = manualAmount,
+                        Status = true
+                    };
+
+                    // Remove previous manual service charge if exists
+                    var existingManual = selectedServiceCharges.FirstOrDefault(sc => sc.Id == -1);
+                    if (existingManual != null)
+                    {
+                        selectedServiceCharges.Remove(existingManual);
+                        var existingChip = chipsPanel.Children.OfType<Border>()
+                            .FirstOrDefault(b => ((ServiceChargeOptionDto)b.Tag).Id == -1);
+                        if (existingChip != null)
+                            chipsPanel.Children.Remove(existingChip);
+                    }
+
+                    selectedServiceCharges.Add(manualServiceCharge);
+                    var chip = CreateServiceChargeChip(manualServiceCharge, chipsPanel);
+                    chipsPanel.Children.Add(chip);
+                    manualTextBox.Text = "0.00";
+                }
+                else
+                {
+                    new MessageDialog("Invalid Amount", "Please enter a valid service charge amount greater than 0.", MessageDialog.MessageType.Warning).ShowDialog();
+                }
+            };
 
             // Buttons
             var buttonPanel = new StackPanel 
@@ -2121,30 +2309,54 @@ public partial class AddSalesViewModel : ObservableObject
             var applyButton = new Button 
             { 
                 Content = "Apply", 
-                Width = 80, 
-                Height = 35,
-                Margin = new Thickness(0, 0, 10, 0)
+                Width = 80,
+                Height = 32,
+                Margin = new Thickness(0, 0, 8, 0),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B")),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                Cursor = Cursors.Hand,
+                FontWeight = FontWeights.Bold,
+                FontSize = 12
             };
             var cancelButton = new Button 
             { 
                 Content = "Cancel", 
-                Width = 80, 
-                Height = 35
+                Width = 80,
+                Height = 32,
+                Background = Brushes.LightGray,
+                Foreground = Brushes.Black,
+                BorderThickness = new Thickness(0),
+                Cursor = Cursors.Hand,
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 12
             };
 
             applyButton.Click += (s, e) =>
             {
-                if (decimal.TryParse(chargeTextBox.Text, out var charge))
+                // Calculate total service charge amount
+                ServiceCharge = 0m;
+                SelectedServiceChargeOptionId = null;
+
+                if (selectedServiceCharges.Count > 0)
                 {
-                    ServiceCharge = charge;
-                    RecalculateTotals();
-                    dialog.DialogResult = true;
-                    dialog.Close();
+                    // Sum all service charges
+                    foreach (var charge in selectedServiceCharges)
+                    {
+                        ServiceCharge += charge.Price ?? 0m;
+                    }
+
+                    // Store the ID only if there's exactly one predefined option selected
+                    if (selectedServiceCharges.Count == 1 && selectedServiceCharges[0].Id != -1)
+                    {
+                        SelectedServiceChargeOptionId = selectedServiceCharges[0].Id;
+                    }
+                    // If multiple charges or manual, SelectedServiceChargeOptionId stays null
                 }
-                else
-                {
-                    MessageBox.Show("Please enter a valid service charge amount.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
+
+                RecalculateTotals();
+                dialog.DialogResult = true;
+                dialog.Close();
             };
 
             cancelButton.Click += (s, e) =>
@@ -2155,15 +2367,70 @@ public partial class AddSalesViewModel : ObservableObject
 
             buttonPanel.Children.Add(applyButton);
             buttonPanel.Children.Add(cancelButton);
-            stackPanel.Children.Add(buttonPanel);
+            mainPanel.Children.Add(buttonPanel);
 
-            dialog.Content = stackPanel;
+            dialog.Content = mainPanel;
             dialog.ShowDialog();
         }
         catch (Exception ex)
         {
             new MessageDialog("Error", $"Error: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
+    }
+
+    private Border CreateServiceChargeChip(ServiceChargeOptionDto serviceCharge, System.Windows.Controls.WrapPanel parent)
+    {
+        var chipBorder = new Border
+        {
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEF3C7")),
+            BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B")),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(16),
+            Padding = new Thickness(12, 6, 8, 6),
+            Margin = new Thickness(0, 0, 6, 6),
+            Tag = serviceCharge
+        };
+
+        var chipPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal
+        };
+
+        var displayText = $"{serviceCharge.Name} - {_activeCurrencyService.FormatPrice(serviceCharge.Price ?? 0m)}";
+
+        chipPanel.Children.Add(new TextBlock
+        {
+            Text = displayText,
+            FontSize = 12,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D97706")),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 6, 0)
+        });
+
+        var removeButton = new Button
+        {
+            Content = "×",
+            Width = 18,
+            Height = 18,
+            FontSize = 16,
+            Padding = new Thickness(0),
+            Background = Brushes.Transparent,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D97706")),
+            BorderThickness = new Thickness(0),
+            Cursor = Cursors.Hand,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        removeButton.Click += (s, e) =>
+        {
+            // Find and remove from parent's children
+            parent.Children.Remove(chipBorder);
+        };
+
+        chipPanel.Children.Add(removeButton);
+        chipBorder.Child = chipPanel;
+
+        return chipBorder;
     }
 
     private string GenerateInvoiceNumber()
@@ -2334,7 +2601,7 @@ public partial class AddSalesViewModel : ObservableObject
                         Icon = "🍽️",
                         UnitPrice = transactionProduct.SellingPrice,
                         Quantity = (int)transactionProduct.Quantity,
-                        TotalPrice = transactionProduct.LineTotal,
+                        TotalPrice = transactionProduct.SellingPrice * transactionProduct.Quantity, // Use base price without tax
                         // Store the modifiers for future reference
                         SelectedModifiers = transactionProduct.Modifiers?.Select(m => new ProductModifierGroupItemDto
                         {
@@ -2473,7 +2740,7 @@ public partial class AddSalesViewModel : ObservableObject
                         Icon = "🍽️",
                         UnitPrice = transactionProduct.SellingPrice,
                         Quantity = (int)transactionProduct.Quantity,
-                        TotalPrice = transactionProduct.LineTotal,
+                        TotalPrice = transactionProduct.SellingPrice * transactionProduct.Quantity, // Use base price without tax
                         SelectedModifiers = transactionProduct.Modifiers?.Select(m => new ProductModifierGroupItemDto
                         {
                             Id = m.Id,
@@ -2622,14 +2889,17 @@ public partial class AddSalesViewModel : ObservableObject
             }
 
             var shiftId = 1;
-            var totalAmount = CartItems.Sum(x => x.TotalPrice);
-            var totalVat = totalAmount * (TaxPercentage / 100);
+            
+            // Calculate totals - use the complete net total from cart
+            var subtotalAmount = CartItems.Sum(x => x.TotalPrice); // Product subtotal only
+            var totalVat = TaxAmount; // Use calculated tax from cart
+            var netTotalAmount = Total; // Complete net total: Subtotal + Tax + ServiceCharge - Discount
             
             // Get customer balance
             decimal customerBalanceAmount = SelectedCustomer?.CustomerBalanceAmount ?? 0m;
             
             // Calculate bill total considering customer balance
-            decimal billTotal = totalAmount + customerBalanceAmount;
+            decimal billTotal = netTotalAmount + customerBalanceAmount;
 
             if (CurrentTransactionId > 0)
             {
@@ -2660,7 +2930,7 @@ public partial class AddSalesViewModel : ObservableObject
                     CustomerId = SelectedCustomer?.Id,
                     TableId = SelectedTable?.Id,
                     SellingTime = DateTime.Now,
-                    TotalAmount = totalAmount,
+                    TotalAmount = netTotalAmount, // Save complete net total including service charge and discount
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
@@ -2687,8 +2957,8 @@ public partial class AddSalesViewModel : ObservableObject
                 AppLogger.Log($"SaveAndPrint: Checking service charge - ServiceCharge={ServiceCharge}");
                 if (ServiceCharge > 0)
                 {
-                    AppLogger.Log($"SaveAndPrint: Calling AddServiceChargeToTransaction for transaction #{savedTransaction.Id} with amount ${ServiceCharge}");
-                    await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge);
+                    AppLogger.Log($"SaveAndPrint: Calling AddServiceChargeToTransaction for transaction #{savedTransaction.Id} with amount ${ServiceCharge}, OptionId={SelectedServiceChargeOptionId}");
+                    await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge, SelectedServiceChargeOptionId);
                     AppLogger.Log($"SaveAndPrint: AddServiceChargeToTransaction call completed");
                 }
                 else
@@ -2749,8 +3019,11 @@ public partial class AddSalesViewModel : ObservableObject
             }
 
             var shiftId = 1;
-            var totalAmount = CartItems.Sum(x => x.TotalPrice);
-            var totalVat = totalAmount * (TaxPercentage / 100);
+            
+            // Calculate totals - use the complete net total from cart
+            var subtotalAmount = CartItems.Sum(x => x.TotalPrice); // Product subtotal only
+            var totalVat = TaxAmount; // Use calculated tax from cart
+            var netTotalAmount = Total; // Complete net total: Subtotal + Tax + ServiceCharge - Discount
             
             // Get customer balance
             decimal customerBalanceAmount = SelectedCustomer?.CustomerBalanceAmount ?? 0m;
@@ -2758,7 +3031,7 @@ public partial class AddSalesViewModel : ObservableObject
             // Calculate bill total considering customer balance
             // If customer has pending dues (positive balance), add to bill
             // If customer has credit (negative balance), deduct from bill
-            decimal billTotal = totalAmount + customerBalanceAmount;
+            decimal billTotal = netTotalAmount + customerBalanceAmount;
 
             if (CurrentTransactionId > 0)
             {
@@ -2768,7 +3041,7 @@ public partial class AddSalesViewModel : ObservableObject
                     CustomerId = SelectedCustomer.Id,
                     TableId = SelectedTable?.Id,
                     ReservationId = SelectedReservation?.Id,
-                    TotalAmount = totalAmount,
+                    TotalAmount = netTotalAmount, // Save complete net total including service charge and discount
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
@@ -2806,7 +3079,7 @@ public partial class AddSalesViewModel : ObservableObject
                 
                 UpdateButtonVisibility();
                 
-                MessageBox.Show($"Transaction #{CurrentTransactionId} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nBill Total: ${billTotal:C}", 
+                MessageBox.Show($"Transaction #{CurrentTransactionId} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nBill Total: {_activeCurrencyService.FormatPrice(billTotal)}", 
                     "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
@@ -2820,7 +3093,7 @@ public partial class AddSalesViewModel : ObservableObject
                     TableId = SelectedTable?.Id,
                     ReservationId = SelectedReservation?.Id,
                     SellingTime = DateTime.Now,
-                    TotalAmount = totalAmount,
+                    TotalAmount = netTotalAmount, // Save complete net total including service charge and discount
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
@@ -2847,7 +3120,9 @@ public partial class AddSalesViewModel : ObservableObject
                 // Add service charge if present
                 if (ServiceCharge > 0)
                 {
-                    await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge);
+                    AppLogger.Log($"PayLater: Calling AddServiceChargeToTransaction for transaction #{savedTransaction.Id} with amount ${ServiceCharge}, OptionId={SelectedServiceChargeOptionId}");
+                    await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge, SelectedServiceChargeOptionId);
+                    AppLogger.Log($"PayLater: AddServiceChargeToTransaction call completed");
                 }
                 
                 CurrentTransactionId = savedTransaction.Id;
@@ -2875,7 +3150,7 @@ public partial class AddSalesViewModel : ObservableObject
                 
                 UpdateButtonVisibility();
 
-                MessageBox.Show($"Transaction #{savedTransaction.Id} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nBill Total: ${billTotal:C}", 
+                MessageBox.Show($"Transaction #{savedTransaction.Id} saved as Pending Payment!\n\nCustomer: {SelectedCustomer.CustomerFullName}\nBill Total: {_activeCurrencyService.FormatPrice(billTotal)}", 
                     "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
@@ -2917,8 +3192,11 @@ public partial class AddSalesViewModel : ObservableObject
             }
 
             var shiftId = 1;
-            var totalAmount = CartItems.Sum(x => x.TotalPrice);
-            var totalVat = totalAmount * (TaxPercentage / 100);
+            
+            // Calculate totals - use the complete net total from cart
+            var subtotalAmount = CartItems.Sum(x => x.TotalPrice); // Product subtotal only
+            var totalVat = TaxAmount; // Use calculated tax from cart
+            var netTotalAmount = Total; // Complete net total: Subtotal + Tax + ServiceCharge - Discount
 
             if (CurrentTransactionId > 0)
             {
@@ -2941,7 +3219,7 @@ public partial class AddSalesViewModel : ObservableObject
                     TableId = SelectedTable?.Id,
                     ReservationId = SelectedReservation?.Id,
                     SellingTime = DateTime.Now,
-                    TotalAmount = totalAmount,
+                    TotalAmount = netTotalAmount, // Save complete net total including service charge and discount
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
@@ -3000,8 +3278,14 @@ public partial class AddSalesViewModel : ObservableObject
             }
 
             var shiftId = 1;
-            var totalAmount = CartItems.Sum(x => x.TotalPrice);
-            var totalVat = totalAmount * (TaxPercentage / 100);
+            
+            // Use the current cart Total which includes tax, service charge, and discount
+            // This is the actual net total amount shown in the cart UI
+            var saleAmount = Total; // Net total from cart (Subtotal + Tax + ServiceCharge - Discount)
+            
+            // For saving to database, we still need to break down the components
+            var totalAmount = CartItems.Sum(x => x.TotalPrice); // Subtotal (products only)
+            var totalVat = TaxAmount; // Use calculated tax amount from cart
             
             // Get customer balance
             decimal customerBalanceAmount = SelectedCustomer?.CustomerBalanceAmount ?? 0m;
@@ -3009,7 +3293,7 @@ public partial class AddSalesViewModel : ObservableObject
             // Calculate bill total considering customer balance
             // If customer has pending dues (positive balance), add to bill
             // If customer has credit (negative balance), deduct from bill
-            decimal billTotal = totalAmount + customerBalanceAmount;
+            decimal billTotal = saleAmount + customerBalanceAmount;
             
             // For existing transactions with partial/pending payment, get the remaining amount and status
             decimal alreadyPaid = 0m;
@@ -3094,8 +3378,8 @@ public partial class AddSalesViewModel : ObservableObject
                         if (existingStatus == "partial_payment")
                         {
                                 // Show customer pending as bill total and transaction remaining
-                                var alreadyPaidFromSale = totalAmount - existingAmountCreditRemaining;
-                                totalLabel.Text = $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
+                                var alreadyPaidFromSale = saleAmount - existingAmountCreditRemaining;
+                                totalLabel.Text = $"Sale Amount: ${saleAmount:N2}{balanceInfo}\n" +
                                                                     $"Customer Pending: ${customerBalanceAmount:N2}\n" +
                                                                     $"Remaining Amount of Transaction: ${existingAmountCreditRemaining:N2}\n" +
                                                                     $"Already Paid: ${alreadyPaidFromSale:N2}";
@@ -3103,10 +3387,10 @@ public partial class AddSalesViewModel : ObservableObject
                         else
                         {
                                 totalLabel.Text = alreadyPaid > 0 
-                                        ? $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
+                                        ? $"Sale Amount: ${saleAmount:N2}{balanceInfo}\n" +
                                             $"Bill Total: ${billTotal:N2}\n" +
                                             $"Remaining: ${remainingAmount:N2}\n(Already Paid: ${alreadyPaid:N2})"
-                                        : $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
+                                        : $"Sale Amount: ${saleAmount:N2}{balanceInfo}\n" +
                                             $"Bill Total: ${billTotal:N2}";
                         }
             
@@ -3244,7 +3528,7 @@ public partial class AddSalesViewModel : ObservableObject
                     // Validate paid amount against actual remaining amount
                     if (paidAmount < 0 || paidAmount > actualRemainingAmount)
                     {
-                        MessageBox.Show($"Amount paid must be between $0 and ${actualRemainingAmount:N2}.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show($"Amount paid must be between {_activeCurrencyService.CurrencySymbol}0 and {_activeCurrencyService.FormatPrice(actualRemainingAmount)}.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
 
@@ -3313,7 +3597,7 @@ public partial class AddSalesViewModel : ObservableObject
                             CustomerId = SelectedCustomer?.Id,
                             TableId = SelectedTable?.Id,
                             ReservationId = SelectedReservation?.Id,
-                            TotalAmount = totalAmount,
+                            TotalAmount = saleAmount, // Save complete net total including service charge and discount
                             TotalVat = totalVat,
                             TotalDiscount = DiscountAmount,
                             AmountPaidCash = totalPaidNow, // Total amount paid so far
@@ -3395,7 +3679,7 @@ public partial class AddSalesViewModel : ObservableObject
                             TableId = SelectedTable?.Id,
                             ReservationId = SelectedReservation?.Id,
                             SellingTime = DateTime.Now,
-                            TotalAmount = totalAmount,
+                            TotalAmount = saleAmount, // Save complete net total including service charge and discount
                             TotalVat = totalVat,
                             TotalDiscount = DiscountAmount,
                             AmountPaidCash = paidAmount,
@@ -3532,7 +3816,8 @@ public partial class AddSalesViewModel : ObservableObject
             var refundDialog = new Views.Dialogs.RefundDialog(
                 transaction,
                 _refundService,
-                _currentUserService);
+                _currentUserService,
+                _activeCurrencyService);
 
             var result = refundDialog.ShowDialog();
 
@@ -3752,17 +4037,17 @@ public partial class AddSalesViewModel : ObservableObject
     /// <summary>
     /// Helper method to add service charge to an existing transaction
     /// </summary>
-    private async Task AddServiceChargeToTransaction(int transactionId, decimal chargeAmount)
+    private async Task AddServiceChargeToTransaction(int transactionId, decimal chargeAmount, int? serviceChargeOptionId = null)
     {
         try
         {
-            AppLogger.Log($"AddServiceChargeToTransaction: START - Transaction #{transactionId}, Amount=${chargeAmount}");
+            AppLogger.Log($"AddServiceChargeToTransaction: START - Transaction #{transactionId}, Amount=${chargeAmount}, ServiceChargeOptionId={serviceChargeOptionId}");
             
-            // Create service charge with nullable ServiceChargeId (manual/custom charge)
+            // Create service charge with nullable ServiceChargeOptionId
             var serviceCharge = new TransactionServiceCharge
             {
                 TransactionId = transactionId,
-                ServiceChargeId = null, // NULL for manual/custom service charges (not linked to predefined service charge)
+                ServiceChargeOptionId = serviceChargeOptionId, // Store the selected option ID, or NULL for custom charges
                 TotalAmount = chargeAmount,
                 TotalVat = 0, // Can be calculated based on tax if needed
                 Status = "Active",
@@ -3770,7 +4055,7 @@ public partial class AddSalesViewModel : ObservableObject
                 CreatedAt = DateTime.Now
             };
 
-            AppLogger.Log($"AddServiceChargeToTransaction: Service charge object created - TransactionId={serviceCharge.TransactionId}, Amount={serviceCharge.TotalAmount}, Status={serviceCharge.Status}, ServiceChargeId={serviceCharge.ServiceChargeId}");
+            AppLogger.Log($"AddServiceChargeToTransaction: Service charge object created - TransactionId={serviceCharge.TransactionId}, Amount={serviceCharge.TotalAmount}, Status={serviceCharge.Status}, ServiceChargeOptionId={serviceCharge.ServiceChargeOptionId}");
             
             await _transactionServiceChargeRepository.AddAsync(serviceCharge);
             AppLogger.Log($"AddServiceChargeToTransaction: AddAsync completed");

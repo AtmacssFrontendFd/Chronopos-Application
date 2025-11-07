@@ -16,6 +16,7 @@ using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Logging;
 using ChronoPos.Desktop.Views.Dialogs;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Converters;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -57,6 +58,11 @@ public partial class TransactionViewModel : ObservableObject
 
     [ObservableProperty]
     private ObservableCollection<ExchangeCardModel> exchangeTransactions = new();
+
+    // Computed properties for empty states
+    public bool HasSalesTransactions => SalesTransactions?.Count > 0;
+    public bool HasRefundTransactions => RefundTransactions?.Count > 0;
+    public bool HasExchangeTransactions => ExchangeTransactions?.Count > 0;
 
     public TransactionViewModel(
         ITransactionService transactionService,
@@ -330,7 +336,8 @@ public partial class TransactionViewModel : ObservableObject
             var refundDialog = new Views.Dialogs.RefundDialog(
                 transaction,
                 _refundService,
-                _currentUserService);
+                _currentUserService,
+                _activeCurrencyService);
 
             var result = refundDialog.ShowDialog();
 
@@ -566,22 +573,22 @@ public partial class TransactionViewModel : ObservableObject
             {
                 // For partial payment transactions, show customer pending as bill total
                 var alreadyPaidFromSale = totalAmount - freshTransaction.AmountCreditRemaining;
-                totalLabel.Text = $"Customer Pending Amount: ${customerBalanceAmount:N2}\n" +
-                                  $"Remaining Amount of Transaction: ${remainingAmount:N2}\n" +
-                                  $"Already Paid: ${alreadyPaidFromSale:N2}";
+                totalLabel.Text = $"Customer Pending Amount: {_activeCurrencyService.CurrencySymbol}{customerBalanceAmount:N2}\n" +
+                                  $"Remaining Amount of Transaction: {_activeCurrencyService.CurrencySymbol}{remainingAmount:N2}\n" +
+                                  $"Already Paid: {_activeCurrencyService.CurrencySymbol}{alreadyPaidFromSale:N2}";
             }
             else if (alreadyPaid > 0)
             {
                 // For transactions with some payment already made
-                totalLabel.Text = $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
-                                  $"Bill Total: ${billTotal:N2}\n" +
-                                  $"Remaining: ${remainingAmount:N2}\n(Already Paid: ${alreadyPaid:N2})";
+                totalLabel.Text = $"Sale Amount: {_activeCurrencyService.CurrencySymbol}{totalAmount:N2}{balanceInfo}\n" +
+                                  $"Bill Total: {_activeCurrencyService.CurrencySymbol}{billTotal:N2}\n" +
+                                  $"Remaining: {_activeCurrencyService.CurrencySymbol}{remainingAmount:N2}\n(Already Paid: {_activeCurrencyService.CurrencySymbol}{alreadyPaid:N2})";
             }
             else
             {
                 // For new transactions with no payment yet
-                totalLabel.Text = $"Sale Amount: ${totalAmount:N2}{balanceInfo}\n" +
-                                  $"Bill Total: ${billTotal:N2}";
+                totalLabel.Text = $"Sale Amount: {_activeCurrencyService.CurrencySymbol}{totalAmount:N2}{balanceInfo}\n" +
+                                  $"Bill Total: {_activeCurrencyService.CurrencySymbol}{billTotal:N2}";
             }
             
             Grid.SetRow(totalLabel, 0);
@@ -1070,7 +1077,7 @@ public partial class TransactionViewModel : ObservableObject
 
                 var priceText = new TextBlock
                 {
-                    Text = $"{product.TotalAmount:C2}",
+                    Text = _activeCurrencyService.FormatPrice(product.TotalAmount),
                     FontSize = 14,
                     FontWeight = FontWeights.Bold,
                     VerticalAlignment = VerticalAlignment.Center,
@@ -1105,7 +1112,7 @@ public partial class TransactionViewModel : ObservableObject
 
             if (refund.TotalVat > 0)
             {
-                totalsStack.Children.Add(new TextBlock { Text = $"(Includes VAT: {refund.TotalVat:C2})", FontSize = 11, Foreground = Brushes.Gray });
+                totalsStack.Children.Add(new TextBlock { Text = $"(Includes VAT: {_activeCurrencyService.FormatPrice(refund.TotalVat)})", FontSize = 11, Foreground = Brushes.Gray });
             }
 
             totalsBorder.Child = totalsStack;
@@ -1406,7 +1413,7 @@ public partial class TransactionViewModel : ObservableObject
 
                 var priceText = new TextBlock
                 {
-                    Text = $"{product.OldProductAmount:C2}",
+                    Text = _activeCurrencyService.FormatPrice(product.OldProductAmount),
                     FontSize = 14,
                     FontWeight = FontWeights.Bold,
                     VerticalAlignment = VerticalAlignment.Center,
@@ -1454,7 +1461,7 @@ public partial class TransactionViewModel : ObservableObject
 
                 var priceText = new TextBlock
                 {
-                    Text = $"{product.NewProductAmount:C2}",
+                    Text = _activeCurrencyService.FormatPrice(product.NewProductAmount),
                     FontSize = 14,
                     FontWeight = FontWeights.Bold,
                     VerticalAlignment = VerticalAlignment.Center,
@@ -1484,7 +1491,7 @@ public partial class TransactionViewModel : ObservableObject
             differenceGrid.Children.Add(new TextBlock { Text = "Price Difference", FontSize = 16, FontWeight = FontWeights.Bold });
             var differenceAmount = new TextBlock 
             { 
-                Text = $"{Math.Abs(exchange.TotalExchangedAmount):C2} {(exchange.TotalExchangedAmount > 0 ? "(Customer pays)" : exchange.TotalExchangedAmount < 0 ? "(Customer refund)" : "(Even)")}",
+                Text = $"{_activeCurrencyService.FormatPrice(Math.Abs(exchange.TotalExchangedAmount))} {(exchange.TotalExchangedAmount > 0 ? "(Customer pays)" : exchange.TotalExchangedAmount < 0 ? "(Customer refund)" : "(Even)")}",
                 FontSize = 16, 
                 FontWeight = FontWeights.Bold, 
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B45309")) 
@@ -1495,7 +1502,7 @@ public partial class TransactionViewModel : ObservableObject
 
             if (exchange.TotalExchangedVat > 0)
             {
-                differenceStack.Children.Add(new TextBlock { Text = $"(Includes VAT: {exchange.TotalExchangedVat:C2})", FontSize = 11, Foreground = Brushes.Gray });
+                differenceStack.Children.Add(new TextBlock { Text = $"(Includes VAT: {_activeCurrencyService.FormatPrice(exchange.TotalExchangedVat)})", FontSize = 11, Foreground = Brushes.Gray });
             }
 
             differenceBorder.Child = differenceStack;
@@ -1708,7 +1715,7 @@ public partial class TransactionViewModel : ObservableObject
                     {
                         Quantity = product.Quantity.ToString("0.##"),
                         ItemName = productNameWithModifiers,
-                        Price = totalPrice.ToString("C2")
+                        Price = _activeCurrencyService.FormatPrice(totalPrice)
                     });
                 }
 
@@ -1745,6 +1752,9 @@ public partial class TransactionViewModel : ObservableObject
 
                 SalesTransactions.Add(cardModel);
             }
+            
+            // Notify empty state property changed
+            OnPropertyChanged(nameof(HasSalesTransactions));
         }
         catch (Exception ex)
         {
@@ -1791,7 +1801,7 @@ public partial class TransactionViewModel : ObservableObject
                     {
                         Quantity = product.TotalQuantityReturned.ToString("0.##"),
                         ItemName = product.ProductName ?? "Unknown",
-                        Price = product.TotalAmount.ToString("C2"),
+                        Price = _activeCurrencyService.FormatPrice(product.TotalAmount),
                         Modifiers = modifierString
                     });
                 }
@@ -1818,6 +1828,9 @@ public partial class TransactionViewModel : ObservableObject
                     StatusColor = GetStatusColor(refund.Status)
                 });
             }
+            
+            // Notify empty state property changed
+            OnPropertyChanged(nameof(HasRefundTransactions));
         }
         catch (Exception ex)
         {
@@ -1881,7 +1894,7 @@ public partial class TransactionViewModel : ObservableObject
                     {
                         Quantity = $"{exchangeProduct.NewQuantity}x",
                         ItemName = exchangeProduct.NewProductName ?? "",
-                        Price = exchangeProduct.NewProductAmount.ToString("C2"),
+                        Price = _activeCurrencyService.FormatPrice(exchangeProduct.NewProductAmount),
                         Modifiers = string.Empty // New products don't have modifiers in exchange DTO
                     });
                 }
@@ -1907,6 +1920,9 @@ public partial class TransactionViewModel : ObservableObject
                 
                 ExchangeTransactions.Add(exchangeCard);
             }
+            
+            // Notify empty state property changed
+            OnPropertyChanged(nameof(HasExchangeTransactions));
         }
         catch (Exception ex)
         {
@@ -1958,6 +1974,10 @@ public partial class TransactionViewModel : ObservableObject
 
     private UIElement CreateSalesGrid()
     {
+        // Create main grid container
+        var mainGrid = new Grid();
+        
+        // Create ItemsControl for data
         var itemsControl = new ItemsControl
         {
             ItemsSource = SalesTransactions
@@ -1969,8 +1989,63 @@ public partial class TransactionViewModel : ObservableObject
         
         itemsControl.ItemsPanel = new ItemsPanelTemplate(wrapPanelFactory);
         itemsControl.ItemTemplate = CreateSalesCardTemplate();
+        
+        // Bind visibility - show when HasSalesTransactions is true
+        itemsControl.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasSalesTransactions")
+        {
+            Source = this,
+            Converter = new System.Windows.Controls.BooleanToVisibilityConverter()
+        });
+        
+        // Create empty state
+        var emptyState = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        
+        var icon = new TextBlock
+        {
+            Text = "💳",
+            FontSize = 48,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 16)
+        };
+        
+        var primaryMessage = new TextBlock
+        {
+            Text = "No sales transactions found",
+            FontSize = 16,
+            FontWeight = FontWeights.Medium,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937")),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        
+        var secondaryMessage = new TextBlock
+        {
+            Text = "Click 'Create New Transaction' to add your first transaction",
+            FontSize = 12,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280")),
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        
+        emptyState.Children.Add(icon);
+        emptyState.Children.Add(primaryMessage);
+        emptyState.Children.Add(secondaryMessage);
+        
+        // Bind visibility - show when HasSalesTransactions is false
+        emptyState.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasSalesTransactions")
+        {
+            Source = this,
+            Converter = new InverseBoolToVisibilityConverter()
+        });
+        
+        // Add both to grid
+        mainGrid.Children.Add(emptyState);
+        mainGrid.Children.Add(itemsControl);
 
-        return itemsControl;
+        return mainGrid;
     }
 
     private DataTemplate CreateSalesCardTemplate()
@@ -2140,7 +2215,7 @@ public partial class TransactionViewModel : ObservableObject
                         
                         <!-- Total -->
                         <Grid Grid.Row='5' Margin='0,4,0,0'>
-                            <TextBlock Text='Subtotal' FontSize='13' FontWeight='SemiBold' Foreground='#1F2937'/>
+                            <TextBlock Text='Total' FontSize='13' FontWeight='SemiBold' Foreground='#1F2937'/>
                             <TextBlock Text='{Binding Subtotal, Converter={StaticResource CurrencyPriceConverter}}' FontSize='15' FontWeight='Bold' Foreground='#1F2937' HorizontalAlignment='Right'/>
                         </Grid>
                         
@@ -2279,6 +2354,10 @@ public partial class TransactionViewModel : ObservableObject
 
     private UIElement CreateRefundGrid()
     {
+        // Create main grid container
+        var mainGrid = new Grid();
+        
+        // Create ItemsControl for data
         var itemsControl = new ItemsControl
         {
             ItemsSource = RefundTransactions
@@ -2290,8 +2369,63 @@ public partial class TransactionViewModel : ObservableObject
         
         itemsControl.ItemsPanel = new ItemsPanelTemplate(wrapPanelFactory);
         itemsControl.ItemTemplate = CreateRefundCardTemplate();
+        
+        // Bind visibility - show when HasRefundTransactions is true
+        itemsControl.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasRefundTransactions")
+        {
+            Source = this,
+            Converter = new System.Windows.Controls.BooleanToVisibilityConverter()
+        });
+        
+        // Create empty state
+        var emptyState = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        
+        var icon = new TextBlock
+        {
+            Text = "🔄",
+            FontSize = 48,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 16)
+        };
+        
+        var primaryMessage = new TextBlock
+        {
+            Text = "No refund transactions found",
+            FontSize = 16,
+            FontWeight = FontWeights.Medium,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937")),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        
+        var secondaryMessage = new TextBlock
+        {
+            Text = "Refunds will appear here when transactions are refunded",
+            FontSize = 12,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280")),
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        
+        emptyState.Children.Add(icon);
+        emptyState.Children.Add(primaryMessage);
+        emptyState.Children.Add(secondaryMessage);
+        
+        // Bind visibility - show when HasRefundTransactions is false
+        emptyState.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasRefundTransactions")
+        {
+            Source = this,
+            Converter = new InverseBoolToVisibilityConverter()
+        });
+        
+        // Add both to grid
+        mainGrid.Children.Add(emptyState);
+        mainGrid.Children.Add(itemsControl);
 
-        return itemsControl;
+        return mainGrid;
     }
 
     private DataTemplate CreateRefundCardTemplate()
@@ -2497,6 +2631,10 @@ public partial class TransactionViewModel : ObservableObject
 
     private UIElement CreateExchangeGrid()
     {
+        // Create main grid container
+        var mainGrid = new Grid();
+        
+        // Create ItemsControl for data
         var itemsControl = new ItemsControl
         {
             ItemsSource = ExchangeTransactions
@@ -2508,8 +2646,63 @@ public partial class TransactionViewModel : ObservableObject
         
         itemsControl.ItemsPanel = new ItemsPanelTemplate(wrapPanelFactory);
         itemsControl.ItemTemplate = CreateExchangeCardTemplate();
+        
+        // Bind visibility - show when HasExchangeTransactions is true
+        itemsControl.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasExchangeTransactions")
+        {
+            Source = this,
+            Converter = new System.Windows.Controls.BooleanToVisibilityConverter()
+        });
+        
+        // Create empty state
+        var emptyState = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        
+        var icon = new TextBlock
+        {
+            Text = "🔁",
+            FontSize = 48,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 16)
+        };
+        
+        var primaryMessage = new TextBlock
+        {
+            Text = "No exchange transactions found",
+            FontSize = 16,
+            FontWeight = FontWeights.Medium,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937")),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        
+        var secondaryMessage = new TextBlock
+        {
+            Text = "Product exchanges will appear here when processed",
+            FontSize = 12,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280")),
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        
+        emptyState.Children.Add(icon);
+        emptyState.Children.Add(primaryMessage);
+        emptyState.Children.Add(secondaryMessage);
+        
+        // Bind visibility - show when HasExchangeTransactions is false
+        emptyState.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasExchangeTransactions")
+        {
+            Source = this,
+            Converter = new InverseBoolToVisibilityConverter()
+        });
+        
+        // Add both to grid
+        mainGrid.Children.Add(emptyState);
+        mainGrid.Children.Add(itemsControl);
 
-        return itemsControl;
+        return mainGrid;
     }
 
     private DataTemplate CreateExchangeCardTemplate()

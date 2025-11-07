@@ -1,0 +1,356 @@
+<UserControl x:Class="ChronoPos.Desktop.UserControls.CompanyDetailsUserControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             FlowDirection="{Binding CurrentFlowDirection}"
+             FontFamily="{DynamicResource PoppinsFontFallback}">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="30">
+        <StackPanel>
+            
+            <!-- Company Header -->
+            <Border Background="{DynamicResource CardBackground}"
+                    BorderBrush="{DynamicResource BorderLight}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="30"
+                    Margin="0,0,0,20">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Company Logo/Icon -->
+                    <Border Grid.Column="0"
+                            Width="100"
+                            Height="100"
+                            Background="{DynamicResource Primary}"
+                            CornerRadius="8"
+                            Margin="0,0,25,0"
+                            VerticalAlignment="Top">
+                        <TextBlock Text="🏢"
+                                   FontSize="50"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+
+                    <!-- Company Name and Details -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding CompanyName}"
+                                   FontSize="28"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Margin="0,0,0,5"/>
+                        <TextBlock Text="{Binding EmailOfBusiness}"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   Margin="0,0,0,5"/>
+                        <Border Background="{DynamicResource Primary}"
+                                CornerRadius="12"
+                                Padding="10,5"
+                                HorizontalAlignment="Left"
+                                Margin="0,5,0,0">
+                            <TextBlock Text="{Binding StatusText}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="White"/>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Refresh Button -->
+                    <Button Grid.Column="2"
+                            Content="↻ Refresh"
+                            Command="{Binding RefreshCompanyDetailsCommand}"
+                            Background="{DynamicResource Primary}"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Padding="15,10"
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            Cursor="Hand"
+                            VerticalAlignment="Top">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        CornerRadius="8"
+                                        Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Business Information Section -->
+            <Border Background="{DynamicResource CardBackground}"
+                    BorderBrush="{DynamicResource BorderLight}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="25"
+                    Margin="0,0,0,20">
+                <StackPanel>
+                    <TextBlock Text="Business Information"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimary}"
+                               Margin="0,0,0,20"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Company Name -->
+                        <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,15,20">
+                            <TextBlock Text="Company Name"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding CompanyName}"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextPrimary}"/>
+                        </StackPanel>
+
+                        <!-- License Number -->
+                        <StackPanel Grid.Row="0" Grid.Column="1" Margin="15,0,0,20">
+                            <TextBlock Text="License Number"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding LicenseNumber, TargetNullValue='Not Provided'}"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextPrimary}"/>
+                        </StackPanel>
+
+                        <!-- VAT/TRN Number -->
+                        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,15,20">
+                            <TextBlock Text="VAT/TRN Number"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding VatTrnNumber, TargetNullValue='Not Provided'}"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextPrimary}"/>
+                        </StackPanel>
+
+                        <!-- Number of Owners -->
+                        <StackPanel Grid.Row="1" Grid.Column="1" Margin="15,0,0,20">
+                            <TextBlock Text="Number of Owners"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding NumberOfOwners}"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextPrimary}"/>
+                        </StackPanel>
+
+                        <!-- Phone Number -->
+                        <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,15,20">
+                            <TextBlock Text="Phone Number"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding PhoneNo, TargetNullValue='Not Provided'}"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextPrimary}"/>
+                        </StackPanel>
+
+                        <!-- Email -->
+                        <StackPanel Grid.Row="2" Grid.Column="1" Margin="15,0,0,20">
+                            <TextBlock Text="Email Address"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding EmailOfBusiness, TargetNullValue='Not Provided'}"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextPrimary}"/>
+                        </StackPanel>
+
+                        <!-- Website -->
+                        <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Margin="0,0,0,0">
+                            <TextBlock Text="Website"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding Website, TargetNullValue='Not Provided'}"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextPrimary}"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Contact Person Information Section -->
+            <Border Background="{DynamicResource CardBackground}"
+                    BorderBrush="{DynamicResource BorderLight}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="25"
+                    Margin="0,0,0,20">
+                <StackPanel>
+                    <TextBlock Text="Key Contact Person"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimary}"
+                               Margin="0,0,0,20"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Contact Name -->
+                        <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,15,20">
+                            <TextBlock Text="Contact Name"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding KeyContactName, TargetNullValue='Not Provided'}"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextPrimary}"/>
+                        </StackPanel>
+
+                        <!-- Contact Mobile -->
+                        <StackPanel Grid.Row="0" Grid.Column="1" Margin="15,0,0,20">
+                            <TextBlock Text="Contact Mobile"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding KeyContactMobNo, TargetNullValue='Not Provided'}"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextPrimary}"/>
+                        </StackPanel>
+
+                        <!-- Contact Email -->
+                        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="0,0,0,0">
+                            <TextBlock Text="Contact Email"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding KeyContactEmail, TargetNullValue='Not Provided'}"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextPrimary}"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Additional Information Section -->
+            <Border Background="{DynamicResource CardBackground}"
+                    BorderBrush="{DynamicResource BorderLight}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="25">
+                <StackPanel>
+                    <TextBlock Text="Additional Information"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimary}"
+                               Margin="0,0,0,20"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Location Latitude -->
+                        <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,15,20">
+                            <TextBlock Text="Location Latitude"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding LocationLatitude, TargetNullValue='Not Provided'}"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextPrimary}"/>
+                        </StackPanel>
+
+                        <!-- Location Longitude -->
+                        <StackPanel Grid.Row="0" Grid.Column="1" Margin="15,0,0,20">
+                            <TextBlock Text="Location Longitude"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding LocationLongitude, TargetNullValue='Not Provided'}"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextPrimary}"/>
+                        </StackPanel>
+
+                        <!-- Created By -->
+                        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,15,0">
+                            <TextBlock Text="Created By"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding CreatedBy, TargetNullValue='System'}"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextPrimary}"/>
+                        </StackPanel>
+
+                        <!-- Created Date -->
+                        <StackPanel Grid.Row="1" Grid.Column="1" Margin="15,0,0,0">
+                            <TextBlock Text="Created Date"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding CreatedAtText}"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextPrimary}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Remarks -->
+                    <StackPanel Margin="0,20,0,0">
+                        <TextBlock Text="Remarks"
+                                   FontSize="12"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   Margin="0,0,0,5"/>
+                        <TextBlock Text="{Binding Remarks, TargetNullValue='No remarks'}"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

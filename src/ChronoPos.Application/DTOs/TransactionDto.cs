@@ -93,7 +93,7 @@ public class CreateTransactionDto
     public string Status { get; set; } = "draft";
     
     public List<CreateTransactionProductDto> Products { get; set; } = new();
-    public List<int> ServiceChargeIds { get; set; } = new();
+    public List<int> ServiceChargeOptionIds { get; set; } = new();
 }
 
 /// <summary>
@@ -201,7 +201,7 @@ public class TransactionServiceChargeDto
 {
     public int Id { get; set; }
     public int TransactionId { get; set; }
-    public int? ServiceChargeId { get; set; } // Nullable to support manual/custom service charges
+    public int? ServiceChargeOptionId { get; set; } // Nullable to support manual/custom service charges
     public decimal TotalAmount { get; set; }
     public decimal TotalVat { get; set; }
     public string Status { get; set; } = "Active";

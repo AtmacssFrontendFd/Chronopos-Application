@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.Views.Dialogs;
 
 namespace ChronoPos.Desktop.Views.Dialogs
@@ -15,22 +16,29 @@ namespace ChronoPos.Desktop.Views.Dialogs
         private readonly decimal _taxPercentage;
         private readonly IRefundService _refundService;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IActiveCurrencyService _activeCurrencyService;
         private readonly ObservableCollection<RefundItemModel> _refundItems;
 
         public bool IsConfirmed { get; private set; }
         public decimal RefundAmount { get; private set; }
+        public IActiveCurrencyService ActiveCurrencyService => _activeCurrencyService;
 
         public RefundDialog(
             TransactionDto transaction,
             IRefundService refundService,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            IActiveCurrencyService activeCurrencyService)
         {
             InitializeComponent();
 
             _transaction = transaction ?? throw new ArgumentNullException(nameof(transaction));
             _refundService = refundService ?? throw new ArgumentNullException(nameof(refundService));
             _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+            _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
             _taxPercentage = transaction.Vat;
+
+            // Set DataContext for bindings
+            DataContext = this;
 
             // Initialize refund items collection
             _refundItems = new ObservableCollection<RefundItemModel>();
@@ -44,7 +52,7 @@ namespace ChronoPos.Desktop.Views.Dialogs
             // Set transaction header info
             TransactionInfoText.Text = $"Transaction #{_transaction.Id:D4} | Customer: {_transaction.CustomerName ?? "Walk-in"}";
             TransactionDateText.Text = $"{_transaction.SellingTime:dd MMM yyyy, h:mm tt}";
-            TransactionTotalText.Text = $"${_transaction.TotalAmount:N2}";
+            TransactionTotalText.Text = _activeCurrencyService.FormatPrice(_transaction.TotalAmount);
             TransactionStatusText.Text = _transaction.Status?.ToUpper() ?? "SETTLED";
 
             // Load transaction products into refund items
@@ -109,9 +117,9 @@ namespace ChronoPos.Desktop.Views.Dialogs
             decimal vat = subtotal * (_taxPercentage / 100);
             decimal total = subtotal + vat;
 
-            RefundSubtotalText.Text = $"${subtotal:N2}";
-            RefundVatText.Text = $"${vat:N2}";
-            RefundTotalText.Text = $"${total:N2}";
+            RefundSubtotalText.Text = _activeCurrencyService.FormatPrice(subtotal);
+            RefundVatText.Text = _activeCurrencyService.FormatPrice(vat);
+            RefundTotalText.Text = _activeCurrencyService.FormatPrice(total);
 
             RefundAmount = total;
 
@@ -175,7 +183,7 @@ namespace ChronoPos.Desktop.Views.Dialogs
                     "Confirm Refund",
                     $"Are you sure you want to process this refund?\n\n" +
                     $"Items to refund: {refundItems.Count}\n" +
-                    $"Refund amount: ${totalRefund:N2}\n\n" +
+                    $"Refund amount: {_activeCurrencyService.FormatPrice(totalRefund)}\n\n" +
                     $"This action cannot be undone.",
                     ConfirmationDialog.DialogType.Warning);
 
@@ -223,7 +231,7 @@ namespace ChronoPos.Desktop.Views.Dialogs
                     "Success",
                     $"Refund processed successfully!\n\n" +
                     $"Refund ID: #{savedRefund.Id}\n" +
-                    $"Amount: ${totalRefund:N2}",
+                    $"Amount: {_activeCurrencyService.FormatPrice(totalRefund)}",
                     MessageDialog.MessageType.Success).ShowDialog();
 
                 DialogResult = true;

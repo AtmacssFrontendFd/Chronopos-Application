@@ -1,0 +1,225 @@
+<UserControl x:Class="ChronoPos.Desktop.Views.ServiceChargeOptionSidePanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="600"
+             FontFamily="{DynamicResource PoppinsFontFallback}"
+             Width="600">
+
+    <UserControl.Resources>
+        <!-- Converters -->
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        
+        <!-- Input Style -->
+        <Style x:Key="InputTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- ComboBox Style -->
+        <Style x:Key="InputComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Foreground" Value="Black"/>
+        </Style>
+
+        <!-- CheckBox Style -->
+        <Style x:Key="InputCheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Button Style -->
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Primary}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeNormal}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryDark}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Secondary Button Style -->
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderNormal}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource SidePanelBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource Primary}"
+                Padding="20,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="{Binding FormTitle}" 
+                             FontSize="{DynamicResource FontSizeLarge}"
+                             FontWeight="Bold"
+                             Foreground="White"/>
+                    <TextBlock Text="Configure service charge option details" 
+                             FontSize="{DynamicResource FontSizeSmall}"
+                             Foreground="White"
+                             Opacity="0.9"/>
+                </StackPanel>
+
+                <Button Grid.Column="1" 
+                      Content="✕"
+                      Background="Transparent"
+                      BorderThickness="0"
+                      Foreground="White"
+                      FontSize="16"
+                      Width="30" Height="30"
+                      Command="{Binding CancelCommand}"
+                      Cursor="Hand"/>
+            </Grid>
+        </Border>
+
+        <!-- Form Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20">
+            <StackPanel>
+                
+                <!-- Name -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Name *" 
+                             FontWeight="SemiBold"
+                             FontSize="{DynamicResource FontSizeSmall}"
+                             Foreground="{DynamicResource TextPrimary}"
+                             Margin="0,0,0,5"/>
+                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                           Style="{StaticResource InputTextBoxStyle}"/>
+                </StackPanel>
+
+                <!-- Service Charge Type -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Service Charge Type *" 
+                             FontWeight="SemiBold"
+                             FontSize="{DynamicResource FontSizeSmall}"
+                             Foreground="{DynamicResource TextPrimary}"
+                             Margin="0,0,0,5"/>
+                    <ComboBox ItemsSource="{Binding AvailableServiceChargeTypes}"
+                            SelectedItem="{Binding SelectedServiceChargeType}"
+                            DisplayMemberPath="Name"
+                            Style="{StaticResource InputComboBoxStyle}"/>
+                </StackPanel>
+
+                <!-- Cost -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Cost" 
+                             FontWeight="SemiBold"
+                             FontSize="{DynamicResource FontSizeSmall}"
+                             Foreground="{DynamicResource TextPrimary}"
+                             Margin="0,0,0,5"/>
+                    <TextBox Text="{Binding Cost, UpdateSourceTrigger=PropertyChanged}"
+                           Style="{StaticResource InputTextBoxStyle}"/>
+                </StackPanel>
+
+                <!-- Price -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="Price" 
+                             FontWeight="SemiBold"
+                             FontSize="{DynamicResource FontSizeSmall}"
+                             Foreground="{DynamicResource TextPrimary}"
+                             Margin="0,0,0,5"/>
+                    <TextBox Text="{Binding Price, UpdateSourceTrigger=PropertyChanged}"
+                           Style="{StaticResource InputTextBoxStyle}"/>
+                </StackPanel>
+
+                <!-- Status -->
+                <StackPanel Margin="0,0,0,15">
+                    <CheckBox IsChecked="{Binding Status}"
+                            Content="Active"
+                            Style="{StaticResource InputCheckBoxStyle}"/>
+                </StackPanel>
+
+                <!-- Status Message -->
+                <TextBlock Text="{Binding StatusMessage}"
+                         FontSize="{DynamicResource FontSizeExtraSmall}"
+                         Foreground="{DynamicResource TextSecondary}"
+                         Margin="0,10,0,0"
+                         TextWrapping="Wrap"
+                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer with Action Buttons -->
+        <Border Grid.Row="2" 
+                Background="{DynamicResource CardBackground}"
+                BorderBrush="{DynamicResource BorderLight}"
+                BorderThickness="0,1,0,0"
+                Padding="20,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0"
+                      Content="Cancel"
+                      Style="{StaticResource SecondaryButtonStyle}"
+                      Command="{Binding CancelCommand}"
+                      HorizontalAlignment="Left"
+                      Width="100"/>
+
+                <Button Grid.Column="1"
+                      Content="Save"
+                      Style="{StaticResource PrimaryButtonStyle}"
+                      Command="{Binding SaveCommand}"
+                      IsEnabled="{Binding CanSave}"
+                      Width="100"/>
+            </Grid>
+        </Border>
+    </Grid>
+
+</UserControl>
