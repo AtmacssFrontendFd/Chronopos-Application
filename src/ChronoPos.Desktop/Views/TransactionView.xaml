@@ -5,7 +5,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d" 
              d:DesignHeight="800" d:DesignWidth="1400"
-             Background="{DynamicResource PageBackground}">
+             Background="{DynamicResource PageBackground}"
+             FlowDirection="{Binding CurrentFlowDirection}">
     
     <Grid Margin="15,10,15,10">
         <Grid.RowDefinitions>
@@ -17,7 +18,7 @@
 
         <!-- Header -->
         <Grid Grid.Row="0">
-            <TextBlock Text="{Binding CurrentTabTitle}" 
+            <TextBlock Text="{Binding TransactionTitleLabel}" 
                       FontSize="24" 
                       FontWeight="Bold"
                       Foreground="{DynamicResource TextPrimary}"
@@ -30,11 +31,11 @@
                 <Button Width="36" 
                        Height="36"
                        Margin="0,0,10,0"
-                       Background="#F59E0B"
+                       Background="{DynamicResource ChronoPosOrange}"
                        BorderThickness="0"
                        Cursor="Hand"
                        Command="{Binding CreateNewTransactionCommand}"
-                       ToolTip="Create New Transaction">
+                       ToolTip="{Binding CreateNewTransactionLabel}">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Template">
@@ -54,7 +55,7 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#D97706"/>
+                                    <Setter Property="Background" Value="{DynamicResource ChronoPosDarkGold}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -62,7 +63,7 @@
                 </Button>
 
                 <!-- Search Box -->
-                <Border Background="White" 
+                <Border Background="{DynamicResource CardBackground}" 
                        CornerRadius="8" 
                        BorderBrush="{DynamicResource BorderLight}" 
                        BorderThickness="1"
@@ -97,7 +98,7 @@
                    Orientation="Horizontal" 
                    Margin="0,15,0,0">
             <!-- Sales Tab -->
-            <Button Content="Sales" 
+            <Button Content="{Binding SalesTabLabel}" 
                    Width="110" 
                    Height="38"
                    Margin="0,0,8,0"
@@ -107,7 +108,7 @@
                    Command="{Binding SwitchToSalesCommand}">
                 <Button.Style>
                     <Style TargetType="Button">
-                        <Setter Property="Background" Value="White"/>
+                        <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
                         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
                         <Setter Property="BorderThickness" Value="1"/>
                         <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
@@ -126,12 +127,12 @@
                         </Setter>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding CurrentTab}" Value="Sales">
-                                <Setter Property="Background" Value="#F59E0B"/>
+                                <Setter Property="Background" Value="{DynamicResource ChronoPosOrange}"/>
                                 <Setter Property="Foreground" Value="White"/>
-                                <Setter Property="BorderBrush" Value="#F59E0B"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource ChronoPosOrange}"/>
                             </DataTrigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#FEF3C7"/>
+                                <Setter Property="Background" Value="{DynamicResource HoverBackground}"/>
                             </Trigger>
                         </Style.Triggers>
                     </Style>
@@ -139,7 +140,7 @@
             </Button>
 
             <!-- Refund Tab -->
-            <Button Content="Refund" 
+            <Button Content="{Binding RefundTabLabel}" 
                    Width="110" 
                    Height="38"
                    Margin="0,0,8,0"
@@ -149,7 +150,7 @@
                    Command="{Binding SwitchToRefundCommand}">
                 <Button.Style>
                     <Style TargetType="Button">
-                        <Setter Property="Background" Value="White"/>
+                        <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
                         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
                         <Setter Property="BorderThickness" Value="1"/>
                         <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
@@ -168,12 +169,12 @@
                         </Setter>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding CurrentTab}" Value="Refund">
-                                <Setter Property="Background" Value="#F59E0B"/>
+                                <Setter Property="Background" Value="{DynamicResource ChronoPosOrange}"/>
                                 <Setter Property="Foreground" Value="White"/>
-                                <Setter Property="BorderBrush" Value="#F59E0B"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource ChronoPosOrange}"/>
                             </DataTrigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#FEF3C7"/>
+                                <Setter Property="Background" Value="{DynamicResource HoverBackground}"/>
                             </Trigger>
                         </Style.Triggers>
                     </Style>
@@ -181,7 +182,7 @@
             </Button>
 
             <!-- Exchange Tab -->
-            <Button Content="Exchange" 
+            <Button Content="{Binding ExchangeTabLabel}" 
                    Width="110" 
                    Height="38"
                    FontSize="13"
@@ -190,7 +191,7 @@
                    Command="{Binding SwitchToExchangeCommand}">
                 <Button.Style>
                     <Style TargetType="Button">
-                        <Setter Property="Background" Value="White"/>
+                        <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
                         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
                         <Setter Property="BorderThickness" Value="1"/>
                         <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
@@ -209,12 +210,12 @@
                         </Setter>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding CurrentTab}" Value="Exchange">
-                                <Setter Property="Background" Value="#F59E0B"/>
+                                <Setter Property="Background" Value="{DynamicResource ChronoPosOrange}"/>
                                 <Setter Property="Foreground" Value="White"/>
-                                <Setter Property="BorderBrush" Value="#F59E0B"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource ChronoPosOrange}"/>
                             </DataTrigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#FEF3C7"/>
+                                <Setter Property="Background" Value="{DynamicResource HoverBackground}"/>
                             </Trigger>
                         </Style.Triggers>
                     </Style>
@@ -223,7 +224,7 @@
         </StackPanel>
 
         <!-- Content Area -->
-        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Hidden">
             <ContentControl Content="{Binding CurrentTabContent}"/>
         </ScrollViewer>
     </Grid>

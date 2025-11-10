@@ -4,9 +4,11 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             xmlns:controls="clr-namespace:ChronoPos.Desktop.Views.Controls"
              mc:Ignorable="d" 
              d:DesignHeight="900" d:DesignWidth="1400"
-             Background="{DynamicResource PageBackground}"
+             Background="{DynamicResource MainBackground}"
+             FontFamily="{DynamicResource PoppinsFontFallback}"
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -14,69 +16,70 @@
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <converters:LocalizationConverter x:Key="LocalizationConverter"/>
         
-        <!-- Card Style -->
+        <!-- Card Style - Theme Compatible -->
         <Style x:Key="CardStyle" TargetType="Border">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="CornerRadius" Value="12"/>
-            <Setter Property="Padding" Value="20"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect Color="#000000" BlurRadius="10" ShadowDepth="2" Opacity="0.08" Direction="270"/>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="{DynamicResource BorderCornerRadius}"/>
+            <Setter Property="Margin" Value="{DynamicResource DefaultMarginThickness}"/>
+            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
         </Style>
 
-        <!-- Summary Card Style -->
+        <!-- Summary Card Style - Theme Compatible -->
         <Style x:Key="SummaryCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="{DynamicResource BorderCornerRadius}"/>
             <Setter Property="Padding" Value="20,16"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect Color="#000000" BlurRadius="8" ShadowDepth="1" Opacity="0.06" Direction="270"/>
-                </Setter.Value>
-            </Setter>
         </Style>
 
-        <!-- Filter Button Style -->
-        <Style x:Key="FilterButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#4CAF50"/>
+        <!-- Action Button Style - Theme Compatible -->
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Primary}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="20,10"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                               CornerRadius="8"
-                               Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryAlt}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#45a049"/>
-                </Trigger>
-                <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Background" Value="#CCCCCC"/>
-                    <Setter Property="Cursor" Value="No"/>
-                </Trigger>
-            </Style.Triggers>
         </Style>
 
-        <!-- Secondary Button Style -->
+        <!-- Secondary Button Style - Theme Compatible -->
         <Style x:Key="SecondaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#F5F5F5"/>
-            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
             <Setter Property="Padding" Value="16,10"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -84,27 +87,161 @@
                         <Border Background="{TemplateBinding Background}" 
                                BorderBrush="{TemplateBinding BorderBrush}"
                                BorderThickness="{TemplateBinding BorderThickness}"
-                               CornerRadius="8"
+                               CornerRadius="{DynamicResource BorderCornerRadius}"
                                Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#EEEEEE"/>
-                </Trigger>
-            </Style.Triggers>
         </Style>
 
-        <!-- Input Style -->
+        <!-- Input Style - Theme Compatible -->
         <Style x:Key="InputStyle" TargetType="Control">
             <Setter Property="Height" Value="38"/>
             <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
             <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+        </Style>
+
+        <!-- FormComboBoxStyle (matching Sales Report) -->
+        <Style x:Key="FormComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="MinHeight" Value="38"/>
+            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="MainBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="{DynamicResource BorderCornerRadius}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <ContentPresenter Grid.Column="0"
+                                                    x:Name="PART_ContentPresenter"
+                                                    Content="{TemplateBinding SelectionBoxItem}"
+                                                    ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                    ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                    Margin="{TemplateBinding Padding}"
+                                                    IsHitTestVisible="False"/>
+                                    
+                                    <Border Grid.Column="1"
+                                            Width="24"
+                                            Height="24"
+                                            Background="{DynamicResource CardBackground}"
+                                            BorderBrush="{DynamicResource BorderLight}"
+                                            BorderThickness="1"
+                                            CornerRadius="12"
+                                            Margin="0,0,5,0"
+                                            VerticalAlignment="Center">
+                                        <ToggleButton x:Name="DropDownToggle"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                                    ClickMode="Press"
+                                                    Focusable="False"
+                                                    Width="24"
+                                                    Height="24">
+                                            <TextBlock Text="▼"
+                                                     FontSize="8"
+                                                     FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                     Foreground="{DynamicResource TextSecondary}"
+                                                     HorizontalAlignment="Center"
+                                                     VerticalAlignment="Center"/>
+                                        </ToggleButton>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                            
+                            <Popup x:Name="PART_Popup"
+                                   Placement="Bottom"
+                                   PlacementTarget="{Binding ElementName=MainBorder}"
+                                   IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Slide">
+                                <Border Background="{DynamicResource CardBackground}"
+                                        BorderBrush="{DynamicResource BorderLight}"
+                                        BorderThickness="1"
+                                        CornerRadius="{DynamicResource BorderCornerRadius}"
+                                        MinWidth="{Binding ActualWidth, ElementName=MainBorder}"
+                                        MaxHeight="200">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="Black" Direction="270" BlurRadius="8" ShadowDepth="2" Opacity="0.3"/>
+                                    </Border.Effect>
+                                    <ScrollViewer x:Name="DropDownScrollViewer"
+                                                VerticalScrollBarVisibility="Auto"
+                                                HorizontalScrollBarVisibility="Disabled">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                <Setter TargetName="MainBorder" Property="Background" Value="{DynamicResource CardBackground}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                <Setter TargetName="MainBorder" Property="Background" Value="{DynamicResource CardBackground}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="MainBorder" Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextDisabled}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+                        <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                        <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Setter.Value>
+            </Setter>
         </Style>
     </UserControl.Resources>
 
@@ -125,31 +262,29 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Back Button -->
-                <Button Grid.Column="0" 
-                       Command="{Binding BackToReportsHubCommand}"
-                       Style="{StaticResource SecondaryButtonStyle}"
-                       Width="44"
-                       Height="44"
-                       Padding="0"
-                       Margin="0,0,15,0"
-                       ToolTip="Back to Reports Hub">
-                    <TextBlock Text="←" 
-                              FontSize="20" 
-                              FontWeight="Bold"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"/>
-                </Button>
+                <!-- Back Button and Title -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Back Button - CircularBackButton Control -->
+                    <controls:CircularBackButton 
+                        Command="{Binding BackToReportsHubCommand}"
+                        ButtonSize="30"
+                        ButtonBackground="{DynamicResource SurfaceBackground}"
+                        ButtonForeground="{DynamicResource TextSecondary}"
+                        ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                        ButtonHoverForeground="{DynamicResource TextSecondary}"
+                        Margin="0,0,15,0"/>
 
-                <StackPanel Grid.Column="1">
-                    <TextBlock Text="Inventory Report" 
-                              FontSize="28" 
-                              FontWeight="Bold"
-                              Foreground="{DynamicResource TextPrimary}"/>
-                    <TextBlock Text="Monitor stock levels, track inventory movements, and analyze stock valuation" 
-                              FontSize="13" 
-                              Foreground="#666666"
-                              Margin="0,4,0,0"/>
+                    <StackPanel>
+                        <TextBlock Text="Inventory Report" 
+                                  FontSize="{DynamicResource FontSizeLarge}" 
+                                  FontWeight="Bold"
+                                  FontFamily="{DynamicResource PoppinsFontFallback}"
+                                  Foreground="{DynamicResource TextPrimary}"/>
+                        <TextBlock Text="Monitor stock levels, track inventory movements, and analyze stock valuation" 
+                                  FontSize="{DynamicResource FontSizeSmall}" 
+                                  Foreground="{DynamicResource TextSecondary}"
+                                  Margin="0,4,0,0"/>
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- Export Buttons -->
@@ -210,13 +345,13 @@
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="150"/>
-                            <ColumnDefinition Width="200"/>
-                            <ColumnDefinition Width="20"/>
-                            <ColumnDefinition Width="200"/>
-                            <ColumnDefinition Width="20"/>
-                            <ColumnDefinition Width="200"/>
-                            <ColumnDefinition Width="20"/>
-                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="160"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
@@ -229,14 +364,16 @@
                                   Foreground="{DynamicResource TextPrimary}"/>
 
                         <!-- Start Date -->
-                        <DatePicker Grid.Column="1"
-                                   SelectedDate="{Binding FilterStartDate}"
-                                   Style="{StaticResource InputStyle}"/>
+                        <controls:CustomDatePicker Grid.Column="1"
+                                                  SelectedDate="{Binding FilterStartDate, Mode=TwoWay}"
+                                                  Placeholder="Start Date"
+                                                  ToolTip="Start Date"/>
 
                         <!-- End Date -->
-                        <DatePicker Grid.Column="3"
-                                   SelectedDate="{Binding FilterEndDate}"
-                                   Style="{StaticResource InputStyle}"/>
+                        <controls:CustomDatePicker Grid.Column="3"
+                                                  SelectedDate="{Binding FilterEndDate, Mode=TwoWay}"
+                                                  Placeholder="End Date"
+                                                  ToolTip="End Date"/>
 
                         <!-- Product Filter -->
                         <ComboBox Grid.Column="5"
@@ -244,7 +381,8 @@
                                  SelectedValue="{Binding SelectedProductId}"
                                  SelectedValuePath="Id"
                                  DisplayMemberPath="Name"
-                                 Style="{StaticResource InputStyle}"/>
+                                 Style="{StaticResource FormComboBoxStyle}"
+                                 ToolTip="Select Product"/>
 
                         <!-- Category Filter -->
                         <ComboBox Grid.Column="7"
@@ -252,17 +390,22 @@
                                  SelectedValue="{Binding SelectedCategoryId}"
                                  SelectedValuePath="Id"
                                  DisplayMemberPath="Name"
-                                 Style="{StaticResource InputStyle}"/>
+                                 Style="{StaticResource FormComboBoxStyle}"
+                                 ToolTip="Select Category"/>
 
                         <!-- Action Buttons -->
                         <StackPanel Grid.Column="9" Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Content="Clear" 
                                    Command="{Binding ClearFiltersCommand}"
                                    Style="{StaticResource SecondaryButtonStyle}"
+                                   Height="38"
+                                   Padding="16,8"
                                    Margin="0,0,10,0"/>
                             <Button Content="Load Report" 
                                    Command="{Binding LoadReportDataCommand}"
-                                   Style="{StaticResource FilterButtonStyle}"/>
+                                   Style="{StaticResource ActionButtonStyle}"
+                                   Height="38"
+                                   Padding="16,8"/>
                         </StackPanel>
                     </Grid>
                 </Grid>
@@ -285,11 +428,11 @@
                     <StackPanel>
                         <TextBlock Text="Total Stock Value" 
                                   FontSize="12" 
-                                  Foreground="#666666"/>
+                                  Foreground="{DynamicResource TextSecondary}"/>
                         <TextBlock Text="{Binding TotalStockValue, StringFormat='{}{0:C}'}" 
                                   FontSize="24" 
                                   FontWeight="Bold" 
-                                  Foreground="#4CAF50"
+                                  Foreground="{DynamicResource Success}"
                                   Margin="0,4,0,0"/>
                     </StackPanel>
                 </Border>
@@ -299,11 +442,11 @@
                     <StackPanel>
                         <TextBlock Text="Total Products" 
                                   FontSize="12" 
-                                  Foreground="#666666"/>
+                                  Foreground="{DynamicResource TextSecondary}"/>
                         <TextBlock Text="{Binding TotalProducts}" 
                                   FontSize="24" 
                                   FontWeight="Bold" 
-                                  Foreground="#2196F3"
+                                  Foreground="{DynamicResource Info}"
                                   Margin="0,4,0,0"/>
                     </StackPanel>
                 </Border>
@@ -313,11 +456,11 @@
                     <StackPanel>
                         <TextBlock Text="Low Stock Items" 
                                   FontSize="12" 
-                                  Foreground="#666666"/>
+                                  Foreground="{DynamicResource TextSecondary}"/>
                         <TextBlock Text="{Binding LowStockItems}" 
                                   FontSize="24" 
                                   FontWeight="Bold" 
-                                  Foreground="#FF9800"
+                                  Foreground="{DynamicResource Warning}"
                                   Margin="0,4,0,0"/>
                     </StackPanel>
                 </Border>
@@ -327,17 +470,17 @@
                     <StackPanel>
                         <TextBlock Text="In/Out Movement" 
                                   FontSize="12" 
-                                  Foreground="#666666"/>
+                                  Foreground="{DynamicResource TextSecondary}"/>
                         <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                             <TextBlock Text="{Binding TotalInwardQty, StringFormat='↑{0:N0}'}" 
                                       FontSize="16" 
                                       FontWeight="SemiBold" 
-                                      Foreground="#4CAF50"
+                                      Foreground="{DynamicResource Success}"
                                       Margin="0,0,10,0"/>
                             <TextBlock Text="{Binding TotalOutwardQty, StringFormat='↓{0:N0}'}" 
                                       FontSize="16" 
                                       FontWeight="SemiBold" 
-                                      Foreground="#F44336"/>
+                                      Foreground="{DynamicResource Error}"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -348,11 +491,14 @@
                 <Grid>
                     <!-- Loading Overlay -->
                     <Grid Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"
-                         Background="#F0FFFFFF"
+                         Background="{DynamicResource OverlayBackground}"
+                         Opacity="0.9"
                          Panel.ZIndex="1000">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <ProgressBar IsIndeterminate="True" Width="200" Height="4" Margin="0,0,0,10"/>
-                            <TextBlock Text="Loading report..." FontSize="13" Foreground="#666666"/>
+                            <TextBlock Text="Loading report..." 
+                                      FontSize="{DynamicResource FontSizeSmall}" 
+                                      Foreground="{DynamicResource TextPrimary}"/>
                         </StackPanel>
                     </Grid>
 

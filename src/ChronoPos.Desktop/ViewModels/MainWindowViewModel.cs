@@ -14,6 +14,7 @@ using ChronoPos.Application.Logging;
 using System.Collections.ObjectModel;
 using ChronoPos.Domain.Entities;
 using ChronoPos.Domain.Interfaces;
+using InfrastructureServices = ChronoPos.Infrastructure.Services;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -850,6 +851,9 @@ public partial class MainWindowViewModel : ObservableObject
                 _productBarcodeRepository,
                 _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
                 _serviceProvider.GetRequiredService<IServiceChargeOptionService>(),
+                _serviceProvider.GetRequiredService<ICompanySettingsService>(),
+                _serviceProvider.GetRequiredService<InfrastructureServices.IDatabaseLocalizationService>(),
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
                 navigateToTransactionList: async () => await ShowTransaction(),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
                 navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId)
@@ -902,6 +906,9 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ICustomerService>(),
                 _serviceProvider.GetRequiredService<ICurrentUserService>(),
                 _activeCurrencyService,
+                _serviceProvider.GetRequiredService<IProductService>(),
+                _databaseLocalizationService,
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
                 navigateToEditTransaction: async (transactionId) => await LoadTransactionForEdit(transactionId),
                 navigateToPayBill: async (transactionId) => await LoadTransactionForPayment(transactionId),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
@@ -976,6 +983,9 @@ public partial class MainWindowViewModel : ObservableObject
                 _productBarcodeRepository,
                 _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
                 _serviceProvider.GetRequiredService<IServiceChargeOptionService>(),
+                _serviceProvider.GetRequiredService<ICompanySettingsService>(),
+                _serviceProvider.GetRequiredService<InfrastructureServices.IDatabaseLocalizationService>(),
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
                 navigateToTransactionList: async () => await ShowTransaction(),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
                 navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId)
@@ -1035,6 +1045,9 @@ public partial class MainWindowViewModel : ObservableObject
                 _productBarcodeRepository,
                 _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
                 _serviceProvider.GetRequiredService<IServiceChargeOptionService>(),
+                _serviceProvider.GetRequiredService<ICompanySettingsService>(),
+                _serviceProvider.GetRequiredService<InfrastructureServices.IDatabaseLocalizationService>(),
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
                 navigateToTransactionList: async () => await ShowTransaction(),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
                 navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId)
@@ -1103,6 +1116,9 @@ public partial class MainWindowViewModel : ObservableObject
                 _productBarcodeRepository,
                 _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
                 _serviceProvider.GetRequiredService<IServiceChargeOptionService>(),
+                _serviceProvider.GetRequiredService<ICompanySettingsService>(),
+                _serviceProvider.GetRequiredService<InfrastructureServices.IDatabaseLocalizationService>(),
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
                 navigateToTransactionList: async () => await ShowTransaction(),
                 navigateToRefundTransaction: async (transactionId) => await LoadTransactionForRefund(transactionId),
                 navigateToExchangeTransaction: async (transactionId) => await LoadTransactionForExchange(transactionId)

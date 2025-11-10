@@ -1,7 +1,6 @@
 using ChronoPos.Desktop.ViewModels;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 
 namespace ChronoPos.Desktop.Views;
 
@@ -21,15 +20,5 @@ public partial class CustomerReportView : UserControl
             _viewModel = viewModel;
             await viewModel.InitializeAsync();
         }
-    }
-
-    private void ExportButton_Click(object sender, RoutedEventArgs e)
-    {
-        ExportPopup.IsOpen = !ExportPopup.IsOpen;
-    }
-
-    private void ExportMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        ExportPopup.IsOpen = false;
     }
 }

@@ -220,7 +220,7 @@
             
             <!-- Title -->
             <TextBlock Grid.Column="0" 
-                      Text="Add Sales" 
+                      Text="{Binding AddSalesHeaderLabel}" 
                       FontSize="{DynamicResource FontSizeLarge}" 
                       FontWeight="Bold"
                       Foreground="{DynamicResource TextPrimary}"
@@ -228,7 +228,7 @@
             
             <!-- Barcode Scanner -->
             <StackPanel Grid.Column="2" Width="280">
-                <TextBlock Text="Scan Barcode" 
+                <TextBlock Text="{Binding ScanBarcodeLabel}" 
                           FontSize="11" 
                           Foreground="{DynamicResource TextSecondary}"
                           Margin="0,0,0,4"/>
@@ -282,12 +282,12 @@
             <!-- Customer Dropdown -->
             <StackPanel Grid.Column="4" Width="220">
                 <Grid Margin="0,0,0,4">
-                    <TextBlock Text="Customer" 
+                    <TextBlock Text="{Binding CustomerLabel}" 
                               FontSize="11" 
                               Foreground="{DynamicResource TextSecondary}"
                               HorizontalAlignment="Left"
                               VerticalAlignment="Center"/>
-                    <Button Content="+ Create" 
+                    <Button Content="{Binding CreateButtonLabel}" 
                            FontSize="10"
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource Primary}"
@@ -309,7 +309,7 @@
             
             <!-- Phone Number -->
             <StackPanel Grid.Column="6" Width="180">
-                <TextBlock Text="Phone Number" 
+                <TextBlock Text="{Binding PhoneNumberLabel}" 
                           FontSize="11" 
                           Foreground="{DynamicResource TextSecondary}"
                           Margin="0,0,0,4"/>
@@ -343,7 +343,7 @@
                 <!-- Categories Section -->
                 <Border Grid.Row="0" Style="{StaticResource SectionBorderStyle}">
                     <StackPanel>
-                        <TextBlock Text="Categories" 
+                        <TextBlock Text="{Binding CategoriesHeaderLabel}" 
                                   FontSize="13" 
                                   FontWeight="SemiBold"
                                   Foreground="{DynamicResource TextPrimary}"
@@ -377,7 +377,8 @@
                                                           Text="{Binding Icon}" 
                                                           FontSize="32"
                                                           HorizontalAlignment="Center"
-                                                          VerticalAlignment="Center"/>
+                                                          VerticalAlignment="Center"
+                                                          Foreground="{DynamicResource TextPrimary}"/>
 
                                                 <!-- Category Name -->
                                                 <TextBlock Grid.Row="1" 
@@ -735,7 +736,7 @@
                                 
                                 <!-- Location Dropdown -->
                                 <StackPanel Grid.Column="0">
-                                    <TextBlock Text="Location" 
+                                    <TextBlock Text="{Binding LocationLabel}" 
                                               FontSize="11" 
                                               Foreground="{DynamicResource TextSecondary}"
                                               Margin="0,0,0,6"/>
@@ -748,7 +749,7 @@
                                 
                                 <!-- Table Dropdown -->
                                 <StackPanel Grid.Column="2">
-                                    <TextBlock Text="Table" 
+                                    <TextBlock Text="{Binding TableLabel}" 
                                               FontSize="11" 
                                               Foreground="{DynamicResource TextSecondary}"
                                               Margin="0,0,0,6"/>
@@ -763,7 +764,7 @@
 
                         <!-- Reservation Mode -->
                         <StackPanel Visibility="{Binding IsTableSelectionMode, Converter={StaticResource InverseBoolToVisibilityConverter}}">
-                            <TextBlock Text="Reservation" 
+                            <TextBlock Text="{Binding ReservationLabel}" 
                                       FontSize="11" 
                                       Foreground="{DynamicResource TextSecondary}"
                                       Margin="0,0,0,6"/>
@@ -785,7 +786,7 @@
                         </Grid.RowDefinitions>
                         
                         <TextBlock Grid.Row="0"
-                                  Text="Cart Items" 
+                                  Text="{Binding CartHeaderLabel}" 
                                   FontSize="13" 
                                   FontWeight="SemiBold"
                                   Foreground="{DynamicResource TextPrimary}"
@@ -895,7 +896,7 @@
 
                                                     <!-- Quantity (editable TextBox styled minimally) -->
                                                     <StackPanel Grid.Column="0" Orientation="Horizontal">
-                                                        <TextBlock Text="Qty: " 
+                                                        <TextBlock Text="{Binding DataContext.QtyLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                                   FontSize="11" 
                                                                   Foreground="{DynamicResource TextSecondary}"
                                                                   VerticalAlignment="Center"
@@ -916,15 +917,41 @@
                                                                 IsReadOnly="{Binding DataContext.IsRefundMode, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                                     </StackPanel>
 
-                                                    <!-- Unit Price -->
-                                                    <TextBlock Grid.Column="1" 
-                                                              FontSize="11" 
-                                                              Foreground="{DynamicResource TextSecondary}"
-                                                              HorizontalAlignment="Center"
-                                                              VerticalAlignment="Center">
-                                                        <Run Text=" × $"/>
-                                                        <Run Text="{Binding UnitPrice, StringFormat=N2}"/>
-                                                    </TextBlock>
+                                                    <!-- Unit Price (editable) -->
+                                                    <StackPanel Grid.Column="1" 
+                                                               Orientation="Horizontal"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center">
+                                                        <TextBlock Text=" × $" 
+                                                                  FontSize="11" 
+                                                                  Foreground="{DynamicResource TextSecondary}"
+                                                                  VerticalAlignment="Center"/>
+                                                        <TextBox Text="{Binding UnitPrice, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}" 
+                                                                FontSize="11" 
+                                                                FontWeight="SemiBold"
+                                                                Background="Transparent"
+                                                                BorderBrush="{DynamicResource BorderLight}"
+                                                                BorderThickness="0,0,0,1"
+                                                                MinWidth="45"
+                                                                MaxWidth="65"
+                                                                Padding="2"
+                                                                VerticalAlignment="Center"
+                                                                HorizontalContentAlignment="Center"
+                                                                ToolTip="Edit price"
+                                                                IsReadOnly="{Binding DataContext.IsRefundMode, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                                            <TextBox.Style>
+                                                                <Style TargetType="TextBox">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsPriceModified}" Value="True">
+                                                                            <Setter Property="Foreground" Value="#FF6B35"/>
+                                                                            <Setter Property="FontWeight" Value="Bold"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBox.Style>
+                                                        </TextBox>
+                                                    </StackPanel>
 
                                                     <!-- Total Price -->
                                                     <TextBlock Grid.Column="2" 
@@ -993,7 +1020,7 @@
                     <StackPanel>
                         <!-- Subtotal -->
                         <Grid Margin="0,0,0,6">
-                            <TextBlock Text="Subtotal" 
+                            <TextBlock Text="{Binding SubtotalLabel}" 
                                       FontSize="13" 
                                       Foreground="{DynamicResource TextSecondary}"/>
                             <TextBlock Text="{Binding Subtotal, Converter={StaticResource CurrencyPriceConverter}}" 
@@ -1005,7 +1032,7 @@
                         <!-- Discount (with + button) -->
                         <Grid Margin="0,0,0,6">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Discount" 
+                                <TextBlock Text="{Binding DiscountLabel}" 
                                           FontSize="13" 
                                           Foreground="#D32F2F"
                                           VerticalAlignment="Center"/>
@@ -1053,7 +1080,7 @@
                         <!-- Service Charge (with + button) -->
                         <Grid Margin="0,0,0,6">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Service Charge" 
+                                <TextBlock Text="{Binding ServiceChargeLabel}" 
                                           FontSize="13" 
                                           Foreground="{DynamicResource TextSecondary}"
                                           VerticalAlignment="Center"/>
@@ -1104,7 +1131,8 @@
                                 <TextBlock FontSize="13" 
                                           Foreground="{DynamicResource TextSecondary}"
                                           VerticalAlignment="Center">
-                                    <Run Text="Tax ("/>
+                                    <Run Text="{Binding TaxLabel}"/>
+                                    <Run Text=" ("/>
                                     <Run Text="{Binding TaxPercentage, StringFormat='{}{0}%'}"/>
                                     <Run Text=")"/>
                                 </TextBlock>
@@ -1156,7 +1184,7 @@
 
                         <!-- Total -->
                         <Grid>
-                            <TextBlock Text="Total" 
+                            <TextBlock Text="{Binding TotalLabel}" 
                                       FontSize="15" 
                                       FontWeight="Bold"
                                       Foreground="{DynamicResource TextPrimary}"/>

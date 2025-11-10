@@ -77,17 +77,20 @@
         <Setter Property="HorizontalAlignment" Value="Right"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="TextWrapping" Value="NoWrap"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
     </Style>
 
     <!-- Text Column Cell Style -->
     <Style x:Key="ReportTextCellStyle" TargetType="TextBlock">
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
     </Style>
 
     <!-- Bold Text Column Cell Style -->
     <Style x:Key="ReportBoldTextCellStyle" TargetType="TextBlock" BasedOn="{StaticResource ReportTextCellStyle}">
         <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
     </Style>
 
 </ResourceDictionary>

@@ -82,7 +82,7 @@
                             VerticalAlignment="Center"
                             Width="32"
                             Height="32"
-                            Style="{StaticResource IconButtonStyle}"
+                            Style="{DynamicResource IconButtonStyle}"
                             Click="CloseButton_Click">
                         <TextBlock Text="✕" 
                                    FontSize="18" 
@@ -1156,7 +1156,7 @@
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                         <Button Content="← Back"
                                 Command="{Binding GoBackCommand}"
-                                Style="{StaticResource SecondaryButtonStyle}"
+                                Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="24,12"
                                 FontSize="14"
                                 Visibility="{Binding CurrentStep, Converter={StaticResource StepGtZeroConverter}}"/>
@@ -1166,7 +1166,7 @@
                         <!-- Step 1 Next Button -->
                         <Button Content="Next →"
                                 Command="{Binding ProcessScratchCardCommand}"
-                                Style="{StaticResource ProfessionalButtonStyle}"
+                                Style="{DynamicResource ProfessionalButtonStyle}"
                                 Padding="32,12"
                                 FontSize="14"
                                 Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=1}"/>
@@ -1174,7 +1174,7 @@
                         <!-- Step 2 Confirm Button -->
                         <Button Content="Confirm →"
                                 Command="{Binding ConfirmSalespersonCommand}"
-                                Style="{StaticResource ProfessionalButtonStyle}"
+                                Style="{DynamicResource ProfessionalButtonStyle}"
                                 Padding="36,12"
                                 FontSize="14"
                                 Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=2}"/>
@@ -1182,7 +1182,7 @@
                         <!-- Step 3 Generate Sales Key Button -->
                         <Button Content="Generate Sales Key →"
                                 Command="{Binding GenerateSalesKeyCommand}"
-                                Style="{StaticResource ProfessionalButtonStyle}"
+                                Style="{DynamicResource ProfessionalButtonStyle}"
                                 Padding="40,12"
                                 FontSize="14"
                                 Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=3}"/>
@@ -1190,7 +1190,7 @@
                         <!-- Step 4 Continue Button -->
                         <Button Content="Continue to License →"
                                 Command="{Binding ProceedToLicenseActivationCommand}"
-                                Style="{StaticResource ProfessionalButtonStyle}"
+                                Style="{DynamicResource ProfessionalButtonStyle}"
                                 Padding="40,12"
                                 FontSize="14"
                                 Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=4}"/>
@@ -1198,7 +1198,7 @@
                         <!-- Step 5 Activate Button -->
                         <Button Content="Activate License →"
                                 Command="{Binding ActivateLicenseCommand}"
-                                Style="{StaticResource SuccessButtonStyle}"
+                                Style="{DynamicResource SuccessButtonStyle}"
                                 Padding="40,12"
                                 FontSize="14"
                                 Visibility="{Binding CurrentStep, Converter={StaticResource StepVisConverter}, ConverterParameter=5}"/>

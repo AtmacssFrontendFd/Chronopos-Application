@@ -77,9 +77,21 @@ public class LanguageSeedingService : ILanguageSeedingService
         var context = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
         var localizationService = scope.ServiceProvider.GetRequiredService<IDatabaseLocalizationService>();
 
-        // Seed all translation categories
-        await SeedNavigationTranslationsAsync(localizationService);
-        await SeedCommonTranslationsAsync(localizationService);
+    // Seed all translation categories
+    await SeedNavigationTranslationsAsync(localizationService);
+    await SeedCommonTranslationsAsync(localizationService);
+    // Dashboard translations extracted to a dedicated seeder for maintainability
+    await ChronoPos.Infrastructure.Services.DashboardTranslationSeeder.SeedDashboardTranslationsAsync(localizationService);
+        // Transaction translations
+        await ChronoPos.Infrastructure.Services.TransactionTranslationSeeder.SeedTransactionTranslationsAsync(localizationService);
+        // Add Sales translations
+        await ChronoPos.Infrastructure.Services.AddSalesTranslationSeeder.SeedAddSalesTranslationsAsync(localizationService);
+        // Refund Dialog translations
+        await ChronoPos.Infrastructure.Services.RefundDialogTranslationSeeder.SeedRefundDialogTranslationsAsync(localizationService);
+        // Product Selection Dialog translations
+        await ChronoPos.Infrastructure.Services.ProductSelectionDialogTranslationSeeder.SeedProductSelectionDialogTranslationsAsync(localizationService);
+        // Reports Hub translations
+        await ChronoPos.Infrastructure.Services.ReportsHubTranslationSeeder.SeedReportsHubTranslationsAsync(localizationService);
         await SeedAddProductTranslationsAsync(localizationService);
         await SeedAddGrnTranslationsAsync(localizationService);
         await SeedProductManagementTranslationsAsync(localizationService);
@@ -326,6 +338,8 @@ public class LanguageSeedingService : ILanguageSeedingService
 
         await SeedTranslationCategory("Common", commonTranslations, localizationService);
     }
+
+    // Dashboard translations have been moved to DashboardTranslationSeeder.cs
 
     private async Task SeedAddProductTranslationsAsync(IDatabaseLocalizationService localizationService)
     {
