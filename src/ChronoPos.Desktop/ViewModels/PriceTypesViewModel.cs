@@ -109,6 +109,70 @@ public partial class PriceTypesViewModel : ObservableObject
     [ObservableProperty]
     private PriceTypeSidePanelViewModel? _sidePanelViewModel;
 
+    // Localized properties
+    [ObservableProperty]
+    private string _pageTitle = "Price Types";
+
+    [ObservableProperty]
+    private string _searchPlaceholder = "Search price types...";
+
+    [ObservableProperty]
+    private string _addButtonText = "Add Price Type";
+
+    [ObservableProperty]
+    private string _refreshButtonText = "Refresh";
+
+    [ObservableProperty]
+    private string _importButtonText = "Import";
+
+    [ObservableProperty]
+    private string _exportButtonText = "Export";
+
+    [ObservableProperty]
+    private string _editButtonText = "Edit";
+
+    [ObservableProperty]
+    private string _deleteButtonText = "Delete";
+
+    [ObservableProperty]
+    private string _clearFiltersText = "Clear Filters";
+
+    [ObservableProperty]
+    private string _activeOnlyText = "Active Only";
+
+    [ObservableProperty]
+    private string _showAllText = "Show All";
+
+    [ObservableProperty]
+    private string _columnActions = "Actions";
+
+    [ObservableProperty]
+    private string _columnActive = "Active";
+
+    [ObservableProperty]
+    private string _columnStatus = "Status";
+
+    [ObservableProperty]
+    private string _columnCreated = "Created";
+
+    [ObservableProperty]
+    private string _columnDescription = "Description";
+
+    [ObservableProperty]
+    private string _columnArabicName = "Arabic Name";
+
+    [ObservableProperty]
+    private string _columnTypeName = "Type Name";
+
+    [ObservableProperty]
+    private string _emptyStateTitle = "No price types found";
+
+    [ObservableProperty]
+    private string _emptyStateMessage = "Click 'Add Price Type' to create your first price type";
+
+    [ObservableProperty]
+    private string _loadingText = "Loading price types...";
+
     #endregion
 
     #region Computed Properties
@@ -206,8 +270,15 @@ public partial class PriceTypesViewModel : ObservableObject
         CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
             ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
 
-        // Load initial data
-        _ = LoadPriceTypesAsync();
+        // Subscribe to language changes
+        _databaseLocalizationService.LanguageChanged += OnLanguageChanged;
+
+        // Load localized texts and initial data
+        _ = Task.Run(async () =>
+        {
+            await LoadLocalizedTextsAsync();
+            await LoadPriceTypesAsync();
+        });
     }
 
     #endregion
@@ -788,6 +859,43 @@ public partial class PriceTypesViewModel : ObservableObject
             CanImportPriceType = false;
             CanExportPriceType = false;
         }
+    }
+
+    private async Task LoadLocalizedTextsAsync()
+    {
+        try
+        {
+            PageTitle = await _databaseLocalizationService.GetTranslationAsync("pricetype.page_title") ?? "Price Types";
+            SearchPlaceholder = await _databaseLocalizationService.GetTranslationAsync("pricetype.search_placeholder") ?? "Search price types...";
+            AddButtonText = await _databaseLocalizationService.GetTranslationAsync("pricetype.add_price_type") ?? "Add Price Type";
+            RefreshButtonText = await _databaseLocalizationService.GetTranslationAsync("common.refresh") ?? "Refresh";
+            ImportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.import") ?? "Import";
+            ExportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.export") ?? "Export";
+            EditButtonText = await _databaseLocalizationService.GetTranslationAsync("common.edit") ?? "Edit";
+            DeleteButtonText = await _databaseLocalizationService.GetTranslationAsync("common.delete") ?? "Delete";
+            ClearFiltersText = await _databaseLocalizationService.GetTranslationAsync("common.clear_filters") ?? "Clear Filters";
+            ActiveOnlyText = await _databaseLocalizationService.GetTranslationAsync("pricetype.active_only") ?? "Active Only";
+            ShowAllText = await _databaseLocalizationService.GetTranslationAsync("pricetype.show_all") ?? "Show All";
+            ColumnActions = await _databaseLocalizationService.GetTranslationAsync("pricetype.column.actions") ?? "Actions";
+            ColumnActive = await _databaseLocalizationService.GetTranslationAsync("pricetype.column.active") ?? "Active";
+            ColumnStatus = await _databaseLocalizationService.GetTranslationAsync("pricetype.column.status") ?? "Status";
+            ColumnCreated = await _databaseLocalizationService.GetTranslationAsync("pricetype.column.created") ?? "Created";
+            ColumnDescription = await _databaseLocalizationService.GetTranslationAsync("pricetype.column.description") ?? "Description";
+            ColumnArabicName = await _databaseLocalizationService.GetTranslationAsync("pricetype.column.arabic_name") ?? "Arabic Name";
+            ColumnTypeName = await _databaseLocalizationService.GetTranslationAsync("pricetype.column.type_name") ?? "Type Name";
+            EmptyStateTitle = await _databaseLocalizationService.GetTranslationAsync("pricetype.empty_state_title") ?? "No price types found";
+            EmptyStateMessage = await _databaseLocalizationService.GetTranslationAsync("pricetype.empty_state_message") ?? "Click 'Add Price Type' to create your first price type";
+            LoadingText = await _databaseLocalizationService.GetTranslationAsync("pricetype.loading") ?? "Loading price types...";
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading localized texts: {ex.Message}");
+        }
+    }
+
+    private async void OnLanguageChanged(object? sender, string languageCode)
+    {
+        await LoadLocalizedTextsAsync();
     }
 
     #endregion

@@ -4,6 +4,7 @@ using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Constants;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Infrastructure.Services;
 using ChronoPos.Desktop.ViewModels;
 using ChronoPos.Desktop.Views;
 using ChronoPos.Desktop.Views.Dialogs;
@@ -12,6 +13,7 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using Microsoft.Win32;
+using DesktopFileLogger = ChronoPos.Desktop.Services.FileLogger;
 
 namespace ChronoPos.Desktop.ViewModels
 {
@@ -19,6 +21,7 @@ namespace ChronoPos.Desktop.ViewModels
     {
         private readonly IProductAttributeService _attributeService;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IDatabaseLocalizationService _localizationService;
         private readonly Action? _navigateBack;
 
         [ObservableProperty]
@@ -66,6 +69,67 @@ namespace ChronoPos.Desktop.ViewModels
         [ObservableProperty]
         private bool canExportProductAttribute = false;
 
+        // Localized properties
+        [ObservableProperty]
+        private string _pageTitle = "Product Attributes";
+
+        [ObservableProperty]
+        private string _searchPlaceholder = "Search attributes...";
+
+        [ObservableProperty]
+        private string _addButtonText = "Add Attribute";
+
+        [ObservableProperty]
+        private string _refreshButtonText = "Refresh";
+
+        [ObservableProperty]
+        private string _importButtonText = "Import";
+
+        [ObservableProperty]
+        private string _exportButtonText = "Export";
+
+        [ObservableProperty]
+        private string _editButtonText = "Edit";
+
+        [ObservableProperty]
+        private string _deleteButtonText = "Delete";
+
+        [ObservableProperty]
+        private string _clearFiltersText = "Clear Filters";
+
+        [ObservableProperty]
+        private string _activeOnlyText = "Active Only";
+
+        [ObservableProperty]
+        private string _showAllText = "Show All";
+
+        [ObservableProperty]
+        private string _columnAttribute = "Attribute";
+
+        [ObservableProperty]
+        private string _columnValue = "Value";
+
+        [ObservableProperty]
+        private string _columnDescription = "Description";
+
+        [ObservableProperty]
+        private string _columnStatus = "Status";
+
+        [ObservableProperty]
+        private string _columnActions = "Actions";
+
+        [ObservableProperty]
+        private string _emptyStateTitle = "No Attributes Found";
+
+        [ObservableProperty]
+        private string _emptyStateMessage = "Start by adding a new attribute.";
+
+        [ObservableProperty]
+        private string _activeText = "Active";
+
+        [ObservableProperty]
+        private string _inactiveText = "Inactive";
+
         public string AttributeCountText 
         { 
             get 
@@ -73,12 +137,12 @@ namespace ChronoPos.Desktop.ViewModels
                 try
                 {
                     var result = $"{FilteredAttributeValues.Count} of {AttributeValues.Count} attribute values";
-                    ChronoPos.Desktop.Services.FileLogger.Log($"🔄 AttributeCountText accessed: '{result}'");
+                    DesktopFileLogger.Log($"🔄 AttributeCountText accessed: '{result}'");
                     return result;
                 }
                 catch (Exception ex)
                 {
-                    ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error in AttributeCountText: {ex.Message}");
+                    DesktopFileLogger.Log($"❌ Error in AttributeCountText: {ex.Message}");
                     return "Error loading count";
                 }
             }
@@ -91,12 +155,12 @@ namespace ChronoPos.Desktop.ViewModels
                 try
                 {
                     var result = !string.IsNullOrWhiteSpace(SearchText);
-                    ChronoPos.Desktop.Services.FileLogger.Log($"🔄 HasSearchText accessed: {result}");
+                    DesktopFileLogger.Log($"🔄 HasSearchText accessed: {result}");
                     return result;
                 }
                 catch (Exception ex)
                 {
-                    ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error in HasSearchText: {ex.Message}");
+                    DesktopFileLogger.Log($"❌ Error in HasSearchText: {ex.Message}");
                     return false;
                 }
             }
@@ -109,12 +173,12 @@ namespace ChronoPos.Desktop.ViewModels
                 try
                 {
                     var result = FilteredAttributeValues != null && FilteredAttributeValues.Count > 0;
-                    ChronoPos.Desktop.Services.FileLogger.Log($"🔄 HasAttributeValues accessed: {result} (Count: {FilteredAttributeValues?.Count ?? 0})");
+                    DesktopFileLogger.Log($"🔄 HasAttributeValues accessed: {result} (Count: {FilteredAttributeValues?.Count ?? 0})");
                     return result;
                 }
                 catch (Exception ex)
                 {
-                    ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error in HasAttributeValues: {ex.Message}");
+                    DesktopFileLogger.Log($"❌ Error in HasAttributeValues: {ex.Message}");
                     return false;
                 }
             }
@@ -123,34 +187,43 @@ namespace ChronoPos.Desktop.ViewModels
         public ProductAttributeViewModel(
             IProductAttributeService attributeService, 
             ICurrentUserService currentUserService,
+            IDatabaseLocalizationService localizationService,
             Action? navigateBack = null)
         {
             _attributeService = attributeService ?? throw new ArgumentNullException(nameof(attributeService));
             _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
             _navigateBack = navigateBack;
             
-            ChronoPos.Desktop.Services.FileLogger.Log("🔧 ProductAttributeViewModel constructor started");
+            DesktopFileLogger.Log("🔧 ProductAttributeViewModel constructor started");
 
             InitializePermissions();
             
-            // Initialize like DiscountViewModel - use Task.Run to avoid deadlocks
-            _ = Task.Run(LoadAttributesAsync);
+            // Subscribe to language changes
+            _localizationService.LanguageChanged += OnLanguageChanged;
             
-            ChronoPos.Desktop.Services.FileLogger.Log("🔧 ProductAttributeViewModel constructor completed");
+            // Load localized texts
+            _ = Task.Run(async () =>
+            {
+                await LoadLocalizedTextsAsync();
+                await LoadAttributesAsync();
+            });
+            
+            DesktopFileLogger.Log("🔧 ProductAttributeViewModel constructor completed");
         }
 
         partial void OnSearchTextChanged(string value)
         {
             try
             {
-                ChronoPos.Desktop.Services.FileLogger.Log($"🔄 OnSearchTextChanged: '{value}'");
+                DesktopFileLogger.Log($"🔄 OnSearchTextChanged: '{value}'");
                 FilterAttributes();
-                ChronoPos.Desktop.Services.FileLogger.Log($"✅ OnSearchTextChanged completed");
+                DesktopFileLogger.Log($"✅ OnSearchTextChanged completed");
             }
             catch (Exception ex)
             {
-                ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error in OnSearchTextChanged: {ex.Message}");
-                ChronoPos.Desktop.Services.FileLogger.Log($"❌ OnSearchTextChanged stack trace: {ex.StackTrace}");
+                DesktopFileLogger.Log($"❌ Error in OnSearchTextChanged: {ex.Message}");
+                DesktopFileLogger.Log($"❌ OnSearchTextChanged stack trace: {ex.StackTrace}");
                 throw;
             }
         }
@@ -159,14 +232,14 @@ namespace ChronoPos.Desktop.ViewModels
         {
             try
             {
-                ChronoPos.Desktop.Services.FileLogger.Log($"🔄 OnShowActiveOnlyChanged: {value}");
+                DesktopFileLogger.Log($"🔄 OnShowActiveOnlyChanged: {value}");
                 FilterAttributes();
-                ChronoPos.Desktop.Services.FileLogger.Log($"✅ OnShowActiveOnlyChanged completed");
+                DesktopFileLogger.Log($"✅ OnShowActiveOnlyChanged completed");
             }
             catch (Exception ex)
             {
-                ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error in OnShowActiveOnlyChanged: {ex.Message}");
-                ChronoPos.Desktop.Services.FileLogger.Log($"❌ OnShowActiveOnlyChanged stack trace: {ex.StackTrace}");
+                DesktopFileLogger.Log($"❌ Error in OnShowActiveOnlyChanged: {ex.Message}");
+                DesktopFileLogger.Log($"❌ OnShowActiveOnlyChanged stack trace: {ex.StackTrace}");
                 throw;
             }
         }
@@ -175,7 +248,7 @@ namespace ChronoPos.Desktop.ViewModels
         {
             try
             {
-                ChronoPos.Desktop.Services.FileLogger.Log($"🔍 FilterAttributes started - SearchText: '{SearchText}', ShowActiveOnly: {ShowActiveOnly}");
+                DesktopFileLogger.Log($"🔍 FilterAttributes started - SearchText: '{SearchText}', ShowActiveOnly: {ShowActiveOnly}");
                 
                 var filtered = AttributeValues.AsEnumerable();
 
@@ -204,12 +277,12 @@ namespace ChronoPos.Desktop.ViewModels
 
                 OnPropertyChanged(nameof(AttributeCountText));
                 OnPropertyChanged(nameof(HasAttributeValues));
-                ChronoPos.Desktop.Services.FileLogger.Log($"🔍 FilterAttributes completed - {FilteredAttributeValues.Count} filtered from {AttributeValues.Count} total");
+                DesktopFileLogger.Log($"🔍 FilterAttributes completed - {FilteredAttributeValues.Count} filtered from {AttributeValues.Count} total");
             }
             catch (Exception ex)
             {
-                ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error in FilterAttributes: {ex.Message}");
-                ChronoPos.Desktop.Services.FileLogger.Log($"❌ FilterAttributes stack trace: {ex.StackTrace}");
+                DesktopFileLogger.Log($"❌ Error in FilterAttributes: {ex.Message}");
+                DesktopFileLogger.Log($"❌ FilterAttributes stack trace: {ex.StackTrace}");
             }
         }
 
@@ -217,47 +290,47 @@ namespace ChronoPos.Desktop.ViewModels
         {
             try
             {
-                ChronoPos.Desktop.Services.FileLogger.Log("🔄 LoadAttributesAsync started");
+                DesktopFileLogger.Log("🔄 LoadAttributesAsync started");
                 IsLoading = true;
                 LoadingMessage = "Loading attribute values...";
                 StatusMessage = "Loading...";
 
-                ChronoPos.Desktop.Services.FileLogger.Log("🔄 Calling GetAllAttributeValuesAsync");
+                DesktopFileLogger.Log("🔄 Calling GetAllAttributeValuesAsync");
                 var attributeValues = await _attributeService.GetAllAttributeValuesAsync();
-                ChronoPos.Desktop.Services.FileLogger.Log($"🔄 Retrieved {attributeValues.Count} attribute values from service");
+                DesktopFileLogger.Log($"🔄 Retrieved {attributeValues.Count} attribute values from service");
                 
                 await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                 {
                     try
                     {
-                        ChronoPos.Desktop.Services.FileLogger.Log("🔄 Clearing and populating AttributeValues collection");
+                        DesktopFileLogger.Log("🔄 Clearing and populating AttributeValues collection");
                         AttributeValues.Clear();
                         foreach (var attributeValue in attributeValues)
                         {
                             AttributeValues.Add(attributeValue);
                         }
                         
-                        ChronoPos.Desktop.Services.FileLogger.Log("🔄 Calling FilterAttributes");
+                        DesktopFileLogger.Log("🔄 Calling FilterAttributes");
                         FilterAttributes();
                         OnPropertyChanged(nameof(AttributeCountText));
                         OnPropertyChanged(nameof(HasAttributeValues));
-                        ChronoPos.Desktop.Services.FileLogger.Log("🔄 UI update completed successfully");
+                        DesktopFileLogger.Log("🔄 UI update completed successfully");
                     }
                     catch (Exception dispatcherEx)
                     {
-                        ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error in UI thread: {dispatcherEx.Message}");
-                        ChronoPos.Desktop.Services.FileLogger.Log($"❌ UI thread stack trace: {dispatcherEx.StackTrace}");
+                        DesktopFileLogger.Log($"❌ Error in UI thread: {dispatcherEx.Message}");
+                        DesktopFileLogger.Log($"❌ UI thread stack trace: {dispatcherEx.StackTrace}");
                         // Don't throw from dispatcher - just log
                     }
                 });
 
                 StatusMessage = "Ready";
-                ChronoPos.Desktop.Services.FileLogger.Log($"✅ LoadAttributesAsync completed successfully - {attributeValues.Count} attribute values loaded");
+                DesktopFileLogger.Log($"✅ LoadAttributesAsync completed successfully - {attributeValues.Count} attribute values loaded");
             }
             catch (Exception ex)
             {
-                ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error in LoadAttributesAsync: {ex.Message}");
-                ChronoPos.Desktop.Services.FileLogger.Log($"❌ LoadAttributesAsync stack trace: {ex.StackTrace}");
+                DesktopFileLogger.Log($"❌ Error in LoadAttributesAsync: {ex.Message}");
+                DesktopFileLogger.Log($"❌ LoadAttributesAsync stack trace: {ex.StackTrace}");
                 StatusMessage = $"Error loading attribute values: {ex.Message}";
                 
                 // Safely clear collections on error
@@ -270,17 +343,17 @@ namespace ChronoPos.Desktop.ViewModels
                         OnPropertyChanged(nameof(HasAttributeValues));
                         OnPropertyChanged(nameof(AttributeCountText));
                     });
-                    ChronoPos.Desktop.Services.FileLogger.Log("🔄 Cleared collections after error");
+                    DesktopFileLogger.Log("🔄 Cleared collections after error");
                 }
                 catch (Exception dispatcherEx)
                 {
-                    ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error clearing collections: {dispatcherEx.Message}");
+                    DesktopFileLogger.Log($"❌ Error clearing collections: {dispatcherEx.Message}");
                 }
             }
             finally
             {
                 IsLoading = false;
-                ChronoPos.Desktop.Services.FileLogger.Log("🔄 LoadAttributesAsync finally block - IsLoading set to false");
+                DesktopFileLogger.Log("🔄 LoadAttributesAsync finally block - IsLoading set to false");
             }
         }
 
@@ -290,27 +363,27 @@ namespace ChronoPos.Desktop.ViewModels
             try
             {
                 var sidePanelViewModel = new ProductAttributeSidePanelViewModel(_attributeService);
-                FileLogger.Log("🔧 Subscribing to sidePanelViewModel events");
+                DesktopFileLogger.Log("🔧 Subscribing to sidePanelViewModel events");
                 sidePanelViewModel.AttributeSaved += OnAttributeSaved;
                 sidePanelViewModel.CloseRequested += OnSidePanelCloseRequested;
-                FileLogger.Log("✅ Event subscriptions completed");
+                DesktopFileLogger.Log("✅ Event subscriptions completed");
                 
                 // Create the view and set its DataContext
                 var sidePanelView = new ProductAttributeSidePanelView();
-                FileLogger.Log("🔧 Setting DataContext on sidePanelView");
+                DesktopFileLogger.Log("🔧 Setting DataContext on sidePanelView");
                 sidePanelView.DataContext = sidePanelViewModel;
-                FileLogger.Log($"✅ DataContext set - Type: {sidePanelView.DataContext?.GetType().Name}");
+                DesktopFileLogger.Log($"✅ DataContext set - Type: {sidePanelView.DataContext?.GetType().Name}");
                 
                 SidePanelContent = sidePanelView;
                 IsSidePanelVisible = true;
                 
                 StatusMessage = "Add new product attribute value";
-                ChronoPos.Desktop.Services.FileLogger.Log("📝 Opening add attribute side panel");
+                DesktopFileLogger.Log("📝 Opening add attribute side panel");
             }
             catch (Exception ex)
             {
                 StatusMessage = $"Error opening add form: {ex.Message}";
-                ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error opening add attribute form: {ex.Message}");
+                DesktopFileLogger.Log($"❌ Error opening add attribute form: {ex.Message}");
             }
         }
 
@@ -334,12 +407,12 @@ namespace ChronoPos.Desktop.ViewModels
                 IsSidePanelVisible = true;
                 
                 StatusMessage = $"Edit value: {attributeValue.Value}";
-                ChronoPos.Desktop.Services.FileLogger.Log($"📝 Opening edit attribute value side panel for: {attributeValue.Value}");
+                DesktopFileLogger.Log($"📝 Opening edit attribute value side panel for: {attributeValue.Value}");
             }
             catch (Exception ex)
             {
                 StatusMessage = $"Error opening edit form: {ex.Message}";
-                ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error opening edit attribute value form: {ex.Message}");
+                DesktopFileLogger.Log($"❌ Error opening edit attribute value form: {ex.Message}");
             }
         }
 
@@ -367,7 +440,7 @@ namespace ChronoPos.Desktop.ViewModels
                 await _attributeService.DeleteValueAsync(attributeValue.Id);
                 
                 StatusMessage = $"Deleted value: {attributeValue.Value}";
-                ChronoPos.Desktop.Services.FileLogger.Log($"🗑️ Deleted attribute value: {attributeValue.Value}");
+                DesktopFileLogger.Log($"🗑️ Deleted attribute value: {attributeValue.Value}");
                 
                 await LoadAttributesAsync();
                 
@@ -380,7 +453,7 @@ namespace ChronoPos.Desktop.ViewModels
             catch (Exception ex)
             {
                 StatusMessage = $"Error deleting attribute value: {ex.Message}";
-                ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error deleting attribute value: {ex.Message}");
+                DesktopFileLogger.Log($"❌ Error deleting attribute value: {ex.Message}");
                 
                 var errorDialog = new MessageDialog(
                     "Delete Error",
@@ -412,17 +485,17 @@ namespace ChronoPos.Desktop.ViewModels
         {
             try
             {
-                ChronoPos.Desktop.Services.FileLogger.Log("🔄 RefreshData command started");
+                DesktopFileLogger.Log("🔄 RefreshData command started");
                 IsLoading = true;
                 StatusMessage = "Refreshing attribute values data...";
                 
                 await LoadAttributesAsync();
                 
-                ChronoPos.Desktop.Services.FileLogger.Log("✅ RefreshData command completed");
+                DesktopFileLogger.Log("✅ RefreshData command completed");
             }
             catch (Exception ex)
             {
-                ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error in RefreshData: {ex.Message}");
+                DesktopFileLogger.Log($"❌ Error in RefreshData: {ex.Message}");
                 StatusMessage = $"Error refreshing data: {ex.Message}";
             }
         }
@@ -432,22 +505,22 @@ namespace ChronoPos.Desktop.ViewModels
         {
             try
             {
-                FileLogger.Log("🔄 Back button clicked - attempting to navigate back");
+                DesktopFileLogger.Log("🔄 Back button clicked - attempting to navigate back");
                 
                 if (_navigateBack != null)
                 {
                     _navigateBack.Invoke();
-                    FileLogger.Log("✅ Navigation back completed successfully");
+                    DesktopFileLogger.Log("✅ Navigation back completed successfully");
                 }
                 else
                 {
                     StatusMessage = "Navigation back not configured.";
-                    FileLogger.Log("⚠️ Navigation back not configured");
+                    DesktopFileLogger.Log("⚠️ Navigation back not configured");
                 }
             }
             catch (Exception ex)
             {
-                FileLogger.Log($"❌ Error in Back command: {ex.Message}");
+                DesktopFileLogger.Log($"❌ Error in Back command: {ex.Message}");
                 StatusMessage = $"Error navigating back: {ex.Message}";
             }
         }
@@ -458,12 +531,12 @@ namespace ChronoPos.Desktop.ViewModels
             {
                 await LoadAttributesAsync();
                 StatusMessage = "Attribute value saved successfully";
-                ChronoPos.Desktop.Services.FileLogger.Log("✅ Attribute saved event handled successfully");
+                DesktopFileLogger.Log("✅ Attribute saved event handled successfully");
             }
             catch (Exception ex)
             {
                 StatusMessage = $"Error refreshing after save: {ex.Message}";
-                ChronoPos.Desktop.Services.FileLogger.Log($"❌ Error in OnAttributeSaved: {ex.Message}");
+                DesktopFileLogger.Log($"❌ Error in OnAttributeSaved: {ex.Message}");
             }
         }
 
@@ -471,7 +544,7 @@ namespace ChronoPos.Desktop.ViewModels
         {
             try
             {
-                FileLogger.Log("🔄 Side panel close requested - starting close process");
+                DesktopFileLogger.Log("🔄 Side panel close requested - starting close process");
                 
                 // Ensure we're on UI thread
                 System.Windows.Application.Current.Dispatcher.Invoke(() =>
@@ -481,12 +554,12 @@ namespace ChronoPos.Desktop.ViewModels
                     StatusMessage = "Ready";
                 });
                 
-                FileLogger.Log("✅ Side panel closed successfully");
+                DesktopFileLogger.Log("✅ Side panel closed successfully");
             }
             catch (Exception ex)
             {
-                FileLogger.Log($"❌ Error closing side panel: {ex.Message}");
-                FileLogger.Log($"❌ Stack trace: {ex.StackTrace}");
+                DesktopFileLogger.Log($"❌ Error closing side panel: {ex.Message}");
+                DesktopFileLogger.Log($"❌ Stack trace: {ex.StackTrace}");
                 
                 // Force close even if there's an error
                 try
@@ -500,7 +573,7 @@ namespace ChronoPos.Desktop.ViewModels
                 }
                 catch (Exception innerEx)
                 {
-                    FileLogger.Log($"❌ Error in fallback close operation: {innerEx.Message}");
+                    DesktopFileLogger.Log($"❌ Error in fallback close operation: {innerEx.Message}");
                 }
             }
         }
@@ -840,6 +913,44 @@ namespace ChronoPos.Desktop.ViewModels
                 CanImportProductAttribute = false;
                 CanExportProductAttribute = false;
             }
+        }
+
+        private async Task LoadLocalizedTextsAsync()
+        {
+            try
+            {
+                PageTitle = await _localizationService.GetTranslationAsync("productattribute.page_title") ?? "Product Attributes";
+                SearchPlaceholder = await _localizationService.GetTranslationAsync("productattribute.search_placeholder") ?? "Search attributes...";
+                AddButtonText = await _localizationService.GetTranslationAsync("common.add") ?? "Add";
+                RefreshButtonText = await _localizationService.GetTranslationAsync("common.refresh") ?? "Refresh";
+                ImportButtonText = await _localizationService.GetTranslationAsync("common.import") ?? "Import";
+                ExportButtonText = await _localizationService.GetTranslationAsync("common.export") ?? "Export";
+                EditButtonText = await _localizationService.GetTranslationAsync("common.edit") ?? "Edit";
+                DeleteButtonText = await _localizationService.GetTranslationAsync("common.delete") ?? "Delete";
+                ClearFiltersText = await _localizationService.GetTranslationAsync("common.clear_filters") ?? "Clear Filters";
+                ActiveOnlyText = await _localizationService.GetTranslationAsync("productattribute.active_only") ?? "Active Only";
+                ShowAllText = await _localizationService.GetTranslationAsync("productattribute.show_all") ?? "Show All";
+                ColumnAttribute = await _localizationService.GetTranslationAsync("productattribute.column.attribute") ?? "Attribute";
+                ColumnValue = await _localizationService.GetTranslationAsync("productattribute.column.value") ?? "Value";
+                ColumnDescription = await _localizationService.GetTranslationAsync("productattribute.column.description") ?? "Description";
+                ColumnStatus = await _localizationService.GetTranslationAsync("productattribute.column.status") ?? "Status";
+                ColumnActions = await _localizationService.GetTranslationAsync("productattribute.column.actions") ?? "Actions";
+                EmptyStateTitle = await _localizationService.GetTranslationAsync("productattribute.empty_state_title") ?? "No Attributes Found";
+                EmptyStateMessage = await _localizationService.GetTranslationAsync("productattribute.empty_state_message") ?? "Start by adding a new attribute.";
+                ActiveText = await _localizationService.GetTranslationAsync("common.active") ?? "Active";
+                InactiveText = await _localizationService.GetTranslationAsync("common.inactive") ?? "Inactive";
+
+                OnPropertyChanged(nameof(AttributeCountText));
+            }
+            catch (Exception ex)
+            {
+                DesktopFileLogger.Log($"❌ Error loading localized texts: {ex.Message}");
+            }
+        }
+
+        private async void OnLanguageChanged(object? sender, string languageCode)
+        {
+            await LoadLocalizedTextsAsync();
         }
     }
 }

@@ -114,6 +114,39 @@ public partial class UomViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _itemsCountText = "units";
 
+    [ObservableProperty]
+    private string _importButtonText = "Import";
+
+    [ObservableProperty]
+    private string _exportButtonText = "Export";
+
+    [ObservableProperty]
+    private string _loadingMessage = "Loading units of measurement...";
+
+    [ObservableProperty]
+    private string _noDataMessage = "No units of measurement found";
+
+    [ObservableProperty]
+    private string _noDataHint = "Click 'Add UOM' to create your first unit of measurement";
+
+    [ObservableProperty]
+    private string _ofText = "of";
+
+    [ObservableProperty]
+    private string _editButtonText = "Edit";
+
+    [ObservableProperty]
+    private string _deleteButtonText = "Delete";
+
+    [ObservableProperty]
+    private string _baseUnitsOnlyButtonText = "Base Units Only";
+
+    [ObservableProperty]
+    private string _clearFiltersButtonText = "Clear Filters";
+
+    [ObservableProperty]
+    private string _activeLabel = "Active";
+
     // Permission Properties
     [ObservableProperty]
     private bool canCreateUom = false;
@@ -230,11 +263,15 @@ public partial class UomViewModel : ObservableObject, IDisposable
         // Subscribe to property changes
         PropertyChanged += OnPropertyChanged;
         
-        // Load data
-        _ = Task.Run(LoadUomsAsync);
+        // Subscribe to language changes
+        _databaseLocalizationService.LanguageChanged += OnLanguageChanged;
         
-        // Load translations
-        _ = Task.Run(LoadTranslationsAsync);
+        // Load data and translations
+        _ = Task.Run(async () =>
+        {
+            await LoadTranslationsAsync();
+            await LoadUomsAsync();
+        });
     }
 
     #endregion
@@ -680,6 +717,18 @@ public partial class UomViewModel : ObservableObject, IDisposable
             RefreshButtonText = await _databaseLocalizationService.GetTranslationAsync("common.refresh") ?? "Refresh";
             AddNewUomButtonText = await _databaseLocalizationService.GetTranslationAsync("uom.add_new") ?? "Add UOM";
             SearchPlaceholder = await _databaseLocalizationService.GetTranslationAsync("uom.search_placeholder") ?? "Search units of measurement...";
+            ImportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.import") ?? "Import";
+            ExportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.export") ?? "Export";
+            LoadingMessage = await _databaseLocalizationService.GetTranslationAsync("uom.loading") ?? "Loading units of measurement...";
+            NoDataMessage = await _databaseLocalizationService.GetTranslationAsync("uom.no_data") ?? "No units of measurement found";
+            NoDataHint = await _databaseLocalizationService.GetTranslationAsync("uom.no_data_hint") ?? "Click 'Add UOM' to create your first unit of measurement";
+            OfText = await _databaseLocalizationService.GetTranslationAsync("common.of") ?? "of";
+            ItemsCountText = await _databaseLocalizationService.GetTranslationAsync("uom.items_count") ?? "units";
+            EditButtonText = await _databaseLocalizationService.GetTranslationAsync("common.edit") ?? "Edit";
+            DeleteButtonText = await _databaseLocalizationService.GetTranslationAsync("common.delete") ?? "Delete";
+            BaseUnitsOnlyButtonText = await _databaseLocalizationService.GetTranslationAsync("uom.base_units_only") ?? "Base Units Only";
+            ClearFiltersButtonText = await _databaseLocalizationService.GetTranslationAsync("common.clear_filters") ?? "Clear Filters";
+            ActiveLabel = await _databaseLocalizationService.GetTranslationAsync("common.active") ?? "Active";
             
             // Column headers
             ColumnName = await _databaseLocalizationService.GetTranslationAsync("uom.column.name") ?? "Name";
@@ -697,6 +746,14 @@ public partial class UomViewModel : ObservableObject, IDisposable
             // Log error but don't throw - use default English text
             System.Diagnostics.Debug.WriteLine($"Error loading translations: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Event handler for language changes - reload translations
+    /// </summary>
+    private void OnLanguageChanged(object? sender, string languageCode)
+    {
+        _ = Task.Run(LoadTranslationsAsync);
     }
 
     /// <summary>
@@ -1090,6 +1147,7 @@ public partial class UomViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         PropertyChanged -= OnPropertyChanged;
+        _databaseLocalizationService.LanguageChanged -= OnLanguageChanged;
         GC.SuppressFinalize(this);
     }
 

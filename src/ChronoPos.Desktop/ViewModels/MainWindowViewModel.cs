@@ -14,6 +14,7 @@ using ChronoPos.Application.Logging;
 using System.Collections.ObjectModel;
 using ChronoPos.Domain.Entities;
 using ChronoPos.Domain.Interfaces;
+using InfrastructureServices = ChronoPos.Infrastructure.Services;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -1503,6 +1504,7 @@ public partial class MainWindowViewModel : ObservableObject
             var productAttributeViewModel = new ProductAttributeViewModel(
                 productAttributeService,
                 _currentUserService,
+                _databaseLocalizationService,
                 () => _ = ShowAddOptions() // Navigate back to Others
             );
             ChronoPos.Desktop.Services.FileLogger.Log("✅ ProductAttributeViewModel created successfully");
@@ -1586,6 +1588,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _currentUserService,
                 taxTypeService,
                 _activeCurrencyService,
+                _databaseLocalizationService,
                 () => _ = ShowAddOptions() // Navigate back to Others
             );
             ChronoPos.Desktop.Services.FileLogger.Log("✅ ProductModifierViewModel created successfully");
@@ -1662,6 +1665,7 @@ public partial class MainWindowViewModel : ObservableObject
                 attributeService,
                 _currentUserService,
                 _activeCurrencyService,
+                _databaseLocalizationService,
                 () => _ = ShowAddOptions() // Navigate back to Others
             );
             
@@ -2500,7 +2504,18 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ICustomerService>(),
                 _serviceProvider.GetRequiredService<ICustomerGroupService>(),
                 _serviceProvider.GetRequiredService<ISupplierService>(),
-                _currentUserService
+                _currentUserService,
+                _serviceProvider.GetRequiredService<ICategoryService>(),
+                _serviceProvider.GetRequiredService<IProductAttributeService>(),
+                _serviceProvider.GetRequiredService<IProductCombinationItemService>(),
+                _serviceProvider.GetRequiredService<IDiscountService>(),
+                _serviceProvider.GetRequiredService<IProductGroupService>(),
+                _serviceProvider.GetRequiredService<IPaymentTypeService>(),
+                _serviceProvider.GetRequiredService<IBrandService>(),
+                _serviceProvider.GetRequiredService<IUomService>(),
+                _serviceProvider.GetRequiredService<IStoreService>(),
+                _serviceProvider.GetRequiredService<ICurrencyService>(),
+                _serviceProvider.GetRequiredService<IProductModifierService>()
             );
 
             // Set up navigation from Others to specific modules
@@ -2793,25 +2808,41 @@ public partial class MainWindowViewModel : ObservableObject
         
         try
         {
+            AppLogger.Log("ShowBrand: Starting to create BrandViewModel...");
+            
             // Create the BrandViewModel with all required services and navigation callback
             var brandViewModel = new BrandViewModel(
                 _serviceProvider.GetRequiredService<IBrandService>(),
                 _currentUserService,
+                _databaseLocalizationService,
                 navigateBack: () => ShowAddOptionsCommand.Execute(null)
             );
 
+            AppLogger.Log("ShowBrand: BrandViewModel created successfully");
+            AppLogger.Log("ShowBrand: About to create BrandView...");
+            
             // Create the BrandView and set its DataContext
             var brandView = new BrandView
             {
                 DataContext = brandViewModel
             };
 
+            AppLogger.Log("ShowBrand: BrandView created successfully");
+            
             CurrentView = brandView;
             StatusMessage = "Brand management loaded successfully";
+            AppLogger.Log("ShowBrand: CurrentView set successfully");
             await Task.CompletedTask; // satisfy analyzer
         }
         catch (Exception ex)
         {
+            AppLogger.Log($"ShowBrand: ERROR - {ex.Message}");
+            AppLogger.Log($"ShowBrand: Stack trace: {ex.StackTrace}");
+            if (ex.InnerException != null)
+            {
+                AppLogger.Log($"ShowBrand: Inner exception: {ex.InnerException.Message}");
+            }
+            
             StatusMessage = $"Error loading brand management: {ex.Message}";
             var errorContent = new System.Windows.Controls.TextBlock
             {
@@ -2847,6 +2878,8 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ICurrencyService>(),
                 _currentUserService,
                 _serviceProvider.GetRequiredService<IActiveCurrencyService>(),
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
+                _serviceProvider.GetRequiredService<InfrastructureServices.IDatabaseLocalizationService>(),
                 navigateBack: () => ShowAddOptionsCommand.Execute(null)
             );
 
@@ -2960,6 +2993,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider,
                 _serviceProvider.GetRequiredService<ILogger<CategoryViewModel>>(),
                 _currentUserService,
+                _databaseLocalizationService,
                 navigateBack: () => ShowAddOptionsCommand.Execute(null)
             );
 
@@ -3010,6 +3044,8 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<IStoreService>(),
                 _serviceProvider.GetRequiredService<IDiscountService>(),
                 _currentUserService,
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
+                _serviceProvider.GetRequiredService<InfrastructureServices.IDatabaseLocalizationService>(),
                 navigateBack: () => ShowAddOptionsCommand.Execute(null)
             );
 
@@ -3291,7 +3327,9 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider.GetRequiredService<ISellingPriceTypeService>(),
                 _serviceProvider.GetRequiredService<IProductService>(),
                 _serviceProvider.GetRequiredService<IProductUnitService>(),
-                _currentUserService
+                _currentUserService,
+                _serviceProvider.GetRequiredService<ILayoutDirectionService>(),
+                _databaseLocalizationService
             );
 
             // Set up back navigation to return to Others

@@ -108,6 +108,58 @@ public partial class TaxTypesViewModel : ObservableObject
     [ObservableProperty]
     private TaxTypeSidePanelViewModel _sidePanelViewModel;
 
+    #region Localization Properties
+
+    [ObservableProperty]
+    private string _pageTitle = "Tax Types";
+
+    [ObservableProperty]
+    private string _searchPlaceholder = "Search tax types...";
+
+    [ObservableProperty]
+    private string _addButtonText = "Add Tax Type";
+
+    [ObservableProperty]
+    private string _refreshButtonText = "Refresh";
+
+    [ObservableProperty]
+    private string _importButtonText = "Import";
+
+    [ObservableProperty]
+    private string _exportButtonText = "Export";
+
+    [ObservableProperty]
+    private string _activeOnlyText = "Active Only";
+
+    [ObservableProperty]
+    private string _showAllText = "Show All";
+
+    [ObservableProperty]
+    private string _columnActions = "Actions";
+
+    [ObservableProperty]
+    private string _columnActive = "Active";
+
+    [ObservableProperty]
+    private string _columnStatus = "Status";
+
+    [ObservableProperty]
+    private string _columnAppliesTo = "Applies To";
+
+    [ObservableProperty]
+    private string _columnType = "Type";
+
+    [ObservableProperty]
+    private string _columnValue = "Value";
+
+    [ObservableProperty]
+    private string _columnDescription = "Description";
+
+    [ObservableProperty]
+    private string _columnName = "Name";
+
+    #endregion
+
     #endregion
 
     #region Computed Properties
@@ -194,8 +246,15 @@ public partial class TaxTypesViewModel : ObservableObject
         CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
             ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
 
-        // Load tax types
-        _ = Task.Run(LoadTaxTypesAsync);
+        // Subscribe to language changes
+        _databaseLocalizationService.LanguageChanged += OnLanguageChanged;
+
+        // Load tax types and localized texts
+        _ = Task.Run(async () =>
+        {
+            await LoadLocalizedTextsAsync();
+            await LoadTaxTypesAsync();
+        });
     }
 
     #endregion
@@ -715,6 +774,44 @@ public partial class TaxTypesViewModel : ObservableObject
             CanImportTaxRate = false;
             CanExportTaxRate = false;
         }
+    }
+
+    /// <summary>
+    /// Load localized texts from database
+    /// </summary>
+    private async Task LoadLocalizedTextsAsync()
+    {
+        try
+        {
+            PageTitle = await _databaseLocalizationService.GetTranslationAsync("taxtype.page_title") ?? "Tax Types";
+            SearchPlaceholder = await _databaseLocalizationService.GetTranslationAsync("taxtype.search_placeholder") ?? "Search tax types...";
+            AddButtonText = await _databaseLocalizationService.GetTranslationAsync("taxtype.add_tax_type") ?? "Add Tax Type";
+            RefreshButtonText = await _databaseLocalizationService.GetTranslationAsync("common.refresh") ?? "Refresh";
+            ImportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.import") ?? "Import";
+            ExportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.export") ?? "Export";
+            ActiveOnlyText = await _databaseLocalizationService.GetTranslationAsync("taxtype.active_only") ?? "Active Only";
+            ShowAllText = await _databaseLocalizationService.GetTranslationAsync("taxtype.show_all") ?? "Show All";
+            ColumnActions = await _databaseLocalizationService.GetTranslationAsync("common.column.actions") ?? "Actions";
+            ColumnActive = await _databaseLocalizationService.GetTranslationAsync("common.column.active") ?? "Active";
+            ColumnStatus = await _databaseLocalizationService.GetTranslationAsync("common.column.status") ?? "Status";
+            ColumnAppliesTo = await _databaseLocalizationService.GetTranslationAsync("taxtype.column.applies_to") ?? "Applies To";
+            ColumnType = await _databaseLocalizationService.GetTranslationAsync("taxtype.column.type") ?? "Type";
+            ColumnValue = await _databaseLocalizationService.GetTranslationAsync("taxtype.column.value") ?? "Value";
+            ColumnDescription = await _databaseLocalizationService.GetTranslationAsync("common.column.description") ?? "Description";
+            ColumnName = await _databaseLocalizationService.GetTranslationAsync("common.column.name") ?? "Name";
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading localized texts: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Handle language change event
+    /// </summary>
+    private async void OnLanguageChanged(object? sender, string languageCode)
+    {
+        await LoadLocalizedTextsAsync();
     }
 
     #endregion

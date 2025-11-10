@@ -11,14 +11,18 @@ using System.IO;
 using System.Text;
 using Microsoft.Win32;
 using ChronoPos.Desktop.Views.Dialogs;
+using ChronoPos.Desktop.Services;
+using InfrastructureServices = ChronoPos.Infrastructure.Services;
 
 namespace ChronoPos.Desktop.ViewModels;
 
-public partial class StoreViewModel : ObservableObject
+public partial class StoreViewModel : ObservableObject, IDisposable
 {
     private readonly IStoreService _storeService;
     private readonly IDiscountService _discountService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ILayoutDirectionService _layoutDirectionService;
+    private readonly InfrastructureServices.IDatabaseLocalizationService _databaseLocalizationService;
     private readonly Action? _navigateBack;
     private readonly Dictionary<int, string> _discountCache = new();
 
@@ -64,6 +68,91 @@ public partial class StoreViewModel : ObservableObject
     [ObservableProperty]
     private bool canExportStore = false;
 
+    // Localization Properties
+    [ObservableProperty]
+    private string pageTitle = "Store Management";
+
+    [ObservableProperty]
+    private string refreshButtonText = "Refresh";
+
+    [ObservableProperty]
+    private string importButtonText = "Import";
+
+    [ObservableProperty]
+    private string exportButtonText = "Export";
+
+    [ObservableProperty]
+    private string addStoreButtonText = "Add Store";
+
+    [ObservableProperty]
+    private string searchPlaceholder = "Search stores...";
+
+    [ObservableProperty]
+    private string activeOnlyButtonText = "Active Only";
+
+    [ObservableProperty]
+    private string showAllButtonText = "Show All";
+
+    [ObservableProperty]
+    private string clearFiltersButtonText = "Clear Filters";
+
+    [ObservableProperty]
+    private string loadingMessage = "Loading stores...";
+
+    [ObservableProperty]
+    private string noDataMessage = "No stores found";
+
+    [ObservableProperty]
+    private string noDataHint = "Click 'Add Store' to create your first store";
+
+    [ObservableProperty]
+    private string columnName = "Name";
+
+    [ObservableProperty]
+    private string columnAddress = "Address";
+
+    [ObservableProperty]
+    private string columnPhone = "Phone";
+
+    [ObservableProperty]
+    private string columnEmail = "Email";
+
+    [ObservableProperty]
+    private string columnManager = "Manager";
+
+    [ObservableProperty]
+    private string columnDefault = "Default";
+
+    [ObservableProperty]
+    private string columnStatus = "Status";
+
+    [ObservableProperty]
+    private string columnDiscounts = "Discounts";
+
+    [ObservableProperty]
+    private string activeLabel = "Active";
+
+    [ObservableProperty]
+    private string columnActions = "Actions";
+
+    [ObservableProperty]
+    private string editButtonText = "Edit";
+
+    [ObservableProperty]
+    private string deleteButtonText = "Delete";
+
+    [ObservableProperty]
+    private string defaultButtonText = "Default";
+
+    [ObservableProperty]
+    private string setAsDefaultTooltip = "Set as Default";
+
+    [ObservableProperty]
+    private string ofText = "of";
+
+    [ObservableProperty]
+    private string itemsCountText = "stores";
+
     private readonly ICollectionView _filteredStoresView;
 
     public ICollectionView FilteredStores => _filteredStoresView;
@@ -71,11 +160,19 @@ public partial class StoreViewModel : ObservableObject
     public bool HasStores => Stores.Count > 0;
     public int TotalStores => Stores.Count;
 
-    public StoreViewModel(IStoreService storeService, IDiscountService discountService, ICurrentUserService currentUserService, Action? navigateBack = null)
+    public StoreViewModel(
+        IStoreService storeService, 
+        IDiscountService discountService, 
+        ICurrentUserService currentUserService,
+        ILayoutDirectionService layoutDirectionService,
+        InfrastructureServices.IDatabaseLocalizationService databaseLocalizationService,
+        Action? navigateBack = null)
     {
         _storeService = storeService;
         _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
+        _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
         _navigateBack = navigateBack;
 
         InitializePermissions();
@@ -102,8 +199,21 @@ public partial class StoreViewModel : ObservableObject
         // Subscribe to search text changes
         PropertyChanged += OnPropertyChanged;
         
-        // Load stores on startup
-        _ = LoadStoresAsync();
+        // Subscribe to language changes
+        _databaseLocalizationService.LanguageChanged += OnLanguageChanged;
+
+        // Subscribe to layout direction changes and set initial direction
+        _layoutDirectionService.DirectionChanged += OnDirectionChanged;
+        CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
+            ? FlowDirection.RightToLeft 
+            : FlowDirection.LeftToRight;
+
+        // Load translations and stores
+        _ = Task.Run(async () =>
+        {
+            await LoadLocalizedTextsAsync();
+            await LoadStoresAsync();
+        });
     }
 
     public IAsyncRelayCommand LoadStoresCommand { get; }
@@ -132,6 +242,13 @@ public partial class StoreViewModel : ObservableObject
             OnPropertyChanged(nameof(TotalStores));
             _filteredStoresView.Refresh();
         }
+    }
+
+    private void OnDirectionChanged(ChronoPos.Desktop.Services.LayoutDirection newDirection)
+    {
+        CurrentFlowDirection = newDirection == ChronoPos.Desktop.Services.LayoutDirection.RightToLeft
+            ? FlowDirection.RightToLeft
+            : FlowDirection.LeftToRight;
     }
 
     private bool FilterStores(object obj)
@@ -164,28 +281,32 @@ public partial class StoreViewModel : ObservableObject
             // Get all active discounts to find which ones belong to each store
             var allDiscounts = await _discountService.GetActiveDiscountsAsync();
             
-            // Clear and repopulate the existing collection to maintain the filtered view
-            Stores.Clear();
-            foreach (var store in allStores)
+            // Update UI collection on dispatcher thread
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                // Find discounts for this store
-                var storeDiscounts = allDiscounts.Where(d => d.StoreId == store.Id).ToList();
+                // Clear and repopulate the existing collection to maintain the filtered view
+                Stores.Clear();
+                foreach (var store in allStores)
+                {
+                    // Find discounts for this store
+                    var storeDiscounts = allDiscounts.Where(d => d.StoreId == store.Id).ToList();
+                    
+                    // Load discount count for each store
+                    store.ActiveDiscountCount = storeDiscounts.Count;
+                    
+                    // Build discount pills
+                    store.DiscountPills = BuildDiscountPills(storeDiscounts);
+                    
+                    Stores.Add(store);
+                }
                 
-                // Load discount count for each store
-                store.ActiveDiscountCount = storeDiscounts.Count;
+                StatusMessage = $"Loaded {Stores.Count} stores.";
                 
-                // Build discount pills
-                store.DiscountPills = BuildDiscountPills(storeDiscounts);
-                
-                Stores.Add(store);
-            }
-            
-            StatusMessage = $"Loaded {Stores.Count} stores.";
-            
-            // Refresh the filtered view
-            _filteredStoresView.Refresh();
-            OnPropertyChanged(nameof(HasStores));
-            OnPropertyChanged(nameof(TotalStores));
+                // Refresh the filtered view
+                _filteredStoresView.Refresh();
+                OnPropertyChanged(nameof(HasStores));
+                OnPropertyChanged(nameof(TotalStores));
+            });
         }
         catch (Exception ex)
         {
@@ -790,5 +911,63 @@ public partial class StoreViewModel : ObservableObject
             StatusMessage = $"Warning: Error building discount pills: {ex.Message}";
             return new List<string> { "Discounts available" };
         }
+    }
+
+    private async Task LoadLocalizedTextsAsync()
+    {
+        try
+        {
+            PageTitle = await _databaseLocalizationService.GetTranslationAsync("store.page_title") ?? "Store Management";
+            RefreshButtonText = await _databaseLocalizationService.GetTranslationAsync("common.refresh") ?? "Refresh";
+            ImportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.import") ?? "Import";
+            ExportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.export") ?? "Export";
+            AddStoreButtonText = await _databaseLocalizationService.GetTranslationAsync("store.add_store") ?? "Add Store";
+            SearchPlaceholder = await _databaseLocalizationService.GetTranslationAsync("store.search_placeholder") ?? "Search stores...";
+            ActiveOnlyButtonText = await _databaseLocalizationService.GetTranslationAsync("store.active_only") ?? "Active Only";
+            ShowAllButtonText = await _databaseLocalizationService.GetTranslationAsync("store.show_all") ?? "Show All";
+            ClearFiltersButtonText = await _databaseLocalizationService.GetTranslationAsync("common.clear_filters") ?? "Clear Filters";
+            LoadingMessage = await _databaseLocalizationService.GetTranslationAsync("store.loading") ?? "Loading stores...";
+            NoDataMessage = await _databaseLocalizationService.GetTranslationAsync("store.no_data") ?? "No stores found";
+            NoDataHint = await _databaseLocalizationService.GetTranslationAsync("store.no_data_hint") ?? "Click 'Add Store' to create your first store";
+            
+            // Column headers
+            ColumnName = await _databaseLocalizationService.GetTranslationAsync("store.column.name") ?? "Name";
+            ColumnAddress = await _databaseLocalizationService.GetTranslationAsync("store.column.address") ?? "Address";
+            ColumnPhone = await _databaseLocalizationService.GetTranslationAsync("store.column.phone") ?? "Phone";
+            ColumnEmail = await _databaseLocalizationService.GetTranslationAsync("store.column.email") ?? "Email";
+            ColumnManager = await _databaseLocalizationService.GetTranslationAsync("store.column.manager") ?? "Manager";
+            ColumnDefault = await _databaseLocalizationService.GetTranslationAsync("store.column.default") ?? "Default";
+            ColumnStatus = await _databaseLocalizationService.GetTranslationAsync("store.column.status") ?? "Status";
+            ColumnDiscounts = await _databaseLocalizationService.GetTranslationAsync("store.column.discounts") ?? "Discounts";
+            ColumnActions = await _databaseLocalizationService.GetTranslationAsync("common.actions") ?? "Actions";
+            ActiveLabel = await _databaseLocalizationService.GetTranslationAsync("common.active") ?? "Active";
+            
+            // Action buttons
+            EditButtonText = await _databaseLocalizationService.GetTranslationAsync("common.edit") ?? "Edit";
+            DeleteButtonText = await _databaseLocalizationService.GetTranslationAsync("common.delete") ?? "Delete";
+            DefaultButtonText = await _databaseLocalizationService.GetTranslationAsync("store.default") ?? "Default";
+            SetAsDefaultTooltip = await _databaseLocalizationService.GetTranslationAsync("store.set_as_default") ?? "Set as Default";
+            
+            // Count text
+            OfText = await _databaseLocalizationService.GetTranslationAsync("common.of") ?? "of";
+            ItemsCountText = await _databaseLocalizationService.GetTranslationAsync("store.items_count") ?? "stores";
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't throw - use default English text
+            System.Diagnostics.Debug.WriteLine($"Error loading translations: {ex.Message}");
+        }
+    }
+
+    private void OnLanguageChanged(object? sender, string languageCode)
+    {
+        _ = Task.Run(LoadLocalizedTextsAsync);
+    }
+
+    public void Dispose()
+    {
+        _databaseLocalizationService.LanguageChanged -= OnLanguageChanged;
+        _layoutDirectionService.DirectionChanged -= OnDirectionChanged;
+        GC.SuppressFinalize(this);
     }
 }

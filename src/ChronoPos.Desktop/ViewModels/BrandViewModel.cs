@@ -1,6 +1,7 @@
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Constants;
+using ChronoPos.Infrastructure.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -18,6 +19,7 @@ public partial class BrandViewModel : ObservableObject
 {
     private readonly IBrandService _brandService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IDatabaseLocalizationService _localizationService;
     private readonly Action? _navigateBack;
 
     [ObservableProperty]
@@ -63,6 +65,79 @@ public partial class BrandViewModel : ObservableObject
     [ObservableProperty]
     private bool canExportBrand = false;
 
+    // Localized Text Properties
+    [ObservableProperty]
+    private string pageTitle = "Brands";
+
+    [ObservableProperty]
+    private string searchPlaceholder = "Search brands...";
+
+    [ObservableProperty]
+    private string refreshButtonText = "Refresh";
+
+    [ObservableProperty]
+    private string importButtonText = "Import";
+
+    [ObservableProperty]
+    private string exportButtonText = "Export";
+
+    [ObservableProperty]
+    private string addBrandButtonText = "Add Brand";
+
+    [ObservableProperty]
+    private string activeOnlyButtonText = "Active Only";
+
+    [ObservableProperty]
+    private string showAllButtonText = "Show All";
+
+    [ObservableProperty]
+    private string clearFiltersButtonText = "Clear Filters";
+
+    [ObservableProperty]
+    private string columnName = "Name";
+
+    [ObservableProperty]
+    private string columnArabicName = "Arabic Name";
+
+    [ObservableProperty]
+    private string columnDescription = "Description";
+
+    [ObservableProperty]
+    private string columnProducts = "Products";
+
+    [ObservableProperty]
+    private string columnCreated = "Created";
+
+    [ObservableProperty]
+    private string columnStatus = "Status";
+
+    [ObservableProperty]
+    private string columnActive = "Active";
+
+    [ObservableProperty]
+    private string columnActions = "Actions";
+
+    [ObservableProperty]
+    private string editButtonText = "Edit";
+
+    [ObservableProperty]
+    private string deleteButtonText = "Delete";
+
+    [ObservableProperty]
+    private string noBrandsFoundText = "No brands found";
+
+    [ObservableProperty]
+    private string noBrandsMessageText = "Click 'Add Brand' to create your first brand";
+
+    [ObservableProperty]
+    private string brandsCountText = "brands";
+
+    [ObservableProperty]
+    private string activeText = "Active";
+
+    [ObservableProperty]
+    private string inactiveText = "Inactive";
+
     private readonly ICollectionView _filteredBrandsView;
 
     public ICollectionView FilteredBrands => _filteredBrandsView;
@@ -70,10 +145,11 @@ public partial class BrandViewModel : ObservableObject
     public bool HasBrands => Brands.Count > 0;
     public int TotalBrands => Brands.Count;
 
-    public BrandViewModel(IBrandService brandService, ICurrentUserService currentUserService, Action? navigateBack = null)
+    public BrandViewModel(IBrandService brandService, ICurrentUserService currentUserService, IDatabaseLocalizationService localizationService, Action? navigateBack = null)
     {
         _brandService = brandService;
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
         _navigateBack = navigateBack;
         
         // Initialize permissions
@@ -98,6 +174,9 @@ public partial class BrandViewModel : ObservableObject
 
         // Subscribe to search text changes
         PropertyChanged += OnPropertyChanged;
+        
+        // Load localized texts
+        _ = LoadLocalizedTextsAsync();
         
         // Load brands on startup
         _ = LoadBrandsAsync();
@@ -570,6 +649,55 @@ public partial class BrandViewModel : ObservableObject
             CanImportBrand = false;
             CanExportBrand = false;
         }
+    }
+
+    private async Task LoadLocalizedTextsAsync()
+    {
+        try
+        {
+            PageTitle = await _localizationService.GetTranslationAsync("brand.page_title") ?? "Brands";
+            SearchPlaceholder = await _localizationService.GetTranslationAsync("brand.search_placeholder") ?? "Search brands...";
+            RefreshButtonText = await _localizationService.GetTranslationAsync("common.refresh") ?? "Refresh";
+            ImportButtonText = await _localizationService.GetTranslationAsync("common.import") ?? "Import";
+            ExportButtonText = await _localizationService.GetTranslationAsync("common.export") ?? "Export";
+            AddBrandButtonText = await _localizationService.GetTranslationAsync("brand.add_brand") ?? "Add Brand";
+            ActiveOnlyButtonText = await _localizationService.GetTranslationAsync("brand.active_only") ?? "Active Only";
+            ShowAllButtonText = await _localizationService.GetTranslationAsync("brand.show_all") ?? "Show All";
+            ClearFiltersButtonText = await _localizationService.GetTranslationAsync("common.clear_filters") ?? "Clear Filters";
+            
+            // Column headers
+            ColumnName = await _localizationService.GetTranslationAsync("brand.column.name") ?? "Name";
+            ColumnArabicName = await _localizationService.GetTranslationAsync("brand.column.arabic_name") ?? "Arabic Name";
+            ColumnDescription = await _localizationService.GetTranslationAsync("brand.column.description") ?? "Description";
+            ColumnProducts = await _localizationService.GetTranslationAsync("brand.column.products") ?? "Products";
+            ColumnCreated = await _localizationService.GetTranslationAsync("brand.column.created") ?? "Created";
+            ColumnStatus = await _localizationService.GetTranslationAsync("brand.column.status") ?? "Status";
+            ColumnActive = await _localizationService.GetTranslationAsync("brand.column.active") ?? "Active";
+            ColumnActions = await _localizationService.GetTranslationAsync("brand.column.actions") ?? "Actions";
+            
+            // Action buttons
+            EditButtonText = await _localizationService.GetTranslationAsync("common.edit") ?? "Edit";
+            DeleteButtonText = await _localizationService.GetTranslationAsync("common.delete") ?? "Delete";
+            
+            // Messages
+            NoBrandsFoundText = await _localizationService.GetTranslationAsync("brand.no_brands_found") ?? "No brands found";
+            NoBrandsMessageText = await _localizationService.GetTranslationAsync("brand.no_brands_message") ?? "Click 'Add Brand' to create your first brand";
+            BrandsCountText = await _localizationService.GetTranslationAsync("brand.brands_count") ?? "brands";
+            
+            // Status text
+            ActiveText = await _localizationService.GetTranslationAsync("common.active") ?? "Active";
+            InactiveText = await _localizationService.GetTranslationAsync("common.inactive") ?? "Inactive";
+        }
+        catch (Exception ex)
+        {
+            // Fallback to default English texts if translation fails
+            Console.WriteLine($"Error loading localized texts: {ex.Message}");
+        }
+    }
+
+    public async Task RefreshTranslationsAsync()
+    {
+        await LoadLocalizedTextsAsync();
     }
 
     private void GoBack()

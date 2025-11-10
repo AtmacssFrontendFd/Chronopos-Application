@@ -17,7 +17,44 @@
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
         <converters:FlowDirectionToGridColumnConverter x:Key="FlowDirectionToGridColumnConverter"/>
         <converters:FlowDirectionToHorizontalAlignmentConverter x:Key="FlowDirectionToHorizontalAlignmentConverter"/>
+        <converters:FlowDirectionToTextAlignmentConverter x:Key="FlowDirectionToTextAlignmentConverter"/>
         <converters:BoolToGridLengthConverter x:Key="BoolToGridLengthConverter"/>
+
+        <!-- Success Button Style (Local Definition) -->
+        <Style x:Key="SuccessButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#10C878"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#0EA76E"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#0D9461"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
         <!-- Button Style -->
         <Style x:Key="ActionButtonStyle" TargetType="Button">
@@ -115,19 +152,23 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Back Button and Title -->
-            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                <!-- Back Button -->
+            <!-- Left Side: Back Button + Title in LTR, Action Buttons in RTL -->
+            <StackPanel Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='start3'}" 
+                        Orientation="Horizontal" 
+                        VerticalAlignment="Center">
+                <!-- Back Button + Title (visible in LTR) -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <StackPanel.Style>
                         <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Visible"/>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
-                                    <Setter Property="FlowDirection" Value="LeftToRight"/>
+                                    <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </StackPanel.Style>
+                    
                     <controls:CircularBackButton 
                         Command="{Binding BackCommand}"
                         ButtonSize="30"
@@ -136,66 +177,151 @@
                         ButtonHoverBackground="{DynamicResource OverlayBackground}"
                         ButtonHoverForeground="{DynamicResource TextSecondary}"
                         Margin="0,0,10,0"/>
+
+                    <TextBlock Text="{Binding PageTitle}" 
+                               FontSize="{DynamicResource FontSizeLarge}"
+                               FontWeight="Bold"
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource TextPrimary}"
+                               VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <!-- Title -->
-                <TextBlock Text="Brands" 
-                           FontSize="{DynamicResource FontSizeLarge}"
-                           FontWeight="Bold"
-                           FontFamily="{DynamicResource PoppinsFontFallback}"
-                           Foreground="{DynamicResource TextPrimary}"
-                           VerticalAlignment="Center"/>
-            </StackPanel>
-
-            <!-- Action Buttons -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
-                <!-- Refresh Button -->
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                <!-- Action Buttons (visible in RTL) -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <StackPanel.Style>
                         <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
-                                    <Setter Property="FlowDirection" Value="LeftToRight"/>
+                                    <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </StackPanel.Style>
+
+                    <!-- Add Brand Button -->
+                    <Button Content="{Binding AddBrandButtonText}"
+                            Style="{StaticResource ActionButtonStyle}"
+                            Command="{Binding AddBrandCommand}"
+                            Visibility="{Binding CanCreateBrand, Converter={StaticResource BoolToVisibilityConverter}}"
+                            Margin="0,0,10,0"/>
+
+                    <!-- Export Button -->
+                    <Button Style="{StaticResource SuccessButtonStyle}"
+                            Command="{Binding ExportCommand}"
+                            Visibility="{Binding CanExportBrand, Converter={StaticResource BoolToVisibilityConverter}}"
+                            Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="�" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="{Binding ExportButtonText}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Import Button -->
+                    <Button Style="{StaticResource SuccessButtonStyle}"
+                            Command="{Binding ImportCommand}"
+                            Visibility="{Binding CanImportBrand, Converter={StaticResource BoolToVisibilityConverter}}"
+                            Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="�" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="{Binding ImportButtonText}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
                     <controls:RefreshButton 
                         Command="{Binding RefreshDataCommand}"
-                        ButtonText="Refresh"
+                        ButtonText="{Binding RefreshButtonText}"
+                        ButtonIcon="🔄"
+                        MinButtonWidth="120"
+                        ButtonHeight="36"
+                        Margin="0,0,0,0"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Right Side: Action Buttons in LTR, Back Button + Title in RTL -->
+            <StackPanel Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='end3'}" 
+                        Orientation="Horizontal" 
+                        VerticalAlignment="Center" 
+                        HorizontalAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}">
+                <!-- Action Buttons (visible in LTR) -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+
+                    <controls:RefreshButton 
+                        Command="{Binding RefreshDataCommand}"
+                        ButtonText="{Binding RefreshButtonText}"
                         ButtonIcon="🔄"
                         MinButtonWidth="120"
                         ButtonHeight="36"
                         Margin="0,0,10,0"/>
+
+                    <!-- Import Button -->
+                    <Button Style="{StaticResource SuccessButtonStyle}"
+                            Command="{Binding ImportCommand}"
+                            Visibility="{Binding CanImportBrand, Converter={StaticResource BoolToVisibilityConverter}}"
+                            Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📥" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="{Binding ImportButtonText}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Export Button -->
+                    <Button Style="{StaticResource SuccessButtonStyle}"
+                            Command="{Binding ExportCommand}"
+                            Visibility="{Binding CanExportBrand, Converter={StaticResource BoolToVisibilityConverter}}"
+                            Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📤" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="{Binding ExportButtonText}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Add Brand Button -->
+                    <Button Content="{Binding AddBrandButtonText}"
+                            Style="{StaticResource ActionButtonStyle}"
+                            Command="{Binding AddBrandCommand}"
+                            Visibility="{Binding CanCreateBrand, Converter={StaticResource BoolToVisibilityConverter}}"/>
                 </StackPanel>
 
-                <!-- Import Button -->
-                <Button Style="{StaticResource SuccessButtonStyle}"
-                        Command="{Binding ImportCommand}"
-                        Visibility="{Binding CanImportBrand, Converter={StaticResource BooleanToVisibilityConverter}}"
-                        Margin="0,0,10,0">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="📥" FontSize="16" Margin="0,0,5,0"/>
-                        <TextBlock Text="Import" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
+                <!-- Back Button + Title (visible in RTL) -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    
+                    <TextBlock Text="{Binding PageTitle}" 
+                               FontSize="{DynamicResource FontSizeLarge}"
+                               FontWeight="Bold"
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource TextPrimary}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"/>
 
-                <!-- Export Button -->
-                <Button Style="{StaticResource SuccessButtonStyle}"
-                        Command="{Binding ExportCommand}"
-                        Visibility="{Binding CanExportBrand, Converter={StaticResource BooleanToVisibilityConverter}}"
-                        Margin="0,0,10,0">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="📤" FontSize="16" Margin="0,0,5,0"/>
-                        <TextBlock Text="Export" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
-
-                <!-- Add Brand Button -->
-                <Button Content="Add Brand"
-                        Style="{StaticResource ActionButtonStyle}"
-                        Command="{Binding AddBrandCommand}"
-                        Visibility="{Binding CanCreateBrand, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <controls:CircularBackButton 
+                        Command="{Binding BackCommand}"
+                        ButtonSize="30"
+                        ButtonBackground="{DynamicResource SurfaceBackground}"
+                        ButtonForeground="{DynamicResource TextSecondary}"
+                        ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                        ButtonHoverForeground="{DynamicResource TextSecondary}"/>
+                </StackPanel>
             </StackPanel>
         </Grid>
 
@@ -209,7 +335,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Search Box -->
-                <TextBox Grid.Column="0"
+                <TextBox Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='start3'}"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                          FontSize="{DynamicResource FontSizeSmall}"
                          FontFamily="{DynamicResource PoppinsFontFallback}"
@@ -232,7 +358,7 @@
                                                 <ScrollViewer x:Name="PART_ContentHost" 
                                                             Margin="{TemplateBinding Padding}"
                                                             VerticalAlignment="Center"/>
-                                                <TextBlock Text="Search brands..."
+                                                <TextBlock Text="{Binding DataContext.SearchPlaceholder, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                          Margin="{TemplateBinding Padding}"
                                                          VerticalAlignment="Center"
                                                          Foreground="{DynamicResource TextSecondary}"
@@ -268,10 +394,10 @@
                         <TextBlock>
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="Text" Value="Active Only"/>
+                                    <Setter Property="Text" Value="{Binding ActiveOnlyButtonText}"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding ShowActiveOnly}" Value="True">
-                                            <Setter Property="Text" Value="Show All"/>
+                                            <Setter Property="Text" Value="{Binding ShowAllButtonText}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -280,7 +406,8 @@
                     </Button.Content>
                 </Button>
 
-                <Button Grid.Column="2" Content="Clear Filters" 
+                <Button Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='end3'}" 
+                        Content="{Binding ClearFiltersButtonText}" 
                         Style="{StaticResource SmallActionButtonStyle}"
                         Command="{Binding ClearFiltersCommand}"/>
             </Grid>
@@ -305,7 +432,8 @@
                 </Grid>
 
                 <!-- Brands DataGrid -->
-                <DataGrid Grid.Row="0" 
+                <DataGrid Grid.Row="0"
+                          x:Name="BrandsDataGrid"
                           ItemsSource="{Binding FilteredBrands}"
                           SelectedItem="{Binding SelectedBrand}"
                           AutoGenerateColumns="False"
@@ -344,6 +472,7 @@
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow">
                             <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
                             <Setter Property="BorderThickness" Value="0"/>
                             <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
                             <Style.Triggers>
@@ -365,6 +494,7 @@
                             <Setter Property="VerticalAlignment" Value="Center"/>
                             <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
                             <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
                             <Setter Property="HorizontalContentAlignment" Value="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"/>
                             <Style.Triggers>
                                 <Trigger Property="IsSelected" Value="True">
@@ -377,7 +507,7 @@
 
                     <DataGrid.Columns>
                         <!-- Name Column -->
-                        <DataGridTextColumn Header="Name" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnName, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding Name}" 
                                             Width="200"
                                             MinWidth="150">
@@ -386,12 +516,13 @@
                                     <Setter Property="FontWeight" Value="SemiBold"/>
                                     <Setter Property="VerticalAlignment" Value="Center"/>
                                     <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="TextAlignment" Value="{Binding DataContext.CurrentFlowDirection, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
                         <!-- Arabic Name Column -->
-                        <DataGridTextColumn Header="Arabic Name" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnArabicName, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding NameArabicDisplay}" 
                                             Width="150"
                                             MinWidth="120">
@@ -399,12 +530,14 @@
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
                                     <Setter Property="FontStyle" Value="Italic"/>
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="FlowDirection" Value="RightToLeft"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
                         <!-- Description Column -->
-                        <DataGridTextColumn Header="Description" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnDescription, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding DescriptionDisplay}" 
                                             Width="300"
                                             MinWidth="200">
@@ -412,12 +545,13 @@
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
                                     <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="TextAlignment" Value="{Binding DataContext.CurrentFlowDirection, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
                         <!-- Product Count Column -->
-                        <DataGridTextColumn Header="Products" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnProducts, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding ProductCount}" 
                                             Width="100"
                                             MinWidth="80">
@@ -426,12 +560,13 @@
                                     <Setter Property="VerticalAlignment" Value="Center"/>
                                     <Setter Property="HorizontalAlignment" Value="Center"/>
                                     <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="TextAlignment" Value="Center"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
                         <!-- Created Date Column -->
-                        <DataGridTextColumn Header="Created" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnCreated, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding CreatedAtFormatted}" 
                                             Width="140"
                                             MinWidth="120">
@@ -439,12 +574,13 @@
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
                                     <Setter Property="FontSize" Value="{DynamicResource FontSizeExtraSmall}"/>
+                                    <Setter Property="TextAlignment" Value="{Binding DataContext.CurrentFlowDirection, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource FlowDirectionToTextAlignmentConverter}}"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
                         <!-- Status Column -->
-                        <DataGridTemplateColumn Header="Status" Width="100">
+                        <DataGridTemplateColumn Header="{Binding DataContext.ColumnStatus, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="100">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Border CornerRadius="12"
@@ -460,18 +596,28 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                        <TextBlock Text="{Binding StatusDisplay}"
-                                                   Foreground="White"
+                                        <TextBlock Foreground="White"
                                                    FontSize="{DynamicResource FontSizeExtraSmall}"
                                                    FontWeight="SemiBold"
-                                                   HorizontalAlignment="Center"/>
+                                                   HorizontalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="{Binding DataContext.InactiveText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                            <Setter Property="Text" Value="{Binding DataContext.ActiveText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
                                     </Border>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
                         <!-- Toggle Active Column -->
-                        <DataGridTemplateColumn Header="Active" Width="80">
+                        <DataGridTemplateColumn Header="{Binding DataContext.ColumnActive, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="80">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <ToggleButton IsChecked="{Binding IsActive, Mode=OneWay}"
@@ -514,23 +660,23 @@
                         </DataGridTemplateColumn>
 
                         <!-- Actions Column -->
-                        <DataGridTemplateColumn Header="Actions" Width="150">
+                        <DataGridTemplateColumn Header="{Binding DataContext.ColumnActions, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="150">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Edit" 
+                                        <Button Content="{Binding DataContext.EditButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.EditBrandCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Margin="2"
-                                                Visibility="{Binding DataContext.CanEditBrand, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                        <Button Content="Delete" 
+                                                Visibility="{Binding DataContext.CanEditBrand, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        <Button Content="{Binding DataContext.DeleteButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.DeleteBrandCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Foreground="Red"
                                                 Margin="2"
-                                                Visibility="{Binding DataContext.CanDeleteBrand, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                Visibility="{Binding DataContext.CanDeleteBrand, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                         <Button Content="🖨️" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.ViewBrandDetailsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -553,13 +699,13 @@
                                    FontSize="48" 
                                    HorizontalAlignment="Center" 
                                    Margin="0,0,0,10"/>
-                        <TextBlock Text="No brands found"
+                        <TextBlock Text="{Binding NoBrandsFoundText}"
                                    FontSize="{DynamicResource FontSizeMedium}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
                                    Foreground="{DynamicResource TextSecondary}"
                                    HorizontalAlignment="Center"
                                    Margin="0,0,0,5"/>
-                        <TextBlock Text="Click 'Add Brand' to create your first brand"
+                        <TextBlock Text="{Binding NoBrandsMessageText}"
                                    FontSize="{DynamicResource FontSizeSmall}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
                                    Foreground="{DynamicResource TextSecondary}"
@@ -581,7 +727,7 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- Status Message -->
-                        <TextBlock Grid.Column="0"
+                        <TextBlock Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='start'}"
                                    Text="{Binding StatusMessage}"
                                    FontSize="{DynamicResource FontSizeExtraSmall}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
@@ -589,7 +735,7 @@
                                    VerticalAlignment="Center"/>
 
                         <!-- Count Info -->
-                        <TextBlock Grid.Column="1"
+                        <TextBlock Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='end'}"
                                    FontSize="{DynamicResource FontSizeExtraSmall}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
                                    Foreground="{DynamicResource TextSecondary}"
@@ -597,7 +743,7 @@
                             <Run Text="{Binding FilteredBrands.Count, Mode=OneWay}"/>
                             <Run Text="of"/>
                             <Run Text="{Binding TotalBrands, Mode=OneWay}"/>
-                            <Run Text="brands"/>
+                            <Run Text="{Binding BrandsCountText, Mode=OneWay}"/>
                         </TextBlock>
                     </Grid>
                 </Border>

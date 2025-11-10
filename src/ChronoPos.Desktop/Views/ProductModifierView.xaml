@@ -139,7 +139,7 @@
                             Margin="0,0,10,0"/>
                     </StackPanel>
 
-                    <TextBlock Text="Product Modifiers" 
+                    <TextBlock Text="{Binding PageTitle}" 
                                FontSize="{DynamicResource FontSizeLarge}"
                                FontWeight="Bold"
                                FontFamily="{DynamicResource PoppinsFontFallback}"
@@ -161,7 +161,7 @@
                         </StackPanel.Style>
                         <controls:RefreshButton 
                             Command="{Binding RefreshDataCommand}"
-                            ButtonText="Refresh"
+                            ButtonText="{Binding RefreshButtonText}"
                             ButtonIcon="🔄"
                             MinButtonWidth="120"
                             ButtonHeight="36"
@@ -174,10 +174,10 @@
                             <TextBlock>
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="Add Modifier Group"/>
+                                        <Setter Property="Text" Value="{Binding AddModifierGroupButtonText}"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding SelectedTabIndex}" Value="1">
-                                                <Setter Property="Text" Value="Add Modifier"/>
+                                                <Setter Property="Text" Value="{Binding AddModifierButtonText}"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -235,7 +235,7 @@
                                                     <ScrollViewer x:Name="PART_ContentHost" 
                                                                 Margin="{TemplateBinding Padding}"
                                                                 VerticalAlignment="Center"/>
-                                                    <TextBlock Text="Search modifiers..."
+                                                    <TextBlock Text="{Binding DataContext.SearchPlaceholder, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                              Margin="{TemplateBinding Padding}"
                                                              VerticalAlignment="Center"
                                                              Foreground="{DynamicResource TextSecondary}"
@@ -271,10 +271,10 @@
                             <TextBlock>
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="Active Only"/>
+                                        <Setter Property="Text" Value="{Binding ActiveOnlyButtonText}"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding ShowActiveOnly}" Value="True">
-                                                <Setter Property="Text" Value="Show All"/>
+                                                <Setter Property="Text" Value="{Binding ShowAllButtonText}"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -283,7 +283,7 @@
                         </Button.Content>
                     </Button>
 
-                    <Button Grid.Column="2" Content="Clear Filters" 
+                    <Button Grid.Column="2" Content="{Binding ClearFiltersButtonText}" 
                             Style="{StaticResource SmallActionButtonStyle}"
                             Command="{Binding ClearFiltersCommand}"/>
                 </Grid>
@@ -599,13 +599,13 @@
                                            FontSize="48" 
                                            HorizontalAlignment="Center" 
                                            Margin="0,0,0,10"/>
-                                <TextBlock Text="No modifier groups found"
+                                <TextBlock Text="{Binding NoModifierGroupsMessage}"
                                            FontSize="{DynamicResource FontSizeMedium}"
                                            FontFamily="{DynamicResource PoppinsFontFallback}"
                                            Foreground="{DynamicResource TextSecondary}"
                                            HorizontalAlignment="Center"
                                            Margin="0,0,0,5"/>
-                                <TextBlock Text="Click 'Add Modifier Group' to create your first group"
+                                <TextBlock Text="{Binding ClickAddToCreateGroupMessage}"
                                            FontSize="{DynamicResource FontSizeSmall}"
                                            FontFamily="{DynamicResource PoppinsFontFallback}"
                                            Foreground="{DynamicResource TextSecondary}"
@@ -902,13 +902,13 @@
                                            FontSize="48" 
                                            HorizontalAlignment="Center" 
                                            Margin="0,0,0,10"/>
-                                <TextBlock Text="No modifiers found"
+                                <TextBlock Text="{Binding NoModifiersMessage}"
                                            FontSize="{DynamicResource FontSizeMedium}"
                                            FontFamily="{DynamicResource PoppinsFontFallback}"
                                            Foreground="{DynamicResource TextSecondary}"
                                            HorizontalAlignment="Center"
                                            Margin="0,0,0,5"/>
-                                <TextBlock Text="Click 'Add Modifier' to create your first modifier"
+                                <TextBlock Text="{Binding ClickAddToCreateModifierMessage}"
                                            FontSize="{DynamicResource FontSizeSmall}"
                                            FontFamily="{DynamicResource PoppinsFontFallback}"
                                            Foreground="{DynamicResource TextSecondary}"

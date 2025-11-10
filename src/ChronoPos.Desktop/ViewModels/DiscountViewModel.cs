@@ -146,6 +146,28 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _columnActions = "Actions";
 
+    // Button Text
+    [ObservableProperty]
+    private string _importButtonText = "Import";
+
+    [ObservableProperty]
+    private string _exportButtonText = "Export";
+
+    [ObservableProperty]
+    private string _activeOnlyButtonText = "Active Only";
+
+    [ObservableProperty]
+    private string _clearFiltersButtonText = "Clear Filters";
+
+    [ObservableProperty]
+    private string _loadingText = "Loading discounts...";
+
+    [ObservableProperty]
+    private string _noDataText = "No discounts found";
+
+    [ObservableProperty]
+    private string _noDataHintText = "Click 'Add Discount' to create your first discount";
+
     // Action Tooltips
     [ObservableProperty]
     private string _editDiscountTooltip = "Edit Discount";
@@ -237,6 +259,12 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
         
         // Subscribe to property changes
         PropertyChanged += OnPropertyChanged;
+        
+        // Subscribe to layout direction changes
+        _layoutDirectionService.DirectionChanged += OnDirectionChanged;
+        
+        // Subscribe to language changes
+        _databaseLocalizationService.LanguageChanged += OnLanguageChanged;
         
         // Load data
         _ = Task.Run(LoadDiscountsAsync);
@@ -1192,6 +1220,15 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
             AddNewDiscountButtonText = await _databaseLocalizationService.GetTranslationAsync("discount.add_new") ?? "Add Discount";
             SearchPlaceholder = await _databaseLocalizationService.GetTranslationAsync("discount.search_placeholder") ?? "Search discounts...";
             
+            // Button text
+            ImportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.import") ?? "Import";
+            ExportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.export") ?? "Export";
+            ActiveOnlyButtonText = await _databaseLocalizationService.GetTranslationAsync("discount.active_only") ?? "Active Only";
+            ClearFiltersButtonText = await _databaseLocalizationService.GetTranslationAsync("discount.clear_filters") ?? "Clear Filters";
+            LoadingText = await _databaseLocalizationService.GetTranslationAsync("discount.loading") ?? "Loading discounts...";
+            NoDataText = await _databaseLocalizationService.GetTranslationAsync("discount.no_data") ?? "No discounts found";
+            NoDataHintText = await _databaseLocalizationService.GetTranslationAsync("discount.no_data_hint") ?? "Click 'Add Discount' to create your first discount";
+            
             // Column headers
             ColumnDiscountName = await _databaseLocalizationService.GetTranslationAsync("discount.column.name") ?? "Discount Name";
             ColumnDiscountCode = await _databaseLocalizationService.GetTranslationAsync("discount.column.code") ?? "Discount Code";
@@ -1207,6 +1244,24 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
             // Log error but don't throw - use default English text
             System.Diagnostics.Debug.WriteLine($"Error loading translations: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Handle layout direction changes
+    /// </summary>
+    private void OnDirectionChanged(LayoutDirection newDirection)
+    {
+        CurrentFlowDirection = newDirection == LayoutDirection.RightToLeft 
+            ? FlowDirection.RightToLeft 
+            : FlowDirection.LeftToRight;
+    }
+
+    /// <summary>
+    /// Handle language changes
+    /// </summary>
+    private void OnLanguageChanged(object? sender, string languageCode)
+    {
+        _ = Task.Run(LoadTranslationsAsync);
     }
 
     /// <summary>
@@ -1247,6 +1302,8 @@ public partial class DiscountViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         PropertyChanged -= OnPropertyChanged;
+        _layoutDirectionService.DirectionChanged -= OnDirectionChanged;
+        _databaseLocalizationService.LanguageChanged -= OnLanguageChanged;
         GC.SuppressFinalize(this);
     }
 
