@@ -52,6 +52,23 @@
     <SolidColorBrush x:Key="SurfaceBackground" Color="#3D4142"/>
     <SolidColorBrush x:Key="OverlayBackground" Color="#383C3D"/>
 
+    <!-- Compatibility / Alias keys (match LightTheme resource names used across the app) -->
+    <!-- PageBackground is used by many views as the root background -->
+    <SolidColorBrush x:Key="PageBackground" Color="#111315"/>
+
+    <!-- Card shadow color expected as a Color resource by DropShadowEffect in views -->
+    <Color x:Key="CardShadowColor">#000000</Color>
+
+    <!-- Accent and semantic aliases expected by views -->
+    <SolidColorBrush x:Key="AccentColor" Color="#E1AF23"/>
+    <SolidColorBrush x:Key="PrimaryColor" Color="#E1AF23"/>
+    <SolidColorBrush x:Key="SuccessGreen" Color="#37D101"/>
+    <SolidColorBrush x:Key="ErrorRed" Color="#E70000"/>
+
+    <!-- ChronoPos branded aliases used by some views (map to dark-theme friendly shades) -->
+    <SolidColorBrush x:Key="ChronoPosOrange" Color="#FFBD0F"/>
+    <SolidColorBrush x:Key="ChronoPosDarkGold" Color="#C19A1F"/>
+
     <!-- Text -->
     <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="TextSecondary" Color="#D9D9D9"/>

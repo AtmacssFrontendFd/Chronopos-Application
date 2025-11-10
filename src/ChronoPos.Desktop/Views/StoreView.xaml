@@ -116,30 +116,22 @@
             </Grid.ColumnDefinitions>
 
             <!-- Back Button and Title -->
-            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                <!-- Back Button -->
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <StackPanel.Style>
-                        <Style TargetType="StackPanel">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
-                                    <Setter Property="FlowDirection" Value="LeftToRight"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Style>
-                    <controls:CircularBackButton 
-                        Command="{Binding BackCommand}"
-                        ButtonSize="30"
-                        ButtonBackground="{DynamicResource SurfaceBackground}"
-                        ButtonForeground="{DynamicResource TextSecondary}"
-                        ButtonHoverBackground="{DynamicResource OverlayBackground}"
-                        ButtonHoverForeground="{DynamicResource TextSecondary}"
-                        Margin="0,0,10,0"/>
-                </StackPanel>
+            <StackPanel Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='start3'}" 
+                        Orientation="Horizontal" 
+                        VerticalAlignment="Center"
+                        FlowDirection="LeftToRight">
+                <controls:CircularBackButton 
+                    Command="{Binding BackCommand}"
+                    ButtonSize="30"
+                    ButtonBackground="{DynamicResource SurfaceBackground}"
+                    ButtonForeground="{DynamicResource TextSecondary}"
+                    ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                    ButtonHoverForeground="{DynamicResource TextSecondary}"
+                    FlowDirection="{Binding CurrentFlowDirection}"
+                    Margin="0,0,10,0"/>
 
                 <!-- Title -->
-                <TextBlock Text="Stores" 
+                <TextBlock Text="{Binding PageTitle}" 
                            FontSize="{DynamicResource FontSizeLarge}"
                            FontWeight="Bold"
                            FontFamily="{DynamicResource PoppinsFontFallback}"
@@ -148,43 +140,43 @@
             </StackPanel>
 
             <!-- Action Buttons -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
-                <!-- Refresh Button -->
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
-                    <StackPanel.Style>
-                        <Style TargetType="StackPanel">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
-                                    <Setter Property="FlowDirection" Value="LeftToRight"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Style>
-                    <controls:RefreshButton 
-                        Command="{Binding RefreshDataCommand}"
-                        ButtonText="Refresh"
-                        ButtonIcon="🔄"
-                        MinButtonWidth="120"
-                        ButtonHeight="36"
-                        Margin="0,0,10,0"/>
-                </StackPanel>
+            <StackPanel Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='end3'}" 
+                        Orientation="Horizontal" 
+                        VerticalAlignment="Center" 
+                        HorizontalAlignment="Right"
+                        FlowDirection="LeftToRight">
+                <controls:RefreshButton 
+                    Command="{Binding RefreshDataCommand}"
+                    ButtonText="{Binding RefreshButtonText}"
+                    ButtonIcon="🔄"
+                    MinButtonWidth="120"
+                    ButtonHeight="36"
+                    Margin="0,0,10,0"/>
 
                 <!-- Import Button -->
-                <Button Content="📥 Import"
-                        Style="{StaticResource ActionButtonStyle}"
+                <Button Style="{StaticResource ActionButtonStyle}"
                         Command="{Binding ImportCommand}"
                         Visibility="{Binding CanImportStore, Converter={StaticResource BooleanToVisibilityConverter}}"
-                        Margin="0,0,10,0"/>
+                        Margin="0,0,10,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📥" FontSize="16" Margin="0,0,5,0"/>
+                        <TextBlock Text="{Binding ImportButtonText}"/>
+                    </StackPanel>
+                </Button>
 
                 <!-- Export Button -->
-                <Button Content="📤 Export"
-                        Style="{StaticResource ActionButtonStyle}"
+                <Button Style="{StaticResource ActionButtonStyle}"
                         Command="{Binding ExportCommand}"
                         Visibility="{Binding CanExportStore, Converter={StaticResource BooleanToVisibilityConverter}}"
-                        Margin="0,0,10,0"/>
+                        Margin="0,0,10,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📤" FontSize="16" Margin="0,0,5,0"/>
+                        <TextBlock Text="{Binding ExportButtonText}"/>
+                    </StackPanel>
+                </Button>
 
                 <!-- Add Store Button -->
-                <Button Content="Add Store"
+                <Button Content="{Binding AddStoreButtonText}"
                         Style="{StaticResource ActionButtonStyle}"
                         Command="{Binding AddStoreCommand}"
                         Visibility="{Binding CanCreateStore, Converter={StaticResource BooleanToVisibilityConverter}}"/>
@@ -224,7 +216,7 @@
                                                 <ScrollViewer x:Name="PART_ContentHost" 
                                                             Margin="{TemplateBinding Padding}"
                                                             VerticalAlignment="Center"/>
-                                                <TextBlock Text="Search stores..."
+                                                <TextBlock Text="{Binding DataContext.SearchPlaceholder, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                          Margin="{TemplateBinding Padding}"
                                                          VerticalAlignment="Center"
                                                          Foreground="{DynamicResource TextSecondary}"
@@ -260,10 +252,10 @@
                         <TextBlock>
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="Text" Value="Active Only"/>
+                                    <Setter Property="Text" Value="{Binding ActiveOnlyButtonText}"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding ShowActiveOnly}" Value="True">
-                                            <Setter Property="Text" Value="Show All"/>
+                                            <Setter Property="Text" Value="{Binding ShowAllButtonText}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -272,7 +264,7 @@
                     </Button.Content>
                 </Button>
 
-                <Button Grid.Column="2" Content="Clear Filters" 
+                <Button Grid.Column="2" Content="{Binding ClearFiltersButtonText}" 
                         Style="{StaticResource SmallActionButtonStyle}"
                         Command="{Binding ClearFiltersCommand}"/>
             </Grid>
@@ -288,7 +280,7 @@
 
                 <!-- Loading Indicator -->
                 <Grid Grid.Row="0" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <TextBlock Text="Loading stores..."
+                    <TextBlock Text="{Binding LoadingMessage}"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
                                FontSize="{DynamicResource FontSizeMedium}"
@@ -369,7 +361,7 @@
 
                     <DataGrid.Columns>
                         <!-- Name Column -->
-                        <DataGridTextColumn Header="Name" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnName, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding Name}" 
                                             Width="180"
                                             MinWidth="150">
@@ -378,12 +370,13 @@
                                     <Setter Property="FontWeight" Value="SemiBold"/>
                                     <Setter Property="VerticalAlignment" Value="Center"/>
                                     <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
                         <!-- Address Column -->
-                        <DataGridTextColumn Header="Address" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnAddress, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding AddressDisplay}" 
                                             Width="250"
                                             MinWidth="200">
@@ -391,48 +384,52 @@
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
                                     <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
                         <!-- Phone Number Column -->
-                        <DataGridTextColumn Header="Phone" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnPhone, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding PhoneNumberDisplay}" 
                                             Width="120"
                                             MinWidth="100">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
                         <!-- Email Column -->
-                        <DataGridTextColumn Header="Email" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnEmail, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding EmailDisplay}" 
                                             Width="180"
                                             MinWidth="150">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
                         <!-- Manager Column -->
-                        <DataGridTextColumn Header="Manager" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnManager, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding ManagerNameDisplay}" 
                                             Width="140"
                                             MinWidth="120">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
                         <!-- Default Column -->
-                        <DataGridTemplateColumn Header="Default" Width="80">
+                        <DataGridTemplateColumn Header="{Binding DataContext.ColumnDefault, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="80">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Border CornerRadius="12"
@@ -459,7 +456,7 @@
                         </DataGridTemplateColumn>
 
                         <!-- Status Column -->
-                        <DataGridTemplateColumn Header="Status" Width="100">
+                        <DataGridTemplateColumn Header="{Binding DataContext.ColumnStatus, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="100">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Border CornerRadius="12"
@@ -486,7 +483,7 @@
                         </DataGridTemplateColumn>
 
                         <!-- Discounts Column -->
-                        <DataGridTemplateColumn Header="Discounts" Width="300" MinWidth="200">
+                        <DataGridTemplateColumn Header="{Binding DataContext.ColumnDiscounts, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="300" MinWidth="200">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <ItemsControl ItemsSource="{Binding DiscountPills}" 
@@ -516,7 +513,7 @@
                         </DataGridTemplateColumn>
 
                         <!-- Toggle Active Column -->
-                        <DataGridTemplateColumn Header="Active" Width="80">
+                        <DataGridTemplateColumn Header="{Binding DataContext.ActiveLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="80">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <ToggleButton IsChecked="{Binding IsActive, Mode=OneWay}"
@@ -559,28 +556,28 @@
                         </DataGridTemplateColumn>
 
                         <!-- Actions Column -->
-                        <DataGridTemplateColumn Header="Actions" Width="200">
+                        <DataGridTemplateColumn Header="{Binding DataContext.ColumnActions, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="200">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Edit" 
+                                        <Button Content="{Binding DataContext.EditButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.EditStoreCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Visibility="{Binding DataContext.CanEditStore, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                 Margin="2"/>
-                                        <Button Content="Delete" 
+                                        <Button Content="{Binding DataContext.DeleteButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.DeleteStoreCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Visibility="{Binding DataContext.CanDeleteStore, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                 Foreground="Red"
                                                 Margin="2"/>
-                                        <Button Content="Default" 
+                                        <Button Content="{Binding DataContext.DefaultButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.SetAsDefaultCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
-                                                ToolTip="Set as Default"
+                                                ToolTip="{Binding DataContext.SetAsDefaultTooltip, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 Margin="2"/>
                                     </StackPanel>
                                 </DataTemplate>
@@ -597,13 +594,13 @@
                                    FontSize="48" 
                                    HorizontalAlignment="Center" 
                                    Margin="0,0,0,10"/>
-                        <TextBlock Text="No stores found"
+                        <TextBlock Text="{Binding NoDataMessage}"
                                    FontSize="{DynamicResource FontSizeMedium}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
                                    Foreground="{DynamicResource TextSecondary}"
                                    HorizontalAlignment="Center"
                                    Margin="0,0,0,5"/>
-                        <TextBlock Text="Click 'Add Store' to create your first store"
+                        <TextBlock Text="{Binding NoDataHint}"
                                    FontSize="{DynamicResource FontSizeSmall}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
                                    Foreground="{DynamicResource TextSecondary}"
@@ -639,9 +636,9 @@
                                    Foreground="{DynamicResource TextSecondary}"
                                    VerticalAlignment="Center">
                             <Run Text="{Binding FilteredStores.Count, Mode=OneWay}"/>
-                            <Run Text="of"/>
+                            <Run Text="{Binding OfText}"/>
                             <Run Text="{Binding TotalStores, Mode=OneWay}"/>
-                            <Run Text="stores"/>
+                            <Run Text="{Binding ItemsCountText}"/>
                         </TextBlock>
                     </Grid>
                 </Border>

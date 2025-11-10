@@ -1,33 +1,129 @@
 using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.Views.Dialogs;
+using CommunityToolkit.Mvvm.ComponentModel;
+using InfrastructureServices = ChronoPos.Infrastructure.Services;
 
 namespace ChronoPos.Desktop.Views.Dialogs
 {
-    public partial class RefundDialog : Window
+    public partial class RefundDialog : Window, INotifyPropertyChanged
     {
         private readonly TransactionDto _transaction;
         private readonly decimal _taxPercentage;
         private readonly IRefundService _refundService;
         private readonly ICurrentUserService _currentUserService;
         private readonly IActiveCurrencyService _activeCurrencyService;
+        private readonly IProductService _productService;
+        private readonly InfrastructureServices.IDatabaseLocalizationService _localizationService;
+        private readonly ILayoutDirectionService _layoutDirectionService;
         private readonly ObservableCollection<RefundItemModel> _refundItems;
 
         public bool IsConfirmed { get; private set; }
         public decimal RefundAmount { get; private set; }
         public IActiveCurrencyService ActiveCurrencyService => _activeCurrencyService;
 
+        // Translation Properties
+        private string _processRefundTitle = "Process Refund";
+        public string ProcessRefundTitle
+        {
+            get => _processRefundTitle;
+            set { _processRefundTitle = value; OnPropertyChanged(); }
+        }
+
+        private string _selectItemsLabel = "Select Items to Refund";
+        public string SelectItemsLabel
+        {
+            get => _selectItemsLabel;
+            set { _selectItemsLabel = value; OnPropertyChanged(); }
+        }
+
+        private string _unitPriceLabel = "Unit Price:";
+        public string UnitPriceLabel
+        {
+            get => _unitPriceLabel;
+            set { _unitPriceLabel = value; OnPropertyChanged(); }
+        }
+
+        private string _originalQtyLabel = "Original Qty:";
+        public string OriginalQtyLabel
+        {
+            get => _originalQtyLabel;
+            set { _originalQtyLabel = value; OnPropertyChanged(); }
+        }
+
+        private string _refundQtyLabel = "Refund Qty:";
+        public string RefundQtyLabel
+        {
+            get => _refundQtyLabel;
+            set { _refundQtyLabel = value; OnPropertyChanged(); }
+        }
+
+        private string _refundSummaryLabel = "Refund Summary";
+        public string RefundSummaryLabel
+        {
+            get => _refundSummaryLabel;
+            set { _refundSummaryLabel = value; OnPropertyChanged(); }
+        }
+
+        private string _subtotalLabel = "Subtotal:";
+        public string SubtotalLabel
+        {
+            get => _subtotalLabel;
+            set { _subtotalLabel = value; OnPropertyChanged(); }
+        }
+
+        private string _taxVatLabel = "Tax/VAT:";
+        public string TaxVatLabel
+        {
+            get => _taxVatLabel;
+            set { _taxVatLabel = value; OnPropertyChanged(); }
+        }
+
+        private string _totalRefundLabel = "Total Refund:";
+        public string TotalRefundLabel
+        {
+            get => _totalRefundLabel;
+            set { _totalRefundLabel = value; OnPropertyChanged(); }
+        }
+
+        private string _cancelButtonLabel = "Cancel";
+        public string CancelButtonLabel
+        {
+            get => _cancelButtonLabel;
+            set { _cancelButtonLabel = value; OnPropertyChanged(); }
+        }
+
+        private string _confirmRefundButtonLabel = "Confirm Refund";
+        public string ConfirmRefundButtonLabel
+        {
+            get => _confirmRefundButtonLabel;
+            set { _confirmRefundButtonLabel = value; OnPropertyChanged(); }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
         public RefundDialog(
             TransactionDto transaction,
             IRefundService refundService,
             ICurrentUserService currentUserService,
-            IActiveCurrencyService activeCurrencyService)
+            IActiveCurrencyService activeCurrencyService,
+            IProductService productService,
+            InfrastructureServices.IDatabaseLocalizationService localizationService,
+            ILayoutDirectionService layoutDirectionService)
         {
             InitializeComponent();
 
@@ -35,6 +131,9 @@ namespace ChronoPos.Desktop.Views.Dialogs
             _refundService = refundService ?? throw new ArgumentNullException(nameof(refundService));
             _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
             _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
+            _productService = productService ?? throw new ArgumentNullException(nameof(productService));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+            _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
             _taxPercentage = transaction.Vat;
 
             // Set DataContext for bindings
@@ -43,11 +142,35 @@ namespace ChronoPos.Desktop.Views.Dialogs
             // Initialize refund items collection
             _refundItems = new ObservableCollection<RefundItemModel>();
 
-            // Load transaction data
+            // Load translations and then data
+            _ = InitializeAsync();
+        }
+
+        private async Task InitializeAsync()
+        {
+            await LoadTranslationsAsync();
             LoadTransactionData();
         }
 
-        private void LoadTransactionData()
+        private async Task LoadTranslationsAsync()
+        {
+            ProcessRefundTitle = await _localizationService.GetTranslationAsync("refund_dialog_title");
+            SelectItemsLabel = await _localizationService.GetTranslationAsync("refund_dialog_select_items");
+            UnitPriceLabel = await _localizationService.GetTranslationAsync("refund_dialog_unit_price");
+            OriginalQtyLabel = await _localizationService.GetTranslationAsync("refund_dialog_original_qty");
+            RefundQtyLabel = await _localizationService.GetTranslationAsync("refund_dialog_refund_qty");
+            RefundSummaryLabel = await _localizationService.GetTranslationAsync("refund_dialog_summary");
+            SubtotalLabel = await _localizationService.GetTranslationAsync("refund_dialog_subtotal");
+            TaxVatLabel = await _localizationService.GetTranslationAsync("refund_dialog_tax_vat");
+            TotalRefundLabel = await _localizationService.GetTranslationAsync("refund_dialog_total_refund");
+            CancelButtonLabel = await _localizationService.GetTranslationAsync("refund_dialog_cancel_button");
+            ConfirmRefundButtonLabel = await _localizationService.GetTranslationAsync("refund_dialog_confirm_button");
+
+            // Update UI elements that can't be bound
+            Title = ProcessRefundTitle;
+        }
+
+        private async void LoadTransactionData()
         {
             // Set transaction header info
             TransactionInfoText.Text = $"Transaction #{_transaction.Id:D4} | Customer: {_transaction.CustomerName ?? "Walk-in"}";
@@ -56,14 +179,17 @@ namespace ChronoPos.Desktop.Views.Dialogs
             TransactionStatusText.Text = _transaction.Status?.ToUpper() ?? "SETTLED";
 
             // Load transaction products into refund items
-            foreach (var product in _transaction.TransactionProducts)
+            foreach (var transactionProduct in _transaction.TransactionProducts)
             {
-                // Build product name with modifiers
-                string productNameWithModifiers = product.ProductName ?? "Unknown Product";
+                // Get product details to check CanReturn property
+                var product = await _productService.GetProductByIdAsync(transactionProduct.ProductId);
                 
-                if (product.Modifiers != null && product.Modifiers.Any())
+                // Build product name with modifiers
+                string productNameWithModifiers = transactionProduct.ProductName ?? "Unknown Product";
+                
+                if (transactionProduct.Modifiers != null && transactionProduct.Modifiers.Any())
                 {
-                    var modifierNames = product.Modifiers
+                    var modifierNames = transactionProduct.Modifiers
                         .Select(m => m.ModifierName)
                         .Where(name => !string.IsNullOrEmpty(name));
                     
@@ -75,13 +201,14 @@ namespace ChronoPos.Desktop.Views.Dialogs
 
                 var refundItem = new RefundItemModel
                 {
-                    TransactionProductId = product.Id,
-                    ProductId = product.ProductId,
+                    TransactionProductId = transactionProduct.Id,
+                    ProductId = transactionProduct.ProductId,
                     ProductName = productNameWithModifiers,
-                    UnitPrice = product.SellingPrice,
-                    MaxRefundQuantity = (int)product.Quantity,
+                    UnitPrice = transactionProduct.SellingPrice,
+                    MaxRefundQuantity = (int)transactionProduct.Quantity,
                     RefundQuantity = 0,
-                    IsSelected = false
+                    IsSelected = false,
+                    CanReturn = product?.CanReturn ?? true // Store CanReturn flag
                 };
 
                 refundItem.PropertyChanged += RefundItem_PropertyChanged;
@@ -131,6 +258,25 @@ namespace ChronoPos.Desktop.Views.Dialogs
         {
             if (sender is Button button && button.Tag is RefundItemModel item)
             {
+                // Check if product can be returned
+                if (!item.CanReturn && item.RefundQuantity == 0)
+                {
+                    // Show warning dialog
+                    var confirmDialog = new ConfirmationDialog(
+                        "Product Return Not Allowed",
+                        $"The product '{item.ProductName}' is marked as non-returnable.\n\n" +
+                        $"Do you still want to proceed with the refund for this item?",
+                        ConfirmationDialog.DialogType.Warning);
+                    
+                    var result = confirmDialog.ShowDialog();
+                    
+                    if (result != true)
+                    {
+                        // User declined, don't allow refund
+                        return;
+                    }
+                }
+                
                 if (item.RefundQuantity < item.MaxRefundQuantity)
                 {
                     item.RefundQuantity++;
@@ -257,6 +403,7 @@ namespace ChronoPos.Desktop.Views.Dialogs
         public string ProductName { get; set; } = string.Empty;
         public decimal UnitPrice { get; set; }
         public int MaxRefundQuantity { get; set; }
+        public bool CanReturn { get; set; } = true; // Product's CanReturn setting
 
         public bool IsSelected
         {

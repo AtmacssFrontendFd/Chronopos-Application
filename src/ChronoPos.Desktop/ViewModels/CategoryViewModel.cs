@@ -19,6 +19,7 @@ using CommunityToolkit.Mvvm.Input;
 using System.Windows;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Desktop.Views.Dialogs;
+using ChronoPos.Infrastructure.Services;
 
 namespace ChronoPos.Desktop.ViewModels
 {
@@ -29,6 +30,7 @@ namespace ChronoPos.Desktop.ViewModels
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<CategoryViewModel> _logger;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IDatabaseLocalizationService _localizationService;
         private readonly Action? _navigateBack;
 
         // Cache for discount information to avoid repeated service calls
@@ -71,12 +73,77 @@ namespace ChronoPos.Desktop.ViewModels
         [ObservableProperty]
         private bool canExportCategory = false;
 
+        // Localized Text Properties
+        [ObservableProperty]
+        private string pageTitle = "Categories";
+
+        [ObservableProperty]
+        private string searchPlaceholder = "Search categories...";
+
+        [ObservableProperty]
+        private string refreshButtonText = "Refresh";
+
+        [ObservableProperty]
+        private string importButtonText = "Import";
+
+        [ObservableProperty]
+        private string exportButtonText = "Export";
+
+        [ObservableProperty]
+        private string addCategoryButtonText = "Add Category";
+
+        [ObservableProperty]
+        private string columnName = "Name";
+
+        [ObservableProperty]
+        private string columnArabicName = "Arabic Name";
+
+        [ObservableProperty]
+        private string columnDescription = "Description";
+
+        [ObservableProperty]
+        private string columnProducts = "Products";
+
+        [ObservableProperty]
+        private string columnDiscounts = "Discounts";
+
+        [ObservableProperty]
+        private string columnStatus = "Status";
+
+        [ObservableProperty]
+        private string columnActions = "Actions";
+
+        [ObservableProperty]
+        private string editButtonText = "Edit";
+
+        [ObservableProperty]
+        private string deleteButtonText = "Delete";
+
+        [ObservableProperty]
+        private string addSubCategoryButtonText = "Add Subcategory";
+
+        [ObservableProperty]
+        private string noCategoriesFoundText = "No categories found";
+
+        [ObservableProperty]
+        private string noCategoriesMessageText = "Click 'Add Category' to create your first category";
+
+        [ObservableProperty]
+        private string categoriesCountText = "categories";
+
+        [ObservableProperty]
+        private string activeText = "Active";
+
+        [ObservableProperty]
+        private string inactiveText = "Inactive";
+
         public CategoryViewModel(
             IProductService productService,
             IDiscountService discountService,
             IServiceProvider serviceProvider,
             ILogger<CategoryViewModel> logger,
             ICurrentUserService currentUserService,
+            IDatabaseLocalizationService localizationService,
             Action? navigateBack = null)
         {
             _productService = productService ?? throw new ArgumentNullException(nameof(productService));
@@ -84,6 +151,7 @@ namespace ChronoPos.Desktop.ViewModels
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
             _navigateBack = navigateBack;
 
             // Initialize permissions
@@ -102,6 +170,9 @@ namespace ChronoPos.Desktop.ViewModels
 
             // Subscribe to property changes for search
             PropertyChanged += OnPropertyChanged;
+
+            // Load localized texts
+            _ = LoadLocalizedTextsAsync();
 
             // Load initial data
             _ = LoadCategoriesAsync();
@@ -544,6 +615,51 @@ namespace ChronoPos.Desktop.ViewModels
                 CanImportCategory = false;
                 CanExportCategory = false;
             }
+        }
+
+        private async Task LoadLocalizedTextsAsync()
+        {
+            try
+            {
+                PageTitle = await _localizationService.GetTranslationAsync("category.page_title") ?? "Categories";
+                SearchPlaceholder = await _localizationService.GetTranslationAsync("category.search_placeholder") ?? "Search categories...";
+                RefreshButtonText = await _localizationService.GetTranslationAsync("common.refresh") ?? "Refresh";
+                ImportButtonText = await _localizationService.GetTranslationAsync("common.import") ?? "Import";
+                ExportButtonText = await _localizationService.GetTranslationAsync("common.export") ?? "Export";
+                AddCategoryButtonText = await _localizationService.GetTranslationAsync("category.add_category") ?? "Add Category";
+                
+                // Column headers
+                ColumnName = await _localizationService.GetTranslationAsync("category.column.name") ?? "Name";
+                ColumnArabicName = await _localizationService.GetTranslationAsync("category.column.arabic_name") ?? "Arabic Name";
+                ColumnDescription = await _localizationService.GetTranslationAsync("category.column.description") ?? "Description";
+                ColumnProducts = await _localizationService.GetTranslationAsync("category.column.products") ?? "Products";
+                ColumnDiscounts = await _localizationService.GetTranslationAsync("category.column.discounts") ?? "Discounts";
+                ColumnStatus = await _localizationService.GetTranslationAsync("category.column.status") ?? "Status";
+                ColumnActions = await _localizationService.GetTranslationAsync("category.column.actions") ?? "Actions";
+                
+                // Action buttons
+                EditButtonText = await _localizationService.GetTranslationAsync("common.edit") ?? "Edit";
+                DeleteButtonText = await _localizationService.GetTranslationAsync("common.delete") ?? "Delete";
+                AddSubCategoryButtonText = await _localizationService.GetTranslationAsync("category.add_subcategory") ?? "Add Subcategory";
+                
+                // Messages
+                NoCategoriesFoundText = await _localizationService.GetTranslationAsync("category.no_categories_found") ?? "No categories found";
+                NoCategoriesMessageText = await _localizationService.GetTranslationAsync("category.no_categories_message") ?? "Click 'Add Category' to create your first category";
+                CategoriesCountText = await _localizationService.GetTranslationAsync("category.categories_count") ?? "categories";
+                
+                // Status text
+                ActiveText = await _localizationService.GetTranslationAsync("common.active") ?? "Active";
+                InactiveText = await _localizationService.GetTranslationAsync("common.inactive") ?? "Inactive";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading localized texts for CategoryViewModel");
+            }
+        }
+
+        public async Task RefreshTranslationsAsync()
+        {
+            await LoadLocalizedTextsAsync();
         }
 
         private async Task ExportAsync()

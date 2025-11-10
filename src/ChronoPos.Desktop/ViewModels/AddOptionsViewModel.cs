@@ -35,6 +35,17 @@ public partial class AddOptionsViewModel : ObservableObject
     private readonly ICustomerGroupService _customerGroupService;
     private readonly ISupplierService _supplierService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ICategoryService _categoryService;
+    private readonly IProductAttributeService _productAttributeService;
+    private readonly IProductCombinationItemService _productCombinationItemService;
+    private readonly IDiscountService _discountService;
+    private readonly IProductGroupService _productGroupService;
+    private readonly IPaymentTypeService _paymentTypeService;
+    private readonly IBrandService _brandService;
+    private readonly IUomService _uomService;
+    private readonly IStoreService _storeService;
+    private readonly ICurrencyService _currencyService;
+    private readonly IProductModifierService _productModifierService;
 
     #endregion
 
@@ -81,6 +92,12 @@ public partial class AddOptionsViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
+
+    /// <summary>
+    /// Refresh button text with localization support
+    /// </summary>
+    [ObservableProperty]
+    private string _refreshButtonText = "Refresh";
 
     /// <summary>
     /// Visibility flag for Brand module
@@ -260,7 +277,18 @@ public partial class AddOptionsViewModel : ObservableObject
         ICustomerService customerService,
         ICustomerGroupService customerGroupService,
         ISupplierService supplierService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ICategoryService categoryService,
+        IProductAttributeService productAttributeService,
+        IProductCombinationItemService productCombinationItemService,
+        IDiscountService discountService,
+        IProductGroupService productGroupService,
+        IPaymentTypeService paymentTypeService,
+        IBrandService brandService,
+        IUomService uomService,
+        IStoreService storeService,
+        ICurrencyService currencyService,
+        IProductModifierService productModifierService)
     {
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
@@ -274,6 +302,17 @@ public partial class AddOptionsViewModel : ObservableObject
         _customerGroupService = customerGroupService ?? throw new ArgumentNullException(nameof(customerGroupService));
         _supplierService = supplierService ?? throw new ArgumentNullException(nameof(supplierService));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _categoryService = categoryService ?? throw new ArgumentNullException(nameof(categoryService));
+        _productAttributeService = productAttributeService ?? throw new ArgumentNullException(nameof(productAttributeService));
+        _productCombinationItemService = productCombinationItemService ?? throw new ArgumentNullException(nameof(productCombinationItemService));
+        _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
+        _productGroupService = productGroupService ?? throw new ArgumentNullException(nameof(productGroupService));
+        _paymentTypeService = paymentTypeService ?? throw new ArgumentNullException(nameof(paymentTypeService));
+        _brandService = brandService ?? throw new ArgumentNullException(nameof(brandService));
+        _uomService = uomService ?? throw new ArgumentNullException(nameof(uomService));
+        _storeService = storeService ?? throw new ArgumentNullException(nameof(storeService));
+        _currencyService = currencyService ?? throw new ArgumentNullException(nameof(currencyService));
+        _productModifierService = productModifierService ?? throw new ArgumentNullException(nameof(productModifierService));
 
         // Subscribe to service events (commented out until proper event signatures are confirmed)
         // _themeService.ThemeChanged += OnThemeChanged;
@@ -405,8 +444,9 @@ public partial class AddOptionsViewModel : ObservableObject
                     }
                 }
                 
-                // Update page title
+                // Update page title and refresh button text
                 PageTitle = await _databaseLocalizationService.GetTranslationAsync("add_options.page_title") ?? "Others";
+                RefreshButtonText = await _databaseLocalizationService.GetTranslationAsync("add_options.refresh_button") ?? "Refresh";
             });
         }
         catch (Exception ex)
@@ -442,76 +482,83 @@ public partial class AddOptionsViewModel : ObservableObject
     {
         try
         {
-            // Get the Brand service from the service provider if available
-            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
-            if (serviceProvider != null)
-            {
-                var brandService = serviceProvider.GetService<IBrandService>();
-                if (brandService != null)
-                {
-                    var brands = await brandService.GetAllAsync();
-                    return brands.Count();
-                }
-            }
+            var brands = await _brandService.GetAllAsync();
+            return brands.Count();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error getting Brand count: {ex.Message}");
+            return 0;
         }
-        
-        // Fallback to mock data
-        await Task.Delay(50);
-        return 45; // Mock count
     }
 
     private async Task<int> GetCategoryCountAsync()
     {
-        await Task.Delay(50);
-        return 28;
+        try
+        {
+            var categories = await _categoryService.GetAllAsync();
+            return categories.Count();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting Category count: {ex.Message}");
+            return 0;
+        }
     }
 
     private async Task<int> GetProductAttributesCountAsync()
     {
-        await Task.Delay(50);
-        return 67;
+        try
+        {
+            var attributes = await _productAttributeService.GetAllAttributesAsync();
+            return attributes.Count();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting ProductAttributes count: {ex.Message}");
+            return 0;
+        }
     }
 
     private async Task<int> GetProductModifiersCountAsync()
     {
         try
         {
-            // Get the ProductModifier service from the service provider if available
-            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
-            if (serviceProvider != null)
-            {
-                var modifierService = serviceProvider.GetService<IProductModifierService>();
-                if (modifierService != null)
-                {
-                    var modifiers = await modifierService.GetAllAsync();
-                    return modifiers.Count();
-                }
-            }
+            var modifiers = await _productModifierService.GetAllAsync();
+            return modifiers.Count();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error getting ProductModifier count: {ex.Message}");
+            return 0;
         }
-        
-        // Fallback to mock data
-        await Task.Delay(50);
-        return 0;
     }
 
     private async Task<int> GetProductCombinationsCountAsync()
     {
-        await Task.Delay(50);
-        return 134;
+        try
+        {
+            var combinations = await _productCombinationItemService.GetAllCombinationItemsAsync();
+            return combinations.Count();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting ProductCombinations count: {ex.Message}");
+            return 0;
+        }
     }
 
     private async Task<int> GetProductGroupingCountAsync()
     {
-        await Task.Delay(50);
-        return 15;
+        try
+        {
+            return await _productGroupService.GetCountAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting ProductGrouping count: {ex.Message}");
+            return 0;
+        }
     }
 
     private async Task<int> GetPriceTypesCountAsync()
@@ -537,13 +584,11 @@ public partial class AddOptionsViewModel : ObservableObject
     {
         try
         {
-            // For now, return a placeholder count
-            // TODO: Inject IPaymentTypeService and get real count
-            await Task.Delay(50);
-            return 6; // Number of seeded payment types
+            return await _paymentTypeService.GetCountAsync();
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"Error getting PaymentTypes count: {ex.Message}");
             return 0;
         }
     }
@@ -591,52 +636,28 @@ public partial class AddOptionsViewModel : ObservableObject
     {
         try
         {
-            // Get the UOM service from the service provider if available
-            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
-            if (serviceProvider != null)
-            {
-                var uomService = serviceProvider.GetService<IUomService>();
-                if (uomService != null)
-                {
-                    var uoms = await uomService.GetAllAsync();
-                    return uoms.Count();
-                }
-            }
+            var uoms = await _uomService.GetAllAsync();
+            return uoms.Count();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error getting UOM count: {ex.Message}");
+            return 0;
         }
-        
-        // Fallback to mock data
-        await Task.Delay(50);
-        return 18;
     }
 
     private async Task<int> GetShopCountAsync()
     {
         try
         {
-            // Get the Store service from the service provider if available
-            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
-            if (serviceProvider != null)
-            {
-                var storeService = serviceProvider.GetService<IStoreService>();
-                if (storeService != null)
-                {
-                    var stores = await storeService.GetAllAsync();
-                    return stores.Count();
-                }
-            }
+            var stores = await _storeService.GetAllAsync();
+            return stores.Count();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error getting Store count: {ex.Message}");
+            return 0;
         }
-        
-        // Fallback to mock data
-        await Task.Delay(50);
-        return 3; // Mock count
     }
 
     private async Task<int> GetCustomerGroupsCountAsync()
@@ -657,34 +678,30 @@ public partial class AddOptionsViewModel : ObservableObject
 
     private async Task<int> GetDiscountsCountAsync()
     {
-        await Task.Delay(50);
-        return 31;
+        try
+        {
+            var discounts = await _discountService.GetAllAsync();
+            return discounts.Count();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting Discounts count: {ex.Message}");
+            return 0;
+        }
     }
 
     private async Task<int> GetCurrencyCountAsync()
     {
         try
         {
-            // Get the Currency service from the service provider if available
-            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
-            if (serviceProvider != null)
-            {
-                var currencyService = serviceProvider.GetService<ICurrencyService>();
-                if (currencyService != null)
-                {
-                    var currencies = await currencyService.GetAllAsync();
-                    return currencies.Count();
-                }
-            }
+            var currencies = await _currencyService.GetAllAsync();
+            return currencies.Count();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error getting Currency count: {ex.Message}");
+            return 0;
         }
-        
-        // Fallback to mock data
-        await Task.Delay(50);
-        return 6; // Mock count (USD, EUR, GBP, AED, SAR, INR)
     }
 
     #endregion

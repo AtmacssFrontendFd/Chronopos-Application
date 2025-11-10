@@ -15,14 +15,17 @@ using System.Windows.Data;
 using Microsoft.Win32;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.Views.Dialogs;
+using InfrastructureServices = ChronoPos.Infrastructure.Services;
 
 namespace ChronoPos.Desktop.ViewModels;
 
-public partial class CurrencyViewModel : ObservableObject
+public partial class CurrencyViewModel : ObservableObject, IDisposable
 {
     private readonly ICurrencyService _currencyService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IActiveCurrencyService _activeCurrencyService;
+    private readonly ILayoutDirectionService _layoutDirectionService;
+    private readonly InfrastructureServices.IDatabaseLocalizationService _databaseLocalizationService;
     private readonly Action? _navigateBack;
 
     [ObservableProperty]
@@ -55,6 +58,51 @@ public partial class CurrencyViewModel : ObservableObject
     [ObservableProperty]
     private string pageTitle = "Currency Management";
 
+    [ObservableProperty]
+    private string backButtonText = "Back";
+
+    [ObservableProperty]
+    private string refreshButtonText = "Refresh";
+
+    [ObservableProperty]
+    private string addCurrencyButtonText = "Add Currency";
+
+    [ObservableProperty]
+    private string importButtonText = "Import";
+
+    [ObservableProperty]
+    private string exportButtonText = "Export";
+
+    [ObservableProperty]
+    private string loadingText = "Loading currencies...";
+
+    [ObservableProperty]
+    private string noDataText = "No currencies found";
+
+    [ObservableProperty]
+    private string noDataHintText = "Click 'Add Currency' to create your first currency";
+
+    [ObservableProperty]
+    private string itemsCountText = "currencies";
+
+    [ObservableProperty]
+    private string columnCurrencyName = "Currency Name";
+
+    [ObservableProperty]
+    private string columnCurrencyCode = "Code";
+
+    [ObservableProperty]
+    private string columnCurrencySymbol = "Symbol";
+
+    [ObservableProperty]
+    private string columnExchangeRate = "Exchange Rate";
+
+    [ObservableProperty]
+    private string columnIsDefault = "Default";
+
+    [ObservableProperty]
+    private string columnActions = "Actions";
+
     // Permission Properties
     [ObservableProperty]
     private bool canCreateCurrency = false;
@@ -85,15 +133,26 @@ public partial class CurrencyViewModel : ObservableObject
     [ObservableProperty]
     private StatusFilterOption? selectedStatusFilter;
 
-    public CurrencyViewModel(ICurrencyService currencyService, ICurrentUserService currentUserService, IActiveCurrencyService activeCurrencyService, Action? navigateBack = null)
+    public CurrencyViewModel(
+        ICurrencyService currencyService, 
+        ICurrentUserService currentUserService, 
+        IActiveCurrencyService activeCurrencyService,
+        ILayoutDirectionService layoutDirectionService,
+        InfrastructureServices.IDatabaseLocalizationService databaseLocalizationService,
+        Action? navigateBack = null)
     {
         _currencyService = currencyService;
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
+        _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
+        _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
         _navigateBack = navigateBack;
         
         // Initialize permissions
         InitializePermissions();
+        
+        // Initialize current settings
+        InitializeCurrentSettings();
         
         // Initialize status filters
         InitializeStatusFilters();
@@ -105,8 +164,17 @@ public partial class CurrencyViewModel : ObservableObject
         // Subscribe to property changes
         PropertyChanged += OnPropertyChanged;
         
+        // Subscribe to layout direction changes
+        _layoutDirectionService.DirectionChanged += OnDirectionChanged;
+        
+        // Subscribe to language changes
+        _databaseLocalizationService.LanguageChanged += OnLanguageChanged;
+        
         // Load currencies on startup
         _ = LoadCurrenciesAsync();
+        
+        // Load translations
+        _ = Task.Run(LoadTranslationsAsync);
     }
 
     public IAsyncRelayCommand LoadCurrenciesCommand => new AsyncRelayCommand(LoadCurrenciesAsync);
@@ -664,6 +732,76 @@ public partial class CurrencyViewModel : ObservableObject
         {
             StatusMessage = "Navigation back not configured.";
         }
+    }
+
+    private void InitializeCurrentSettings()
+    {
+        // Set initial flow direction based on current language
+        CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
+            ? FlowDirection.RightToLeft 
+            : FlowDirection.LeftToRight;
+    }
+
+    /// <summary>
+    /// Load translations from database
+    /// </summary>
+    private async Task LoadTranslationsAsync()
+    {
+        try
+        {
+            PageTitle = await _databaseLocalizationService.GetTranslationAsync("currency.page_title") ?? "Currency Management";
+            BackButtonText = await _databaseLocalizationService.GetTranslationAsync("common.back") ?? "Back";
+            RefreshButtonText = await _databaseLocalizationService.GetTranslationAsync("common.refresh") ?? "Refresh";
+            AddCurrencyButtonText = await _databaseLocalizationService.GetTranslationAsync("currency.add_currency") ?? "Add Currency";
+            SearchPlaceholder = await _databaseLocalizationService.GetTranslationAsync("currency.search_placeholder") ?? "Search currencies by name or code...";
+            
+            // Button text
+            ImportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.import") ?? "Import";
+            ExportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.export") ?? "Export";
+            LoadingText = await _databaseLocalizationService.GetTranslationAsync("currency.loading") ?? "Loading currencies...";
+            NoDataText = await _databaseLocalizationService.GetTranslationAsync("currency.no_data") ?? "No currencies found";
+            NoDataHintText = await _databaseLocalizationService.GetTranslationAsync("currency.no_data_hint") ?? "Click 'Add Currency' to create your first currency";
+            ItemsCountText = await _databaseLocalizationService.GetTranslationAsync("currency.items_count") ?? "currencies";
+            
+            // Column headers
+            ColumnCurrencyName = await _databaseLocalizationService.GetTranslationAsync("currency.column.name") ?? "Currency Name";
+            ColumnCurrencyCode = await _databaseLocalizationService.GetTranslationAsync("currency.column.code") ?? "Code";
+            ColumnCurrencySymbol = await _databaseLocalizationService.GetTranslationAsync("currency.column.symbol") ?? "Symbol";
+            ColumnExchangeRate = await _databaseLocalizationService.GetTranslationAsync("currency.column.exchange_rate") ?? "Exchange Rate";
+            ColumnIsDefault = await _databaseLocalizationService.GetTranslationAsync("currency.column.is_default") ?? "Default";
+            ColumnActions = await _databaseLocalizationService.GetTranslationAsync("common.actions") ?? "Actions";
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't throw - use default English text
+            System.Diagnostics.Debug.WriteLine($"Error loading translations: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Handle layout direction changes
+    /// </summary>
+    private void OnDirectionChanged(LayoutDirection newDirection)
+    {
+        CurrentFlowDirection = newDirection == LayoutDirection.RightToLeft 
+            ? FlowDirection.RightToLeft 
+            : FlowDirection.LeftToRight;
+    }
+
+    /// <summary>
+    /// Handle language changes
+    /// </summary>
+    private void OnLanguageChanged(object? sender, string languageCode)
+    {
+        _ = Task.Run(LoadTranslationsAsync);
+    }
+
+    public void Dispose()
+    {
+        PropertyChanged -= OnPropertyChanged;
+        _layoutDirectionService.DirectionChanged -= OnDirectionChanged;
+        _databaseLocalizationService.LanguageChanged -= OnLanguageChanged;
+        GC.SuppressFinalize(this);
     }
 }
 

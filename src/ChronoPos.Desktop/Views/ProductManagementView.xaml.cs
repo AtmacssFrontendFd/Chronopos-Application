@@ -52,11 +52,18 @@ public partial class ProductManagementView : UserControl
         }
     }
 
-    private void ProductManagementView_Loaded(object sender, RoutedEventArgs e)
+    private async void ProductManagementView_Loaded(object sender, RoutedEventArgs e)
     {
         if (DataContext is ProductManagementViewModel viewModel)
         {
             viewModel.CategoryScrollRequested += OnCategoryScrollRequested;
+            
+            // Force refresh data when view loads to ensure products are displayed
+            // This fixes the issue where products don't load on first view open
+            if (viewModel.RefreshDataCommand.CanExecute(null))
+            {
+                await viewModel.RefreshDataCommand.ExecuteAsync(null);
+            }
         }
         
         // Set initial focus to enable mouse wheel scrolling

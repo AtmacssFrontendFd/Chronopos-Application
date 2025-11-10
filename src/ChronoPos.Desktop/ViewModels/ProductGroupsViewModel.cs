@@ -4,6 +4,8 @@ using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Constants;
 using ChronoPos.Desktop.Views.Dialogs;
+using ChronoPos.Desktop.Services;
+using ChronoPos.Infrastructure.Services;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -27,6 +29,8 @@ public partial class ProductGroupsViewModel : ObservableObject
     private readonly IProductService _productService;
     private readonly IProductUnitService _productUnitService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ILayoutDirectionService _layoutDirectionService;
+    private readonly IDatabaseLocalizationService _localizationService;
 
     [ObservableProperty]
     private ObservableCollection<ProductGroupDto> _productGroups = new();
@@ -73,6 +77,94 @@ public partial class ProductGroupsViewModel : ObservableObject
     [ObservableProperty]
     private bool canExportProductGroup = false;
 
+    // Localized properties
+    [ObservableProperty]
+    private string _pageTitle = "Product Groups";
+
+    [ObservableProperty]
+    private string _searchPlaceholder = "Search product groups...";
+
+    [ObservableProperty]
+    private string _addButtonText = "Add Product Group";
+
+    [ObservableProperty]
+    private string _refreshButtonText = "Refresh";
+
+    [ObservableProperty]
+    private string _importButtonText = "Import";
+
+    [ObservableProperty]
+    private string _exportButtonText = "Export";
+
+    [ObservableProperty]
+    private string _editButtonText = "Edit";
+
+    [ObservableProperty]
+    private string _deleteButtonText = "Delete";
+
+    [ObservableProperty]
+    private string _clearFiltersText = "Clear Filters";
+
+    [ObservableProperty]
+    private string _activeOnlyText = "Active Only";
+
+    [ObservableProperty]
+    private string _showAllText = "Show All";
+
+    [ObservableProperty]
+    private string _columnActions = "Actions";
+
+    [ObservableProperty]
+    private string _columnActive = "Active";
+
+    [ObservableProperty]
+    private string _columnStatus = "Status";
+
+    [ObservableProperty]
+    private string _columnProducts = "Products";
+
+    [ObservableProperty]
+    private string _columnSkuPrefix = "SKU Prefix";
+
+    [ObservableProperty]
+    private string _columnDescription = "Description";
+
+    [ObservableProperty]
+    private string _columnArabicName = "Arabic Name";
+
+    [ObservableProperty]
+    private string _columnGroupName = "Group Name";
+
+    [ObservableProperty]
+    private string _emptyStateTitle = "No product groups found";
+
+    [ObservableProperty]
+    private string _emptyStateMessage = "Click 'Add Product Group' to create your first group";
+
+    [ObservableProperty]
+    private string _activeText = "Active";
+
+    [ObservableProperty]
+    private string _inactiveText = "Inactive";
+
+    [ObservableProperty]
+    private string _loadingText = "Loading product groups...";
+
+    [ObservableProperty]
+    private string _statusTextOf = "of";
+
+    [ObservableProperty]
+    private string _statusTextProductGroups = "product groups";
+
+    [ObservableProperty]
+    private string _noActiveGroupsText = "No active product groups found";
+
+    [ObservableProperty]
+    private string _noSearchResultsText = "No product groups match your search criteria";
+
+    [ObservableProperty]
+    private string _showingText = "Showing";
+
     /// <summary>
     /// Text for the active filter toggle button
     /// </summary>
@@ -101,7 +193,9 @@ public partial class ProductGroupsViewModel : ObservableObject
         ISellingPriceTypeService sellingPriceTypeService,
         IProductService productService,
         IProductUnitService productUnitService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ILayoutDirectionService layoutDirectionService,
+        IDatabaseLocalizationService localizationService)
     {
         _productGroupService = productGroupService;
         _productGroupItemService = productGroupItemService;
@@ -111,6 +205,19 @@ public partial class ProductGroupsViewModel : ObservableObject
         _productService = productService;
         _productUnitService = productUnitService;
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
+        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        
+        // Subscribe to direction changes
+        _layoutDirectionService.DirectionChanged += OnDirectionChanged;
+        
+        // Subscribe to language changes
+        _localizationService.LanguageChanged += OnLanguageChanged;
+        
+        // Set initial direction
+        CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
+            ? FlowDirection.RightToLeft 
+            : FlowDirection.LeftToRight;
         
         InitializePermissions();
         
@@ -125,8 +232,13 @@ public partial class ProductGroupsViewModel : ObservableObject
             _productUnitService,
             CloseSidePanel,
             LoadProductGroupsAsync);
-            
-        _ = LoadProductGroupsAsync();
+        
+        // Load localized texts and data
+        _ = Task.Run(async () =>
+        {
+            await LoadLocalizedTextsAsync();
+            await LoadProductGroupsAsync();
+        });
     }
 
     partial void OnSearchTextChanged(string value)
@@ -174,23 +286,23 @@ public partial class ProductGroupsViewModel : ObservableObject
     {
         if (IsLoading)
         {
-            StatusMessage = "Loading product groups...";
+            StatusMessage = LoadingText;
         }
         else if (!HasProductGroups && !string.IsNullOrWhiteSpace(SearchText))
         {
-            StatusMessage = "No product groups match your search criteria";
+            StatusMessage = NoSearchResultsText;
         }
         else if (!HasProductGroups && ShowActiveOnly)
         {
-            StatusMessage = "No active product groups found";
+            StatusMessage = NoActiveGroupsText;
         }
         else if (!HasProductGroups)
         {
-            StatusMessage = "No product groups found";
+            StatusMessage = EmptyStateTitle;
         }
         else
         {
-            StatusMessage = $"Showing {FilteredProductGroups.Count} of {TotalProductGroups} product groups";
+            StatusMessage = $"{ShowingText} {FilteredProductGroups.Count} {StatusTextOf} {TotalProductGroups} {StatusTextProductGroups}";
         }
     }
 
@@ -675,5 +787,60 @@ public partial class ProductGroupsViewModel : ObservableObject
             CanImportProductGroup = false;
             CanExportProductGroup = false;
         }
+    }
+
+    private void OnDirectionChanged(LayoutDirection newDirection)
+    {
+        CurrentFlowDirection = newDirection == LayoutDirection.RightToLeft 
+            ? FlowDirection.RightToLeft 
+            : FlowDirection.LeftToRight;
+    }
+
+    private async Task LoadLocalizedTextsAsync()
+    {
+        try
+        {
+            PageTitle = await _localizationService.GetTranslationAsync("productgroup.page_title") ?? "Product Groups";
+            SearchPlaceholder = await _localizationService.GetTranslationAsync("productgroup.search_placeholder") ?? "Search product groups...";
+            AddButtonText = await _localizationService.GetTranslationAsync("productgroup.add_product_group") ?? "Add Product Group";
+            RefreshButtonText = await _localizationService.GetTranslationAsync("common.refresh") ?? "Refresh";
+            ImportButtonText = await _localizationService.GetTranslationAsync("common.import") ?? "Import";
+            ExportButtonText = await _localizationService.GetTranslationAsync("common.export") ?? "Export";
+            EditButtonText = await _localizationService.GetTranslationAsync("common.edit") ?? "Edit";
+            DeleteButtonText = await _localizationService.GetTranslationAsync("common.delete") ?? "Delete";
+            ClearFiltersText = await _localizationService.GetTranslationAsync("common.clear_filters") ?? "Clear Filters";
+            ActiveOnlyText = await _localizationService.GetTranslationAsync("productgroup.active_only") ?? "Active Only";
+            ShowAllText = await _localizationService.GetTranslationAsync("productgroup.show_all") ?? "Show All";
+            ColumnActions = await _localizationService.GetTranslationAsync("productgroup.column.actions") ?? "Actions";
+            ColumnActive = await _localizationService.GetTranslationAsync("productgroup.column.active") ?? "Active";
+            ColumnStatus = await _localizationService.GetTranslationAsync("productgroup.column.status") ?? "Status";
+            ColumnProducts = await _localizationService.GetTranslationAsync("productgroup.column.products") ?? "Products";
+            ColumnSkuPrefix = await _localizationService.GetTranslationAsync("productgroup.column.sku_prefix") ?? "SKU Prefix";
+            ColumnDescription = await _localizationService.GetTranslationAsync("productgroup.column.description") ?? "Description";
+            ColumnArabicName = await _localizationService.GetTranslationAsync("productgroup.column.arabic_name") ?? "Arabic Name";
+            ColumnGroupName = await _localizationService.GetTranslationAsync("productgroup.column.group_name") ?? "Group Name";
+            EmptyStateTitle = await _localizationService.GetTranslationAsync("productgroup.empty_state_title") ?? "No product groups found";
+            EmptyStateMessage = await _localizationService.GetTranslationAsync("productgroup.empty_state_message") ?? "Click 'Add Product Group' to create your first group";
+            ActiveText = await _localizationService.GetTranslationAsync("common.active") ?? "Active";
+            InactiveText = await _localizationService.GetTranslationAsync("common.inactive") ?? "Inactive";
+            LoadingText = await _localizationService.GetTranslationAsync("common.loading") ?? "Loading product groups...";
+            StatusTextOf = await _localizationService.GetTranslationAsync("common.of") ?? "of";
+            StatusTextProductGroups = await _localizationService.GetTranslationAsync("productgroup.product_groups") ?? "product groups";
+            NoActiveGroupsText = await _localizationService.GetTranslationAsync("productgroup.no_active_groups") ?? "No active product groups found";
+            NoSearchResultsText = await _localizationService.GetTranslationAsync("productgroup.no_search_results") ?? "No product groups match your search criteria";
+            ShowingText = await _localizationService.GetTranslationAsync("common.showing") ?? "Showing";
+            
+            // Update status message with new translations
+            UpdateStatusMessage();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading localized texts: {ex.Message}");
+        }
+    }
+
+    private async void OnLanguageChanged(object? sender, string languageCode)
+    {
+        await LoadLocalizedTextsAsync();
     }
 }

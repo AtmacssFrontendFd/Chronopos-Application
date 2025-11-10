@@ -225,7 +225,7 @@
                     CornerRadius="{DynamicResource BorderCornerRadius}"
                     BorderBrush="{DynamicResource BorderLight}"
                     BorderThickness="1">
-                <Grid Margin="{DynamicResource CardPaddingThickness}">
+                <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>

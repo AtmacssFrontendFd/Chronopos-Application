@@ -108,6 +108,73 @@ public partial class PaymentTypesViewModel : ObservableObject
     [ObservableProperty]
     private PaymentTypeSidePanelViewModel _sidePanelViewModel;
 
+    #region Localization Properties
+
+    [ObservableProperty]
+    private string _pageTitle = "Payment Types";
+
+    [ObservableProperty]
+    private string _searchPlaceholder = "Search payment types...";
+
+    [ObservableProperty]
+    private string _addButtonText = "Add Payment Type";
+
+    [ObservableProperty]
+    private string _refreshButtonText = "Refresh";
+
+    [ObservableProperty]
+    private string _importButtonText = "Import";
+
+    [ObservableProperty]
+    private string _exportButtonText = "Export";
+
+    [ObservableProperty]
+    private string _editButtonText = "Edit";
+
+    [ObservableProperty]
+    private string _deleteButtonText = "Delete";
+
+    [ObservableProperty]
+    private string _clearFiltersText = "Clear Filters";
+
+    [ObservableProperty]
+    private string _activeOnlyText = "Active Only";
+
+    [ObservableProperty]
+    private string _showAllText = "Show All";
+
+    [ObservableProperty]
+    private string _columnActions = "Actions";
+
+    [ObservableProperty]
+    private string _columnActive = "Active";
+
+    [ObservableProperty]
+    private string _columnStatus = "Status";
+
+    [ObservableProperty]
+    private string _columnCreated = "Created";
+
+    [ObservableProperty]
+    private string _columnArabicName = "Arabic Name";
+
+    [ObservableProperty]
+    private string _columnPaymentCode = "Payment Code";
+
+    [ObservableProperty]
+    private string _columnName = "Name";
+
+    [ObservableProperty]
+    private string _emptyStateTitle = "No payment types found";
+
+    [ObservableProperty]
+    private string _emptyStateMessage = "Click 'Add Payment Type' to create your first payment type";
+
+    [ObservableProperty]
+    private string _loadingText = "Loading payment types...";
+
+    #endregion
+
     #endregion
 
     #region Computed Properties
@@ -195,8 +262,15 @@ public partial class PaymentTypesViewModel : ObservableObject
         CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
             ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
 
-        // Load payment types
-        _ = Task.Run(LoadPaymentTypesAsync);
+        // Subscribe to language changes
+        _databaseLocalizationService.LanguageChanged += OnLanguageChanged;
+
+        // Load payment types and localized texts
+        _ = Task.Run(async () =>
+        {
+            await LoadLocalizedTextsAsync();
+            await LoadPaymentTypesAsync();
+        });
     }
 
     #endregion
@@ -688,6 +762,49 @@ public partial class PaymentTypesViewModel : ObservableObject
             CanImportPaymentType = false;
             CanExportPaymentType = false;
         }
+    }
+
+    /// <summary>
+    /// Load localized texts from database
+    /// </summary>
+    private async Task LoadLocalizedTextsAsync()
+    {
+        try
+        {
+            PageTitle = await _databaseLocalizationService.GetTranslationAsync("paymenttype.page_title") ?? "Payment Types";
+            SearchPlaceholder = await _databaseLocalizationService.GetTranslationAsync("paymenttype.search_placeholder") ?? "Search payment types...";
+            AddButtonText = await _databaseLocalizationService.GetTranslationAsync("paymenttype.add_payment_type") ?? "Add Payment Type";
+            RefreshButtonText = await _databaseLocalizationService.GetTranslationAsync("common.refresh") ?? "Refresh";
+            ImportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.import") ?? "Import";
+            ExportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.export") ?? "Export";
+            EditButtonText = await _databaseLocalizationService.GetTranslationAsync("common.edit") ?? "Edit";
+            DeleteButtonText = await _databaseLocalizationService.GetTranslationAsync("common.delete") ?? "Delete";
+            ClearFiltersText = await _databaseLocalizationService.GetTranslationAsync("common.clear_filters") ?? "Clear Filters";
+            ActiveOnlyText = await _databaseLocalizationService.GetTranslationAsync("paymenttype.active_only") ?? "Active Only";
+            ShowAllText = await _databaseLocalizationService.GetTranslationAsync("paymenttype.show_all") ?? "Show All";
+            ColumnActions = await _databaseLocalizationService.GetTranslationAsync("common.column.actions") ?? "Actions";
+            ColumnActive = await _databaseLocalizationService.GetTranslationAsync("common.column.active") ?? "Active";
+            ColumnStatus = await _databaseLocalizationService.GetTranslationAsync("common.column.status") ?? "Status";
+            ColumnCreated = await _databaseLocalizationService.GetTranslationAsync("common.column.created") ?? "Created";
+            ColumnArabicName = await _databaseLocalizationService.GetTranslationAsync("common.column.arabic_name") ?? "Arabic Name";
+            ColumnPaymentCode = await _databaseLocalizationService.GetTranslationAsync("paymenttype.column.payment_code") ?? "Payment Code";
+            ColumnName = await _databaseLocalizationService.GetTranslationAsync("common.column.name") ?? "Name";
+            EmptyStateTitle = await _databaseLocalizationService.GetTranslationAsync("paymenttype.empty_state_title") ?? "No payment types found";
+            EmptyStateMessage = await _databaseLocalizationService.GetTranslationAsync("paymenttype.empty_state_message") ?? "Click 'Add Payment Type' to create your first payment type";
+            LoadingText = await _databaseLocalizationService.GetTranslationAsync("paymenttype.loading") ?? "Loading payment types...";
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading localized texts: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Handle language change event
+    /// </summary>
+    private async void OnLanguageChanged(object? sender, string languageCode)
+    {
+        await LoadLocalizedTextsAsync();
     }
 
     #endregion

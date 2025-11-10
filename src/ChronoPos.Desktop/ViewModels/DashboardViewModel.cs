@@ -2,6 +2,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Desktop.Services;
+using InfrastructureServices = ChronoPos.Infrastructure.Services;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -17,6 +19,11 @@ namespace ChronoPos.Desktop.ViewModels;
 public partial class DashboardViewModel : ObservableObject
 {
     private readonly IDashboardService _dashboardService;
+    private readonly InfrastructureServices.IDatabaseLocalizationService _localizationService;
+    private readonly IThemeService _themeService;
+    private readonly ILayoutDirectionService _layoutDirectionService;
+    private readonly IZoomService _zoom_service_placeholder; // kept for DI compatibility
+    private readonly IColorSchemeService _colorSchemeService;
     private DispatcherTimer? _kpiRefreshTimer;
     private DispatcherTimer? _chartRefreshTimer;
     private DispatcherTimer? _lastRefreshDisplayTimer;
@@ -31,6 +38,177 @@ public partial class DashboardViewModel : ObservableObject
 
     [ObservableProperty]
     private bool hasError = false;
+
+    // FlowDirection for RTL/LTR support
+    [ObservableProperty]
+    private FlowDirection currentFlowDirection = FlowDirection.LeftToRight;
+
+    // Translation Properties
+    [ObservableProperty]
+    private string dashboardTitle = "Dashboard";
+
+    [ObservableProperty]
+    private string dashboardSubtitle = "Your business overview and key metrics";
+
+    [ObservableProperty]
+    private string todaysSalesLabel = "Today's Sales";
+
+    [ObservableProperty]
+    private string monthlySalesLabel = "Monthly Sales";
+
+    [ObservableProperty]
+    private string growthLabel = "Growth";
+
+    [ObservableProperty]
+    private string vsYesterdayLabel = "vs yesterday";
+
+    [ObservableProperty]
+    private string vsLastMonthLabel = "vs last month";
+
+    [ObservableProperty]
+    private string activeTablesLabel = "Active Tables";
+
+    [ObservableProperty]
+    private string pendingOrdersLabel = "Pending Orders";
+
+    [ObservableProperty]
+    private string lowStockItemsLabel = "Low Stock Items";
+
+    [ObservableProperty]
+    private string totalCustomersLabel = "Total Customers";
+
+    [ObservableProperty]
+    private string avgTransactionValueLabel = "Avg. Transaction";
+
+    [ObservableProperty]
+    private string popularProductsLabel = "Popular Products";
+
+    [ObservableProperty]
+    private string productNameLabel = "Product";
+
+    [ObservableProperty]
+    private string quantitySoldLabel = "Sold";
+
+    [ObservableProperty]
+    private string revenueLabel = "Revenue";
+
+    [ObservableProperty]
+    private string viewAllProductsLabel = "View All Products";
+
+    [ObservableProperty]
+    private string recentSalesLabel = "Recent Sales";
+
+    [ObservableProperty]
+    private string invoiceNoLabel = "Invoice#";
+
+    [ObservableProperty]
+    private string customerLabel = "Customer";
+
+    [ObservableProperty]
+    private string amountLabel = "Amount";
+
+    [ObservableProperty]
+    private string timeLabel = "Time";
+
+    [ObservableProperty]
+    private string statusLabel = "Status";
+
+    [ObservableProperty]
+    private string viewAllSalesLabel = "View All Sales";
+
+    [ObservableProperty]
+    private string salesAnalyticsLabel = "Sales Analytics";
+
+    [ObservableProperty]
+    private string dailyLabel = "Daily";
+
+    [ObservableProperty]
+    private string weeklyLabel = "Weekly";
+
+    [ObservableProperty]
+    private string monthlyLabel = "Monthly";
+
+    [ObservableProperty]
+    private string topCategoriesLabel = "Top Categories";
+
+    [ObservableProperty]
+    private string categoryLabel = "Category";
+
+    [ObservableProperty]
+    private string salesLabel = "Sales";
+
+    [ObservableProperty]
+    private string customerInsightsLabel = "Customer Insights";
+
+    [ObservableProperty]
+    private string newCustomersTodayLabel = "New Today";
+
+    [ObservableProperty]
+    private string newCustomersWeekLabel = "New This Week";
+
+    [ObservableProperty]
+    private string newCustomersMonthLabel = "New This Month";
+
+    [ObservableProperty]
+    private string returningCustomersLabel = "Returning Customers";
+
+    [ObservableProperty]
+    private string customerGrowthLabel = "Customer Growth";
+
+    [ObservableProperty]
+    private string avgCustomerValueLabel = "Avg. Customer Value";
+
+    [ObservableProperty]
+    private string topCustomersLabel = "Top Customers";
+
+    [ObservableProperty]
+    private string viewAllCustomersLabel = "View All Customers";
+
+    [ObservableProperty]
+    private string quickActionsLabel = "Quick Actions";
+
+    [ObservableProperty]
+    private string newSaleLabel = "New Sale";
+
+    [ObservableProperty]
+    private string addProductLabel = "Add Product";
+
+    [ObservableProperty]
+    private string viewCustomersLabel = "View Customers";
+
+    [ObservableProperty]
+    private string generateReportLabel = "Generate Report";
+
+    [ObservableProperty]
+    private string viewLowStockLabel = "View Low Stock";
+
+    [ObservableProperty]
+    private string lastRefreshLabel = "Last refresh";
+
+    [ObservableProperty]
+    private string refreshNowLabel = "Refresh Now";
+
+    [ObservableProperty]
+    private string justNowLabel = "Just now";
+
+    [ObservableProperty]
+    private string loadingLabel = "Loading dashboard data...";
+
+    [ObservableProperty]
+    private string errorLoadingDataLabel = "Error loading dashboard data";
+
+    [ObservableProperty]
+    private string retryLabel = "Retry";
+
+    // Small suffix/utility labels
+    [ObservableProperty]
+    private string transactionsSuffixLabel = "transactions";
+
+    [ObservableProperty]
+    private string itemsSoldLabel = "items sold";
+
+    [ObservableProperty]
+    private string ordersSuffixLabel = "orders";
 
     // KPI Properties
     [ObservableProperty]
@@ -143,9 +321,29 @@ public partial class DashboardViewModel : ObservableObject
 
     #region Constructor
 
-    public DashboardViewModel(IDashboardService dashboardService)
+    public DashboardViewModel(
+        IDashboardService dashboardService,
+        InfrastructureServices.IDatabaseLocalizationService localizationService,
+        IThemeService themeService,
+        ILayoutDirectionService layoutDirectionService,
+        IZoomService zoomService,
+        IColorSchemeService colorSchemeService)
     {
         _dashboardService = dashboardService ?? throw new ArgumentNullException(nameof(dashboardService));
+        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
+        _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
+        _zoom_service_placeholder = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
+        _colorSchemeService = colorSchemeService ?? throw new ArgumentNullException(nameof(colorSchemeService));
+        
+        // Subscribe to service events
+    _localizationService.LanguageChanged += OnLanguageChanged;
+    _layoutDirectionService.DirectionChanged += OnLayoutDirectionChanged;
+        
+        // Initialize layout direction (map internal LayoutDirection -> System.Windows.FlowDirection)
+        CurrentFlowDirection = _layoutDirectionService.CurrentDirection == ChronoPos.Desktop.Services.LayoutDirection.RightToLeft
+            ? FlowDirection.RightToLeft
+            : FlowDirection.LeftToRight;
         
         // Don't load data in constructor - it should be done when view is loaded
     }
@@ -162,6 +360,11 @@ public partial class DashboardViewModel : ObservableObject
         try
         {
             Console.WriteLine("DashboardViewModel: Starting InitializeAsync...");
+            
+            // Load translations first
+            await LoadTranslationsAsync();
+            Console.WriteLine("DashboardViewModel: Translations loaded");
+            
             await LoadDashboardDataAsync();
             Console.WriteLine("DashboardViewModel: LoadDashboardDataAsync completed");
             StartAutoRefreshTimers();
@@ -278,7 +481,7 @@ public partial class DashboardViewModel : ObservableObject
         {
             try
             {
-                var sales = await _dashboardService.GetRecentSalesAsync(10);
+                var sales = await _dashboardService.GetRecentSalesAsync(3);
                 
                 System.Windows.Application.Current.Dispatcher.Invoke(() =>
                 {
@@ -626,6 +829,107 @@ public partial class DashboardViewModel : ObservableObject
 
     #endregion
 
+    #region Translation and Language Support
+
+    private async Task LoadTranslationsAsync()
+    {
+        DashboardTitle = await _localizationService.GetTranslationAsync("dashboard_title");
+        DashboardSubtitle = await _localizationService.GetTranslationAsync("dashboard_subtitle");
+        
+        // KPI Labels
+        TodaysSalesLabel = await _localizationService.GetTranslationAsync("todays_sales");
+        MonthlySalesLabel = await _localizationService.GetTranslationAsync("monthly_sales");
+        GrowthLabel = await _localizationService.GetTranslationAsync("growth");
+        VsYesterdayLabel = await _localizationService.GetTranslationAsync("vs_yesterday");
+        VsLastMonthLabel = await _localizationService.GetTranslationAsync("vs_last_month");
+        ActiveTablesLabel = await _localizationService.GetTranslationAsync("active_tables");
+        PendingOrdersLabel = await _localizationService.GetTranslationAsync("pending_orders");
+        LowStockItemsLabel = await _localizationService.GetTranslationAsync("low_stock_items");
+        TotalCustomersLabel = await _localizationService.GetTranslationAsync("total_customers");
+        AvgTransactionValueLabel = await _localizationService.GetTranslationAsync("avg_transaction_value");
+        
+        // Popular Products Section
+        PopularProductsLabel = await _localizationService.GetTranslationAsync("popular_products");
+        ProductNameLabel = await _localizationService.GetTranslationAsync("product_name");
+        QuantitySoldLabel = await _localizationService.GetTranslationAsync("quantity_sold");
+        RevenueLabel = await _localizationService.GetTranslationAsync("revenue");
+        ViewAllProductsLabel = await _localizationService.GetTranslationAsync("view_all_products");
+        
+        // Recent Sales Section
+        RecentSalesLabel = await _localizationService.GetTranslationAsync("recent_sales");
+        InvoiceNoLabel = await _localizationService.GetTranslationAsync("invoice_no");
+        CustomerLabel = await _localizationService.GetTranslationAsync("customer");
+        AmountLabel = await _localizationService.GetTranslationAsync("amount");
+        TimeLabel = await _localizationService.GetTranslationAsync("time");
+        StatusLabel = await _localizationService.GetTranslationAsync("status");
+        ViewAllSalesLabel = await _localizationService.GetTranslationAsync("view_all_sales");
+        
+        // Sales Analytics Section
+        SalesAnalyticsLabel = await _localizationService.GetTranslationAsync("sales_analytics");
+        DailyLabel = await _localizationService.GetTranslationAsync("daily");
+        WeeklyLabel = await _localizationService.GetTranslationAsync("weekly");
+        MonthlyLabel = await _localizationService.GetTranslationAsync("monthly");
+        
+        // Top Categories Section
+        TopCategoriesLabel = await _localizationService.GetTranslationAsync("top_categories");
+        CategoryLabel = await _localizationService.GetTranslationAsync("category");
+        SalesLabel = await _localizationService.GetTranslationAsync("sales");
+        
+        // Customer Insights Section
+        CustomerInsightsLabel = await _localizationService.GetTranslationAsync("customer_insights");
+        NewCustomersTodayLabel = await _localizationService.GetTranslationAsync("new_customers_today");
+        NewCustomersWeekLabel = await _localizationService.GetTranslationAsync("new_customers_week");
+        NewCustomersMonthLabel = await _localizationService.GetTranslationAsync("new_customers_month");
+        ReturningCustomersLabel = await _localizationService.GetTranslationAsync("returning_customers");
+        CustomerGrowthLabel = await _localizationService.GetTranslationAsync("customer_growth");
+        AvgCustomerValueLabel = await _localizationService.GetTranslationAsync("avg_customer_value");
+        TopCustomersLabel = await _localizationService.GetTranslationAsync("top_customers");
+        ViewAllCustomersLabel = await _localizationService.GetTranslationAsync("view_all_customers");
+        
+        // Quick Actions Section
+        QuickActionsLabel = await _localizationService.GetTranslationAsync("quick_actions");
+        NewSaleLabel = await _localizationService.GetTranslationAsync("new_sale");
+        AddProductLabel = await _localizationService.GetTranslationAsync("add_product");
+        ViewCustomersLabel = await _localizationService.GetTranslationAsync("view_customers");
+        GenerateReportLabel = await _localizationService.GetTranslationAsync("generate_report");
+        ViewLowStockLabel = await _localizationService.GetTranslationAsync("view_low_stock");
+        
+        // Status and Refresh
+        LastRefreshLabel = await _localizationService.GetTranslationAsync("last_refresh");
+        RefreshNowLabel = await _localizationService.GetTranslationAsync("refresh_now");
+        JustNowLabel = await _localizationService.GetTranslationAsync("just_now");
+        LoadingLabel = await _localizationService.GetTranslationAsync("loading");
+        ErrorLoadingDataLabel = await _localizationService.GetTranslationAsync("error_loading_data");
+        RetryLabel = await _localizationService.GetTranslationAsync("retry");
+
+    // Utility / suffix translations
+    TransactionsSuffixLabel = await _localizationService.GetTranslationAsync("transactions_suffix") ?? await _localizationService.GetTranslationAsync("Transactions");
+    ItemsSoldLabel = await _localizationService.GetTranslationAsync("items_sold");
+    OrdersSuffixLabel = await _localizationService.GetTranslationAsync("orders_suffix");
+    }
+
+    private async void OnLanguageChanged(object? sender, string languageCode)
+    {
+        // languageCode can be used if needed; reload translations
+        await LoadTranslationsAsync();
+    }
+
+    private void OnLayoutDirectionChanged(ChronoPos.Desktop.Services.LayoutDirection direction)
+    {
+        var newDirection = direction == ChronoPos.Desktop.Services.LayoutDirection.RightToLeft
+            ? FlowDirection.RightToLeft
+            : FlowDirection.LeftToRight;
+        
+        // Ensure we're on the UI thread and force property update
+        System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+        {
+            CurrentFlowDirection = newDirection;
+            Console.WriteLine($"[DashboardViewModel] FlowDirection changed to: {CurrentFlowDirection}");
+        });
+    }
+
+    #endregion
+
     #region Cleanup
 
     /// <summary>
@@ -637,7 +941,11 @@ public partial class DashboardViewModel : ObservableObject
         _chartRefreshTimer?.Stop();
         _lastRefreshDisplayTimer?.Stop();
         
-        Console.WriteLine("DashboardViewModel: Cleanup completed - all timers stopped");
+    // Unsubscribe from service events
+    _localizationService.LanguageChanged -= OnLanguageChanged;
+    _layoutDirectionService.DirectionChanged -= OnLayoutDirectionChanged;
+        
+        Console.WriteLine("DashboardViewModel: Cleanup completed - all timers stopped and events unsubscribed");
     }
 
     #endregion

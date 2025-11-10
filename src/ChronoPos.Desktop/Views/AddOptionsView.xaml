@@ -89,7 +89,7 @@
                 <!-- Refresh Button (visible in RTL) -->
                 <controls:RefreshButton HorizontalAlignment="Left"
                                         VerticalAlignment="Top"
-                                        ButtonText="Refresh"
+                                        ButtonText="{Binding RefreshButtonText}"
                                         ButtonIcon="🔄"
                                         Command="{Binding RefreshModulesCommand}"
                                         ButtonBackground="{DynamicResource Primary}"
@@ -115,7 +115,7 @@
                 <!-- Refresh Button (visible in LTR) -->
                 <controls:RefreshButton HorizontalAlignment="Right"
                                         VerticalAlignment="Top"
-                                        ButtonText="Refresh"
+                                        ButtonText="{Binding RefreshButtonText}"
                                         ButtonIcon="🔄"
                                         Command="{Binding RefreshModulesCommand}"
                                         ButtonBackground="{DynamicResource Primary}"

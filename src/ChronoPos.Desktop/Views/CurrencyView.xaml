@@ -17,6 +17,43 @@
         <converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
         <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
         <converters:ByteArrayToImageConverter x:Key="ByteArrayToImageConverter"/>
+        <converters:FlowDirectionToGridColumnConverter x:Key="FlowDirectionToGridColumnConverter"/>
+
+        <!-- Success Button Style -->
+        <Style x:Key="SuccessButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#10C878"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#0EA76E"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#0D9461"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         
         <!-- DataGrid Cell Style -->
         <Style x:Key="DataGridCellStyle" TargetType="DataGridCell">
@@ -101,16 +138,20 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <controls:CircularBackButton Grid.Column="0"
-                                                      Command="{Binding BackCommand}"
-                                                      ButtonSize="30"
-                                                      ButtonBackground="{DynamicResource SurfaceBackground}"
-                                                      ButtonForeground="{DynamicResource TextSecondary}"
-                                                      ButtonHoverBackground="{DynamicResource OverlayBackground}"
-                                                      ButtonHoverForeground="{DynamicResource TextSecondary}"
-                                                      Margin="0,0,15,0"
-                                                      ToolTip="Go back"/>
+                    <!-- Back Button - Left in LTR, Right in RTL -->
+                    <StackPanel Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='start3'}" 
+                                Orientation="Horizontal">
+                        <controls:CircularBackButton Command="{Binding BackCommand}"
+                                                    ButtonSize="30"
+                                                    ButtonBackground="{DynamicResource SurfaceBackground}"
+                                                    ButtonForeground="{DynamicResource TextSecondary}"
+                                                    ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                                                    ButtonHoverForeground="{DynamicResource TextSecondary}"
+                                                    Margin="0,0,15,0"
+                                                    FlowDirection="{Binding CurrentFlowDirection}"/>
+                    </StackPanel>
 
+                    <!-- Page Title - Center -->
                     <TextBlock Grid.Column="1"
                               Text="{Binding PageTitle}"
                               FontSize="{DynamicResource FontSizeLarge}"
@@ -119,9 +160,12 @@
                               Foreground="{DynamicResource TextPrimary}"
                               VerticalAlignment="Center"/>
 
-                    <controls:RefreshButton Grid.Column="2"
-                                                 Command="{Binding RefreshCommand}"
-                                                 ToolTip="Refresh currencies"/>
+                    <!-- Refresh Button - Right in LTR, Left in RTL -->
+                    <StackPanel Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='end3'}" 
+                                Orientation="Horizontal">
+                        <controls:RefreshButton Command="{Binding RefreshCommand}"
+                                               ButtonText="{Binding RefreshButtonText}"/>
+                    </StackPanel>
                 </Grid>
 
                 <!-- Search and Filters -->
@@ -280,27 +324,26 @@
                         <!-- Import Button -->
                         <Button Style="{StaticResource SuccessButtonStyle}"
                                 Command="{Binding ImportCommand}"
-                                Visibility="{Binding CanImportCurrency, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Visibility="{Binding CanImportCurrency, Converter={StaticResource BoolToVisibilityConverter}}"
                                 Margin="0,0,10,0">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="📥" FontSize="16" Margin="0,0,5,0"/>
-                                <TextBlock Text="Import" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding ImportButtonText}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
                         <!-- Export Button -->
                         <Button Style="{StaticResource SuccessButtonStyle}"
                                 Command="{Binding ExportCommand}"
-                                Visibility="{Binding CanExportCurrency, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Visibility="{Binding CanExportCurrency, Converter={StaticResource BoolToVisibilityConverter}}"
                                 Margin="0,0,10,0">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="📤" FontSize="16" Margin="0,0,5,0"/>
-                                <TextBlock Text="Export" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding ExportButtonText}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
-                        <Button Content="➕ Add Currency"
-                               Command="{Binding AddCurrencyCommand}"
+                        <Button Command="{Binding AddCurrencyCommand}"
                                Background="{DynamicResource Primary}"
                                Foreground="White"
                                BorderThickness="0"
@@ -308,8 +351,11 @@
                                FontSize="{DynamicResource FontSizeSmall}"
                                FontWeight="SemiBold"
                                FontFamily="{DynamicResource PoppinsFontFallback}"
-                               Cursor="Hand"
-                               ToolTip="Add new currency">
+                               Cursor="Hand">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="➕" FontSize="16" Margin="0,0,5,0"/>
+                                <TextBlock Text="{Binding AddCurrencyButtonText}" VerticalAlignment="Center"/>
+                            </StackPanel>
                             <Button.Style>
                                 <Style TargetType="Button">
                                     <Setter Property="Template">
@@ -437,57 +483,57 @@
                         </DataGridTemplateColumn>
                         
                         <!-- Currency Name -->
-                        <DataGridTextColumn Header="Currency Name" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnCurrencyName, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                           Binding="{Binding CurrencyName}"
                                           Width="*"
                                           MinWidth="150">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="FontWeight" Value="SemiBold"/>
-                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
                         <!-- Currency Code -->
-                        <DataGridTextColumn Header="Code" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnCurrencyCode, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                           Binding="{Binding CurrencyCode}"
                                           Width="*"
                                           MinWidth="100">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
                         <!-- Symbol -->
-                        <DataGridTextColumn Header="Symbol" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnCurrencySymbol, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                           Binding="{Binding Symbol}"
                                           Width="*"
                                           MinWidth="80">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                     <Setter Property="FontSize" Value="16"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
                         <!-- Exchange Rate -->
-                        <DataGridTextColumn Header="Exchange Rate" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnExchangeRate, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                           Binding="{Binding ExchangeRateDisplay}"
                                           Width="*"
                                           MinWidth="120">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
                         <!-- Default Status -->
-                        <DataGridTemplateColumn Header="Default" Width="*" MinWidth="100">
+                        <DataGridTemplateColumn Header="{Binding DataContext.ColumnIsDefault, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="*" MinWidth="100">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Border Background="{Binding IsDefault, Converter={StaticResource BoolToColorConverter}}"
@@ -504,7 +550,7 @@
                         </DataGridTemplateColumn>
 
                         <!-- Actions -->
-                        <DataGridTemplateColumn Header="Actions" Width="*" MinWidth="180">
+                        <DataGridTemplateColumn Header="{Binding DataContext.ColumnActions, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="*" MinWidth="180">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
@@ -604,13 +650,13 @@
                                    FontSize="48" 
                                    HorizontalAlignment="Center" 
                                    Margin="0,0,0,10"/>
-                        <TextBlock Text="No currencies found"
+                        <TextBlock Text="{Binding NoDataText}"
                                    FontSize="{DynamicResource FontSizeMedium}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
                                    Foreground="{DynamicResource TextSecondary}"
                                    HorizontalAlignment="Center"
                                    Margin="0,0,0,5"/>
-                        <TextBlock Text="Click 'Add Currency' to create your first currency"
+                        <TextBlock Text="{Binding NoDataHintText}"
                                    FontSize="{DynamicResource FontSizeSmall}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
                                    Foreground="{DynamicResource TextSecondary}"
@@ -640,7 +686,7 @@
                                    VerticalAlignment="Center"/>
 
                         <!-- Count Info -->
-                        <TextBlock Grid.Column="1"
+                        <TextBlock Grid.Column="0"
                                    FontSize="{DynamicResource FontSizeExtraSmall}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
                                    Foreground="{DynamicResource TextSecondary}"
@@ -648,7 +694,7 @@
                             <Run Text="{Binding FilteredCurrencies.Count, Mode=OneWay}"/>
                             <Run Text="of"/>
                             <Run Text="{Binding TotalCurrencies, Mode=OneWay}"/>
-                            <Run Text="currencies"/>
+                            <Run Text="{Binding ItemsCountText}"/>
                         </TextBlock>
                     </Grid>
                 </Border>

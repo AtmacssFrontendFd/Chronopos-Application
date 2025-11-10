@@ -36,7 +36,12 @@
                                Foreground="{Binding ButtonForeground, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
-                               TextAlignment="Center"/>
+                               TextAlignment="Center"
+                               RenderTransformOrigin="0.5,0.5">
+                        <TextBlock.RenderTransform>
+                            <ScaleTransform ScaleX="1" ScaleY="1"/>
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
                 </Border>
                 
                 <ControlTemplate.Triggers>
@@ -51,6 +56,14 @@
                                 Value="{Binding ButtonPressedBackground, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                         <Setter TargetName="IconText" Property="Foreground" 
                                 Value="{Binding ButtonPressedForeground, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    </Trigger>
+                    <!-- Flip the arrow horizontally when FlowDirection is RTL -->
+                    <Trigger Property="FlowDirection" Value="RightToLeft">
+                        <Setter TargetName="IconText" Property="RenderTransform">
+                            <Setter.Value>
+                                <ScaleTransform ScaleX="-1" ScaleY="1"/>
+                            </Setter.Value>
+                        </Setter>
                     </Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate>

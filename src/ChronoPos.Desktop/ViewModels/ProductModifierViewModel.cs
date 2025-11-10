@@ -6,8 +6,10 @@ using ChronoPos.Application.Constants;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.Views;
 using ChronoPos.Desktop.Views.Dialogs;
+using ChronoPos.Infrastructure.Services;
 using System.Collections.ObjectModel;
 using System.Windows;
+using FileLogger = ChronoPos.Desktop.Services.FileLogger;
 
 namespace ChronoPos.Desktop.ViewModels
 {
@@ -19,6 +21,7 @@ namespace ChronoPos.Desktop.ViewModels
         private readonly ICurrentUserService _currentUserService;
         private readonly ITaxTypeService _taxTypeService;
         private readonly IActiveCurrencyService _activeCurrencyService;
+        private readonly IDatabaseLocalizationService _localizationService;
         private readonly Action? _navigateBack;
 
         #region Observable Properties - Modifier Groups
@@ -90,6 +93,46 @@ namespace ChronoPos.Desktop.ViewModels
 
         #endregion
 
+        #region Localization Properties
+
+        [ObservableProperty]
+        private string _pageTitle = "Product Modifiers";
+
+        [ObservableProperty]
+        private string _refreshButtonText = "Refresh";
+
+        [ObservableProperty]
+        private string _addModifierGroupButtonText = "Add Modifier Group";
+
+        [ObservableProperty]
+        private string _addModifierButtonText = "Add Modifier";
+
+        [ObservableProperty]
+        private string _searchPlaceholder = "Search modifiers...";
+
+        [ObservableProperty]
+        private string _showAllButtonText = "Show All";
+
+        [ObservableProperty]
+        private string _clearFiltersButtonText = "Clear Filters";
+
+        [ObservableProperty]
+        private string _noModifierGroupsMessage = "No modifier groups available";
+
+        [ObservableProperty]
+        private string _clickAddToCreateGroupMessage = "Click 'Add Modifier Group' to create one";
+
+        [ObservableProperty]
+        private string _noModifiersMessage = "No modifiers available";
+
+        [ObservableProperty]
+        private string _clickAddToCreateModifierMessage = "Click 'Add Modifier' to create one";
+
+        [ObservableProperty]
+        private string _activeOnlyButtonText = "Active Only";
+
+        #endregion
+
         #region Computed Properties
 
         public int TotalModifierGroups => ModifierGroups?.Count ?? 0;
@@ -111,6 +154,7 @@ namespace ChronoPos.Desktop.ViewModels
             ICurrentUserService currentUserService,
             ITaxTypeService taxTypeService,
             IActiveCurrencyService activeCurrencyService,
+            IDatabaseLocalizationService localizationService,
             Action? navigateBack = null)
         {
             _modifierService = modifierService ?? throw new ArgumentNullException(nameof(modifierService));
@@ -119,12 +163,17 @@ namespace ChronoPos.Desktop.ViewModels
             _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
             _taxTypeService = taxTypeService ?? throw new ArgumentNullException(nameof(taxTypeService));
             _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
             _navigateBack = navigateBack;
 
             FileLogger.Log("🔧 ProductModifierViewModel constructor started");
 
             InitializePermissions();
-            _ = Task.Run(LoadDataAsync);
+            _ = Task.Run(async () =>
+            {
+                await LoadLocalizationAsync();
+                await LoadDataAsync();
+            });
 
             FileLogger.Log("🔧 ProductModifierViewModel constructor completed");
         }
@@ -158,6 +207,33 @@ namespace ChronoPos.Desktop.ViewModels
             {
                 // Modifiers tab selected
                 _ = LoadModifiersAsync();
+            }
+        }
+
+        #endregion
+
+        #region Localization
+
+        private async Task LoadLocalizationAsync()
+        {
+            try
+            {
+                PageTitle = await _localizationService.GetTranslationAsync("product_modifier.page_title") ?? "Product Modifiers";
+                RefreshButtonText = await _localizationService.GetTranslationAsync("product_modifier.refresh_button") ?? "Refresh";
+                AddModifierGroupButtonText = await _localizationService.GetTranslationAsync("product_modifier.add_modifier_group") ?? "Add Modifier Group";
+                AddModifierButtonText = await _localizationService.GetTranslationAsync("product_modifier.add_modifier") ?? "Add Modifier";
+                SearchPlaceholder = await _localizationService.GetTranslationAsync("product_modifier.search_placeholder") ?? "Search modifiers...";
+                ShowAllButtonText = await _localizationService.GetTranslationAsync("product_modifier.show_all") ?? "Show All";
+                ClearFiltersButtonText = await _localizationService.GetTranslationAsync("product_modifier.clear_filters") ?? "Clear Filters";
+                NoModifierGroupsMessage = await _localizationService.GetTranslationAsync("product_modifier.no_groups") ?? "No modifier groups available";
+                ClickAddToCreateGroupMessage = await _localizationService.GetTranslationAsync("product_modifier.click_add_group") ?? "Click 'Add Modifier Group' to create one";
+                NoModifiersMessage = await _localizationService.GetTranslationAsync("product_modifier.no_modifiers") ?? "No modifiers available";
+                ClickAddToCreateModifierMessage = await _localizationService.GetTranslationAsync("product_modifier.click_add_modifier") ?? "Click 'Add Modifier' to create one";
+                ActiveOnlyButtonText = await _localizationService.GetTranslationAsync("product_modifier.active_only") ?? "Active Only";
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Log($"❌ Error loading localization: {ex.Message}");
             }
         }
 

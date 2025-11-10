@@ -132,7 +132,7 @@
                     CornerRadius="8"
                     MinWidth="380"
                     MaxWidth="500"
-                    Effect="{StaticResource DropShadowEffect}">
+                    Effect="{DynamicResource DropShadowEffect}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
