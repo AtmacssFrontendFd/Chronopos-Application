@@ -157,6 +157,12 @@ public partial class App : System.Windows.Application
                     services.AddTransient<ICurrencyRepository, CurrencyRepository>();
                     LogMessage("CurrencyRepository registered as Transient");
                     
+                    services.AddTransient<ICompanyRepository, CompanyRepository>();
+                    LogMessage("CompanyRepository registered as Transient");
+                    
+                    services.AddTransient<ICompanySettingsRepository, CompanySettingsRepository>();
+                    LogMessage("CompanySettingsRepository registered as Transient");
+                    
                     // Register Permission repositories
                     services.AddTransient<IPermissionRepository, PermissionRepository>();
                     LogMessage("PermissionRepository registered as Transient");
@@ -187,6 +193,14 @@ public partial class App : System.Windows.Application
 
                     services.AddTransient<IDiscountRepository, DiscountRepository>();
                     LogMessage("DiscountRepository registered as Transient");
+                    
+                    // Register ServiceChargeType repository
+                    services.AddTransient<IServiceChargeTypeRepository, ServiceChargeTypeRepository>();
+                    LogMessage("ServiceChargeTypeRepository registered as Transient");
+                    
+                    // Register ServiceChargeOption repository
+                    services.AddTransient<IServiceChargeOptionRepository, ServiceChargeOptionRepository>();
+                    LogMessage("ServiceChargeOptionRepository registered as Transient");
                     
                     // Register Category repository
                     services.AddTransient<ICategoryRepository, CategoryRepository>();
@@ -313,6 +327,28 @@ public partial class App : System.Windows.Application
                     
                     services.AddTransient<ICurrencyService, CurrencyService>();
                     LogMessage("CurrencyService registered as Transient");
+                    
+                    services.AddTransient<ICompanyService, CompanyService>();
+                    LogMessage("CompanyService registered as Transient");
+                    
+                    services.AddTransient<ICompanySettingsService, CompanySettingsService>();
+                    LogMessage("CompanySettingsService registered as Transient");
+                    
+                    // Register ServiceChargeType service
+                    services.AddTransient<IServiceChargeTypeService, ServiceChargeTypeService>();
+                    LogMessage("ServiceChargeTypeService registered as Transient");
+                    
+                    // Register ServiceChargeOption service
+                    services.AddTransient<IServiceChargeOptionService, ServiceChargeOptionService>();
+                    LogMessage("ServiceChargeOptionService registered as Transient");
+                    
+                    // Register Printer service
+                    services.AddSingleton<IPrinterService, PrinterService>();
+                    LogMessage("PrinterService registered as Singleton");
+                    
+                    // Register Backup service
+                    services.AddSingleton<IBackupService, BackupService>();
+                    LogMessage("BackupService registered as Singleton");
                     
                     // Register Permission services
                     services.AddTransient<IPermissionService, PermissionService>();
@@ -569,6 +605,8 @@ public partial class App : System.Windows.Application
                     // Register MainWindowViewModel as Singleton for stable event subscriptions
                     services.AddSingleton<MainWindowViewModel>();
                     LogMessage("MainWindowViewModel registered as Singleton");
+                    services.AddSingleton<GlobalSearchBarViewModel>();
+                    LogMessage("GlobalSearchBarViewModel registered as Singleton");
                     services.AddTransient<ProductsViewModel>();
                     LogMessage("ProductsViewModel registered as Transient");
                     services.AddTransient<ProductManagementViewModel>();
@@ -708,6 +746,11 @@ public partial class App : System.Windows.Application
             LogMessage("Starting host...");
             _host.Start();
             LogMessage("Host started successfully");
+            
+            // Check for pending restore AFTER host starts (but before InitializeServices opens connections)
+            LogMessage("Checking for pending database restore...");
+            Task.Run(async () => await CheckAndApplyPendingRestoreAsync()).Wait();
+            LogMessage("Pending restore check completed");
 
             // Initialize all services synchronously
             InitializeServices();
@@ -1042,6 +1085,59 @@ public partial class App : System.Windows.Application
         }
     }
 
+    private async Task CheckAndApplyPendingRestoreAsync()
+    {
+        try
+        {
+            using var scope = _host.Services.CreateScope();
+            var backupService = scope.ServiceProvider.GetRequiredService<IBackupService>();
+            
+            var hasPending = await backupService.HasPendingRestoreAsync();
+            
+            if (hasPending)
+            {
+                LogMessage("  - Pending restore detected!");
+                AppLogger.LogInfo("[RESTORE] Applying pending database restore...", filename: "restore");
+                
+                var result = await backupService.ApplyPendingRestoreAsync();
+                
+                if (result.Success)
+                {
+                    LogMessage($"  - Database restored successfully ✓");
+                    LogMessage($"  - Pre-restore backup saved at: {result.PreRestoreBackupPath}");
+                    AppLogger.LogInfo($"[RESTORE] ✅ {result.Message}", filename: "restore");
+                    AppLogger.LogInfo($"[RESTORE] Pre-restore backup: {result.PreRestoreBackupPath}", filename: "restore");
+                    
+                    // DON'T show dialog during startup - it blocks the UI thread
+                    // Just log the success and continue
+                    LogMessage("  - Restore completed, continuing with normal startup...");
+                }
+                else
+                {
+                    LogMessage($"  - Restore failed: {result.Message}");
+                    AppLogger.LogError($"[RESTORE] ❌ {result.Message} - {result.ErrorDetails}", filename: "restore");
+                    
+                    // DON'T show dialog during startup - it blocks the UI thread
+                    // Just log the failure and continue
+                    LogMessage("  - Restore failed, continuing with current database...");
+                }
+            }
+            else
+            {
+                LogMessage("  - No pending restore found ✓");
+            }
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"  - Error checking pending restore: {ex.Message}");
+            AppLogger.LogError("[RESTORE] Error checking/applying pending restore", ex, filename: "restore");
+            
+            // DON'T show dialog during startup - it blocks the UI thread  
+            // Just log and continue
+            LogMessage("  - Restore check error, continuing with normal startup...");
+        }
+    }
+
     private void InitializeDatabase()
     {
         try
@@ -1049,14 +1145,56 @@ public partial class App : System.Windows.Application
             using var scope = _host.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ChronoPosDbContext>();
             
-            LogMessage("  - Ensuring database exists...");
+            LogMessage("  - Verifying database connection...");
             AppLogger.LogInfo($"[DB INIT] Database connection string: {dbContext.Database.GetConnectionString()}", filename: "host_discovery");
-            AppLogger.LogInfo($"[DB INIT] Calling EnsureCreated()...", filename: "host_discovery");
             
-            dbContext.Database.EnsureCreated();
+            // Check if database file exists
+            var dbPath = GetSourceDatabasePath();
+            var dbFileExists = File.Exists(dbPath);
             
-            LogMessage("  - Database ensured ✓");
-            AppLogger.LogInfo($"[DB INIT] ✅ Database ready and accessible", filename: "host_discovery");
+            AppLogger.LogInfo($"[DB INIT] Database file exists: {dbFileExists}", filename: "host_discovery");
+            
+            // Check if database schema is initialized (check for tables)
+            bool schemaExists = false;
+            try
+            {
+                // Try to query a core table to verify schema exists
+                schemaExists = dbContext.Database.CanConnect() && 
+                               dbContext.Model.GetEntityTypes().Any() &&
+                               dbContext.Database.ExecuteSqlRaw("SELECT 1 FROM sqlite_master WHERE type='table' AND name='Users' LIMIT 1") >= 0;
+                AppLogger.LogInfo($"[DB INIT] Database schema exists: {schemaExists}", filename: "host_discovery");
+            }
+            catch
+            {
+                schemaExists = false;
+                AppLogger.LogInfo($"[DB INIT] Database schema check failed - assuming schema does not exist", filename: "host_discovery");
+            }
+            
+            if (!dbFileExists || !schemaExists)
+            {
+                // Create database if file doesn't exist OR if schema is missing
+                AppLogger.LogInfo($"[DB INIT] Creating/initializing database schema...", filename: "host_discovery");
+                dbContext.Database.EnsureCreated();
+                LogMessage("  - Database schema created ✓");
+                AppLogger.LogInfo($"[DB INIT] ✅ Database schema initialized successfully", filename: "host_discovery");
+            }
+            else
+            {
+                // Database exists with schema - just verify connection
+                AppLogger.LogInfo($"[DB INIT] Database exists with schema, verifying connection...", filename: "host_discovery");
+                
+                var canConnect = dbContext.Database.CanConnect();
+                if (canConnect)
+                {
+                    LogMessage("  - Database connection verified ✓");
+                    AppLogger.LogInfo($"[DB INIT] ✅ Database ready and accessible", filename: "host_discovery");
+                }
+                else
+                {
+                    LogMessage("  - Database connection failed!");
+                    AppLogger.LogError("[DB INIT] ❌ Cannot connect to existing database", filename: "host_discovery");
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -1067,6 +1205,12 @@ public partial class App : System.Windows.Application
                 $"Database initialization failed: {ex.Message}\nThe application will continue without database functionality.",
                 MessageDialog.MessageType.Warning).ShowDialog();
         }
+    }
+    
+    private string GetSourceDatabasePath()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        return Path.Combine(localAppData, "ChronoPos", "chronopos.db");
     }
 
     private void SeedLanguageTranslations()

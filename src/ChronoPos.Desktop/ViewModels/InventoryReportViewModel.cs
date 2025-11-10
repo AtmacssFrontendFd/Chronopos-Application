@@ -339,9 +339,10 @@ public partial class InventoryReportViewModel : ObservableObject
         var mainWindow = System.Windows.Application.Current.MainWindow as Views.MainWindow;
         if (mainWindow?.DataContext is MainWindowViewModel mainViewModel)
         {
+            var reportsHubViewModel = App.GetService<ReportsHubViewModel>();
             var reportsHubView = new Views.ReportsHubView
             {
-                DataContext = new ReportsHubViewModel()
+                DataContext = reportsHubViewModel
             };
             mainViewModel.NavigateToView(reportsHubView);
         }

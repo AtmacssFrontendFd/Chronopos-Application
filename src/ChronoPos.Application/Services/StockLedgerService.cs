@@ -1,5 +1,6 @@
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.Logging;
 using ChronoPos.Domain.Entities;
 using ChronoPos.Domain.Enums;
 using ChronoPos.Domain.Interfaces;
@@ -116,11 +117,23 @@ public class StockLedgerService : IStockLedgerService
     /// <returns>Created stock ledger DTO</returns>
     public async Task<StockLedgerDto> CreateAsync(CreateStockLedgerDto createStockLedgerDto)
     {
+        AppLogger.LogInfo("StockLedgerService.CreateAsync", 
+            $"🟢 ENTRY: Creating stock ledger - ProductId={createStockLedgerDto.ProductId}, UnitId={createStockLedgerDto.UnitId?.ToString() ?? "NULL"}, Qty={createStockLedgerDto.Qty}, Type={createStockLedgerDto.MovementType}", 
+            "stockledger");
+        
         // Get current balance for the product
         var currentBalance = await _stockLedgerRepository.GetCurrentBalanceAsync(createStockLedgerDto.ProductId);
+        
+        AppLogger.LogInfo("StockLedgerService.CreateAsync", 
+            $"  Current balance for ProductId {createStockLedgerDto.ProductId}: {currentBalance}", 
+            "stockledger");
 
         // Calculate new balance based on movement type
         var newBalance = CalculateNewBalance(currentBalance, createStockLedgerDto.Qty, createStockLedgerDto.MovementType);
+        
+        AppLogger.LogInfo("StockLedgerService.CreateAsync", 
+            $"  New balance calculated: {newBalance} (CurrentBalance={currentBalance}, Qty={createStockLedgerDto.Qty}, Type={createStockLedgerDto.MovementType})", 
+            "stockledger");
 
         var stockLedger = new StockLedger
         {
@@ -136,8 +149,21 @@ public class StockLedgerService : IStockLedgerService
             CreatedAt = DateTime.UtcNow
         };
 
+        AppLogger.LogInfo("StockLedgerService.CreateAsync", 
+            $"  Calling repository AddAsync...", 
+            "stockledger");
+
         await _stockLedgerRepository.AddAsync(stockLedger);
+        
+        AppLogger.LogInfo("StockLedgerService.CreateAsync", 
+            $"  Calling UnitOfWork SaveChangesAsync...", 
+            "stockledger");
+        
         await _unitOfWork.SaveChangesAsync();
+
+        AppLogger.LogInfo("StockLedgerService.CreateAsync", 
+            $"🟢 SUCCESS: Stock ledger entry created with Id={stockLedger.Id}, ProductId={stockLedger.ProductId}, UnitId={stockLedger.UnitId?.ToString() ?? "NULL"}", 
+            "stockledger");
 
         return MapToDto(stockLedger);
     }
@@ -290,7 +316,9 @@ public class StockLedgerService : IStockLedgerService
             CreatedAt = stockLedger.CreatedAt,
             Note = stockLedger.Note,
             ProductName = stockLedger.Product?.Name,
-            UnitName = stockLedger.Unit?.Unit?.Name
+            UnitName = stockLedger.Unit != null 
+                ? $"{stockLedger.Unit.Product?.Name ?? "Product"} - {stockLedger.Unit.Sku}" 
+                : null
         };
     }
 }

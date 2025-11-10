@@ -18,9 +18,8 @@ public class StockLedger
     [Column("product_id")]
     public int ProductId { get; set; }
 
-    [Required]
     [Column("unit_id")]
-    public int UnitId { get; set; }
+    public int? UnitId { get; set; }
 
     [Required]
     [Column("movement_type")]

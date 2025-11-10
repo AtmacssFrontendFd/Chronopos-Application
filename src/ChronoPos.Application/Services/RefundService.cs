@@ -1,6 +1,8 @@
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.Logging;
 using ChronoPos.Domain.Entities;
+using ChronoPos.Domain.Enums;
 using ChronoPos.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -16,6 +18,7 @@ namespace ChronoPos.Application.Services
         private readonly ITransactionProductRepository _transactionProductRepository;
         private readonly IShiftRepository _shiftRepository;
         private readonly IProductRepository _productRepository;
+        private readonly IStockLedgerService _stockLedgerService;
         private readonly IUnitOfWork _unitOfWork;
 
         public RefundService(
@@ -24,6 +27,7 @@ namespace ChronoPos.Application.Services
             ITransactionProductRepository transactionProductRepository,
             IShiftRepository shiftRepository,
             IProductRepository productRepository,
+            IStockLedgerService stockLedgerService,
             IUnitOfWork unitOfWork)
         {
             _refundRepository = refundRepository;
@@ -31,6 +35,7 @@ namespace ChronoPos.Application.Services
             _transactionProductRepository = transactionProductRepository;
             _shiftRepository = shiftRepository;
             _productRepository = productRepository;
+            _stockLedgerService = stockLedgerService;
             _unitOfWork = unitOfWork;
         }
 
@@ -198,9 +203,107 @@ namespace ChronoPos.Application.Services
                             product.StockQuantity += (int)refundProductDto.TotalQuantityReturned;
                             product.UpdatedAt = DateTime.Now;
                             await _productRepository.UpdateAsync(product);
+                            
+                            AppLogger.LogInfo("RefundService.CreateAsync", 
+                                $"📦 Product stock updated - ProductId={product.Id}, Added={refundProductDto.TotalQuantityReturned}, NewStock={product.StockQuantity}", 
+                                "refund");
                         }
                     }
                 }
+
+                // TRANSACTIONAL OPERATION 4: Create stock ledger entries for refunded products
+                AppLogger.LogInfo("RefundService.CreateAsync", 
+                    $"🔵 Creating stock ledger entries for refund {refund.Id}...", 
+                    "refund");
+                
+                foreach (var refundProductDto in createDto.Products)
+                {
+                    try
+                    {
+                        var transactionProduct = await _transactionProductRepository.GetByIdAsync(refundProductDto.TransactionProductId);
+                        if (transactionProduct != null)
+                        {
+                            AppLogger.LogInfo("RefundService.CreateAsync", 
+                                $"  → Processing refund product: TransactionProductId={transactionProduct.Id}, ProductId={transactionProduct.ProductId}, Qty={refundProductDto.TotalQuantityReturned}", 
+                                "refund");
+                            
+                            var product = await _productRepository.GetByIdAsync(transactionProduct.ProductId);
+                            if (product == null)
+                            {
+                                AppLogger.LogWarning("RefundService.CreateAsync", 
+                                    $"  ❌ Product {transactionProduct.ProductId} not found for stock ledger", 
+                                    "refund");
+                                continue;
+                            }
+
+                            // Find ProductUnit if product has SellingUnitId
+                            int? productUnitId = null;
+                            if (product.SellingUnitId.HasValue)
+                            {
+                                AppLogger.LogInfo("RefundService.CreateAsync", 
+                                    $"  🔍 Product {product.Id} HAS SellingUnitId={product.SellingUnitId}, searching for ProductUnit...", 
+                                    "refund");
+                                
+                                var productUnit = product.ProductUnits?
+                                    .FirstOrDefault(pu => pu.UnitId == product.SellingUnitId.Value);
+                                productUnitId = productUnit?.Id;
+                                
+                                if (productUnitId == null)
+                                {
+                                    AppLogger.LogWarning("RefundService.CreateAsync", 
+                                        $"  ⚠️ ProductUnit NOT FOUND for Product {product.Id} with SellingUnitId {product.SellingUnitId}. ProductUnits count: {product.ProductUnits?.Count ?? 0}", 
+                                        "refund");
+                                }
+                                else
+                                {
+                                    AppLogger.LogInfo("RefundService.CreateAsync", 
+                                        $"  ✅ ProductUnit FOUND: ProductUnitId={productUnitId}", 
+                                        "refund");
+                                }
+                            }
+                            else
+                            {
+                                AppLogger.LogInfo("RefundService.CreateAsync", 
+                                    $"  ℹ️ Product {product.Id} has NO SellingUnitId - will save with NULL unit_id", 
+                                    "refund");
+                            }
+
+                            // Create stock ledger entry for refund (return)
+                            var stockLedgerDto = new CreateStockLedgerDto
+                            {
+                                ProductId = transactionProduct.ProductId,
+                                UnitId = productUnitId,
+                                MovementType = StockMovementType.Return, // Refund is a return
+                                Qty = refundProductDto.TotalQuantityReturned,
+                                Location = "Main Store",
+                                ReferenceType = StockReferenceType.Refund,
+                                ReferenceId = refund.Id,
+                                Note = $"Refund from Transaction #{originalTransaction.Id}, Refund #{refund.Id}"
+                            };
+
+                            AppLogger.LogInfo("RefundService.CreateAsync", 
+                                $"  📝 Creating stock ledger entry: ProductId={stockLedgerDto.ProductId}, UnitId={stockLedgerDto.UnitId?.ToString() ?? "NULL"}, Qty={stockLedgerDto.Qty}, RefundId={refund.Id}", 
+                                "refund");
+
+                            await _stockLedgerService.CreateAsync(stockLedgerDto);
+                            
+                            AppLogger.LogInfo("RefundService.CreateAsync", 
+                                $"  ✅ Stock ledger entry CREATED for Product {transactionProduct.ProductId}", 
+                                "refund");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLogger.LogError("RefundService.CreateAsync", ex,
+                            $"  ❌ FAILED to create stock ledger entry for refund product - RefundId: {refund.Id}, TransactionProductId: {refundProductDto.TransactionProductId}", 
+                            "refund");
+                        // Don't throw - stock ledger is supplementary
+                    }
+                }
+                
+                AppLogger.LogInfo("RefundService.CreateAsync", 
+                    $"🔵 Stock ledger entries completed for refund {refund.Id}", 
+                    "refund");
 
                 // COMMIT: Save all changes
                 await _unitOfWork.SaveChangesAsync();

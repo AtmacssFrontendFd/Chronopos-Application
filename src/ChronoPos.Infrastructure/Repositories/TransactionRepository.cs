@@ -24,11 +24,12 @@ public class TransactionRepository : Repository<Transaction>, ITransactionReposi
             .Include(t => t.Reservation)
             .Include(t => t.TransactionProducts)
                 .ThenInclude(tp => tp.Product)
+                    .ThenInclude(p => p.ProductUnits) // CRITICAL FIX: Include ProductUnits for stock ledger
             .Include(t => t.TransactionProducts)
                 .ThenInclude(tp => tp.TransactionModifiers)
                     .ThenInclude(tm => tm.ProductModifier)
             .Include(t => t.TransactionServiceCharges)
-                .ThenInclude(tsc => tsc.ServiceCharge)
+                .ThenInclude(tsc => tsc.ServiceChargeOption)
             .FirstOrDefaultAsync(t => t.Id == id);
     }
 
@@ -121,11 +122,12 @@ public class TransactionRepository : Repository<Transaction>, ITransactionReposi
             .Include(t => t.Reservation)
             .Include(t => t.TransactionProducts)
                 .ThenInclude(tp => tp.Product)
+                    .ThenInclude(p => p.ProductUnits) // CRITICAL FIX: Include ProductUnits for stock ledger
             .Include(t => t.TransactionProducts)
                 .ThenInclude(tp => tp.TransactionModifiers)
                     .ThenInclude(tm => tm.ProductModifier)
             .Include(t => t.TransactionServiceCharges)
-                .ThenInclude(tsc => tsc.ServiceCharge)
+                .ThenInclude(tsc => tsc.ServiceChargeOption)
             .OrderByDescending(t => t.SellingTime)
             .ToListAsync();
     }

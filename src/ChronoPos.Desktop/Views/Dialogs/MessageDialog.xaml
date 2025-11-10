@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Message"
-        Height="Auto"
-        Width="440"
+        SizeToContent="Height"
+        Width="400"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         WindowStyle="None"
@@ -20,17 +20,17 @@
             <Setter Property="Background" Value="#10B981"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="40,14"/>
-            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Padding" Value="32,12"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="MinHeight" Value="48"/>
-            <Setter Property="MinWidth" Value="140"/>
+            <Setter Property="MinHeight" Value="42"/>
+            <Setter Property="MinWidth" Value="120"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                                CornerRadius="8"
+                                CornerRadius="6"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -48,21 +48,22 @@
         </Style>
     </Window.Resources>
 
-    <Border Background="White"
-            CornerRadius="16"
-            BorderThickness="0">
+    <Border Background="{DynamicResource MainBackground}"
+            CornerRadius="12"
+            BorderThickness="1"
+            BorderBrush="{DynamicResource BorderLight}">
         <Border.Effect>
-            <DropShadowEffect Color="Black" 
+            <DropShadowEffect Color="#000000" 
                             Direction="270" 
-                            ShadowDepth="0" 
-                            Opacity="0.25" 
-                            BlurRadius="30"/>
+                            ShadowDepth="3" 
+                            Opacity="0.15" 
+                            BlurRadius="20"/>
         </Border.Effect>
 
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
@@ -72,15 +73,15 @@
                     Click="CloseButton_Click"
                     Background="Transparent"
                     BorderThickness="0"
-                    FontSize="20"
+                    FontSize="18"
                     FontWeight="Normal"
-                    Foreground="#6B7280"
+                    Foreground="{DynamicResource SecondaryText}"
                     Cursor="Hand"
-                    Width="40"
-                    Height="40"
+                    Width="36"
+                    Height="36"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
-                    Margin="0,12,12,0"
+                    Margin="0,10,10,0"
                     ToolTip="Close">
                 <Button.Style>
                     <Style TargetType="Button">
@@ -89,7 +90,7 @@
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
                                     <Border Background="{TemplateBinding Background}"
-                                            CornerRadius="20">
+                                            CornerRadius="18">
                                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
                                 </ControlTemplate>
@@ -104,63 +105,63 @@
                 </Button.Style>
             </Button>
 
-            <!-- Content -->
-            <StackPanel Grid.Row="1"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       Margin="40,60,40,40">
+        <!-- Content (reduced vertical spacing) -->
+        <StackPanel Grid.Row="1"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"
+               Margin="32,45,32,40">
                 
-                <!-- Circular Icon with Checkmark -->
-                <Border x:Name="IconBorder"
-                        Width="80"
-                        Height="80"
-                        CornerRadius="40"
-                        Background="Transparent"
-                        BorderBrush="#10B981"
-                        BorderThickness="4"
-                        HorizontalAlignment="Center"
-                        Margin="0,0,0,24">
-                    <Path Data="M 15,28 L 28,38 L 48,18"
-                          Stroke="#10B981"
-                          StrokeThickness="4"
-                          StrokeStartLineCap="Round"
-                          StrokeEndLineCap="Round"
-                          StrokeLineJoin="Round"
-                          Stretch="Uniform"
-                          Width="50"
-                          Height="50"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Center"/>
-                </Border>
+        <!-- Circular Icon with Checkmark -->
+        <Border x:Name="IconBorder"
+            Width="52"
+            Height="52"
+            CornerRadius="26"
+            Background="Transparent"
+            BorderBrush="#10B981"
+            BorderThickness="2.5"
+            HorizontalAlignment="Center"
+            Margin="0,0,0,25">
+            <Path Data="M 15,28 L 28,38 L 48,18"
+              Stroke="#10B981"
+              StrokeThickness="3"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round"
+              StrokeLineJoin="Round"
+              Stretch="Uniform"
+              Width="35"
+              Height="35"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"/>
+        </Border>
 
-                <!-- Title -->
-                <TextBlock x:Name="TitleText"
-                           Text="Success"
-                           FontSize="22"
-                           FontWeight="SemiBold"
-                           Foreground="#111827"
-                           HorizontalAlignment="Center"
-                           TextAlignment="Center"
-                           Margin="0,0,0,12"/>
+        <!-- Title -->
+        <TextBlock x:Name="TitleText"
+               Text="Success"
+               FontSize="18"
+               FontWeight="SemiBold"
+               Foreground="{DynamicResource TextPrimary}"
+               HorizontalAlignment="Center"
+               TextAlignment="Center"
+               Margin="0,0,0,17"/>
 
-                <!-- Message -->
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
-                             MaxHeight="200"
-                             HorizontalAlignment="Stretch">
-                    <TextBlock x:Name="MessageText"
-                               Text="Operation completed successfully"
-                               FontSize="15"
-                               Foreground="#6B7280"
-                               TextWrapping="Wrap"
-                               TextAlignment="Center"
-                               LineHeight="22"
-                               HorizontalAlignment="Center"/>
-                </ScrollViewer>
-            </StackPanel>
+        <!-- Message -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                 MaxHeight="100"
+                 HorizontalAlignment="Stretch">
+            <TextBlock x:Name="MessageText"
+                   Text="Operation completed successfully"
+                   FontSize="13"
+                   Foreground="{DynamicResource SecondaryText}"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   LineHeight="17"
+                   HorizontalAlignment="Center"/>
+        </ScrollViewer>
+        </StackPanel>
 
-            <!-- Footer Button -->
-            <Border Grid.Row="2"
-                    Padding="40,0,40,40">
+        <!-- Footer Button -->
+        <Border Grid.Row="2"
+            Padding="24,0,24,16">
                 <Button x:Name="OkButton"
                         Content="Back"
                         Click="OkButton_Click"

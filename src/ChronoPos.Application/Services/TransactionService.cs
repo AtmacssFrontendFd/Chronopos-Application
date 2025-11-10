@@ -187,11 +187,11 @@ namespace ChronoPos.Application.Services
             }
 
             // Add service charges if any
-            if (createDto.ServiceChargeIds != null && createDto.ServiceChargeIds.Any())
+            if (createDto.ServiceChargeOptionIds != null && createDto.ServiceChargeOptionIds.Any())
             {
-                foreach (var serviceChargeId in createDto.ServiceChargeIds)
+                foreach (var serviceChargeOptionId in createDto.ServiceChargeOptionIds)
                 {
-                    var serviceCharge = await _serviceChargeRepository.GetByIdAsync(serviceChargeId);
+                    var serviceCharge = await _serviceChargeRepository.GetByIdAsync(serviceChargeOptionId);
                     if (serviceCharge != null && serviceCharge.IsActive)
                     {
                         var chargeAmount = CalculateServiceChargeAmount(serviceCharge, transaction.TotalAmount);
@@ -201,7 +201,7 @@ namespace ChronoPos.Application.Services
 
                         transaction.TransactionServiceCharges.Add(new TransactionServiceCharge
                         {
-                            ServiceChargeId = serviceChargeId,
+                            ServiceChargeOptionId = serviceChargeOptionId,
                             TotalAmount = chargeAmount,
                             TotalVat = chargeVat,
                             Status = "Active",
@@ -232,7 +232,35 @@ namespace ChronoPos.Application.Services
             
             await _unitOfWork.SaveChangesAsync();
 
-            return MapToDto(await _transactionRepository.GetByIdWithDetailsAsync(transaction.Id) ?? transaction);
+            AppLogger.LogInfo("CreateAsync", 
+                $"Transaction {transaction.Id} saved to database with status: {createDto.Status}", 
+                "transaction");
+
+            var createdTransaction = await _transactionRepository.GetByIdWithDetailsAsync(transaction.Id) ?? transaction;
+            
+            AppLogger.LogInfo("CreateAsync", 
+                $"Transaction {transaction.Id} reloaded. TransactionProducts count: {createdTransaction.TransactionProducts?.Count ?? 0}", 
+                "transaction");
+            
+            // Create stock ledger entries if transaction is created as settled or billed
+            if (createDto.Status == "settled" || createDto.Status == "billed")
+            {
+                AppLogger.LogInfo("CreateAsync", 
+                    $"✅ Condition MET: Transaction {transaction.Id} has status '{createDto.Status}' - Will create stock ledger entries", 
+                    "transaction");
+                await CreateStockLedgerEntriesForTransaction(createdTransaction);
+                AppLogger.LogInfo("CreateAsync", 
+                    $"✅ Stock ledger creation completed for transaction {transaction.Id}", 
+                    "transaction");
+            }
+            else
+            {
+                AppLogger.LogInfo("CreateAsync", 
+                    $"❌ Stock ledger creation SKIPPED: Transaction {transaction.Id} status is '{createDto.Status}' (not settled/billed)", 
+                    "transaction");
+            }
+
+            return MapToDto(createdTransaction);
         }
 
         public async Task<TransactionDto> UpdateAsync(int id, UpdateTransactionDto updateDto, int currentUserId)
@@ -457,36 +485,75 @@ namespace ChronoPos.Application.Services
         private async Task CreateStockLedgerEntriesForTransaction(Transaction transaction)
         {
             AppLogger.LogInfo("CreateStockLedgerEntriesForTransaction", 
-                $"Starting stock ledger creation for transaction {transaction.Id}", "transaction");
+                $"🔵 STARTED: Stock ledger creation for transaction {transaction.Id}", "transaction");
             
             if (transaction.TransactionProducts == null || !transaction.TransactionProducts.Any())
             {
                 AppLogger.LogWarning("CreateStockLedgerEntriesForTransaction", 
-                    $"No transaction products found for transaction {transaction.Id}", "transaction");
+                    $"❌ No transaction products found for transaction {transaction.Id}", "transaction");
                 return;
             }
 
             AppLogger.LogInfo("CreateStockLedgerEntriesForTransaction", 
-                $"Processing {transaction.TransactionProducts.Count} products", "transaction");
+                $"📦 Processing {transaction.TransactionProducts.Count} products for transaction {transaction.Id}", "transaction");
 
             foreach (var transactionProduct in transaction.TransactionProducts)
             {
                 try
                 {
+                    AppLogger.LogInfo("CreateStockLedgerEntriesForTransaction", 
+                        $"  → Product {transactionProduct.ProductId}: Fetching details...", "transaction");
+                    
                     // Get product to find its unit
                     var product = await _productRepository.GetByIdAsync(transactionProduct.ProductId);
                     if (product == null)
                     {
                         AppLogger.LogWarning("CreateStockLedgerEntriesForTransaction", 
-                            $"Product {transactionProduct.ProductId} not found", "transaction");
+                            $"  ❌ Product {transactionProduct.ProductId} not found in database", "transaction");
                         continue;
+                    }
+
+                    AppLogger.LogInfo("CreateStockLedgerEntriesForTransaction", 
+                        $"  ✅ Product {transactionProduct.ProductId} found. SellingUnitId: {product.SellingUnitId?.ToString() ?? "NULL"}, ProductUnits count: {product.ProductUnits?.Count ?? 0}", 
+                        "transaction");
+
+                    // Find the ProductUnit for this product
+                    // If product has SellingUnitId, find the corresponding ProductUnit entry
+                    int? productUnitId = null;
+                    if (product.SellingUnitId.HasValue)
+                    {
+                        AppLogger.LogInfo("CreateStockLedgerEntriesForTransaction", 
+                            $"  🔍 Product {transactionProduct.ProductId} HAS SellingUnitId={product.SellingUnitId}, searching for matching ProductUnit...", 
+                            "transaction");
+                        
+                        var productUnit = product.ProductUnits?
+                            .FirstOrDefault(pu => pu.UnitId == product.SellingUnitId.Value);
+                        productUnitId = productUnit?.Id;
+                        
+                        if (productUnitId == null)
+                        {
+                            AppLogger.LogWarning("CreateStockLedgerEntriesForTransaction", 
+                                $"  ⚠️ ProductUnit NOT FOUND for Product {transactionProduct.ProductId} with SellingUnitId {product.SellingUnitId}. ProductUnits collection: {(product.ProductUnits == null ? "NULL" : $"{product.ProductUnits.Count} items")}", 
+                                "transaction");
+                        }
+                        else
+                        {
+                            AppLogger.LogInfo("CreateStockLedgerEntriesForTransaction", 
+                                $"  ✅ ProductUnit FOUND: ProductUnitId={productUnitId}", "transaction");
+                        }
+                    }
+                    else
+                    {
+                        AppLogger.LogInfo("CreateStockLedgerEntriesForTransaction", 
+                            $"  ℹ️ Product {transactionProduct.ProductId} has NO SellingUnitId - will save with NULL unit_id", 
+                            "transaction");
                     }
 
                     // Create stock ledger entry for this sale
                     var stockLedgerDto = new CreateStockLedgerDto
                     {
                         ProductId = transactionProduct.ProductId,
-                        UnitId = (int)(product.SellingUnitId ?? 1), // Use product's selling unit or default to 1
+                        UnitId = productUnitId, // Can be null if product has no ProductUnit
                         MovementType = StockMovementType.Sale,
                         Qty = transactionProduct.Quantity,
                         Location = "Main Store",
@@ -495,18 +562,26 @@ namespace ChronoPos.Application.Services
                         Note = $"Sale from Transaction #{transaction.Id}"
                     };
 
+                    AppLogger.LogInfo("CreateStockLedgerEntriesForTransaction", 
+                        $"  📝 Creating stock ledger entry: ProductId={stockLedgerDto.ProductId}, UnitId={stockLedgerDto.UnitId?.ToString() ?? "NULL"}, Qty={stockLedgerDto.Qty}, TransactionId={transaction.Id}", 
+                        "transaction");
+
                     await _stockLedgerService.CreateAsync(stockLedgerDto);
                     
-                    AppLogger.LogInfo("Stock ledger entry created for sale", 
-                        $"ProductId: {transactionProduct.ProductId}, Qty: {transactionProduct.Quantity}, TransactionId: {transaction.Id}", "transaction");
+                    AppLogger.LogInfo("CreateStockLedgerEntriesForTransaction", 
+                        $"  ✅ Stock ledger entry CREATED successfully for Product {transactionProduct.ProductId}", 
+                        "transaction");
                 }
                 catch (Exception ex)
                 {
-                    AppLogger.LogError("Failed to create stock ledger entry for sale", ex,
-                        $"TransactionId: {transaction.Id}, ProductId: {transactionProduct.ProductId}", "transaction");
+                    AppLogger.LogError("CreateStockLedgerEntriesForTransaction", ex,
+                        $"  ❌ FAILED to create stock ledger entry - TransactionId: {transaction.Id}, ProductId: {transactionProduct.ProductId}", "transaction");
                     // Don't throw - ledger is supplementary
                 }
             }
+            
+            AppLogger.LogInfo("CreateStockLedgerEntriesForTransaction", 
+                $"🔵 COMPLETED: Stock ledger creation for transaction {transaction.Id}", "transaction");
         }
 
         private TransactionDto MapToDto(Transaction transaction)
@@ -572,8 +647,8 @@ namespace ChronoPos.Application.Services
                 {
                     Id = sc.Id,
                     TransactionId = sc.TransactionId,
-                    ServiceChargeId = sc.ServiceChargeId,
-                    ServiceChargeName = sc.ServiceCharge?.Name,
+                    ServiceChargeOptionId = sc.ServiceChargeOptionId,
+                    ServiceChargeName = sc.ServiceChargeOption?.Name,
                     TotalAmount = sc.TotalAmount,
                     TotalVat = sc.TotalVat,
                     Status = sc.Status

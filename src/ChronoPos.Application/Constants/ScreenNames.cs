@@ -90,6 +90,7 @@ public static class ScreenNames
     public const string ROLES = "Roles";
     public const string PERMISSIONS = "Permissions";
     public const string SERVICES = "Services";                     // New Services screen
+    public const string SERVICE_CHARGE = "ServiceCharge";          // Service Charge Types and Options
     
     // Legacy constants (for backward compatibility - deprecated)
     [Obsolete("Use CLIENT_SETTINGS instead")]
@@ -157,7 +158,8 @@ public static class ScreenNames
             ADD_OPTIONS,
             ROLES,
             PERMISSIONS,
-            SERVICES
+            SERVICES,
+            SERVICE_CHARGE
         };
     }
 
@@ -227,6 +229,7 @@ public static class ScreenNames
             ROLES => "Roles",
             PERMISSIONS => "Permissions",
             SERVICES => "Services",
+            SERVICE_CHARGE => "Service Charges",
             _ => screenName
         };
     }

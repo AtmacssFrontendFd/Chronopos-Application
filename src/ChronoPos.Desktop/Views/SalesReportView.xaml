@@ -4,10 +4,12 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             xmlns:controls="clr-namespace:ChronoPos.Desktop.Views.Controls"
              xmlns:oxy="http://oxyplot.org/wpf"
              mc:Ignorable="d" 
              d:DesignHeight="900" d:DesignWidth="1400"
-             Background="{DynamicResource PageBackground}"
+             Background="{DynamicResource MainBackground}"
+             FontFamily="{DynamicResource PoppinsFontFallback}"
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -17,69 +19,70 @@
         <converters:CurrencyPriceConverter x:Key="CurrencyPriceConverter"/>
         <converters:LocalizationConverter x:Key="LocalizationConverter"/>
         
-        <!-- Card Style -->
+        <!-- Card Style - Theme Compatible -->
         <Style x:Key="CardStyle" TargetType="Border">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="CornerRadius" Value="12"/>
-            <Setter Property="Padding" Value="20"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect Color="#000000" BlurRadius="10" ShadowDepth="2" Opacity="0.08" Direction="270"/>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="{DynamicResource BorderCornerRadius}"/>
+            <Setter Property="Margin" Value="{DynamicResource DefaultMarginThickness}"/>
+            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
         </Style>
 
-        <!-- Summary Card Style -->
+        <!-- Summary Card Style - Theme Compatible -->
         <Style x:Key="SummaryCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="{DynamicResource BorderCornerRadius}"/>
             <Setter Property="Padding" Value="20,16"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect Color="#000000" BlurRadius="8" ShadowDepth="1" Opacity="0.06" Direction="270"/>
-                </Setter.Value>
-            </Setter>
         </Style>
 
-        <!-- Filter Button Style -->
-        <Style x:Key="FilterButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#4A90E2"/>
+        <!-- Action Button Style - Theme Compatible -->
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Primary}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="20,10"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                               CornerRadius="8"
-                               Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryAlt}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#357ABD"/>
-                </Trigger>
-                <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Background" Value="#CCCCCC"/>
-                    <Setter Property="Cursor" Value="No"/>
-                </Trigger>
-            </Style.Triggers>
         </Style>
 
-        <!-- Secondary Button Style -->
+        <!-- Secondary Button Style - Theme Compatible -->
         <Style x:Key="SecondaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#F5F5F5"/>
-            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
             <Setter Property="Padding" Value="16,10"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -87,27 +90,204 @@
                         <Border Background="{TemplateBinding Background}" 
                                BorderBrush="{TemplateBinding BorderBrush}"
                                BorderThickness="{TemplateBinding BorderThickness}"
-                               CornerRadius="8"
+                               CornerRadius="{DynamicResource BorderCornerRadius}"
                                Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#EEEEEE"/>
-                </Trigger>
-            </Style.Triggers>
         </Style>
 
-        <!-- Input Style -->
+        <!-- Small Action Button Style - Theme Compatible -->
+        <Style x:Key="SmallActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Input Style - Theme Compatible -->
         <Style x:Key="InputStyle" TargetType="Control">
             <Setter Property="Height" Value="38"/>
             <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
             <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+        </Style>
+
+        <!-- FormDatePickerStyle (from AddGoodsReturn) -->
+        <Style x:Key="FormDatePickerStyle" TargetType="DatePicker">
+            <Setter Property="MinHeight" Value="38"/>
+            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+        </Style>
+
+        <!-- FormComboBoxStyle (from AddGoodsReturn) -->
+        <Style x:Key="FormComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="MinHeight" Value="38"/>
+            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="MainBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="{DynamicResource BorderCornerRadius}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <ContentPresenter Grid.Column="0"
+                                                    x:Name="PART_ContentPresenter"
+                                                    Content="{TemplateBinding SelectionBoxItem}"
+                                                    ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                    ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                    Margin="{TemplateBinding Padding}"
+                                                    IsHitTestVisible="False"/>
+                                    
+                                    <Border Grid.Column="1"
+                                            Width="24"
+                                            Height="24"
+                                            Background="{DynamicResource CardBackground}"
+                                            BorderBrush="{DynamicResource BorderLight}"
+                                            BorderThickness="1"
+                                            CornerRadius="12"
+                                            Margin="0,0,5,0"
+                                            VerticalAlignment="Center">
+                                        <ToggleButton x:Name="DropDownToggle"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                                    ClickMode="Press"
+                                                    Focusable="False"
+                                                    Width="24"
+                                                    Height="24">
+                                            <TextBlock Text="▼"
+                                                     FontSize="8"
+                                                     FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                     Foreground="{DynamicResource TextSecondary}"
+                                                     HorizontalAlignment="Center"
+                                                     VerticalAlignment="Center"/>
+                                        </ToggleButton>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                            
+                            <Popup x:Name="PART_Popup"
+                                   Placement="Bottom"
+                                   PlacementTarget="{Binding ElementName=MainBorder}"
+                                   IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Slide">
+                                <Border Background="{DynamicResource CardBackground}"
+                                        BorderBrush="{DynamicResource BorderLight}"
+                                        BorderThickness="1"
+                                        CornerRadius="{DynamicResource BorderCornerRadius}"
+                                        MinWidth="{Binding ActualWidth, ElementName=MainBorder}"
+                                        MaxHeight="200">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="Black" Direction="270" BlurRadius="8" ShadowDepth="2" Opacity="0.3"/>
+                                    </Border.Effect>
+                                    <ScrollViewer x:Name="DropDownScrollViewer"
+                                                VerticalScrollBarVisibility="Auto"
+                                                HorizontalScrollBarVisibility="Disabled">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                <Setter TargetName="MainBorder" Property="Background" Value="{DynamicResource CardBackground}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                <Setter TargetName="MainBorder" Property="Background" Value="{DynamicResource CardBackground}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="MainBorder" Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextDisabled}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+                        <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                        <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Setter.Value>
+            </Setter>
         </Style>
     </UserControl.Resources>
 
@@ -121,51 +301,55 @@
             </Grid.RowDefinitions>
 
             <!-- Header with Back Button -->
-            <Grid Grid.Row="0" Margin="0,0,0,24">
+            <Grid Grid.Row="0" Margin="{DynamicResource DefaultMarginThickness}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Back Button (consistent with other pages) -->
-                <Button Grid.Column="0" 
-                       Command="{Binding BackToReportsHubCommand}"
-                       Style="{StaticResource SecondaryButtonStyle}"
-                       Width="44"
-                       Height="44"
-                       Padding="0"
-                       Margin="0,0,15,0"
-                       ToolTip="Back to Reports Hub">
-                    <TextBlock Text="←" 
-                              FontSize="20" 
-                              FontWeight="Bold"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"/>
-                </Button>
+                <!-- Back Button and Title -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Back Button -->
+                    <controls:CircularBackButton 
+                        Command="{Binding BackToReportsHubCommand}"
+                        ButtonSize="30"
+                        ButtonBackground="{DynamicResource SurfaceBackground}"
+                        ButtonForeground="{DynamicResource TextSecondary}"
+                        ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                        ButtonHoverForeground="{DynamicResource TextSecondary}"
+                        Margin="0,0,10,0"/>
 
-                <StackPanel Grid.Column="1">
-                    <TextBlock Text="Sales Report" 
-                              FontSize="28" 
-                              FontWeight="Bold"
-                              Foreground="{DynamicResource TextPrimary}"/>
-                    <TextBlock FontSize="13" 
-                              Foreground="{DynamicResource TextSecondary}"
-                              Margin="0,4,0,0">
-                        <Run Text="Analyze sales performance and trends •"/>
-                        <Run Text="{Binding DateRangeDisplay, FallbackValue='Last 30 Days'}" FontWeight="SemiBold"/>
-                    </TextBlock>
+                    <!-- Title -->
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Sales Report" 
+                                  FontSize="{DynamicResource FontSizeLarge}"
+                                  FontWeight="Bold"
+                                  FontFamily="{DynamicResource PoppinsFontFallback}"
+                                  Foreground="{DynamicResource TextPrimary}"/>
+                        <TextBlock FontSize="{DynamicResource FontSizeSmall}"
+                                  Foreground="{DynamicResource TextSecondary}"
+                                  Margin="0,4,0,0">
+                            <Run Text="Analyze sales performance and trends •"/>
+                            <Run Text="{Binding DateRangeDisplay, FallbackValue='Last 30 Days'}" FontWeight="SemiBold"/>
+                        </TextBlock>
+                    </StackPanel>
                 </StackPanel>
 
+                <!-- Refresh Button -->
                 <Button Grid.Column="2" 
-                       Content="↻ Refresh" 
                        Command="{Binding LoadReportDataCommand}"
-                       Style="{StaticResource FilterButtonStyle}"
+                       Style="{StaticResource ActionButtonStyle}"
                        Height="44"
-                       Padding="20,12"/>
+                       Padding="20,12">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="↻" FontSize="16" Margin="0,0,8,0"/>
+                        <TextBlock Text="Refresh" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </Grid>
 
-            <!-- Compact Filter Panel - All in One Line -->
+            <!-- Compact Filter Panel - All in One Line with AddGoodsReturn Style -->
             <Border Grid.Row="1" 
                    Style="{StaticResource CardStyle}"
                    Margin="0,0,0,20"
@@ -182,128 +366,95 @@
                         <TextBlock Text="Quick:" 
                                   FontWeight="SemiBold" 
                                   FontSize="12"
-                                  Foreground="{DynamicResource TextSecondary}"
+                                  Foreground="{DynamicResource TextPrimary}"
                                   VerticalAlignment="Center"
                                   Margin="0,0,12,0"/>
                         <Button Content="Today" Command="{Binding SetTodayFilterCommand}" 
-                               Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,6,0" Height="28" Padding="10,4" FontSize="12"/>
+                               Style="{StaticResource SmallActionButtonStyle}" Margin="0,0,6,0" Height="28" Padding="10,4" FontSize="12"/>
                         <Button Content="Yesterday" Command="{Binding SetYesterdayFilterCommand}" 
-                               Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,6,0" Height="28" Padding="10,4" FontSize="12"/>
+                               Style="{StaticResource SmallActionButtonStyle}" Margin="0,0,6,0" Height="28" Padding="10,4" FontSize="12"/>
                         <Button Content="Last 7 Days" Command="{Binding SetLast7DaysFilterCommand}" 
-                               Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,6,0" Height="28" Padding="10,4" FontSize="12"/>
+                               Style="{StaticResource SmallActionButtonStyle}" Margin="0,0,6,0" Height="28" Padding="10,4" FontSize="12"/>
                         <Button Content="Last 30 Days" Command="{Binding SetLast30DaysFilterCommand}" 
-                               Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,6,0" Height="28" Padding="10,4" FontSize="12"/>
+                               Style="{StaticResource SmallActionButtonStyle}" Margin="0,0,6,0" Height="28" Padding="10,4" FontSize="12"/>
                         <Button Content="This Month" Command="{Binding SetThisMonthFilterCommand}" 
-                               Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,6,0" Height="28" Padding="10,4" FontSize="12"/>
+                               Style="{StaticResource SmallActionButtonStyle}" Margin="0,0,6,0" Height="28" Padding="10,4" FontSize="12"/>
                         <Button Content="Last Month" Command="{Binding SetLastMonthFilterCommand}" 
-                               Style="{StaticResource SecondaryButtonStyle}" Height="28" Padding="10,4" FontSize="12"/>
+                               Style="{StaticResource SmallActionButtonStyle}" Height="28" Padding="10,4" FontSize="12"/>
                     </StackPanel>
 
-                    <!-- All Custom Filters in One Line -->
+                    <!-- All Custom Filters in One Line with FormComboBoxStyle and CustomDatePicker -->
                     <Grid Grid.Row="2">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="160"/>
                             <ColumnDefinition Width="8"/>
                             <ColumnDefinition Width="140"/>
-                            <ColumnDefinition Width="8"/>
-                            <ColumnDefinition Width="130"/>
-                            <ColumnDefinition Width="8"/>
-                            <ColumnDefinition Width="130"/>
-                            <ColumnDefinition Width="8"/>
-                            <ColumnDefinition Width="110"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
                         <!-- Start Date -->
-                        <Border Grid.Column="0" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="6" Padding="8,6">
-                            <StackPanel>
-                                <TextBlock Text="From" FontSize="10" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,2"/>
-                                <DatePicker SelectedDate="{Binding FilterStartDate, Mode=TwoWay}" 
-                                           BorderThickness="0"
-                                           Background="Transparent"
-                                           FontSize="12"
-                                           Height="24"/>
-                            </StackPanel>
-                        </Border>
+                        <controls:CustomDatePicker Grid.Column="0"
+                                                  SelectedDate="{Binding FilterStartDate, Mode=TwoWay}"
+                                                  Placeholder="Start Date"
+                                                  ToolTip="Start Date"/>
 
                         <!-- End Date -->
-                        <Border Grid.Column="2" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="6" Padding="8,6">
-                            <StackPanel>
-                                <TextBlock Text="To" FontSize="10" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,2"/>
-                                <DatePicker SelectedDate="{Binding FilterEndDate, Mode=TwoWay}" 
-                                           BorderThickness="0"
-                                           Background="Transparent"
-                                           FontSize="12"
-                                           Height="24"/>
-                            </StackPanel>
-                        </Border>
+                        <controls:CustomDatePicker Grid.Column="2"
+                                                  SelectedDate="{Binding FilterEndDate, Mode=TwoWay}"
+                                                  Placeholder="End Date"
+                                                  ToolTip="End Date"/>
 
                         <!-- Payment Method -->
-                        <Border Grid.Column="4" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="6" Padding="8,6">
-                            <StackPanel>
-                                <TextBlock Text="Payment" FontSize="10" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,2"/>
-                                <ComboBox ItemsSource="{Binding PaymentMethods}" 
-                                         SelectedItem="{Binding FilterPaymentMethod, Mode=TwoWay}"
-                                         DisplayMemberPath="Name"
-                                         BorderThickness="0"
-                                         Background="Transparent"
-                                         FontSize="12"
-                                         Height="24"
-                                         Padding="0"/>
-                            </StackPanel>
-                        </Border>
+                        <ComboBox Grid.Column="4"
+                                 ItemsSource="{Binding PaymentMethods}" 
+                                 SelectedItem="{Binding FilterPaymentMethod, Mode=TwoWay}"
+                                 DisplayMemberPath="Name"
+                                 Style="{StaticResource FormComboBoxStyle}"
+                                 ToolTip="Payment Method"/>
 
                         <!-- Category -->
-                        <Border Grid.Column="6" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="6" Padding="8,6">
-                            <StackPanel>
-                                <TextBlock Text="Category" FontSize="10" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,2"/>
-                                <ComboBox ItemsSource="{Binding Categories}" 
-                                         SelectedItem="{Binding FilterCategory, Mode=TwoWay}"
-                                         DisplayMemberPath="Name"
-                                         BorderThickness="0"
-                                         Background="Transparent"
-                                         FontSize="12"
-                                         Height="24"
-                                         Padding="0"/>
-                            </StackPanel>
-                        </Border>
+                        <ComboBox Grid.Column="6"
+                                 ItemsSource="{Binding Categories}" 
+                                 SelectedItem="{Binding FilterCategory, Mode=TwoWay}"
+                                 DisplayMemberPath="Name"
+                                 Style="{StaticResource FormComboBoxStyle}"
+                                 ToolTip="Category"/>
 
                         <!-- Status -->
-                        <Border Grid.Column="8" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="6" Padding="8,6">
-                            <StackPanel>
-                                <TextBlock Text="Status" FontSize="10" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,2"/>
-                                <ComboBox ItemsSource="{Binding Statuses}" 
-                                         SelectedItem="{Binding FilterStatus, Mode=TwoWay}"
-                                         DisplayMemberPath="Name"
-                                         BorderThickness="0"
-                                         Background="Transparent"
-                                         FontSize="12"
-                                         Height="24"
-                                         Padding="0"/>
-                            </StackPanel>
-                        </Border>
+                        <ComboBox Grid.Column="8"
+                                 ItemsSource="{Binding Statuses}" 
+                                 SelectedItem="{Binding FilterStatus, Mode=TwoWay}"
+                                 DisplayMemberPath="Name"
+                                 Style="{StaticResource FormComboBoxStyle}"
+                                 ToolTip="Status"/>
 
                         <!-- Action Buttons -->
                         <StackPanel Grid.Column="10" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
                             <Button Content="Apply" 
                                    Command="{Binding ApplyFiltersCommand}"
-                                   Style="{StaticResource FilterButtonStyle}"
-                                   Height="34"
+                                   Style="{StaticResource ActionButtonStyle}"
+                                   Height="38"
                                    Padding="16,8"
                                    FontSize="12"
                                    Margin="0,0,6,0"/>
                             <Button Content="Reset" 
                                    Command="{Binding ResetFiltersCommand}"
                                    Style="{StaticResource SecondaryButtonStyle}"
-                                   Height="34"
+                                   Height="38"
                                    Padding="12,8"
                                    FontSize="12"
                                    Margin="0,0,6,0"/>
                             <Button Content="📊 Export" 
                                    Command="{Binding ShowExportMenuCommand}"
                                    Style="{StaticResource SecondaryButtonStyle}"
-                                   Height="34"
+                                   Height="38"
                                    Padding="12,8"
                                    FontSize="12"/>
                         </StackPanel>
@@ -313,15 +464,16 @@
 
             <!-- Loading Overlay -->
             <Border Grid.Row="0" Grid.RowSpan="5"
-                   Background="#80000000"
+                   Background="{DynamicResource OverlayBackground}"
+                   Opacity="0.9"
                    Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"
                    Panel.ZIndex="999">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                     <ProgressBar IsIndeterminate="True" Width="150" Height="4"/>
                     <TextBlock Text="Loading report data..." 
-                              Foreground="White" 
+                              Foreground="{DynamicResource TextPrimary}" 
                               Margin="0,15,0,0"
-                              FontSize="14"/>
+                              FontSize="{DynamicResource FontSizeSmall}"/>
                 </StackPanel>
             </Border>
 
@@ -352,7 +504,7 @@
                             <TextBlock Text="{Binding Summary.TotalSalesAmount, Converter={StaticResource CurrencyPriceConverter}}" 
                                       FontSize="28" 
                                       FontWeight="Bold"
-                                      Foreground="#4A90E2"/>
+                                      Foreground="{DynamicResource Primary}"/>
                             <TextBlock Text="{Binding Summary.TotalTransactions, StringFormat='{}{0} transactions'}" 
                                       FontSize="11" 
                                       Foreground="{DynamicResource TextSecondary}"
@@ -376,7 +528,7 @@
                                   Text="{Binding Summary.AverageTransactionValue, Converter={StaticResource CurrencyPriceConverter}}" 
                                   FontSize="28" 
                                   FontWeight="Bold"
-                                  Foreground="#50C878"/>
+                                  Foreground="{DynamicResource Success}"/>
                     </Grid>
                 </Border>
 
@@ -395,7 +547,7 @@
                                   Text="{Binding Summary.TotalItemsSold, StringFormat='{}{0:N0}'}" 
                                   FontSize="28" 
                                   FontWeight="Bold"
-                                  Foreground="#FFB84D"/>
+                                  Foreground="{DynamicResource Info}"/>
                     </Grid>
                 </Border>
 
@@ -414,7 +566,7 @@
                                   Text="{Binding Summary.GrossProfit, Converter={StaticResource CurrencyPriceConverter}}" 
                                   FontSize="28" 
                                   FontWeight="Bold"
-                                  Foreground="#27AE60"/>
+                                  Foreground="{DynamicResource Success}"/>
                     </Grid>
                 </Border>
             </Grid>
@@ -436,13 +588,13 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" 
                                   Text="Transactions" 
-                                  FontSize="16" 
+                                  FontSize="{DynamicResource FontSizeMedium}" 
                                   FontWeight="SemiBold"
                                   Foreground="{DynamicResource TextPrimary}"/>
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
                             <TextBlock Text="Show:" 
-                                      FontSize="13"
-                                      Foreground="{DynamicResource TextSecondary}"
+                                      FontSize="{DynamicResource FontSizeSmall}"
+                                      Foreground="{DynamicResource TextPrimary}"
                                       VerticalAlignment="Center"
                                       Margin="0,0,10,0"/>
                             <ComboBox SelectedItem="{Binding PageSize, Mode=TwoWay}"
@@ -458,210 +610,97 @@
                     <!-- Transactions DataGrid -->
                     <DataGrid Grid.Row="1" 
                              ItemsSource="{Binding Transactions}"
-                             AutoGenerateColumns="False"
-                             IsReadOnly="True"
-                             GridLinesVisibility="None"
-                             HeadersVisibility="Column"
-                             RowHeight="56"
-                             BorderThickness="0"
-                             CanUserAddRows="False"
-                             CanUserDeleteRows="False"
-                             CanUserResizeRows="False"
-                             SelectionMode="Single"
-                             SelectionUnit="FullRow"
-                             Background="White"
-                             AlternatingRowBackground="#F9FAFB"
-                             MaxHeight="500"
-                             FontSize="13">
-                        
-                        <!-- DataGrid Styles -->
-                        <DataGrid.Resources>
-                            <!-- Header Style -->
-                            <Style TargetType="DataGridColumnHeader">
-                                <Setter Property="Background" Value="#F8F9FA"/>
-                                <Setter Property="Foreground" Value="#495057"/>
-                                <Setter Property="FontWeight" Value="SemiBold"/>
-                                <Setter Property="FontSize" Value="12"/>
-                                <Setter Property="Padding" Value="16,12"/>
-                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                <Setter Property="BorderBrush" Value="#E9ECEF"/>
-                                <Setter Property="HorizontalContentAlignment" Value="Left"/>
-                            </Style>
-                            
-                            <!-- Row Style -->
-                            <Style TargetType="DataGridRow">
-                                <Setter Property="Background" Value="White"/>
-                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                <Setter Property="BorderBrush" Value="#F1F3F5"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#F0F7FF"/>
-                                    </Trigger>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="#E3F2FD"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                            
-                            <!-- Cell Style -->
-                            <Style TargetType="DataGridCell">
-                                <Setter Property="BorderThickness" Value="0"/>
-                                <Setter Property="Padding" Value="16,0"/>
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="DataGridCell">
-                                            <Border Padding="{TemplateBinding Padding}"
-                                                   Background="{TemplateBinding Background}">
-                                                <ContentPresenter VerticalAlignment="Center"/>
-                                            </Border>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                                <Style.Triggers>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="Transparent"/>
-                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </DataGrid.Resources>
+                             Style="{StaticResource ReportDataGridStyle}"
+                             ColumnHeaderStyle="{StaticResource ReportColumnHeaderStyle}"
+                             RowStyle="{StaticResource ReportRowStyle}"
+                             CellStyle="{StaticResource ReportCellStyle}"
+                             MaxHeight="500">
                         
                         <DataGrid.Columns>
                             <!-- Invoice Number -->
-                            <DataGridTemplateColumn Header="Invoice #" Width="130">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding InvoiceNumber}" 
-                                                  FontWeight="SemiBold"
-                                                  Foreground="#4A90E2"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Invoice #" Binding="{Binding InvoiceNumber}" Width="130">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource ReportBoldTextCellStyle}">
+                                        <Setter Property="Foreground" Value="#4A90E2"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                             
-                            <!-- Date with Icon -->
-                            <DataGridTemplateColumn Header="Date and Time" Width="150">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding SaleDate, StringFormat='dd MMM yyyy'}" 
-                                                      FontWeight="Medium"
-                                                      Foreground="{DynamicResource TextPrimary}"/>
-                                            <TextBlock Text="{Binding SaleDate, StringFormat='HH:mm'}" 
-                                                      FontSize="11"
-                                                      Foreground="{DynamicResource TextSecondary}"
-                                                      Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                            <!-- Date -->
+                            <DataGridTextColumn Header="Date" Binding="{Binding SaleDate, StringFormat='dd MMM yyyy'}" Width="120">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource ReportTextCellStyle}"/>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            
+                            <!-- Time -->
+                            <DataGridTextColumn Header="Time" Binding="{Binding SaleDate, StringFormat='HH:mm'}" Width="80">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource ReportTextCellStyle}"/>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                             
                             <!-- Customer -->
-                            <DataGridTemplateColumn Header="Customer" Width="*" MinWidth="150">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding CustomerName}" 
-                                                      FontWeight="Medium"
-                                                      Foreground="{DynamicResource TextPrimary}"
-                                                      TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock FontSize="11" 
-                                                      Foreground="{DynamicResource TextSecondary}"
-                                                      Margin="0,2,0,0">
-                                                <Run Text="{Binding ItemsCount}"/>
-                                                <Run Text="items"/>
-                                            </TextBlock>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Customer" Binding="{Binding CustomerName}" Width="*" MinWidth="150">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource ReportTextCellStyle}"/>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            
+                            <!-- Items Count -->
+                            <DataGridTextColumn Header="Items" Binding="{Binding ItemsCount}" Width="80">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource ReportNumericCellStyle}"/>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                             
                             <!-- Subtotal -->
-                            <DataGridTemplateColumn Header="Subtotal" Width="110">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding SubTotal, Converter={StaticResource CurrencyPriceConverter}}" 
-                                                  TextAlignment="Right"
-                                                  Foreground="{DynamicResource TextPrimary}"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Subtotal" Binding="{Binding SubTotal, Converter={StaticResource CurrencyPriceConverter}}" Width="110">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource ReportNumericCellStyle}"/>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                             
                             <!-- Discount -->
-                            <DataGridTemplateColumn Header="Discount" Width="95">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding DiscountAmount, Converter={StaticResource CurrencyPriceConverter}}" 
-                                                  TextAlignment="Right"
-                                                  Foreground="#E67E22"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Discount" Binding="{Binding DiscountAmount, Converter={StaticResource CurrencyPriceConverter}}" Width="95">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource ReportNumericCellStyle}">
+                                        <Setter Property="Foreground" Value="#E67E22"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                             
                             <!-- Tax -->
-                            <DataGridTemplateColumn Header="Tax" Width="90">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding TaxAmount, Converter={StaticResource CurrencyPriceConverter}}" 
-                                                  TextAlignment="Right"
-                                                  Foreground="{DynamicResource TextSecondary}"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Tax" Binding="{Binding TaxAmount, Converter={StaticResource CurrencyPriceConverter}}" Width="90">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource ReportNumericCellStyle}"/>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                             
-                            <!-- Total (Prominent) -->
-                            <DataGridTemplateColumn Header="Total Amount" Width="125">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Border Background="#F0F7FF" 
-                                               CornerRadius="6"
-                                               Padding="8,6"
-                                               HorizontalAlignment="Right">
-                                            <TextBlock Text="{Binding TotalAmount, Converter={StaticResource CurrencyPriceConverter}}" 
-                                                      TextAlignment="Right" 
-                                                      FontWeight="Bold"
-                                                      FontSize="14"
-                                                      Foreground="#1976D2"/>
-                                        </Border>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                            <!-- Total -->
+                            <DataGridTextColumn Header="Total Amount" Binding="{Binding TotalAmount, Converter={StaticResource CurrencyPriceConverter}}" Width="125">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource ReportNumericCellStyle}">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="FontSize" Value="14"/>
+                                        <Setter Property="Foreground" Value="#1976D2"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                             
                             <!-- Payment Method -->
-                            <DataGridTemplateColumn Header="Payment" Width="100">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Border Background="{Binding PaymentMethodName, Converter={StaticResource StatusToColorConverter}}"
-                                               CornerRadius="4"
-                                               Padding="6,3"
-                                               Opacity="0.15"
-                                               HorizontalAlignment="Center">
-                                            <TextBlock Text="{Binding PaymentMethodName}" 
-                                                      FontSize="11"
-                                                      FontWeight="SemiBold"
-                                                      Foreground="{DynamicResource TextPrimary}"
-                                                      HorizontalAlignment="Center"/>
-                                        </Border>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Payment" Binding="{Binding PaymentMethodName}" Width="100">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource ReportTextCellStyle}"/>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                             
-                            <!-- Status Badge -->
-                            <DataGridTemplateColumn Header="Status" Width="110">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Border Background="{Binding StatusName, Converter={StaticResource StatusToColorConverter}}"
-                                               CornerRadius="14"
-                                               Padding="10,5"
-                                               HorizontalAlignment="Center">
-                                            <TextBlock Text="{Binding StatusName}" 
-                                                      FontSize="11"
-                                                      FontWeight="SemiBold"
-                                                      Foreground="White"
-                                                      HorizontalAlignment="Center"/>
-                                        </Border>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                            <!-- Status -->
+                            <DataGridTextColumn Header="Status" Binding="{Binding StatusName}" Width="110">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource ReportBoldTextCellStyle}"/>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                         </DataGrid.Columns>
                     </DataGrid>
 
@@ -672,8 +711,8 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Column="0" 
-                                  FontSize="13"
+                        <TextBlock Grid.Column="0"
+                                  FontSize="{DynamicResource FontSizeSmall}"
                                   Foreground="{DynamicResource TextSecondary}"
                                   VerticalAlignment="Center">
                             <Run Text="Showing"/>
@@ -693,7 +732,7 @@
                                    Height="32"
                                    Margin="0,0,8,0"/>
                             <TextBlock Text="{Binding CurrentPage, StringFormat='Page {0}'}" 
-                                      FontSize="13"
+                                      FontSize="{DynamicResource FontSizeSmall}"
                                       FontWeight="SemiBold"
                                       Foreground="{DynamicResource TextPrimary}"
                                       VerticalAlignment="Center"

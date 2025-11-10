@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using ChronoPos.Application.Interfaces;
@@ -16,6 +17,7 @@ using System.Threading.Tasks;
 using ChronoPos.Application.Logging;
 using System;
 using Microsoft.Extensions.DependencyInjection;
+using InfrastructureServices = ChronoPos.Infrastructure.Services;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -41,6 +43,10 @@ public partial class AddSalesViewModel : ObservableObject
     private readonly ITransactionModifierRepository _transactionModifierRepository;
     private readonly IProductBarcodeRepository _productBarcodeRepository;
     private readonly IActiveCurrencyService _activeCurrencyService;
+    private readonly IServiceChargeOptionService _serviceChargeOptionService;
+    private readonly ICompanySettingsService _companySettingsService;
+    private readonly InfrastructureServices.IDatabaseLocalizationService _localizationService;
+    private readonly ILayoutDirectionService _layoutDirectionService;
     private readonly Action? _navigateToTransactionList;
     private readonly Action<int>? _navigateToRefundTransaction;
     private readonly Action<int>? _navigateToExchangeTransaction;
@@ -126,6 +132,9 @@ public partial class AddSalesViewModel : ObservableObject
     private decimal serviceCharge = 0m;
 
     [ObservableProperty]
+    private int? selectedServiceChargeOptionId = null; // Stores the ID of selected service charge option
+
+    [ObservableProperty]
     private ObservableCollection<DiscountDto> availableDiscounts = new();
 
     [ObservableProperty]
@@ -178,10 +187,205 @@ public partial class AddSalesViewModel : ObservableObject
     [ObservableProperty]
     private Brush scannerStatusColor = Brushes.Green;
 
-    /// <summary>
-    /// Gets the active currency symbol for display in UI
-    /// </summary>
-    public string CurrencySymbol => _activeCurrencyService?.CurrencySymbol ?? "$";
+    [ObservableProperty]
+    private string currencySymbol = "$";
+
+    // Translation Properties
+    [ObservableProperty]
+    private string discountPopupTitleLabel = "Apply Discount";
+
+    [ObservableProperty]
+    private string discountTypeLabel = "Discount Type:";
+
+    [ObservableProperty]
+    private string percentageDiscountLabel = "Percentage (%)";
+
+    [ObservableProperty]
+    private string fixedDiscountLabel = "Fixed Amount";
+
+    [ObservableProperty]
+    private string discountValueLabel = "Discount Value:";
+
+    [ObservableProperty]
+    private string applyButtonLabel = "Apply";
+
+    [ObservableProperty]
+    private string cancelButtonLabel = "Cancel";
+
+    [ObservableProperty]
+    private string taxPopupTitleLabel = "Apply Tax";
+
+    [ObservableProperty]
+    private string taxTypeLabel = "Tax Type:";
+
+    [ObservableProperty]
+    private string percentageTaxLabel = "Percentage (%)";
+
+    [ObservableProperty]
+    private string fixedTaxLabel = "Fixed Amount";
+
+    [ObservableProperty]
+    private string taxValueLabel = "Tax Value:";
+
+    [ObservableProperty]
+    private string serviceChargePopupTitleLabel = "Apply Service Charge";
+
+    [ObservableProperty]
+    private string serviceChargeTypeLabel = "Service Charge Type:";
+
+    [ObservableProperty]
+    private string percentageServiceChargeLabel = "Percentage (%)";
+
+    [ObservableProperty]
+    private string fixedServiceChargeLabel = "Fixed Amount";
+
+    [ObservableProperty]
+    private string serviceChargeValueLabel = "Service Charge Value:";
+
+    [ObservableProperty]
+    private string paymentPopupTitleLabel = "Payment";
+
+    [ObservableProperty]
+    private string saleAmountLabel = "Sale Amount:";
+
+    [ObservableProperty]
+    private string billTotalLabel = "Bill Total:";
+
+    [ObservableProperty]
+    private string paymentMethodLabel = "Payment Method:";
+
+    [ObservableProperty]
+    private string amountPaidLabel = "Amount Paid:";
+
+    [ObservableProperty]
+    private string creditDaysLabel = "Credit Days (for partial payment):";
+
+    [ObservableProperty]
+    private string saveSettleButtonLabel = "Save & Settle";
+
+    [ObservableProperty]
+    private string customerPendingLabel = "Customer Pending:";
+
+    [ObservableProperty]
+    private string yourBalanceLabel = "Your Balance:";
+
+    [ObservableProperty]
+    private string validationErrorLabel = "Validation Error";
+
+    [ObservableProperty]
+    private string pleaseEnterValidValueLabel = "Please enter a valid value.";
+
+    // Main Screen Labels
+    [ObservableProperty]
+    private string categoriesHeaderLabel = "Categories";
+
+    [ObservableProperty]
+    private string productsHeaderLabel = "Products";
+
+    [ObservableProperty]
+    private string productGroupsHeaderLabel = "Product Groups";
+
+    [ObservableProperty]
+    private string cartHeaderLabel = "Cart";
+
+    [ObservableProperty]
+    private string saveButtonLabel = "Save";
+
+    [ObservableProperty]
+    private string saveAndPrintButtonLabel = "Save & Print";
+
+    [ObservableProperty]
+    private string payLaterButtonLabel = "Pay Later";
+
+    [ObservableProperty]
+    private string settleButtonLabel = "Settle";
+
+    [ObservableProperty]
+    private string refundButtonLabel = "Refund";
+
+    [ObservableProperty]
+    private string exchangeButtonLabel = "Exchange";
+
+    [ObservableProperty]
+    private string clearCartButtonLabel = "Clear Cart";
+
+    [ObservableProperty]
+    private string customerLabel = "Customer";
+
+    [ObservableProperty]
+    private string tableLabel = "Table";
+
+    [ObservableProperty]
+    private string locationLabel = "Location";
+
+    [ObservableProperty]
+    private string reservationLabel = "Reservation";
+
+    [ObservableProperty]
+    private string subtotalLabel = "Subtotal:";
+
+    [ObservableProperty]
+    private string taxLabel = "Tax:";
+
+    [ObservableProperty]
+    private string discountLabel = "Discount:";
+
+    [ObservableProperty]
+    private string serviceChargeLabel = "Service Charge:";
+
+    [ObservableProperty]
+    private string totalLabel = "Total:";
+
+    [ObservableProperty]
+    private string addDiscountButtonLabel = "Add Discount";
+
+    [ObservableProperty]
+    private string addTaxButtonLabel = "Add Tax";
+
+    [ObservableProperty]
+    private string addServiceChargeButtonLabel = "Add Service Charge";
+
+    [ObservableProperty]
+    private string allCategoriesLabel = "All";
+
+    [ObservableProperty]
+    private string itemsLabel = "items";
+
+    [ObservableProperty]
+    private string searchPlaceholderLabel = "Search products...";
+
+    [ObservableProperty]
+    private string quantityLabel = "Qty:";
+
+    [ObservableProperty]
+    private string priceLabel = "Price:";
+
+    [ObservableProperty]
+    private string addSalesHeaderLabel = "Add Sales";
+
+    [ObservableProperty]
+    private string scanBarcodeLabel = "Scan Barcode";
+
+    [ObservableProperty]
+    private string phoneNumberLabel = "Phone Number";
+
+    [ObservableProperty]
+    private string createButtonLabel = "+ Create";
+
+    [ObservableProperty]
+    private string qtyLabel = "Qty: ";
+
+    [ObservableProperty]
+    private string removeLabel = "Remove";
+
+    [ObservableProperty]
+    private string addCustomerButtonLabel = "+ Add Customer";
+
+    [ObservableProperty]
+    private string tableModeLabel = "Table";
+
+    [ObservableProperty]
+    private string reservationModeLabel = "Reservation";
 
     #endregion
 
@@ -203,6 +407,10 @@ public partial class AddSalesViewModel : ObservableObject
         ITransactionModifierRepository transactionModifierRepository,
         IProductBarcodeRepository productBarcodeRepository,
         IActiveCurrencyService activeCurrencyService,
+        IServiceChargeOptionService serviceChargeOptionService,
+        ICompanySettingsService companySettingsService,
+        InfrastructureServices.IDatabaseLocalizationService localizationService,
+        ILayoutDirectionService layoutDirectionService,
         Action? navigateToTransactionList = null,
         Action<int>? navigateToRefundTransaction = null,
         Action<int>? navigateToExchangeTransaction = null)
@@ -224,17 +432,36 @@ public partial class AddSalesViewModel : ObservableObject
         _transactionModifierRepository = transactionModifierRepository;
         _productBarcodeRepository = productBarcodeRepository;
         _activeCurrencyService = activeCurrencyService;
+        _serviceChargeOptionService = serviceChargeOptionService;
+        _companySettingsService = companySettingsService;
+        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
         _navigateToTransactionList = navigateToTransactionList;
         _navigateToRefundTransaction = navigateToRefundTransaction;
         _navigateToExchangeTransaction = navigateToExchangeTransaction;
 
+        // Subscribe to language change event
+        _localizationService.LanguageChanged += OnLanguageChanged;
+
+        // Initialize currency symbol
+        CurrencySymbol = _activeCurrencyService?.CurrencySymbol ?? "$";
+
         _ = InitializeAsync();
+    }
+
+    private async void OnLanguageChanged(object? sender, string languageCode)
+    {
+        // Reload translations when language changes
+        await LoadTranslationsAsync();
     }
 
     public async Task InitializeAsync()
     {
         try
         {
+            // Load translations
+            await LoadTranslationsAsync();
+            
             // Load categories with product counts
             await LoadCategoriesAsync();
 
@@ -716,6 +943,7 @@ public partial class AddSalesViewModel : ObservableObject
                         ProductName = productName,
                         Icon = "📦",
                         UnitPrice = price,
+                        OriginalPrice = price,
                         Quantity = 1,
                         TotalPrice = price,
                         Tag = selectionResult,
@@ -1004,6 +1232,7 @@ public partial class AddSalesViewModel : ObservableObject
                 ProductName = BuildProductNameWithOptions(product.Name, selection),
                 Icon = "📦",
                 UnitPrice = selection.FinalPrice,
+                OriginalPrice = selection.FinalPrice,
                 Quantity = 1, // Start with 1 for new selections
                 TotalPrice = selection.FinalPrice,
                 // Store selection details for comparison
@@ -1185,11 +1414,12 @@ public partial class AddSalesViewModel : ObservableObject
             var shiftId = 1;
             AppLogger.Log($"SaveTransaction: Using hardcoded shift ID = {shiftId}");
 
-            // Calculate totals
-            var totalAmount = CartItems.Sum(x => x.TotalPrice);
-            var totalVat = totalAmount * (TaxPercentage / 100);
+            // Calculate totals - use the complete net total from cart
+            var subtotalAmount = CartItems.Sum(x => x.TotalPrice); // Product subtotal only
+            var totalVat = TaxAmount; // Use calculated tax from cart
+            var netTotalAmount = Total; // Complete net total: Subtotal + Tax + ServiceCharge - Discount
             
-            AppLogger.Log($"SaveTransaction: Total Amount = {totalAmount}, Total VAT = {totalVat}");
+            AppLogger.Log($"SaveTransaction: Subtotal = {subtotalAmount}, Total VAT = {totalVat}, Net Total = {netTotalAmount}");
             AppLogger.Log($"SaveTransaction: Cart items count = {CartItems.Count}");
 
             // For now, always create new transaction
@@ -1210,7 +1440,7 @@ public partial class AddSalesViewModel : ObservableObject
                     TableId = SelectedTable?.Id,
                     ReservationId = SelectedReservation?.Id,
                     SellingTime = DateTime.Now,
-                    TotalAmount = totalAmount,
+                    TotalAmount = netTotalAmount, // Save complete net total including service charge and discount
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
@@ -1250,8 +1480,8 @@ public partial class AddSalesViewModel : ObservableObject
                 AppLogger.Log($"SaveTransaction: Checking service charge - ServiceCharge={ServiceCharge}");
                 if (ServiceCharge > 0)
                 {
-                    AppLogger.Log($"SaveTransaction: Calling AddServiceChargeToTransaction for transaction #{savedTransaction.Id} with amount ${ServiceCharge}");
-                    await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge);
+                    AppLogger.Log($"SaveTransaction: Calling AddServiceChargeToTransaction for transaction #{savedTransaction.Id} with amount ${ServiceCharge}, OptionId={SelectedServiceChargeOptionId}");
+                    await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge, SelectedServiceChargeOptionId);
                     AppLogger.Log($"SaveTransaction: AddServiceChargeToTransaction call completed");
                 }
                 else
@@ -1265,11 +1495,13 @@ public partial class AddSalesViewModel : ObservableObject
                 UpdateButtonVisibility();
 
                 AppLogger.Log($"SaveTransaction: Transaction #{savedTransaction.Id} created successfully");
-                MessageBox.Show($"Transaction #{savedTransaction.Id} saved successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                // Print KOT (Kitchen Order Ticket) automatically
+                PrintKot();
                 
                 // Navigate to transaction list if callback provided
                 _navigateToTransactionList?.Invoke();
-                new MessageDialog("Success", $"Transaction #{savedTransaction.Id} saved successfully!", MessageDialog.MessageType.Success).ShowDialog();
+                new MessageDialog("Success", $"Transaction #{savedTransaction.Id} saved successfully!\n\nKOT has been sent to kitchen.", MessageDialog.MessageType.Success).ShowDialog();
             }
 
             // Don't clear cart after save - user might want to continue editing
@@ -1452,107 +1684,129 @@ public partial class AddSalesViewModel : ObservableObject
     {
         try
         {
-            // Create dialog window - increased by 20% more
+            // Create dialog window with theme colors
             var dialog = new Window
             {
-                Title = "Apply Discounts",
                 Width = SystemParameters.PrimaryScreenWidth * 0.3,
-                Height = SystemParameters.PrimaryScreenHeight * 0.43, // Increased to show apply button
+                Height = SystemParameters.PrimaryScreenHeight * 0.43,
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
                 ResizeMode = ResizeMode.NoResize
             };
+            dialog.SetBinding(Window.TitleProperty, new Binding("DiscountPopupTitleLabel") { Source = this });
+            dialog.SetResourceReference(Control.BackgroundProperty, "CardBackground");
 
-            var mainPanel = new StackPanel { Margin = new Thickness(15) }; // Reduced margin
+            var mainPanel = new StackPanel { Margin = new Thickness(15) };
 
             // Title
-            mainPanel.Children.Add(new TextBlock 
+            var titleTextBlock = new TextBlock 
             { 
-                Text = "Select Discounts", 
-                FontSize = 14, // Reduced font size
+                FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
-                Margin = new Thickness(0, 0, 0, 10) // Reduced margin
-            });
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+            titleTextBlock.SetBinding(TextBlock.TextProperty, new Binding("DiscountPopupTitleLabel") { Source = this });
+            titleTextBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimary");
+            mainPanel.Children.Add(titleTextBlock);
 
             // Dropdown + Add Button Row
             var dropdownPanel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                Margin = new Thickness(0, 0, 0, 8) // Reduced margin
+                Margin = new Thickness(0, 0, 0, 8)
             };
 
             var discountComboBox = new System.Windows.Controls.ComboBox
             {
-                Width = 200, // Reduced width
-                Height = 32, // Reduced height
-                Margin = new Thickness(0, 0, 8, 0), // Reduced margin
+                Width = 200,
+                MinHeight = 40,
+                Margin = new Thickness(0, 0, 8, 0),
                 DisplayMemberPath = "DiscountName",
                 ItemsSource = AvailableDiscounts
             };
+            // Apply the FormComboBoxStyle from resources
+            var formComboBoxStyle = System.Windows.Application.Current.FindResource("FormComboBoxStyle") as Style;
+            if (formComboBoxStyle != null)
+            {
+                discountComboBox.Style = formComboBoxStyle;
+            }
+            else
+            {
+                // Fallback if style not found
+                discountComboBox.SetResourceReference(Control.BackgroundProperty, "SurfaceBackground");
+                discountComboBox.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+                discountComboBox.SetResourceReference(Control.BorderBrushProperty, "BorderLight");
+            }
 
             var addButton = new Button
             {
                 Content = "Add",
-                Width = 80, // Reduced width
-                Height = 32, // Reduced height
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B")),
-                Foreground = Brushes.White,
+                Width = 80,
+                Height = 32,
                 BorderThickness = new Thickness(0),
                 Cursor = Cursors.Hand,
                 FontWeight = FontWeights.SemiBold
             };
+            addButton.SetResourceReference(Control.BackgroundProperty, "ChronoPosOrange");
+            addButton.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
 
             dropdownPanel.Children.Add(discountComboBox);
             dropdownPanel.Children.Add(addButton);
             mainPanel.Children.Add(dropdownPanel);
 
-            // Manual Entry Section
-            mainPanel.Children.Add(new TextBlock
+            // Manual Entry Section with theme colors
+            var manualEntryLabel = new TextBlock
             {
                 Text = "Or enter manual discount amount:",
-                FontSize = 11, // Reduced font size
-                Foreground = Brushes.Gray,
-                Margin = new Thickness(0, 8, 0, 4) // Reduced margin
-            });
+                FontSize = 11,
+                Margin = new Thickness(0, 8, 0, 4)
+            };
+            manualEntryLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
+            mainPanel.Children.Add(manualEntryLabel);
 
             var manualPanel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                Margin = new Thickness(0, 0, 0, 10) // Reduced margin
+                Margin = new Thickness(0, 0, 0, 10)
             };
 
             var manualTextBox = new TextBox
             {
-                Width = 200, // Reduced width
-                Height = 32, // Reduced height
-                Margin = new Thickness(0, 0, 8, 0), // Reduced margin
+                Width = 200,
+                Height = 32,
+                Margin = new Thickness(0, 0, 8, 0),
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Text = "0.00"
             };
+            manualTextBox.SetResourceReference(Control.BackgroundProperty, "PageBackground");
+            manualTextBox.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+            manualTextBox.SetResourceReference(Control.BorderBrushProperty, "BorderLight");
 
             var addManualButton = new Button
             {
                 Content = "Add Manual",
-                Width = 80, // Reduced width
-                Height = 32, // Reduced height
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981")),
-                Foreground = Brushes.White,
+                Width = 80,
+                Height = 32,
                 BorderThickness = new Thickness(0),
                 Cursor = Cursors.Hand,
                 FontWeight = FontWeights.SemiBold
             };
+            addManualButton.SetResourceReference(Control.BackgroundProperty, "SuccessGreen");
+            addManualButton.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
 
             manualPanel.Children.Add(manualTextBox);
             manualPanel.Children.Add(addManualButton);
             mainPanel.Children.Add(manualPanel);
 
-            // Selected Discounts Label
-            mainPanel.Children.Add(new TextBlock
+            // Selected Discounts Label with theme colors
+            var selectedDiscountsLabel = new TextBlock
             {
                 Text = "Selected Discounts:",
-                FontSize = 12, // Reduced font size
+                FontSize = 12,
                 FontWeight = FontWeights.SemiBold,
-                Margin = new Thickness(0, 8, 0, 6) // Reduced margin
-            });
+                Margin = new Thickness(0, 8, 0, 6)
+            };
+            selectedDiscountsLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimary");
+            mainPanel.Children.Add(selectedDiscountsLabel);
 
             // Chips Container (WrapPanel for selected discounts)
             var chipsPanel = new System.Windows.Controls.WrapPanel
@@ -1631,39 +1885,41 @@ public partial class AddSalesViewModel : ObservableObject
                 }
             };
 
-            // Buttons
+            // Buttons with theme colors and translations
             var buttonPanel = new StackPanel 
             { 
                 Orientation = Orientation.Horizontal, 
                 HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(0, 10, 0, 0) // Reduced margin
+                Margin = new Thickness(0, 10, 0, 0)
             };
 
             var applyButton = new Button 
             { 
-                Content = "Apply", 
-                Width = 80, // Reduced width
-                Height = 32, // Reduced height
-                Margin = new Thickness(0, 0, 8, 0), // Reduced margin
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B")),
-                Foreground = Brushes.White,
+                Width = 80,
+                Height = 32,
+                Margin = new Thickness(0, 0, 8, 0),
                 BorderThickness = new Thickness(0),
                 Cursor = Cursors.Hand,
                 FontWeight = FontWeights.Bold,
-                FontSize = 12 // Reduced font size
+                FontSize = 12
             };
+            applyButton.SetBinding(ContentControl.ContentProperty, new Binding("ApplyButtonLabel") { Source = this });
+            applyButton.SetResourceReference(Control.BackgroundProperty, "ChronoPosOrange");
+            applyButton.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+            
             var cancelButton = new Button 
             { 
-                Content = "Cancel", 
-                Width = 80, // Reduced width
-                Height = 32, // Reduced height
-                Background = Brushes.LightGray,
-                Foreground = Brushes.Black,
-                BorderThickness = new Thickness(0),
+                Width = 80,
+                Height = 32,
+                BorderThickness = new Thickness(1),
                 Cursor = Cursors.Hand,
                 FontWeight = FontWeights.SemiBold,
-                FontSize = 12 // Reduced font size
+                FontSize = 12
             };
+            cancelButton.SetBinding(ContentControl.ContentProperty, new Binding("CancelButtonLabel") { Source = this });
+            cancelButton.SetResourceReference(Control.BackgroundProperty, "PageBackground");
+            cancelButton.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+            cancelButton.SetResourceReference(Control.BorderBrushProperty, "BorderLight");
 
             applyButton.Click += (s, e) =>
             {
@@ -1767,107 +2023,129 @@ public partial class AddSalesViewModel : ObservableObject
     {
         try
         {
-            // Create dialog window - increased by 20% more
+            // Create dialog window with theme colors
             var dialog = new Window
             {
-                Title = "Configure Tax Types",
                 Width = SystemParameters.PrimaryScreenWidth * 0.3,
-                Height = SystemParameters.PrimaryScreenHeight * 0.43, // Increased to show apply button
+                Height = SystemParameters.PrimaryScreenHeight * 0.43,
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
                 ResizeMode = ResizeMode.NoResize
             };
+            dialog.SetBinding(Window.TitleProperty, new Binding("TaxPopupTitleLabel") { Source = this });
+            dialog.SetResourceReference(Control.BackgroundProperty, "CardBackground");
 
-            var mainPanel = new StackPanel { Margin = new Thickness(15) }; // Reduced margin
+            var mainPanel = new StackPanel { Margin = new Thickness(15) };
 
-            // Title
-            mainPanel.Children.Add(new TextBlock 
+            // Title with theme colors
+            var titleTextBlock = new TextBlock 
             { 
-                Text = "Select Tax Types", 
-                FontSize = 14, // Reduced font size
+                FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
-                Margin = new Thickness(0, 0, 0, 10) // Reduced margin
-            });
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+            titleTextBlock.SetBinding(TextBlock.TextProperty, new Binding("TaxPopupTitleLabel") { Source = this });
+            titleTextBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimary");
+            mainPanel.Children.Add(titleTextBlock);
 
             // Dropdown + Add Button Row
             var dropdownPanel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                Margin = new Thickness(0, 0, 0, 8) // Reduced margin
+                Margin = new Thickness(0, 0, 0, 8)
             };
 
             var taxComboBox = new System.Windows.Controls.ComboBox
             {
-                Width = 200, // Reduced width
-                Height = 32, // Reduced height
-                Margin = new Thickness(0, 0, 8, 0), // Reduced margin
+                Width = 200,
+                MinHeight = 40,
+                Margin = new Thickness(0, 0, 8, 0),
                 DisplayMemberPath = "Name",
                 ItemsSource = AvailableTaxTypes.Where(t => t.AppliesToSelling).ToList()
             };
+            // Apply the FormComboBoxStyle from resources
+            var formComboBoxStyle = System.Windows.Application.Current.FindResource("FormComboBoxStyle") as Style;
+            if (formComboBoxStyle != null)
+            {
+                taxComboBox.Style = formComboBoxStyle;
+            }
+            else
+            {
+                // Fallback if style not found
+                taxComboBox.SetResourceReference(Control.BackgroundProperty, "SurfaceBackground");
+                taxComboBox.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+                taxComboBox.SetResourceReference(Control.BorderBrushProperty, "BorderLight");
+            }
 
             var addButton = new Button
             {
                 Content = "Add",
-                Width = 80, // Reduced width
-                Height = 32, // Reduced height
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B")),
-                Foreground = Brushes.White,
+                Width = 80,
+                Height = 32,
                 BorderThickness = new Thickness(0),
                 Cursor = Cursors.Hand,
                 FontWeight = FontWeights.SemiBold
             };
+            addButton.SetResourceReference(Control.BackgroundProperty, "ChronoPosOrange");
+            addButton.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
 
             dropdownPanel.Children.Add(taxComboBox);
             dropdownPanel.Children.Add(addButton);
             mainPanel.Children.Add(dropdownPanel);
 
-            // Manual Entry Section
-            mainPanel.Children.Add(new TextBlock
+            // Manual Entry Section with theme colors
+            var manualEntryLabel = new TextBlock
             {
                 Text = "Or enter manual tax percentage:",
-                FontSize = 11, // Reduced font size
-                Foreground = Brushes.Gray,
-                Margin = new Thickness(0, 8, 0, 4) // Reduced margin
-            });
+                FontSize = 11,
+                Margin = new Thickness(0, 8, 0, 4)
+            };
+            manualEntryLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
+            mainPanel.Children.Add(manualEntryLabel);
 
             var manualPanel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                Margin = new Thickness(0, 0, 0, 10) // Reduced margin
+                Margin = new Thickness(0, 0, 0, 10)
             };
 
             var manualTextBox = new TextBox
             {
-                Width = 200, // Reduced width
-                Height = 32, // Reduced height
-                Margin = new Thickness(0, 0, 8, 0), // Reduced margin
+                Width = 200,
+                Height = 32,
+                Margin = new Thickness(0, 0, 8, 0),
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Text = "0.00"
             };
+            manualTextBox.SetResourceReference(Control.BackgroundProperty, "PageBackground");
+            manualTextBox.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+            manualTextBox.SetResourceReference(Control.BorderBrushProperty, "BorderLight");
 
             var addManualButton = new Button
             {
                 Content = "Add Manual",
-                Width = 80, // Reduced width
-                Height = 32, // Reduced height
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981")),
-                Foreground = Brushes.White,
+                Width = 80,
+                Height = 32,
                 BorderThickness = new Thickness(0),
                 Cursor = Cursors.Hand,
                 FontWeight = FontWeights.SemiBold
             };
+            addManualButton.SetResourceReference(Control.BackgroundProperty, "SuccessGreen");
+            addManualButton.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
 
             manualPanel.Children.Add(manualTextBox);
             manualPanel.Children.Add(addManualButton);
             mainPanel.Children.Add(manualPanel);
 
-            // Selected Tax Types Label
-            mainPanel.Children.Add(new TextBlock
+            // Selected Tax Types Label with theme colors
+            var selectedTaxLabel = new TextBlock
             {
                 Text = "Selected Tax Types:",
-                FontSize = 12, // Reduced font size
+                FontSize = 12,
                 FontWeight = FontWeights.SemiBold,
-                Margin = new Thickness(0, 8, 0, 6) // Reduced margin
-            });
+                Margin = new Thickness(0, 8, 0, 6)
+            };
+            selectedTaxLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimary");
+            mainPanel.Children.Add(selectedTaxLabel);
 
             // Chips Container
             var chipsPanel = new System.Windows.Controls.WrapPanel
@@ -1948,39 +2226,41 @@ public partial class AddSalesViewModel : ObservableObject
                 }
             };
 
-            // Buttons
+            // Buttons with theme colors and translations
             var buttonPanel = new StackPanel 
             { 
                 Orientation = Orientation.Horizontal, 
                 HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(0, 10, 0, 0) // Reduced margin
+                Margin = new Thickness(0, 10, 0, 0)
             };
 
             var applyButton = new Button 
             { 
-                Content = "Apply", 
-                Width = 80, // Reduced width
-                Height = 32, // Reduced height
-                Margin = new Thickness(0, 0, 8, 0), // Reduced margin
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B")),
-                Foreground = Brushes.White,
+                Width = 80,
+                Height = 32,
+                Margin = new Thickness(0, 0, 8, 0),
                 BorderThickness = new Thickness(0),
                 Cursor = Cursors.Hand,
                 FontWeight = FontWeights.Bold,
-                FontSize = 12 // Reduced font size
+                FontSize = 12
             };
+            applyButton.SetBinding(ContentControl.ContentProperty, new Binding("ApplyButtonLabel") { Source = this });
+            applyButton.SetResourceReference(Control.BackgroundProperty, "ChronoPosOrange");
+            applyButton.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+            
             var cancelButton = new Button 
             { 
-                Content = "Cancel", 
-                Width = 80, // Reduced width
-                Height = 32, // Reduced height
-                Background = Brushes.LightGray,
-                Foreground = Brushes.Black,
-                BorderThickness = new Thickness(0),
+                Width = 80,
+                Height = 32,
+                BorderThickness = new Thickness(1),
                 Cursor = Cursors.Hand,
                 FontWeight = FontWeights.SemiBold,
-                FontSize = 12 // Reduced font size
+                FontSize = 12
             };
+            cancelButton.SetBinding(ContentControl.ContentProperty, new Binding("CancelButtonLabel") { Source = this });
+            cancelButton.SetResourceReference(Control.BackgroundProperty, "PageBackground");
+            cancelButton.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+            cancelButton.SetResourceReference(Control.BorderBrushProperty, "BorderLight");
 
             applyButton.Click += (s, e) =>
             {
@@ -2078,39 +2358,242 @@ public partial class AddSalesViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ShowServiceChargePopup()
+    private async Task ShowServiceChargePopup()
     {
         try
         {
-            // Create dialog window
+            // Load service charge options
+            var serviceChargeOptions = await _serviceChargeOptionService.GetAllAsync();
+            var activeOptions = serviceChargeOptions.Where(o => o.Status).ToList();
+
+            // Create dialog window with theme colors
             var dialog = new Window
             {
-                Title = "Add Service Charge",
-                Width = 400,
-                Height = 200,
+                Width = SystemParameters.PrimaryScreenWidth * 0.3,
+                Height = SystemParameters.PrimaryScreenHeight * 0.43,
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
                 ResizeMode = ResizeMode.NoResize
             };
+            dialog.SetBinding(Window.TitleProperty, new Binding("ServiceChargePopupTitleLabel") { Source = this });
+            dialog.SetResourceReference(Control.BackgroundProperty, "CardBackground");
 
-            var stackPanel = new StackPanel { Margin = new Thickness(20) };
+            var mainPanel = new StackPanel { Margin = new Thickness(15) };
 
-            // Service Charge Amount
-            stackPanel.Children.Add(new TextBlock 
+            // Title with theme colors
+            var titleTextBlock = new TextBlock 
             { 
-                Text = "Service Charge ($)", 
-                FontSize = 12, 
-                Margin = new Thickness(0, 0, 0, 5) 
-            });
-            var chargeTextBox = new TextBox 
-            { 
-                Text = ServiceCharge.ToString("F2"),
-                Height = 35, 
-                FontSize = 14, 
-                Margin = new Thickness(0, 0, 0, 15) 
+                FontSize = 14,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 0, 0, 10)
             };
-            stackPanel.Children.Add(chargeTextBox);
+            titleTextBlock.SetBinding(TextBlock.TextProperty, new Binding("ServiceChargePopupTitleLabel") { Source = this });
+            titleTextBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimary");
+            mainPanel.Children.Add(titleTextBlock);
 
-            // Buttons
+            // Dropdown + Add Button Row
+            var dropdownPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+
+            var serviceChargeComboBox = new System.Windows.Controls.ComboBox
+            {
+                Width = 200,
+                MinHeight = 40,
+                Margin = new Thickness(0, 0, 8, 0),
+                DisplayMemberPath = "Name",
+                ItemsSource = activeOptions
+            };
+            // Apply the FormComboBoxStyle from resources
+            var formComboBoxStyle = System.Windows.Application.Current.FindResource("FormComboBoxStyle") as Style;
+            if (formComboBoxStyle != null)
+            {
+                serviceChargeComboBox.Style = formComboBoxStyle;
+            }
+            else
+            {
+                // Fallback if style not found
+                serviceChargeComboBox.SetResourceReference(Control.BackgroundProperty, "SurfaceBackground");
+                serviceChargeComboBox.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+                serviceChargeComboBox.SetResourceReference(Control.BorderBrushProperty, "BorderLight");
+            }
+
+            var addButton = new Button
+            {
+                Content = "Add",
+                Width = 80,
+                Height = 32,
+                BorderThickness = new Thickness(0),
+                Cursor = Cursors.Hand,
+                FontWeight = FontWeights.SemiBold
+            };
+            addButton.SetResourceReference(Control.BackgroundProperty, "ChronoPosOrange");
+            addButton.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+
+            dropdownPanel.Children.Add(serviceChargeComboBox);
+            dropdownPanel.Children.Add(addButton);
+            mainPanel.Children.Add(dropdownPanel);
+
+            // Manual Entry Section with theme colors
+            var manualEntryLabel = new TextBlock
+            {
+                Text = "Or enter manual service charge amount:",
+                FontSize = 11,
+                Margin = new Thickness(0, 8, 0, 4)
+            };
+            manualEntryLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
+            mainPanel.Children.Add(manualEntryLabel);
+
+            var manualPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+
+            var manualTextBox = new TextBox
+            {
+                Width = 200,
+                Height = 32,
+                Margin = new Thickness(0, 0, 8, 0),
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Text = "0.00"
+            };
+            manualTextBox.SetResourceReference(Control.BackgroundProperty, "PageBackground");
+            manualTextBox.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+            manualTextBox.SetResourceReference(Control.BorderBrushProperty, "BorderLight");
+
+            var addManualButton = new Button
+            {
+                Content = "Add Manual",
+                Width = 80,
+                Height = 32,
+                BorderThickness = new Thickness(0),
+                Cursor = Cursors.Hand,
+                FontWeight = FontWeights.SemiBold
+            };
+            addManualButton.SetResourceReference(Control.BackgroundProperty, "SuccessGreen");
+            addManualButton.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+
+            manualPanel.Children.Add(manualTextBox);
+            manualPanel.Children.Add(addManualButton);
+            mainPanel.Children.Add(manualPanel);
+
+            // Selected Service Charges Label with theme colors
+            var selectedServiceChargeLabel = new TextBlock
+            {
+                Text = "Selected Service Charges:",
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 8, 0, 6)
+            };
+            selectedServiceChargeLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimary");
+            mainPanel.Children.Add(selectedServiceChargeLabel);
+
+            // Chips Container (WrapPanel for selected service charges)
+            var chipsPanel = new System.Windows.Controls.WrapPanel
+            {
+                Orientation = Orientation.Horizontal,
+                MaxHeight = 80,
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+
+            var chipsScrollViewer = new ScrollViewer
+            {
+                Content = chipsPanel,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                MaxHeight = 80,
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+
+            mainPanel.Children.Add(chipsScrollViewer);
+
+            // Temporary list to store selected service charges for this dialog session
+            var selectedServiceCharges = new List<ServiceChargeOptionDto>();
+
+            // Pre-populate chip if there's already a service charge applied
+            if (ServiceCharge > 0)
+            {
+                ServiceChargeOptionDto? existingCharge = null;
+                if (SelectedServiceChargeOptionId.HasValue)
+                {
+                    // Find the option by ID
+                    existingCharge = activeOptions.FirstOrDefault(o => o.Id == SelectedServiceChargeOptionId.Value);
+                    if (existingCharge != null)
+                    {
+                        selectedServiceCharges.Add(existingCharge);
+                        var chip = CreateServiceChargeChip(existingCharge, chipsPanel);
+                        chipsPanel.Children.Add(chip);
+                    }
+                }
+                else
+                {
+                    // Manual service charge
+                    existingCharge = new ServiceChargeOptionDto
+                    {
+                        Id = -1,
+                        Name = "Manual Service Charge",
+                        Price = ServiceCharge,
+                        Status = true
+                    };
+                    selectedServiceCharges.Add(existingCharge);
+                    var chip = CreateServiceChargeChip(existingCharge, chipsPanel);
+                    chipsPanel.Children.Add(chip);
+                }
+            }
+
+            // Add Button Click Handler
+            addButton.Click += (s, e) =>
+            {
+                if (serviceChargeComboBox.SelectedItem is ServiceChargeOptionDto selectedOption)
+                {
+                    // Check if already added
+                    if (!selectedServiceCharges.Any(sc => sc.Id == selectedOption.Id))
+                    {
+                        selectedServiceCharges.Add(selectedOption);
+                        var chip = CreateServiceChargeChip(selectedOption, chipsPanel);
+                        chipsPanel.Children.Add(chip);
+                    }
+                    serviceChargeComboBox.SelectedIndex = -1;
+                }
+            };
+
+            // Add Manual Button Click Handler
+            addManualButton.Click += (s, e) =>
+            {
+                if (decimal.TryParse(manualTextBox.Text, out var manualAmount) && manualAmount > 0)
+                {
+                    var manualServiceCharge = new ServiceChargeOptionDto
+                    {
+                        Id = -1,
+                        Name = "Manual Service Charge",
+                        Price = manualAmount,
+                        Status = true
+                    };
+
+                    // Remove previous manual service charge if exists
+                    var existingManual = selectedServiceCharges.FirstOrDefault(sc => sc.Id == -1);
+                    if (existingManual != null)
+                    {
+                        selectedServiceCharges.Remove(existingManual);
+                        var existingChip = chipsPanel.Children.OfType<Border>()
+                            .FirstOrDefault(b => ((ServiceChargeOptionDto)b.Tag).Id == -1);
+                        if (existingChip != null)
+                            chipsPanel.Children.Remove(existingChip);
+                    }
+
+                    selectedServiceCharges.Add(manualServiceCharge);
+                    var chip = CreateServiceChargeChip(manualServiceCharge, chipsPanel);
+                    chipsPanel.Children.Add(chip);
+                    manualTextBox.Text = "0.00";
+                }
+                else
+                {
+                    new MessageDialog("Invalid Amount", "Please enter a valid service charge amount greater than 0.", MessageDialog.MessageType.Warning).ShowDialog();
+                }
+            };
+
+            // Buttons with theme colors and translations
             var buttonPanel = new StackPanel 
             { 
                 Orientation = Orientation.Horizontal, 
@@ -2120,31 +2603,57 @@ public partial class AddSalesViewModel : ObservableObject
 
             var applyButton = new Button 
             { 
-                Content = "Apply", 
-                Width = 80, 
-                Height = 35,
-                Margin = new Thickness(0, 0, 10, 0)
+                Width = 80,
+                Height = 32,
+                Margin = new Thickness(0, 0, 8, 0),
+                BorderThickness = new Thickness(0),
+                Cursor = Cursors.Hand,
+                FontWeight = FontWeights.Bold,
+                FontSize = 12
             };
+            applyButton.SetBinding(ContentControl.ContentProperty, new Binding("ApplyButtonLabel") { Source = this });
+            applyButton.SetResourceReference(Control.BackgroundProperty, "ChronoPosOrange");
+            applyButton.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+            
             var cancelButton = new Button 
             { 
-                Content = "Cancel", 
-                Width = 80, 
-                Height = 35
+                Width = 80,
+                Height = 32,
+                BorderThickness = new Thickness(1),
+                Cursor = Cursors.Hand,
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 12
             };
+            cancelButton.SetBinding(ContentControl.ContentProperty, new Binding("CancelButtonLabel") { Source = this });
+            cancelButton.SetResourceReference(Control.BackgroundProperty, "PageBackground");
+            cancelButton.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+            cancelButton.SetResourceReference(Control.BorderBrushProperty, "BorderLight");
 
             applyButton.Click += (s, e) =>
             {
-                if (decimal.TryParse(chargeTextBox.Text, out var charge))
+                // Calculate total service charge amount
+                ServiceCharge = 0m;
+                SelectedServiceChargeOptionId = null;
+
+                if (selectedServiceCharges.Count > 0)
                 {
-                    ServiceCharge = charge;
-                    RecalculateTotals();
-                    dialog.DialogResult = true;
-                    dialog.Close();
+                    // Sum all service charges
+                    foreach (var charge in selectedServiceCharges)
+                    {
+                        ServiceCharge += charge.Price ?? 0m;
+                    }
+
+                    // Store the ID only if there's exactly one predefined option selected
+                    if (selectedServiceCharges.Count == 1 && selectedServiceCharges[0].Id != -1)
+                    {
+                        SelectedServiceChargeOptionId = selectedServiceCharges[0].Id;
+                    }
+                    // If multiple charges or manual, SelectedServiceChargeOptionId stays null
                 }
-                else
-                {
-                    MessageBox.Show("Please enter a valid service charge amount.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
+
+                RecalculateTotals();
+                dialog.DialogResult = true;
+                dialog.Close();
             };
 
             cancelButton.Click += (s, e) =>
@@ -2155,15 +2664,70 @@ public partial class AddSalesViewModel : ObservableObject
 
             buttonPanel.Children.Add(applyButton);
             buttonPanel.Children.Add(cancelButton);
-            stackPanel.Children.Add(buttonPanel);
+            mainPanel.Children.Add(buttonPanel);
 
-            dialog.Content = stackPanel;
+            dialog.Content = mainPanel;
             dialog.ShowDialog();
         }
         catch (Exception ex)
         {
             new MessageDialog("Error", $"Error: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
+    }
+
+    private Border CreateServiceChargeChip(ServiceChargeOptionDto serviceCharge, System.Windows.Controls.WrapPanel parent)
+    {
+        var chipBorder = new Border
+        {
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEF3C7")),
+            BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B")),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(16),
+            Padding = new Thickness(12, 6, 8, 6),
+            Margin = new Thickness(0, 0, 6, 6),
+            Tag = serviceCharge
+        };
+
+        var chipPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal
+        };
+
+        var displayText = $"{serviceCharge.Name} - {_activeCurrencyService.FormatPrice(serviceCharge.Price ?? 0m)}";
+
+        chipPanel.Children.Add(new TextBlock
+        {
+            Text = displayText,
+            FontSize = 12,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D97706")),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 6, 0)
+        });
+
+        var removeButton = new Button
+        {
+            Content = "×",
+            Width = 18,
+            Height = 18,
+            FontSize = 16,
+            Padding = new Thickness(0),
+            Background = Brushes.Transparent,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D97706")),
+            BorderThickness = new Thickness(0),
+            Cursor = Cursors.Hand,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        removeButton.Click += (s, e) =>
+        {
+            // Find and remove from parent's children
+            parent.Children.Remove(chipBorder);
+        };
+
+        chipPanel.Children.Add(removeButton);
+        chipBorder.Child = chipPanel;
+
+        return chipBorder;
     }
 
     private string GenerateInvoiceNumber()
@@ -2333,8 +2897,9 @@ public partial class AddSalesViewModel : ObservableObject
                         ProductName = productNameWithModifiers,
                         Icon = "🍽️",
                         UnitPrice = transactionProduct.SellingPrice,
+                        OriginalPrice = transactionProduct.SellingPrice,
                         Quantity = (int)transactionProduct.Quantity,
-                        TotalPrice = transactionProduct.LineTotal,
+                        TotalPrice = transactionProduct.SellingPrice * transactionProduct.Quantity, // Use base price without tax
                         // Store the modifiers for future reference
                         SelectedModifiers = transactionProduct.Modifiers?.Select(m => new ProductModifierGroupItemDto
                         {
@@ -2472,8 +3037,9 @@ public partial class AddSalesViewModel : ObservableObject
                         ProductName = productNameWithModifiers,
                         Icon = "🍽️",
                         UnitPrice = transactionProduct.SellingPrice,
+                        OriginalPrice = transactionProduct.SellingPrice,
                         Quantity = (int)transactionProduct.Quantity,
-                        TotalPrice = transactionProduct.LineTotal,
+                        TotalPrice = transactionProduct.SellingPrice * transactionProduct.Quantity, // Use base price without tax
                         SelectedModifiers = transactionProduct.Modifiers?.Select(m => new ProductModifierGroupItemDto
                         {
                             Id = m.Id,
@@ -2622,14 +3188,17 @@ public partial class AddSalesViewModel : ObservableObject
             }
 
             var shiftId = 1;
-            var totalAmount = CartItems.Sum(x => x.TotalPrice);
-            var totalVat = totalAmount * (TaxPercentage / 100);
+            
+            // Calculate totals - use the complete net total from cart
+            var subtotalAmount = CartItems.Sum(x => x.TotalPrice); // Product subtotal only
+            var totalVat = TaxAmount; // Use calculated tax from cart
+            var netTotalAmount = Total; // Complete net total: Subtotal + Tax + ServiceCharge - Discount
             
             // Get customer balance
             decimal customerBalanceAmount = SelectedCustomer?.CustomerBalanceAmount ?? 0m;
             
             // Calculate bill total considering customer balance
-            decimal billTotal = totalAmount + customerBalanceAmount;
+            decimal billTotal = netTotalAmount + customerBalanceAmount;
 
             if (CurrentTransactionId > 0)
             {
@@ -2660,7 +3229,7 @@ public partial class AddSalesViewModel : ObservableObject
                     CustomerId = SelectedCustomer?.Id,
                     TableId = SelectedTable?.Id,
                     SellingTime = DateTime.Now,
-                    TotalAmount = totalAmount,
+                    TotalAmount = netTotalAmount, // Save complete net total including service charge and discount
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
@@ -2687,8 +3256,8 @@ public partial class AddSalesViewModel : ObservableObject
                 AppLogger.Log($"SaveAndPrint: Checking service charge - ServiceCharge={ServiceCharge}");
                 if (ServiceCharge > 0)
                 {
-                    AppLogger.Log($"SaveAndPrint: Calling AddServiceChargeToTransaction for transaction #{savedTransaction.Id} with amount ${ServiceCharge}");
-                    await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge);
+                    AppLogger.Log($"SaveAndPrint: Calling AddServiceChargeToTransaction for transaction #{savedTransaction.Id} with amount ${ServiceCharge}, OptionId={SelectedServiceChargeOptionId}");
+                    await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge, SelectedServiceChargeOptionId);
                     AppLogger.Log($"SaveAndPrint: AddServiceChargeToTransaction call completed");
                 }
                 else
@@ -2749,8 +3318,11 @@ public partial class AddSalesViewModel : ObservableObject
             }
 
             var shiftId = 1;
-            var totalAmount = CartItems.Sum(x => x.TotalPrice);
-            var totalVat = totalAmount * (TaxPercentage / 100);
+            
+            // Calculate totals - use the complete net total from cart
+            var subtotalAmount = CartItems.Sum(x => x.TotalPrice); // Product subtotal only
+            var totalVat = TaxAmount; // Use calculated tax from cart
+            var netTotalAmount = Total; // Complete net total: Subtotal + Tax + ServiceCharge - Discount
             
             // Get customer balance
             decimal customerBalanceAmount = SelectedCustomer?.CustomerBalanceAmount ?? 0m;
@@ -2758,7 +3330,7 @@ public partial class AddSalesViewModel : ObservableObject
             // Calculate bill total considering customer balance
             // If customer has pending dues (positive balance), add to bill
             // If customer has credit (negative balance), deduct from bill
-            decimal billTotal = totalAmount + customerBalanceAmount;
+            decimal billTotal = netTotalAmount + customerBalanceAmount;
 
             if (CurrentTransactionId > 0)
             {
@@ -2768,7 +3340,7 @@ public partial class AddSalesViewModel : ObservableObject
                     CustomerId = SelectedCustomer.Id,
                     TableId = SelectedTable?.Id,
                     ReservationId = SelectedReservation?.Id,
-                    TotalAmount = totalAmount,
+                    TotalAmount = netTotalAmount, // Save complete net total including service charge and discount
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
@@ -2820,7 +3392,7 @@ public partial class AddSalesViewModel : ObservableObject
                     TableId = SelectedTable?.Id,
                     ReservationId = SelectedReservation?.Id,
                     SellingTime = DateTime.Now,
-                    TotalAmount = totalAmount,
+                    TotalAmount = netTotalAmount, // Save complete net total including service charge and discount
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
@@ -2847,7 +3419,9 @@ public partial class AddSalesViewModel : ObservableObject
                 // Add service charge if present
                 if (ServiceCharge > 0)
                 {
-                    await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge);
+                    AppLogger.Log($"PayLater: Calling AddServiceChargeToTransaction for transaction #{savedTransaction.Id} with amount ${ServiceCharge}, OptionId={SelectedServiceChargeOptionId}");
+                    await AddServiceChargeToTransaction(savedTransaction.Id, ServiceCharge, SelectedServiceChargeOptionId);
+                    AppLogger.Log($"PayLater: AddServiceChargeToTransaction call completed");
                 }
                 
                 CurrentTransactionId = savedTransaction.Id;
@@ -2917,8 +3491,11 @@ public partial class AddSalesViewModel : ObservableObject
             }
 
             var shiftId = 1;
-            var totalAmount = CartItems.Sum(x => x.TotalPrice);
-            var totalVat = totalAmount * (TaxPercentage / 100);
+            
+            // Calculate totals - use the complete net total from cart
+            var subtotalAmount = CartItems.Sum(x => x.TotalPrice); // Product subtotal only
+            var totalVat = TaxAmount; // Use calculated tax from cart
+            var netTotalAmount = Total; // Complete net total: Subtotal + Tax + ServiceCharge - Discount
 
             if (CurrentTransactionId > 0)
             {
@@ -2941,7 +3518,7 @@ public partial class AddSalesViewModel : ObservableObject
                     TableId = SelectedTable?.Id,
                     ReservationId = SelectedReservation?.Id,
                     SellingTime = DateTime.Now,
-                    TotalAmount = totalAmount,
+                    TotalAmount = netTotalAmount, // Save complete net total including service charge and discount
                     TotalVat = totalVat,
                     TotalDiscount = DiscountAmount,
                     AmountPaidCash = 0m,
@@ -3000,8 +3577,14 @@ public partial class AddSalesViewModel : ObservableObject
             }
 
             var shiftId = 1;
-            var totalAmount = CartItems.Sum(x => x.TotalPrice);
-            var totalVat = totalAmount * (TaxPercentage / 100);
+            
+            // Use the current cart Total which includes tax, service charge, and discount
+            // This is the actual net total amount shown in the cart UI
+            var saleAmount = Total; // Net total from cart (Subtotal + Tax + ServiceCharge - Discount)
+            
+            // For saving to database, we still need to break down the components
+            var totalAmount = CartItems.Sum(x => x.TotalPrice); // Subtotal (products only)
+            var totalVat = TaxAmount; // Use calculated tax amount from cart
             
             // Get customer balance
             decimal customerBalanceAmount = SelectedCustomer?.CustomerBalanceAmount ?? 0m;
@@ -3009,7 +3592,7 @@ public partial class AddSalesViewModel : ObservableObject
             // Calculate bill total considering customer balance
             // If customer has pending dues (positive balance), add to bill
             // If customer has credit (negative balance), deduct from bill
-            decimal billTotal = totalAmount + customerBalanceAmount;
+            decimal billTotal = saleAmount + customerBalanceAmount;
             
             // For existing transactions with partial/pending payment, get the remaining amount and status
             decimal alreadyPaid = 0m;
@@ -3051,15 +3634,16 @@ public partial class AddSalesViewModel : ObservableObject
                 return;
             }
 
-            // Show payment popup
+            // Show payment popup with theme colors
             var paymentPopup = new Window
             {
-                Title = "Payment",
                 Width = 480,
-                Height = 550, // Increased for customer balance info and better spacing
+                Height = 550,
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
                 ResizeMode = ResizeMode.NoResize
             };
+            paymentPopup.SetResourceReference(Control.BackgroundProperty, "CardBackground");
+            paymentPopup.SetBinding(Window.TitleProperty, new Binding(nameof(PaymentPopupTitleLabel)) { Source = this });
 
             var grid = new Grid { Margin = new Thickness(20) };
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -3072,56 +3656,55 @@ public partial class AddSalesViewModel : ObservableObject
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(20) });
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            // Total Amount Label - Show customer balance and bill total
+            // Total Amount Label with theme colors
             string balanceInfo = "";
             if (customerBalanceAmount > 0)
             {
-                balanceInfo = $"\nCustomer Pending: ${customerBalanceAmount:N2} (Added to bill)";
+                balanceInfo = $"\n{CustomerPendingLabel} {_activeCurrencyService.FormatPrice(customerBalanceAmount)} (Added to bill)";
             }
             else if (customerBalanceAmount < 0)
             {
-                balanceInfo = $"\nStore Credit Available: ${Math.Abs(customerBalanceAmount):N2} (Deducted from bill)";
+                balanceInfo = $"\nStore Credit Available: {_activeCurrencyService.FormatPrice(Math.Abs(customerBalanceAmount))} (Deducted from bill)";
             }
             
-                        var totalLabel = new TextBlock
-                        {
-                                FontSize = 16,
-                                FontWeight = FontWeights.Bold,
-                                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937")),
-                                TextWrapping = TextWrapping.Wrap
-                        };
+            var totalLabel = new TextBlock
+            {
+                FontSize = 16,
+                FontWeight = FontWeights.Bold,
+                TextWrapping = TextWrapping.Wrap
+            };
+            totalLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimary");
 
-                        if (existingStatus == "partial_payment")
-                        {
-                                // Show customer pending as bill total and transaction remaining
-                                var alreadyPaidFromSale = totalAmount - existingAmountCreditRemaining;
-                                totalLabel.Text = $"Sale Amount: {_activeCurrencyService.CurrencySymbol}{totalAmount:N2}{balanceInfo}\n" +
-                                                                    $"Customer Pending: {_activeCurrencyService.CurrencySymbol}{customerBalanceAmount:N2}\n" +
-                                                                    $"Remaining Amount of Transaction: {_activeCurrencyService.CurrencySymbol}{existingAmountCreditRemaining:N2}\n" +
-                                                                    $"Already Paid: {_activeCurrencyService.CurrencySymbol}{alreadyPaidFromSale:N2}";
-                        }
-                        else
-                        {
-                                totalLabel.Text = alreadyPaid > 0 
-                                        ? $"Sale Amount: {_activeCurrencyService.CurrencySymbol}{totalAmount:N2}{balanceInfo}\n" +
-                                            $"Bill Total: {_activeCurrencyService.CurrencySymbol}{billTotal:N2}\n" +
-                                            $"Remaining: {_activeCurrencyService.CurrencySymbol}{remainingAmount:N2}\n(Already Paid: {_activeCurrencyService.CurrencySymbol}{alreadyPaid:N2})"
-                                        : $"Sale Amount: {_activeCurrencyService.CurrencySymbol}{totalAmount:N2}{balanceInfo}\n" +
-                                            $"Bill Total: {_activeCurrencyService.CurrencySymbol}{billTotal:N2}";
-                        }
+            if (existingStatus == "partial_payment")
+            {
+                var alreadyPaidFromSale = saleAmount - existingAmountCreditRemaining;
+                totalLabel.Text = $"{SaleAmountLabel} {_activeCurrencyService.FormatPrice(saleAmount)}{balanceInfo}\n" +
+                                  $"{CustomerPendingLabel} {_activeCurrencyService.FormatPrice(customerBalanceAmount)}\n" +
+                                  $"Remaining Amount of Transaction: {_activeCurrencyService.FormatPrice(existingAmountCreditRemaining)}\n" +
+                                  $"Already Paid: {_activeCurrencyService.FormatPrice(alreadyPaidFromSale)}";
+            }
+            else
+            {
+                totalLabel.Text = alreadyPaid > 0 
+                    ? $"{SaleAmountLabel} {_activeCurrencyService.FormatPrice(saleAmount)}{balanceInfo}\n" +
+                      $"{BillTotalLabel} {_activeCurrencyService.FormatPrice(billTotal)}\n" +
+                      $"Remaining: {_activeCurrencyService.FormatPrice(remainingAmount)}\n(Already Paid: {_activeCurrencyService.FormatPrice(alreadyPaid)})"
+                    : $"{SaleAmountLabel} {_activeCurrencyService.FormatPrice(saleAmount)}{balanceInfo}\n" +
+                      $"{BillTotalLabel} {_activeCurrencyService.FormatPrice(billTotal)}";
+            }
             
             Grid.SetRow(totalLabel, 0);
             grid.Children.Add(totalLabel);
 
-            // Payment Method Label and ComboBox
+            // Payment Method Label and ComboBox with theme colors
             var paymentMethodLabel = new TextBlock
             {
-                Text = "Payment Method:",
-                FontSize = 14,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"))
+                FontSize = 14
             };
+            paymentMethodLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
+            paymentMethodLabel.SetBinding(TextBlock.TextProperty, new Binding(nameof(PaymentMethodLabel)) { Source = this });
 
-            // Payment Method ComboBox - Load from database
+            // Payment Method ComboBox with theme colors
             var paymentMethodComboBox = new ComboBox
             {
                 Margin = new Thickness(0, 5, 0, 0),
@@ -3130,6 +3713,9 @@ public partial class AddSalesViewModel : ObservableObject
                 DisplayMemberPath = "Name",
                 SelectedValuePath = "Id"
             };
+            paymentMethodComboBox.SetResourceReference(Control.BackgroundProperty, "PageBackground");
+            paymentMethodComboBox.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+            paymentMethodComboBox.SetResourceReference(Control.BorderBrushProperty, "BorderLight");
             
             foreach (var paymentType in paymentTypes)
             {
@@ -3143,21 +3729,24 @@ public partial class AddSalesViewModel : ObservableObject
             Grid.SetRow(paymentMethodPanel, 2);
             grid.Children.Add(paymentMethodPanel);
 
-            // Amount Paid Label and TextBox
+            // Amount Paid Label and TextBox with theme colors
             var amountLabel = new TextBlock
             {
-                Text = "Amount Paid:",
-                FontSize = 14,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"))
+                FontSize = 14
             };
+            amountLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
+            amountLabel.SetBinding(TextBlock.TextProperty, new Binding(nameof(AmountPaidLabel)) { Source = this });
 
             var amountTextBox = new TextBox
             {
-                Text = amountToPrefill.ToString("N2"), // Use calculated prefill amount (handles partial payments)
+                Text = amountToPrefill.ToString("N2"),
                 FontSize = 14,
                 Padding = new Thickness(10),
                 Margin = new Thickness(0, 5, 0, 0)
             };
+            amountTextBox.SetResourceReference(Control.BackgroundProperty, "PageBackground");
+            amountTextBox.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+            amountTextBox.SetResourceReference(Control.BorderBrushProperty, "BorderLight");
 
             var amountPanel = new StackPanel();
             amountPanel.Children.Add(amountLabel);
@@ -3165,13 +3754,13 @@ public partial class AddSalesViewModel : ObservableObject
             Grid.SetRow(amountPanel, 4);
             grid.Children.Add(amountPanel);
 
-            // Credit Days Label and TextBox (for partial payment)
+            // Credit Days Label and TextBox with theme colors
             var creditDaysLabel = new TextBlock
             {
-                Text = "Credit Days (for partial payment):",
-                FontSize = 14,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"))
+                FontSize = 14
             };
+            creditDaysLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
+            creditDaysLabel.SetBinding(TextBlock.TextProperty, new Binding(nameof(CreditDaysLabel)) { Source = this });
 
             var creditDaysTextBox = new TextBox
             {
@@ -3180,6 +3769,9 @@ public partial class AddSalesViewModel : ObservableObject
                 Padding = new Thickness(10),
                 Margin = new Thickness(0, 5, 0, 0)
             };
+            creditDaysTextBox.SetResourceReference(Control.BackgroundProperty, "PageBackground");
+            creditDaysTextBox.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+            creditDaysTextBox.SetResourceReference(Control.BorderBrushProperty, "BorderLight");
 
             var creditDaysPanel = new StackPanel();
             creditDaysPanel.Children.Add(creditDaysLabel);
@@ -3187,7 +3779,7 @@ public partial class AddSalesViewModel : ObservableObject
             Grid.SetRow(creditDaysPanel, 6);
             grid.Children.Add(creditDaysPanel);
 
-            // Buttons
+            // Buttons with theme colors
             var buttonPanel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -3196,31 +3788,32 @@ public partial class AddSalesViewModel : ObservableObject
 
             var cancelButton = new Button
             {
-                Content = "Cancel",
                 Width = 100,
                 Height = 40,
                 Margin = new Thickness(0, 0, 10, 0),
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E5E7EB")),
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937")),
-                BorderThickness = new Thickness(0),
+                BorderThickness = new Thickness(1),
                 FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
                 Cursor = Cursors.Hand
             };
+            cancelButton.SetResourceReference(Control.BackgroundProperty, "PageBackground");
+            cancelButton.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+            cancelButton.SetResourceReference(Control.BorderBrushProperty, "BorderLight");
+            cancelButton.SetBinding(Button.ContentProperty, new Binding(nameof(CancelButtonLabel)) { Source = this });
             cancelButton.Click += (s, e) => paymentPopup.Close();
 
             var settleButton = new Button
             {
-                Content = "Save & Settle",
                 Width = 120,
                 Height = 40,
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981")),
-                Foreground = Brushes.White,
                 BorderThickness = new Thickness(0),
                 FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
                 Cursor = Cursors.Hand
             };
+            settleButton.SetResourceReference(Control.BackgroundProperty, "SuccessGreen");
+            settleButton.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
+            settleButton.SetBinding(Button.ContentProperty, new Binding(nameof(SaveSettleButtonLabel)) { Source = this });
 
             settleButton.Click += async (s, e) =>
             {
@@ -3313,7 +3906,7 @@ public partial class AddSalesViewModel : ObservableObject
                             CustomerId = SelectedCustomer?.Id,
                             TableId = SelectedTable?.Id,
                             ReservationId = SelectedReservation?.Id,
-                            TotalAmount = totalAmount,
+                            TotalAmount = saleAmount, // Save complete net total including service charge and discount
                             TotalVat = totalVat,
                             TotalDiscount = DiscountAmount,
                             AmountPaidCash = totalPaidNow, // Total amount paid so far
@@ -3378,9 +3971,24 @@ public partial class AddSalesViewModel : ObservableObject
                             (creditDays > 0 ? $"\nCredit Days: {creditDays}" : ""), 
                             "Payment Complete", MessageBoxButton.OK, MessageBoxImage.Information);
                         
-                        // Clear cart after settlement if fully paid
+                        // Print receipt if fully settled
                         if (transactionStatus == "settled")
                         {
+                            try
+                            {
+                                // Get complete transaction details for printing
+                                var fullTransaction = await _transactionService.GetByIdAsync(CurrentTransactionId);
+                                if (fullTransaction != null)
+                                {
+                                    PrintBill(fullTransaction);
+                                }
+                            }
+                            catch (Exception printEx)
+                            {
+                                AppLogger.LogError($"Settle: Failed to print receipt", printEx);
+                                // Don't show error to user - transaction is already saved
+                            }
+                            
                             ClearCart();
                         }
                     }
@@ -3395,7 +4003,7 @@ public partial class AddSalesViewModel : ObservableObject
                             TableId = SelectedTable?.Id,
                             ReservationId = SelectedReservation?.Id,
                             SellingTime = DateTime.Now,
-                            TotalAmount = totalAmount,
+                            TotalAmount = saleAmount, // Save complete net total including service charge and discount
                             TotalVat = totalVat,
                             TotalDiscount = DiscountAmount,
                             AmountPaidCash = paidAmount,
@@ -3470,9 +4078,24 @@ public partial class AddSalesViewModel : ObservableObject
                             "Payment Complete", MessageBoxButton.OK, MessageBoxImage.Information);
                         new MessageDialog("Payment Complete", $"Transaction #{savedTransaction.Id} settled successfully!\n\nPayment Method: {paymentMethodComboBox.SelectedItem}\nAmount Paid: {_activeCurrencyService.FormatPrice(paidAmount)}", MessageDialog.MessageType.Success).ShowDialog();
                         
-                        // Clear cart after settlement if fully paid
+                        // Print receipt and clear cart if fully paid
                         if (transactionStatus == "settled")
                         {
+                            try
+                            {
+                                // Get complete transaction details for printing
+                                var fullTransaction = await _transactionService.GetByIdAsync(savedTransaction.Id);
+                                if (fullTransaction != null)
+                                {
+                                    PrintBill(fullTransaction);
+                                }
+                            }
+                            catch (Exception printEx)
+                            {
+                                AppLogger.LogError($"Settle: Failed to print receipt for new transaction", printEx);
+                                // Don't show error to user - transaction is already saved
+                            }
+                            
                             ClearCart();
                         }
                     }
@@ -3505,6 +4128,20 @@ public partial class AddSalesViewModel : ObservableObject
     {
         try
         {
+            // Check company settings first
+            var companySettingsList = await _companySettingsService.GetActiveAsync();
+            var companySettings = companySettingsList.FirstOrDefault();
+            
+            if (companySettings == null || !companySettings.AllowReturnCash)
+            {
+                var confirmDialog = new ConfirmationDialog(
+                    "Refund Not Allowed",
+                    "Return cash is not enabled in company settings.\n\nRefunds are currently disabled for this store.",
+                    ConfirmationDialog.DialogType.Warning);
+                confirmDialog.ShowDialog();
+                return;
+            }
+            
             // Validate that we have a transaction ID
             if (CurrentTransactionId == 0)
             {
@@ -3533,7 +4170,10 @@ public partial class AddSalesViewModel : ObservableObject
                 transaction,
                 _refundService,
                 _currentUserService,
-                _activeCurrencyService);
+                _activeCurrencyService,
+                _productService,
+                _localizationService,
+                _layoutDirectionService);
 
             var result = refundDialog.ShowDialog();
 
@@ -3558,6 +4198,20 @@ public partial class AddSalesViewModel : ObservableObject
     {
         try
         {
+            // Check company settings first
+            var companySettingsList = await _companySettingsService.GetActiveAsync();
+            var companySettings = companySettingsList.FirstOrDefault();
+            
+            if (companySettings == null || !companySettings.AllowExchangeTransaction)
+            {
+                var confirmDialog = new ConfirmationDialog(
+                    "Exchange Not Allowed",
+                    "Exchange transactions are not enabled in company settings.\n\nExchanges are currently disabled for this store.",
+                    ConfirmationDialog.DialogType.Warning);
+                confirmDialog.ShowDialog();
+                return;
+            }
+            
             // Validate that we have a transaction ID
             if (CurrentTransactionId == 0)
             {
@@ -3642,6 +4296,7 @@ public partial class AddSalesViewModel : ObservableObject
                             ProductName = product.Name,
                             Icon = "🛒",
                             UnitPrice = product.Price,
+                            OriginalPrice = product.Price,
                             Quantity = 1,
                             TotalPrice = product.Price,
                             ProductUnitId = null
@@ -3753,17 +4408,17 @@ public partial class AddSalesViewModel : ObservableObject
     /// <summary>
     /// Helper method to add service charge to an existing transaction
     /// </summary>
-    private async Task AddServiceChargeToTransaction(int transactionId, decimal chargeAmount)
+    private async Task AddServiceChargeToTransaction(int transactionId, decimal chargeAmount, int? serviceChargeOptionId = null)
     {
         try
         {
-            AppLogger.Log($"AddServiceChargeToTransaction: START - Transaction #{transactionId}, Amount=${chargeAmount}");
+            AppLogger.Log($"AddServiceChargeToTransaction: START - Transaction #{transactionId}, Amount=${chargeAmount}, ServiceChargeOptionId={serviceChargeOptionId}");
             
-            // Create service charge with nullable ServiceChargeId (manual/custom charge)
+            // Create service charge with nullable ServiceChargeOptionId
             var serviceCharge = new TransactionServiceCharge
             {
                 TransactionId = transactionId,
-                ServiceChargeId = null, // NULL for manual/custom service charges (not linked to predefined service charge)
+                ServiceChargeOptionId = serviceChargeOptionId, // Store the selected option ID, or NULL for custom charges
                 TotalAmount = chargeAmount,
                 TotalVat = 0, // Can be calculated based on tax if needed
                 Status = "Active",
@@ -3771,7 +4426,7 @@ public partial class AddSalesViewModel : ObservableObject
                 CreatedAt = DateTime.Now
             };
 
-            AppLogger.Log($"AddServiceChargeToTransaction: Service charge object created - TransactionId={serviceCharge.TransactionId}, Amount={serviceCharge.TotalAmount}, Status={serviceCharge.Status}, ServiceChargeId={serviceCharge.ServiceChargeId}");
+            AppLogger.Log($"AddServiceChargeToTransaction: Service charge object created - TransactionId={serviceCharge.TransactionId}, Amount={serviceCharge.TotalAmount}, Status={serviceCharge.Status}, ServiceChargeOptionId={serviceCharge.ServiceChargeOptionId}");
             
             await _transactionServiceChargeRepository.AddAsync(serviceCharge);
             AppLogger.Log($"AddServiceChargeToTransaction: AddAsync completed");
@@ -3827,178 +4482,169 @@ public partial class AddSalesViewModel : ObservableObject
     {
         try
         {
-            var printDialog = new System.Windows.Controls.PrintDialog();
-            
-            // Create print document
-            var document = new System.Windows.Documents.FlowDocument
-            {
-                PagePadding = new Thickness(50),
-                FontFamily = new FontFamily("Courier New"),
-                FontSize = 11
-            };
+            // Use QuestPDF for professional receipt generation and printing
+            var pdfPrinter = new QuestPdfReceiptPrinter(_activeCurrencyService);
 
-            // Header
-            var headerPara = new System.Windows.Documents.Paragraph
-            {
-                TextAlignment = TextAlignment.Center,
-                Margin = new Thickness(0, 0, 0, 10)
-            };
-            headerPara.Inlines.Add(new System.Windows.Documents.Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
-            headerPara.Inlines.Add(new System.Windows.Documents.Run("SALES RECEIPT\n") { FontSize = 16, FontWeight = FontWeights.Bold });
-            headerPara.Inlines.Add(new System.Windows.Documents.Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(headerPara);
+            // Get company information from settings or use defaults
+            string companyName = "CHRONO POS"; // TODO: Get from settings/database
+            string? companyAddress = null; // TODO: Get from settings/database
+            string? companyPhone = null; // TODO: Get from settings/database
+            string? gstNo = null; // TODO: Get from settings/database
 
-            // Bill Info
-            var infoPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 10, 0, 10) };
-            infoPara.Inlines.Add(new System.Windows.Documents.Run($"Invoice #: {transaction.InvoiceNumber ?? transaction.Id.ToString()}\n"));
-            infoPara.Inlines.Add(new System.Windows.Documents.Run($"Date: {transaction.SellingTime:dd-MM-yyyy}\n"));
-            infoPara.Inlines.Add(new System.Windows.Documents.Run($"Time: {transaction.SellingTime:HH:mm:ss}\n"));
-            
-            if (SelectedCustomer != null)
-            {
-                infoPara.Inlines.Add(new System.Windows.Documents.Run($"Customer: {SelectedCustomer.DisplayName}\n"));
-                if (!string.IsNullOrEmpty(SelectedCustomer.PrimaryMobile))
-                {
-                    infoPara.Inlines.Add(new System.Windows.Documents.Run($"Phone: {SelectedCustomer.PrimaryMobile}\n"));
-                }
-            }
-            else
-            {
-                infoPara.Inlines.Add(new System.Windows.Documents.Run("Customer: Walk-in\n"));
-            }
-            
-            if (SelectedTable != null)
-            {
-                infoPara.Inlines.Add(new System.Windows.Documents.Run($"Table: {SelectedTable.DisplayName}\n"));
-            }
-            
-            document.Blocks.Add(infoPara);
+            // Generate PDF and auto-print to thermal printer
+            string pdfPath = pdfPrinter.GenerateAndPrintReceipt(
+                transaction: transaction,
+                items: CartItems.ToList(),
+                customer: SelectedCustomer,
+                table: SelectedTable,
+                subtotal: Subtotal,
+                discount: DiscountAmount,
+                taxPercent: TaxPercentage,
+                taxAmount: TaxAmount,
+                serviceCharge: ServiceCharge,
+                total: Total,
+                companyName: companyName,
+                companyAddress: companyAddress,
+                companyPhone: companyPhone,
+                gstNo: gstNo
+            );
 
-            // Separator
-            var separatorPara1 = new System.Windows.Documents.Paragraph
-            {
-                Margin = new Thickness(0, 5, 0, 5),
-                TextAlignment = TextAlignment.Center
-            };
-            separatorPara1.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(separatorPara1);
-
-            // Items Header
-            var itemsHeaderPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 5, 0, 5) };
-            itemsHeaderPara.Inlines.Add(new System.Windows.Documents.Run("ITEMS\n") { FontWeight = FontWeights.Bold });
-            itemsHeaderPara.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────\n"));
-            document.Blocks.Add(itemsHeaderPara);
-
-            // Items
-            foreach (var item in CartItems)
-            {
-                var itemPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 2, 0, 2) };
-                
-                // Product name
-                itemPara.Inlines.Add(new System.Windows.Documents.Run($"{item.ProductName}\n"));
-                
-                // Quantity and price
-                var qtyPriceText = $"  {item.Quantity:0.##} x {_activeCurrencyService.FormatPrice(item.UnitPrice)}";
-                var totalText = _activeCurrencyService.FormatPrice(item.TotalPrice);
-                var spacing = new string(' ', Math.Max(0, 35 - qtyPriceText.Length - totalText.Length));
-                itemPara.Inlines.Add(new System.Windows.Documents.Run($"{qtyPriceText}{spacing}{totalText}\n"));
-                
-                document.Blocks.Add(itemPara);
-            }
-
-            // Separator
-            var separatorPara2 = new System.Windows.Documents.Paragraph
-            {
-                Margin = new Thickness(0, 5, 0, 5),
-                TextAlignment = TextAlignment.Center
-            };
-            separatorPara2.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(separatorPara2);
-
-            // Totals
-            var totalsPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 5, 0, 10) };
-            
-            // Subtotal
-            var subtotalLine = $"Subtotal:";
-            var subtotalAmount = _activeCurrencyService.FormatPrice(Subtotal);
-            var subtotalSpacing = new string(' ', Math.Max(0, 35 - subtotalLine.Length - subtotalAmount.Length));
-            totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{subtotalLine}{subtotalSpacing}{subtotalAmount}\n"));
-            
-            if (DiscountAmount > 0)
-            {
-                var discountLine = $"Discount:";
-                var discountAmount = $"-{_activeCurrencyService.FormatPrice(DiscountAmount)}";
-                var discountSpacing = new string(' ', Math.Max(0, 35 - discountLine.Length - discountAmount.Length));
-                totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{discountLine}{discountSpacing}{discountAmount}\n"));
-            }
-            
-            if (TaxPercentage > 0)
-            {
-                var taxLine = $"Tax ({TaxPercentage}%):";
-                var taxAmount = _activeCurrencyService.FormatPrice(TaxAmount);
-                var taxSpacing = new string(' ', Math.Max(0, 35 - taxLine.Length - taxAmount.Length));
-                totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{taxLine}{taxSpacing}{taxAmount}\n"));
-            }
-            
-            // Show customer balance if applicable
-            if (SelectedCustomer != null)
-            {
-                decimal customerBalance = SelectedCustomer.CustomerBalanceAmount;
-                if (customerBalance != 0)
-                {
-                    string balanceLabel = customerBalance > 0 ? "Previous Pending:" : "Store Credit:";
-                    var balanceLine = $"{balanceLabel}";
-                    var balanceAmount = customerBalance > 0 ? $"${customerBalance:N2}" : $"-${Math.Abs(customerBalance):N2}";
-                    var balanceSpacing = new string(' ', Math.Max(0, 35 - balanceLine.Length - balanceAmount.Length));
-                    totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{balanceLine}{balanceSpacing}{balanceAmount}\n"));
-                }
-            }
-            
-            // Total line separator
-            totalsPara.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────\n") { FontWeight = FontWeights.Bold });
-            
-            // Calculate bill total (sale + customer balance)
-            decimal customerBalanceAmount = SelectedCustomer?.CustomerBalanceAmount ?? 0m;
-            decimal billTotal = Total + customerBalanceAmount;
-            
-            // Grand Total
-            var totalLine = $"TOTAL:";
-            var totalAmount = $"${billTotal:N2}";
-            var totalSpacing = new string(' ', Math.Max(0, 35 - totalLine.Length - totalAmount.Length));
-            totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{totalLine}{totalSpacing}{totalAmount}\n") { FontWeight = FontWeights.Bold, FontSize = 13 });
-            
-            // Show payment status for billed transactions
-            if (transaction.Status == "billed" && billTotal > 0)
-            {
-                totalsPara.Inlines.Add(new System.Windows.Documents.Run("\n"));
-                totalsPara.Inlines.Add(new System.Windows.Documents.Run("STATUS: PENDING PAYMENT\n") { FontWeight = FontWeights.Bold, Foreground = Brushes.Red });
-                totalsPara.Inlines.Add(new System.Windows.Documents.Run($"Amount Due: ${billTotal:N2}\n") { FontWeight = FontWeights.Bold });
-            }
-            
-            document.Blocks.Add(totalsPara);
-
-            // Footer
-            var footerPara = new System.Windows.Documents.Paragraph
-            {
-                TextAlignment = TextAlignment.Center,
-                Margin = new Thickness(0, 20, 0, 0)
-            };
-            footerPara.Inlines.Add(new System.Windows.Documents.Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
-            footerPara.Inlines.Add(new System.Windows.Documents.Run("Thank you for your business!\n"));
-            footerPara.Inlines.Add(new System.Windows.Documents.Run("Please come again\n"));
-            footerPara.Inlines.Add(new System.Windows.Documents.Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(footerPara);
-
-            // Print
-            var paginator = ((System.Windows.Documents.IDocumentPaginatorSource)document).DocumentPaginator;
-            printDialog.PrintDocument(paginator, "Sales Receipt");
+            AppLogger.Log($"Receipt printed successfully. PDF saved at: {pdfPath}");
         }
         catch (Exception ex)
         {
             AppLogger.LogError($"Error printing bill: {ex.Message}");
-            new MessageDialog("Print Error", $"Error printing bill: {ex.Message}\n\nThe transaction was saved successfully.", MessageDialog.MessageType.Warning).ShowDialog();
+            new MessageDialog(
+                "Print Error", 
+                $"Error printing receipt: {ex.Message}\n\nThe transaction was saved successfully.", 
+                MessageDialog.MessageType.Warning
+            ).ShowDialog();
         }
     }
+
+    private void PrintKot()
+    {
+        try
+        {
+            // Use QuestPDF for professional KOT generation and printing
+            var kotPrinter = new QuestPdfKotPrinter();
+
+            // Generate PDF and auto-print to thermal printer
+            string pdfPath = kotPrinter.GenerateAndPrintKot(
+                items: CartItems.ToList(),
+                table: SelectedTable,
+                customerName: SelectedCustomer?.CustomerFullName,
+                notes: null // You can add notes field if needed
+            );
+
+            AppLogger.Log($"KOT printed successfully. PDF saved at: {pdfPath}");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"Error printing KOT: {ex.Message}");
+            new MessageDialog(
+                "Print Error", 
+                $"Error printing KOT: {ex.Message}\n\nThe order was saved successfully.", 
+                MessageDialog.MessageType.Warning
+            ).ShowDialog();
+        }
+    }
+    
+    #region Translation and Language Support
+
+    private async Task LoadTranslationsAsync()
+    {
+        // Popup translations
+        DiscountPopupTitleLabel = await _localizationService.GetTranslationAsync("discount_popup_title");
+        DiscountTypeLabel = await _localizationService.GetTranslationAsync("discount_type_label");
+        PercentageDiscountLabel = await _localizationService.GetTranslationAsync("percentage_discount");
+        FixedDiscountLabel = await _localizationService.GetTranslationAsync("fixed_discount");
+        DiscountValueLabel = await _localizationService.GetTranslationAsync("discount_value_label");
+        ApplyButtonLabel = await _localizationService.GetTranslationAsync("apply_button");
+        CancelButtonLabel = await _localizationService.GetTranslationAsync("cancel_button");
+        
+        TaxPopupTitleLabel = await _localizationService.GetTranslationAsync("tax_popup_title");
+        TaxTypeLabel = await _localizationService.GetTranslationAsync("tax_type_label");
+        PercentageTaxLabel = await _localizationService.GetTranslationAsync("percentage_tax");
+        FixedTaxLabel = await _localizationService.GetTranslationAsync("fixed_tax");
+        TaxValueLabel = await _localizationService.GetTranslationAsync("tax_value_label");
+        
+        ServiceChargePopupTitleLabel = await _localizationService.GetTranslationAsync("service_charge_popup_title");
+        ServiceChargeTypeLabel = await _localizationService.GetTranslationAsync("service_charge_type_label");
+        PercentageServiceChargeLabel = await _localizationService.GetTranslationAsync("percentage_service_charge");
+        FixedServiceChargeLabel = await _localizationService.GetTranslationAsync("fixed_service_charge");
+        ServiceChargeValueLabel = await _localizationService.GetTranslationAsync("service_charge_value_label");
+        
+        PaymentPopupTitleLabel = await _localizationService.GetTranslationAsync("payment_popup_title");
+        SaleAmountLabel = await _localizationService.GetTranslationAsync("sale_amount_label");
+        BillTotalLabel = await _localizationService.GetTranslationAsync("bill_total_label");
+        PaymentMethodLabel = await _localizationService.GetTranslationAsync("payment_method_label");
+        AmountPaidLabel = await _localizationService.GetTranslationAsync("amount_paid_label");
+        CreditDaysLabel = await _localizationService.GetTranslationAsync("credit_days_label");
+        SaveSettleButtonLabel = await _localizationService.GetTranslationAsync("save_settle_button");
+        CustomerPendingLabel = await _localizationService.GetTranslationAsync("customer_pending_label");
+        YourBalanceLabel = await _localizationService.GetTranslationAsync("your_balance_label");
+        
+        ValidationErrorLabel = await _localizationService.GetTranslationAsync("validation_error");
+        PleaseEnterValidValueLabel = await _localizationService.GetTranslationAsync("please_enter_valid_value");
+        
+        // Main screen translations
+        CategoriesHeaderLabel = await _localizationService.GetTranslationAsync("add_sales_categories_header");
+        ProductsHeaderLabel = await _localizationService.GetTranslationAsync("add_sales_products_header");
+        ProductGroupsHeaderLabel = await _localizationService.GetTranslationAsync("add_sales_product_groups_header");
+        CartHeaderLabel = await _localizationService.GetTranslationAsync("add_sales_cart_header");
+        SaveButtonLabel = await _localizationService.GetTranslationAsync("add_sales_save_button");
+        SaveAndPrintButtonLabel = await _localizationService.GetTranslationAsync("add_sales_save_print_button");
+        PayLaterButtonLabel = await _localizationService.GetTranslationAsync("add_sales_pay_later_button");
+        SettleButtonLabel = await _localizationService.GetTranslationAsync("add_sales_settle_button");
+        RefundButtonLabel = await _localizationService.GetTranslationAsync("add_sales_refund_button");
+        ExchangeButtonLabel = await _localizationService.GetTranslationAsync("add_sales_exchange_button");
+        ClearCartButtonLabel = await _localizationService.GetTranslationAsync("add_sales_clear_cart_button");
+        CustomerLabel = await _localizationService.GetTranslationAsync("add_sales_customer_label");
+        TableLabel = await _localizationService.GetTranslationAsync("add_sales_table_label");
+        LocationLabel = await _localizationService.GetTranslationAsync("add_sales_location_label");
+        ReservationLabel = await _localizationService.GetTranslationAsync("add_sales_reservation_label");
+        SubtotalLabel = await _localizationService.GetTranslationAsync("add_sales_subtotal_label");
+        TaxLabel = await _localizationService.GetTranslationAsync("add_sales_tax_label");
+        DiscountLabel = await _localizationService.GetTranslationAsync("add_sales_discount_label");
+        ServiceChargeLabel = await _localizationService.GetTranslationAsync("add_sales_service_charge_label");
+        TotalLabel = await _localizationService.GetTranslationAsync("add_sales_total_label");
+        AddDiscountButtonLabel = await _localizationService.GetTranslationAsync("add_sales_add_discount_button");
+        AddTaxButtonLabel = await _localizationService.GetTranslationAsync("add_sales_add_tax_button");
+        AddServiceChargeButtonLabel = await _localizationService.GetTranslationAsync("add_sales_add_service_charge_button");
+        AllCategoriesLabel = await _localizationService.GetTranslationAsync("add_sales_all_categories");
+        ItemsLabel = await _localizationService.GetTranslationAsync("add_sales_items_label");
+        SearchPlaceholderLabel = await _localizationService.GetTranslationAsync("add_sales_search_placeholder");
+        QuantityLabel = await _localizationService.GetTranslationAsync("add_sales_quantity_label");
+        PriceLabel = await _localizationService.GetTranslationAsync("add_sales_price_label");
+        RemoveLabel = await _localizationService.GetTranslationAsync("add_sales_remove_label");
+        AddCustomerButtonLabel = await _localizationService.GetTranslationAsync("add_sales_add_customer_button");
+        TableModeLabel = await _localizationService.GetTranslationAsync("add_sales_table_mode");
+        ReservationModeLabel = await _localizationService.GetTranslationAsync("add_sales_reservation_mode");
+        AddSalesHeaderLabel = await _localizationService.GetTranslationAsync("add_sales_header");
+        ScanBarcodeLabel = await _localizationService.GetTranslationAsync("add_sales_scan_barcode");
+        PhoneNumberLabel = await _localizationService.GetTranslationAsync("add_sales_phone_number");
+        CreateButtonLabel = await _localizationService.GetTranslationAsync("add_sales_create_button");
+        QtyLabel = await _localizationService.GetTranslationAsync("add_sales_qty_label");
+    }
+
+    #endregion
+
+    #region Cleanup
+
+    /// <summary>
+    /// Cleanup resources - called when view is unloaded
+    /// </summary>
+    public void Cleanup()
+    {
+        // Unsubscribe from service events
+        if (_localizationService != null)
+        {
+            _localizationService.LanguageChanged -= OnLanguageChanged;
+        }
+    }
+
+    #endregion
 }
 
 /// <summary>
@@ -4062,6 +4708,12 @@ public partial class CartItemModel : ObservableObject
 
     [ObservableProperty]
     private decimal unitPrice;
+    
+    [ObservableProperty]
+    private decimal originalPrice; // Store original price before manual changes
+
+    [ObservableProperty]
+    private bool isPriceModified; // Flag to track if price was manually changed
 
     [ObservableProperty]
     private int quantity;
@@ -4079,5 +4731,21 @@ public partial class CartItemModel : ObservableObject
     {
         // Auto-recalculate total price when quantity changes
         TotalPrice = UnitPrice * value;
+    }
+    
+    partial void OnUnitPriceChanged(decimal value)
+    {
+        // Auto-recalculate total price when unit price changes
+        TotalPrice = value * Quantity;
+        
+        // Check if price was manually modified
+        if (OriginalPrice > 0 && value != OriginalPrice)
+        {
+            IsPriceModified = true;
+        }
+        else
+        {
+            IsPriceModified = false;
+        }
     }
 }

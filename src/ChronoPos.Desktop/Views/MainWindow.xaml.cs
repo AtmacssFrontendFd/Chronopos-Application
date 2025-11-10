@@ -89,55 +89,6 @@ public partial class MainWindow : Window
         return null;
     }
 
-    private void GlobalSearchTextBox_GotFocus(object sender, RoutedEventArgs e)
-    {
-        // The placeholder is now handled by the converter, no need for manual logic
-    }
-
-    private void GlobalSearchTextBox_LostFocus(object sender, RoutedEventArgs e)
-    {
-        // The placeholder is now handled by the converter, no need for manual logic
-    }
-
-    private void GlobalSearchTextBox_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (DataContext is MainWindowViewModel viewModel)
-        {
-            switch (e.Key)
-            {
-                case Key.Down:
-                    viewModel.SelectNextGlobalSearchResult();
-                    e.Handled = true;
-                    break;
-                case Key.Up:
-                    viewModel.SelectPreviousGlobalSearchResult();
-                    e.Handled = true;
-                    break;
-                case Key.Enter:
-                    viewModel.OpenSelectedGlobalSearchResult();
-                    e.Handled = true;
-                    break;
-                case Key.Escape:
-                    viewModel.ClearGlobalSearch();
-                    e.Handled = true;
-                    break;
-            }
-        }
-    }
-
-    private void SearchResultItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        if (DataContext is MainWindowViewModel viewModel)
-        {
-            // Get the data context from the sender (which is a Border in our case)
-            if (sender is FrameworkElement element)
-            {
-                System.Diagnostics.Debug.WriteLine($"Search result clicked: {element.DataContext?.GetType().Name}");
-                viewModel.OpenGlobalSearchResult(element.DataContext);
-            }
-        }
-    }
-
     private async void LanguageComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (DataContext is MainWindowViewModel viewModel && 

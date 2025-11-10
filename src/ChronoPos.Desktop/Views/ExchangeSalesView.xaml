@@ -109,11 +109,8 @@
                                     </TextBlock>
                                     <TextBlock Text="{Binding OriginalQuantity, StringFormat='Original Qty: {0}'}" FontSize="11" Foreground="#6B7280" Margin="0,2,0,0"/>
                                 </StackPanel>
-                                <TextBlock Grid.Column="2" FontSize="13" FontWeight="Bold" Foreground="#F59E0B" VerticalAlignment="Center">
-                                    <TextBlock.Text>
-                                        <Binding Path="UnitPrice" Converter="{StaticResource PriceFormatConverter}" ConverterParameter="{Binding DataContext.ActiveCurrencyService, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                                    </TextBlock.Text>
-                                </TextBlock>
+                                <TextBlock Grid.Column="2" FontSize="13" FontWeight="Bold" Foreground="#F59E0B" VerticalAlignment="Center"
+                                           Text="{Binding UnitPrice, StringFormat='${0:N2}'}"/>
                                             </Grid>
 
                                             <!-- Return Quantity Row -->
@@ -129,11 +126,8 @@
                                                 <TextBox Grid.Column="1" Text="{Binding ReturnQuantity, UpdateSourceTrigger=PropertyChanged}" 
                                                          Width="80" Height="28" Padding="6" FontSize="12" HorizontalAlignment="Left"/>
                                                 
-                                                <TextBlock Grid.Column="2" FontSize="13" FontWeight="Bold" Foreground="#EF4444" VerticalAlignment="Center">
-                                                    <TextBlock.Text>
-                                                        <Binding Path="TotalPrice" Converter="{StaticResource PriceFormatConverter}" ConverterParameter="{Binding DataContext.ActiveCurrencyService, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                                                    </TextBlock.Text>
-                                                </TextBlock>
+                                                <TextBlock Grid.Column="2" FontSize="13" FontWeight="Bold" Foreground="#EF4444" VerticalAlignment="Center"
+                                                           Text="{Binding TotalPrice, StringFormat='${0:N2}'}"/>
                                             </Grid>
                                         </Grid>
                                     </Border>
@@ -146,11 +140,9 @@
                     <Border Grid.Row="2" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="2" CornerRadius="6" Padding="10" Margin="0,10,0,0">
                         <Grid>
                             <TextBlock Text="Total Return Amount" FontSize="13" FontWeight="SemiBold" Foreground="#1F2937" VerticalAlignment="Center"/>
-                            <TextBlock FontSize="16" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                <TextBlock.Text>
-                                    <Binding Path="TotalReturnAmount" Converter="{StaticResource PriceFormatConverter}" ConverterParameter="{Binding ActiveCurrencyService}"/>
-                                </TextBlock.Text>
-                            </TextBlock>
+                            <TextBlock Text="{Binding TotalReturnAmount, StringFormat='${0:N2}'}" 
+                                       FontSize="16" FontWeight="Bold" Foreground="#EF4444" 
+                                       HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
                 </Grid>
@@ -300,11 +292,9 @@
                     <Border Grid.Row="3" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="2" CornerRadius="6" Padding="10" Margin="0,10,0,0">
                         <Grid>
                             <TextBlock Text="Total New Amount" FontSize="13" FontWeight="SemiBold" Foreground="#1F2937" VerticalAlignment="Center"/>
-                            <TextBlock FontSize="16" FontWeight="Bold" Foreground="#10B981" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                <TextBlock.Text>
-                                    <Binding Path="TotalNewAmount" Converter="{StaticResource PriceFormatConverter}" ConverterParameter="{Binding ActiveCurrencyService}"/>
-                                </TextBlock.Text>
-                            </TextBlock>
+                            <TextBlock Text="{Binding TotalNewAmount, StringFormat='${0:N2}'}"
+                                       FontSize="16" FontWeight="Bold" Foreground="#10B981" 
+                                       HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
                 </Grid>

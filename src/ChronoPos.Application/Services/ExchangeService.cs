@@ -1,6 +1,8 @@
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.Logging;
 using ChronoPos.Domain.Entities;
+using ChronoPos.Domain.Enums;
 using ChronoPos.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -16,6 +18,7 @@ namespace ChronoPos.Application.Services
         private readonly ITransactionProductRepository _transactionProductRepository;
         private readonly IProductRepository _productRepository;
         private readonly IShiftRepository _shiftRepository;
+        private readonly IStockLedgerService _stockLedgerService;
         private readonly IUnitOfWork _unitOfWork;
 
         public ExchangeService(
@@ -24,6 +27,7 @@ namespace ChronoPos.Application.Services
             ITransactionProductRepository transactionProductRepository,
             IProductRepository productRepository,
             IShiftRepository shiftRepository,
+            IStockLedgerService stockLedgerService,
             IUnitOfWork unitOfWork)
         {
             _exchangeRepository = exchangeRepository;
@@ -31,6 +35,7 @@ namespace ChronoPos.Application.Services
             _transactionProductRepository = transactionProductRepository;
             _productRepository = productRepository;
             _shiftRepository = shiftRepository;
+            _stockLedgerService = stockLedgerService;
             _unitOfWork = unitOfWork;
         }
 
@@ -227,6 +232,10 @@ namespace ChronoPos.Application.Services
                             returnedProduct.StockQuantity += (int)exchangeProductDto.ReturnedQuantity;
                             returnedProduct.UpdatedAt = DateTime.Now;
                             await _productRepository.UpdateAsync(returnedProduct);
+                            
+                            AppLogger.LogInfo("ExchangeService.CreateAsync", 
+                                $"📦 Returned product stock updated - ProductId={returnedProduct.Id}, Added={exchangeProductDto.ReturnedQuantity}, NewStock={returnedProduct.StockQuantity}", 
+                                "exchange");
                         }
                     }
 
@@ -242,8 +251,118 @@ namespace ChronoPos.Application.Services
                         newProduct.StockQuantity -= (int)exchangeProductDto.NewQuantity;
                         newProduct.UpdatedAt = DateTime.Now;
                         await _productRepository.UpdateAsync(newProduct);
+                        
+                        AppLogger.LogInfo("ExchangeService.CreateAsync", 
+                            $"📦 New product stock updated - ProductId={newProduct.Id}, Removed={exchangeProductDto.NewQuantity}, NewStock={newProduct.StockQuantity}", 
+                            "exchange");
                     }
                 }
+
+                // TRANSACTIONAL OPERATION 4: Create stock ledger entries for exchange
+                AppLogger.LogInfo("ExchangeService.CreateAsync", 
+                    $"🔵 Creating stock ledger entries for exchange {exchange.Id}...", 
+                    "exchange");
+                
+                foreach (var exchangeProductDto in createDto.Products)
+                {
+                    try
+                    {
+                        // 1. Create ledger entry for RETURNED product (customer returns old product)
+                        var originalTransactionProduct = await _transactionProductRepository.GetByIdAsync(exchangeProductDto.OriginalTransactionProductId!.Value);
+                        if (originalTransactionProduct != null)
+                        {
+                            var returnedProduct = await _productRepository.GetByIdAsync(originalTransactionProduct.ProductId);
+                            if (returnedProduct != null)
+                            {
+                                AppLogger.LogInfo("ExchangeService.CreateAsync", 
+                                    $"  → Processing RETURNED product: ProductId={returnedProduct.Id}, Qty={exchangeProductDto.ReturnedQuantity}", 
+                                    "exchange");
+                                
+                                // Find ProductUnit if product has SellingUnitId
+                                int? returnedProductUnitId = null;
+                                if (returnedProduct.SellingUnitId.HasValue)
+                                {
+                                    var productUnit = returnedProduct.ProductUnits?
+                                        .FirstOrDefault(pu => pu.UnitId == returnedProduct.SellingUnitId.Value);
+                                    returnedProductUnitId = productUnit?.Id;
+                                    
+                                    AppLogger.LogInfo("ExchangeService.CreateAsync", 
+                                        $"  🔍 Returned product ProductUnitId: {returnedProductUnitId?.ToString() ?? "NULL"}", 
+                                        "exchange");
+                                }
+
+                                var returnLedgerDto = new CreateStockLedgerDto
+                                {
+                                    ProductId = returnedProduct.Id,
+                                    UnitId = returnedProductUnitId,
+                                    MovementType = StockMovementType.Return,
+                                    Qty = exchangeProductDto.ReturnedQuantity,
+                                    Location = "Main Store",
+                                    ReferenceType = StockReferenceType.Exchange,
+                                    ReferenceId = exchange.Id,
+                                    Note = $"Exchange - Customer returned product (Exchange #{exchange.Id})"
+                                };
+
+                                await _stockLedgerService.CreateAsync(returnLedgerDto);
+                                
+                                AppLogger.LogInfo("ExchangeService.CreateAsync", 
+                                    $"  ✅ Stock ledger entry CREATED for returned product {returnedProduct.Id}", 
+                                    "exchange");
+                            }
+                        }
+
+                        // 2. Create ledger entry for NEW product (customer receives new product)
+                        var newProduct = await _productRepository.GetByIdAsync(exchangeProductDto.NewProductId);
+                        if (newProduct != null)
+                        {
+                            AppLogger.LogInfo("ExchangeService.CreateAsync", 
+                                $"  → Processing NEW product: ProductId={newProduct.Id}, Qty={exchangeProductDto.NewQuantity}", 
+                                "exchange");
+                            
+                            // Find ProductUnit if product has SellingUnitId
+                            int? newProductUnitId = null;
+                            if (newProduct.SellingUnitId.HasValue)
+                            {
+                                var productUnit = newProduct.ProductUnits?
+                                    .FirstOrDefault(pu => pu.UnitId == newProduct.SellingUnitId.Value);
+                                newProductUnitId = productUnit?.Id;
+                                
+                                AppLogger.LogInfo("ExchangeService.CreateAsync", 
+                                    $"  🔍 New product ProductUnitId: {newProductUnitId?.ToString() ?? "NULL"}", 
+                                    "exchange");
+                            }
+
+                            var saleLedgerDto = new CreateStockLedgerDto
+                            {
+                                ProductId = newProduct.Id,
+                                UnitId = newProductUnitId,
+                                MovementType = StockMovementType.Sale, // Exchange out is like a sale
+                                Qty = exchangeProductDto.NewQuantity,
+                                Location = "Main Store",
+                                ReferenceType = StockReferenceType.Exchange,
+                                ReferenceId = exchange.Id,
+                                Note = $"Exchange - Customer received new product (Exchange #{exchange.Id})"
+                            };
+
+                            await _stockLedgerService.CreateAsync(saleLedgerDto);
+                            
+                            AppLogger.LogInfo("ExchangeService.CreateAsync", 
+                                $"  ✅ Stock ledger entry CREATED for new product {newProduct.Id}", 
+                                "exchange");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLogger.LogError("ExchangeService.CreateAsync", ex,
+                            $"  ❌ FAILED to create stock ledger entries for exchange product - ExchangeId: {exchange.Id}", 
+                            "exchange");
+                        // Don't throw - stock ledger is supplementary
+                    }
+                }
+                
+                AppLogger.LogInfo("ExchangeService.CreateAsync", 
+                    $"🔵 Stock ledger entries completed for exchange {exchange.Id}", 
+                    "exchange");
 
                 // COMMIT: Save all changes
                 await _unitOfWork.SaveChangesAsync();

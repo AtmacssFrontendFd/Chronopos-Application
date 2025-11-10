@@ -124,26 +124,30 @@ public partial class ExchangeSalesViewModel : ObservableObject
 
             // Load return items from transaction
             ReturnItems.Clear();
-            foreach (var product in transaction.TransactionProducts)
+            foreach (var transactionProduct in transaction.TransactionProducts)
             {
+                // Get product details to check CanReturn property
+                var product = await _productService.GetProductByIdAsync(transactionProduct.ProductId);
+                
                 // Build modifier string
                 string modifierString = string.Empty;
-                if (product.Modifiers != null && product.Modifiers.Any())
+                if (transactionProduct.Modifiers != null && transactionProduct.Modifiers.Any())
                 {
-                    modifierString = string.Join(", ", product.Modifiers.Select(m => m.ModifierName));
+                    modifierString = string.Join(", ", transactionProduct.Modifiers.Select(m => m.ModifierName));
                 }
 
                 var returnItem = new ExchangeItemModel
                 {
-                    TransactionProductId = product.Id,
-                    ProductId = product.ProductId,
-                    ProductName = product.ProductName,
+                    TransactionProductId = transactionProduct.Id,
+                    ProductId = transactionProduct.ProductId,
+                    ProductName = transactionProduct.ProductName,
                     Modifiers = modifierString,
-                    OriginalQuantity = (int)product.Quantity,
+                    OriginalQuantity = (int)transactionProduct.Quantity,
                     ReturnQuantity = 0,
-                    UnitPrice = product.SellingPrice,
+                    UnitPrice = transactionProduct.SellingPrice,
                     TotalPrice = 0,
-                    IsSelected = false
+                    IsSelected = false,
+                    CanReturn = product?.CanReturn ?? true // Store CanReturn flag
                 };
                 
                 // Subscribe to property changes for each return item
@@ -236,6 +240,30 @@ public partial class ExchangeSalesViewModel : ObservableObject
 
     private void OnReturnItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (sender is ExchangeItemModel item)
+        {
+            // Check if quantity increased and product cannot be returned
+            if (e.PropertyName == nameof(ExchangeItemModel.ReturnQuantity) && item.ReturnQuantity > 0 && !item.CanReturn)
+            {
+                // Show warning dialog
+                var confirmDialog = new ConfirmationDialog(
+                    "Product Return Not Allowed",
+                    $"The product '{item.ProductName}' is marked as non-returnable.\n\n" +
+                    $"Do you still want to proceed with the exchange for this item?",
+                    ConfirmationDialog.DialogType.Warning);
+                
+                var result = confirmDialog.ShowDialog();
+                
+                if (result != true)
+                {
+                    // User declined, reset quantity to 0
+                    item.ReturnQuantity = 0;
+                    item.IsSelected = false;
+                    return;
+                }
+            }
+        }
+        
         if (e.PropertyName == nameof(ExchangeItemModel.ReturnQuantity) || 
             e.PropertyName == nameof(ExchangeItemModel.IsSelected) ||
             e.PropertyName == nameof(ExchangeItemModel.TotalPrice))
@@ -494,137 +522,32 @@ public partial class ExchangeSalesViewModel : ObservableObject
     {
         try
         {
-            var exchangeNumber = $"E{exchange.Id:D4}";
-            
-            var document = new System.Windows.Documents.FlowDocument
-            {
-                PagePadding = new Thickness(50),
-                FontFamily = new FontFamily("Courier New"),
-                FontSize = 11
-            };
+            // Use QuestPDF for professional exchange receipt generation and printing
+            var exchangePrinter = new QuestPdfExchangePrinter(_activeCurrencyService);
 
-            // Header
-            var headerPara = new System.Windows.Documents.Paragraph
-            {
-                TextAlignment = TextAlignment.Center,
-                Margin = new Thickness(0, 0, 0, 10)
-            };
-            headerPara.Inlines.Add(new System.Windows.Documents.Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
-            headerPara.Inlines.Add(new System.Windows.Documents.Run("EXCHANGE RECEIPT\n") { FontSize = 16, FontWeight = FontWeights.Bold });
-            headerPara.Inlines.Add(new System.Windows.Documents.Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(headerPara);
+            // Get company information from settings or use defaults
+            string companyName = "CHRONO POS"; // TODO: Get from settings/database
+            string? companyAddress = null; // TODO: Get from settings/database
+            string? companyPhone = null; // TODO: Get from settings/database
+            string? gstNo = null; // TODO: Get from settings/database
 
-            // Exchange info
-            var infoPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 10, 0, 10) };
-            infoPara.Inlines.Add(new System.Windows.Documents.Run($"Exchange #: {exchangeNumber}\n"));
-            infoPara.Inlines.Add(new System.Windows.Documents.Run($"Original Transaction: {InvoiceNumber}\n"));
-            infoPara.Inlines.Add(new System.Windows.Documents.Run($"Date: {exchange.ExchangeTime:dd/MM/yyyy}\n"));
-            infoPara.Inlines.Add(new System.Windows.Documents.Run($"Time: {exchange.ExchangeTime:HH:mm:ss}\n"));
-            infoPara.Inlines.Add(new System.Windows.Documents.Run($"Customer: {CustomerName}\n"));
-            document.Blocks.Add(infoPara);
+            // Generate PDF and auto-print to thermal printer
+            string pdfPath = exchangePrinter.GenerateAndPrintExchange(
+                exchange: exchange,
+                returnItems: returnItems,
+                newItems: newItems,
+                invoiceNumber: InvoiceNumber,
+                customerName: CustomerName,
+                totalReturnAmount: TotalReturnAmount,
+                totalNewAmount: TotalNewAmount,
+                differenceToPay: DifferenceToPay,
+                companyName: companyName,
+                companyAddress: companyAddress,
+                companyPhone: companyPhone,
+                gstNo: gstNo
+            );
 
-            // Separator
-            var separatorPara1 = new System.Windows.Documents.Paragraph
-            {
-                Margin = new Thickness(0, 5, 0, 5),
-                TextAlignment = TextAlignment.Center
-            };
-            separatorPara1.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(separatorPara1);
-
-            // RETURNED ITEMS
-            var returnHeaderPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 5, 0, 5) };
-            returnHeaderPara.Inlines.Add(new System.Windows.Documents.Run("RETURNED ITEMS\n") { FontWeight = FontWeights.Bold });
-            returnHeaderPara.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────\n"));
-            document.Blocks.Add(returnHeaderPara);
-
-            foreach (var item in returnItems)
-            {
-                var itemPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 2, 0, 2) };
-                itemPara.Inlines.Add(new System.Windows.Documents.Run($"{item.ProductName}\n"));
-                
-                var qtyPriceText = $"  {item.ReturnQuantity} x {item.UnitPrice:C2}";
-                var totalText = $"{(item.ReturnQuantity * item.UnitPrice):C2}";
-                var spacing = new string(' ', Math.Max(0, 35 - qtyPriceText.Length - totalText.Length));
-                itemPara.Inlines.Add(new System.Windows.Documents.Run($"{qtyPriceText}{spacing}{totalText}\n"));
-                
-                document.Blocks.Add(itemPara);
-            }
-
-            var returnTotalPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 5, 0, 5) };
-            var returnTotalLine = "Total Returned:";
-            var returnTotalAmount = $"{TotalReturnAmount:C2}";
-            var returnTotalSpacing = new string(' ', Math.Max(0, 35 - returnTotalLine.Length - returnTotalAmount.Length));
-            returnTotalPara.Inlines.Add(new System.Windows.Documents.Run($"{returnTotalLine}{returnTotalSpacing}{returnTotalAmount}\n") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(returnTotalPara);
-
-            // Separator
-            var separatorPara2 = new System.Windows.Documents.Paragraph
-            {
-                Margin = new Thickness(0, 10, 0, 5),
-                TextAlignment = TextAlignment.Center
-            };
-            separatorPara2.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(separatorPara2);
-
-            // NEW ITEMS
-            var newHeaderPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 5, 0, 5) };
-            newHeaderPara.Inlines.Add(new System.Windows.Documents.Run("NEW ITEMS\n") { FontWeight = FontWeights.Bold });
-            newHeaderPara.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────\n"));
-            document.Blocks.Add(newHeaderPara);
-
-            foreach (var item in newItems)
-            {
-                var itemPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 2, 0, 2) };
-                itemPara.Inlines.Add(new System.Windows.Documents.Run($"{item.ProductName}\n"));
-                
-                var qtyPriceText = $"  {item.Quantity} x {item.UnitPrice:C2}";
-                var totalText = $"{(item.Quantity * item.UnitPrice):C2}";
-                var spacing = new string(' ', Math.Max(0, 35 - qtyPriceText.Length - totalText.Length));
-                itemPara.Inlines.Add(new System.Windows.Documents.Run($"{qtyPriceText}{spacing}{totalText}\n"));
-                
-                document.Blocks.Add(itemPara);
-            }
-
-            var newTotalPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 5, 0, 5) };
-            var newTotalLine = "Total New Items:";
-            var newTotalAmount = $"{TotalNewAmount:C2}";
-            var newTotalSpacing = new string(' ', Math.Max(0, 35 - newTotalLine.Length - newTotalAmount.Length));
-            newTotalPara.Inlines.Add(new System.Windows.Documents.Run($"{newTotalLine}{newTotalSpacing}{newTotalAmount}\n") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(newTotalPara);
-
-            // Final separator
-            var separatorPara3 = new System.Windows.Documents.Paragraph
-            {
-                Margin = new Thickness(0, 10, 0, 5),
-                TextAlignment = TextAlignment.Center
-            };
-            separatorPara3.Inlines.Add(new System.Windows.Documents.Run("═══════════════════════════════════") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(separatorPara3);
-
-            // Difference
-            var differencePara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 5, 0, 10), TextAlignment = TextAlignment.Center };
-            differencePara.Inlines.Add(new System.Windows.Documents.Run($"{DifferenceText}\n") { FontWeight = FontWeights.Bold, FontSize = 13 });
-            document.Blocks.Add(differencePara);
-
-            // Footer
-            var footerPara = new System.Windows.Documents.Paragraph
-            {
-                TextAlignment = TextAlignment.Center,
-                Margin = new Thickness(0, 20, 0, 0),
-                FontSize = 10
-            };
-            footerPara.Inlines.Add(new System.Windows.Documents.Run("Thank you for your business!\n"));
-            footerPara.Inlines.Add(new System.Windows.Documents.Run($"Printed: {DateTime.Now:dd/MM/yyyy HH:mm:ss}"));
-            document.Blocks.Add(footerPara);
-
-            // Print
-            var printDialog = new System.Windows.Controls.PrintDialog();
-            if (printDialog.ShowDialog() == true)
-            {
-                var paginator = ((System.Windows.Documents.IDocumentPaginatorSource)document).DocumentPaginator;
-                printDialog.PrintDocument(paginator, $"Exchange Receipt - {exchangeNumber}");
-            }
+            // Success - no error dialog needed, printing happens silently
         }
         catch (Exception ex)
         {
@@ -678,6 +601,9 @@ public partial class ExchangeItemModel : ObservableObject
 
     [ObservableProperty]
     private bool isSelected;
+    
+    [ObservableProperty]
+    private bool canReturn = true; // Product's CanReturn setting
 
     partial void OnReturnQuantityChanged(int value)
     {

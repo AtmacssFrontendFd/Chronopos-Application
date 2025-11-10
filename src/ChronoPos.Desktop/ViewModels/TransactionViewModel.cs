@@ -16,6 +16,8 @@ using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Logging;
 using ChronoPos.Desktop.Views.Dialogs;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Converters;
+using InfrastructureServices = ChronoPos.Infrastructure.Services;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -29,6 +31,9 @@ public partial class TransactionViewModel : ObservableObject
     private readonly ICustomerService _customerService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IActiveCurrencyService _activeCurrencyService;
+    private readonly IProductService _productService;
+    private readonly InfrastructureServices.IDatabaseLocalizationService _localizationService;
+    private readonly ILayoutDirectionService _layoutDirectionService;
     private readonly Action<int>? _navigateToEditTransaction;
     private readonly Action<int>? _navigateToPayBill;
     private readonly Action<int>? _navigateToRefundTransaction;
@@ -58,6 +63,141 @@ public partial class TransactionViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<ExchangeCardModel> exchangeTransactions = new();
 
+    // Filtered collections for search
+    [ObservableProperty]
+    private ObservableCollection<TransactionCardModel> filteredSalesTransactions = new();
+
+    [ObservableProperty]
+    private ObservableCollection<RefundCardModel> filteredRefundTransactions = new();
+
+    [ObservableProperty]
+    private ObservableCollection<ExchangeCardModel> filteredExchangeTransactions = new();
+
+    // FlowDirection for RTL/LTR support
+    [ObservableProperty]
+    private FlowDirection currentFlowDirection = FlowDirection.LeftToRight;
+
+    // Translation Properties
+    [ObservableProperty]
+    private string transactionTitleLabel = "Transactions";
+
+    [ObservableProperty]
+    private string salesTabLabel = "Sales";
+
+    [ObservableProperty]
+    private string refundTabLabel = "Refund";
+
+    [ObservableProperty]
+    private string exchangeTabLabel = "Exchange";
+
+    [ObservableProperty]
+    private string searchPlaceholderLabel = "Search transactions...";
+
+    [ObservableProperty]
+    private string createNewTransactionLabel = "Create New Transaction";
+
+    [ObservableProperty]
+    private string invoiceLabel = "Invoice";
+
+    [ObservableProperty]
+    private string customerLabel = "Customer";
+
+    [ObservableProperty]
+    private string tableLabel = "Table";
+
+    [ObservableProperty]
+    private string itemsLabel = "Items";
+
+    [ObservableProperty]
+    private string totalLabel = "Total";
+
+    [ObservableProperty]
+    private string paidLabel = "Paid";
+
+    [ObservableProperty]
+    private string remainingLabel = "Remaining";
+
+    [ObservableProperty]
+    private string viewDetailsLabel = "View Details";
+
+    [ObservableProperty]
+    private string editTransactionLabel = "Edit";
+
+    [ObservableProperty]
+    private string payBillLabel = "Pay Bill";
+
+    [ObservableProperty]
+    private string printInvoiceLabel = "Print Invoice";
+
+    [ObservableProperty]
+    private string processRefundLabel = "Process Refund";
+
+    [ObservableProperty]
+    private string processExchangeLabel = "Process Exchange";
+
+    [ObservableProperty]
+    private string noSalesTransactionsLabel = "No sales transactions found";
+
+    [ObservableProperty]
+    private string noRefundTransactionsLabel = "No refund transactions found";
+
+    [ObservableProperty]
+    private string noExchangeTransactionsLabel = "No exchange transactions found";
+
+    [ObservableProperty]
+    private string startCreatingSalesLabel = "Click '+' to create a new sale";
+
+    // Settle Popup Translation Properties
+    [ObservableProperty]
+    private string paymentPopupTitleLabel = "Payment";
+
+    [ObservableProperty]
+    private string paymentMethodLabel = "Payment Method:";
+
+    [ObservableProperty]
+    private string amountPaidLabel = "Amount Paid:";
+
+    [ObservableProperty]
+    private string creditDaysLabel = "Credit Days (for partial payment):";
+
+    [ObservableProperty]
+    private string cancelButtonLabel = "Cancel";
+
+    [ObservableProperty]
+    private string saveSettleButtonLabel = "Save & Settle";
+
+    [ObservableProperty]
+    private string customerPendingAmountLabel = "Customer Pending Amount:";
+
+    [ObservableProperty]
+    private string remainingAmountTransactionLabel = "Remaining Amount of Transaction:";
+
+    [ObservableProperty]
+    private string alreadyPaidLabelText = "Already Paid:";
+
+    [ObservableProperty]
+    private string saleAmountLabel = "Sale Amount:";
+
+    [ObservableProperty]
+    private string billTotalLabel = "Bill Total:";
+
+    [ObservableProperty]
+    private string customerPendingAddedLabel = "Customer Pending:";
+
+    [ObservableProperty]
+    private string storeCreditAvailableLabel = "Store Credit Available:";
+
+    [ObservableProperty]
+    private string addedToBillLabel = "(Added to bill)";
+
+    [ObservableProperty]
+    private string deductedFromBillLabel = "(Deducted from bill)";
+
+    // Computed properties for empty states
+    public bool HasSalesTransactions => FilteredSalesTransactions?.Count > 0;
+    public bool HasRefundTransactions => FilteredRefundTransactions?.Count > 0;
+    public bool HasExchangeTransactions => FilteredExchangeTransactions?.Count > 0;
+
     public TransactionViewModel(
         ITransactionService transactionService,
         IRefundService refundService,
@@ -67,6 +207,9 @@ public partial class TransactionViewModel : ObservableObject
         ICustomerService customerService,
         ICurrentUserService currentUserService,
         IActiveCurrencyService activeCurrencyService,
+        IProductService productService,
+        InfrastructureServices.IDatabaseLocalizationService localizationService,
+        ILayoutDirectionService layoutDirectionService,
         Action<int>? navigateToEditTransaction = null,
         Action<int>? navigateToPayBill = null,
         Action<int>? navigateToRefundTransaction = null,
@@ -81,11 +224,23 @@ public partial class TransactionViewModel : ObservableObject
         _customerService = customerService;
         _currentUserService = currentUserService;
         _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
+        _productService = productService;
+        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
         _navigateToEditTransaction = navigateToEditTransaction;
         _navigateToPayBill = navigateToPayBill;
         _navigateToRefundTransaction = navigateToRefundTransaction;
         _navigateToExchangeTransaction = navigateToExchangeTransaction;
         _navigateToAddSales = navigateToAddSales;
+
+        // Subscribe to service events
+        _localizationService.LanguageChanged += OnLanguageChanged;
+        _layoutDirectionService.DirectionChanged += OnLayoutDirectionChanged;
+
+        // Initialize layout direction
+        CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft
+            ? FlowDirection.RightToLeft
+            : FlowDirection.LeftToRight;
 
         // Initialize timer for updating transaction durations
         _timerUpdateTimer = new DispatcherTimer
@@ -112,6 +267,7 @@ public partial class TransactionViewModel : ObservableObject
 
     private async Task InitializeAsync()
     {
+        await LoadTranslationsAsync();
         await LoadSalesTransactionsAsync();
         SwitchToSales();
     }
@@ -146,6 +302,72 @@ public partial class TransactionViewModel : ObservableObject
     private void CreateNewTransaction()
     {
         _navigateToAddSales?.Invoke();
+    }
+
+    // Search functionality - filters by invoice number and customer name
+    partial void OnSearchTextChanged(string value)
+    {
+        ApplySearchFilter();
+    }
+
+    private void ApplySearchFilter()
+    {
+        var searchLower = SearchText?.ToLower() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(searchLower))
+        {
+            // No search - show all
+            FilteredSalesTransactions = new ObservableCollection<TransactionCardModel>(SalesTransactions);
+            FilteredRefundTransactions = new ObservableCollection<RefundCardModel>(RefundTransactions);
+            FilteredExchangeTransactions = new ObservableCollection<ExchangeCardModel>(ExchangeTransactions);
+        }
+        else
+        {
+            // Filter sales transactions
+            FilteredSalesTransactions = new ObservableCollection<TransactionCardModel>(
+                SalesTransactions.Where(t =>
+                    t.OrderNumber.ToLower().Contains(searchLower) ||
+                    (t.CustomerName?.ToLower().Contains(searchLower) ?? false)
+                )
+            );
+
+            // Filter refund transactions
+            FilteredRefundTransactions = new ObservableCollection<RefundCardModel>(
+                RefundTransactions.Where(r =>
+                    r.RefundNumber.ToLower().Contains(searchLower) ||
+                    (r.CustomerName?.ToLower().Contains(searchLower) ?? false) ||
+                    (r.OriginalInvoice?.ToLower().Contains(searchLower) ?? false)
+                )
+            );
+
+            // Filter exchange transactions
+            FilteredExchangeTransactions = new ObservableCollection<ExchangeCardModel>(
+                ExchangeTransactions.Where(e =>
+                    e.ExchangeNumber.ToLower().Contains(searchLower) ||
+                    (e.CustomerName?.ToLower().Contains(searchLower) ?? false) ||
+                    (e.OriginalInvoice?.ToLower().Contains(searchLower) ?? false)
+                )
+            );
+        }
+
+        // Refresh the current tab view
+        RefreshCurrentTab();
+    }
+
+    private void RefreshCurrentTab()
+    {
+        switch (CurrentTab)
+        {
+            case "Sales":
+                CurrentTabContent = CreateSalesGrid();
+                break;
+            case "Refund":
+                CurrentTabContent = CreateRefundGrid();
+                break;
+            case "Exchange":
+                CurrentTabContent = CreateExchangeGrid();
+                break;
+        }
     }
 
     [RelayCommand]
@@ -331,7 +553,10 @@ public partial class TransactionViewModel : ObservableObject
                 transaction,
                 _refundService,
                 _currentUserService,
-                _activeCurrencyService);
+                _activeCurrencyService,
+                _productService,
+                _localizationService,
+                _layoutDirectionService);
 
             var result = refundDialog.ShowDialog();
 
@@ -524,13 +749,13 @@ public partial class TransactionViewModel : ObservableObject
             
             var paymentPopup = new Window
             {
-                Title = "Payment",
                 Width = 480,
                 Height = 550, // Increased for customer balance info and better spacing
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                ResizeMode = ResizeMode.NoResize,
-                Background = Brushes.White
+                ResizeMode = ResizeMode.NoResize
             };
+            paymentPopup.SetBinding(Window.TitleProperty, new System.Windows.Data.Binding("PaymentPopupTitleLabel") { Source = this });
+            paymentPopup.SetResourceReference(Control.BackgroundProperty, "CardBackground");
 
             var grid = new Grid { Margin = new Thickness(20) };
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -547,42 +772,42 @@ public partial class TransactionViewModel : ObservableObject
             string balanceInfo = "";
             if (customerBalanceAmount > 0)
             {
-                balanceInfo = $"\nCustomer Pending: ${customerBalanceAmount:N2} (Added to bill)";
+                balanceInfo = $"\n{CustomerPendingAddedLabel} {_activeCurrencyService.FormatPrice(customerBalanceAmount)} {AddedToBillLabel}";
             }
             else if (customerBalanceAmount < 0)
             {
-                balanceInfo = $"\nStore Credit Available: ${Math.Abs(customerBalanceAmount):N2} (Deducted from bill)";
+                balanceInfo = $"\n{StoreCreditAvailableLabel} {_activeCurrencyService.FormatPrice(Math.Abs(customerBalanceAmount))} {DeductedFromBillLabel}";
             }
             
             var totalLabel = new TextBlock
             {
                 FontSize = 16,
                 FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937")),
                 TextWrapping = TextWrapping.Wrap
             };
+            totalLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimary");
             
             // Set text based on transaction status
             if (freshTransaction.Status == "partial_payment")
             {
                 // For partial payment transactions, show customer pending as bill total
                 var alreadyPaidFromSale = totalAmount - freshTransaction.AmountCreditRemaining;
-                totalLabel.Text = $"Customer Pending Amount: {_activeCurrencyService.CurrencySymbol}{customerBalanceAmount:N2}\n" +
-                                  $"Remaining Amount of Transaction: {_activeCurrencyService.CurrencySymbol}{remainingAmount:N2}\n" +
-                                  $"Already Paid: {_activeCurrencyService.CurrencySymbol}{alreadyPaidFromSale:N2}";
+                totalLabel.Text = $"{CustomerPendingAmountLabel} {_activeCurrencyService.FormatPrice(customerBalanceAmount)}\n" +
+                                  $"{RemainingAmountTransactionLabel} {_activeCurrencyService.FormatPrice(remainingAmount)}\n" +
+                                  $"{AlreadyPaidLabelText} {_activeCurrencyService.FormatPrice(alreadyPaidFromSale)}";
             }
             else if (alreadyPaid > 0)
             {
                 // For transactions with some payment already made
-                totalLabel.Text = $"Sale Amount: {_activeCurrencyService.CurrencySymbol}{totalAmount:N2}{balanceInfo}\n" +
-                                  $"Bill Total: {_activeCurrencyService.CurrencySymbol}{billTotal:N2}\n" +
-                                  $"Remaining: {_activeCurrencyService.CurrencySymbol}{remainingAmount:N2}\n(Already Paid: {_activeCurrencyService.CurrencySymbol}{alreadyPaid:N2})";
+                totalLabel.Text = $"{SaleAmountLabel} {_activeCurrencyService.FormatPrice(totalAmount)}{balanceInfo}\n" +
+                                  $"{BillTotalLabel} {_activeCurrencyService.FormatPrice(billTotal)}\n" +
+                                  $"{RemainingLabel}: {_activeCurrencyService.FormatPrice(remainingAmount)}\n({AlreadyPaidLabelText} {_activeCurrencyService.FormatPrice(alreadyPaid)})";
             }
             else
             {
                 // For new transactions with no payment yet
-                totalLabel.Text = $"Sale Amount: {_activeCurrencyService.CurrencySymbol}{totalAmount:N2}{balanceInfo}\n" +
-                                  $"Bill Total: {_activeCurrencyService.CurrencySymbol}{billTotal:N2}";
+                totalLabel.Text = $"{SaleAmountLabel} {_activeCurrencyService.FormatPrice(totalAmount)}{balanceInfo}\n" +
+                                  $"{BillTotalLabel} {_activeCurrencyService.FormatPrice(billTotal)}";
             }
             
             Grid.SetRow(totalLabel, 0);
@@ -591,10 +816,10 @@ public partial class TransactionViewModel : ObservableObject
             // Payment Method Label and ComboBox
             var paymentMethodLabel = new TextBlock
             {
-                Text = "Payment Method:",
-                FontSize = 14,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"))
+                FontSize = 14
             };
+            paymentMethodLabel.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding("PaymentMethodLabel") { Source = this });
+            paymentMethodLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
 
             // Payment Method ComboBox - Load from database
             var paymentMethodComboBox = new ComboBox
@@ -621,10 +846,10 @@ public partial class TransactionViewModel : ObservableObject
             // Amount Paid Label and TextBox
             var amountLabel = new TextBlock
             {
-                Text = "Amount Paid:",
-                FontSize = 14,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"))
+                FontSize = 14
             };
+            amountLabel.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding("AmountPaidLabel") { Source = this });
+            amountLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
 
             var amountTextBox = new TextBox
             {
@@ -643,10 +868,10 @@ public partial class TransactionViewModel : ObservableObject
             // Credit Days Label and TextBox (for partial payment)
             var creditDaysLabel = new TextBlock
             {
-                Text = "Credit Days (for partial payment):",
-                FontSize = 14,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"))
+                FontSize = 14
             };
+            creditDaysLabel.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding("CreditDaysLabel") { Source = this });
+            creditDaysLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
 
             var creditDaysTextBox = new TextBox
             {
@@ -671,31 +896,31 @@ public partial class TransactionViewModel : ObservableObject
 
             var cancelButton = new System.Windows.Controls.Button
             {
-                Content = "Cancel",
                 Width = 100,
                 Height = 40,
                 Margin = new Thickness(0, 0, 10, 0),
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E5E7EB")),
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1F2937")),
                 BorderThickness = new Thickness(0),
                 FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
                 Cursor = Cursors.Hand
             };
+            cancelButton.SetBinding(System.Windows.Controls.ContentControl.ContentProperty, new System.Windows.Data.Binding("CancelButtonLabel") { Source = this });
+            cancelButton.SetResourceReference(Control.BackgroundProperty, "BorderLight");
+            cancelButton.SetResourceReference(Control.ForegroundProperty, "TextPrimary");
             cancelButton.Click += (s, e) => paymentPopup.Close();
 
             var settleButton = new System.Windows.Controls.Button
             {
-                Content = "Save & Settle",
                 Width = 120,
                 Height = 40,
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981")),
-                Foreground = Brushes.White,
                 BorderThickness = new Thickness(0),
                 FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
                 Cursor = Cursors.Hand
             };
+            settleButton.SetBinding(System.Windows.Controls.ContentControl.ContentProperty, new System.Windows.Data.Binding("SaveSettleButtonLabel") { Source = this });
+            settleButton.SetResourceReference(Control.BackgroundProperty, "SuccessGreen");
+            settleButton.SetResourceReference(Control.ForegroundProperty, "CardBackground");
 
             settleButton.Click += async (s, e) =>
             {
@@ -1164,128 +1389,30 @@ public partial class TransactionViewModel : ObservableObject
     {
         try
         {
-            var refundNumber = $"R{refund.Id:D4}";
-            
-            var document = new FlowDocument
-            {
-                PagePadding = new Thickness(50),
-                FontFamily = new FontFamily("Courier New"),
-                FontSize = 11
-            };
+            // Use QuestPDF for professional refund receipt generation and printing
+            var refundPrinter = new QuestPdfRefundPrinter(_activeCurrencyService);
 
-            // Header
-            var headerPara = new Paragraph
-            {
-                TextAlignment = TextAlignment.Center,
-                Margin = new Thickness(0, 0, 0, 10)
-            };
-            headerPara.Inlines.Add(new Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
-            headerPara.Inlines.Add(new Run("REFUND RECEIPT\n") { FontSize = 16, FontWeight = FontWeights.Bold });
-            headerPara.Inlines.Add(new Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(headerPara);
+            // Get company information from settings or use defaults
+            string companyName = "CHRONO POS"; // TODO: Get from settings/database
+            string? companyAddress = null; // TODO: Get from settings/database
+            string? companyPhone = null; // TODO: Get from settings/database
+            string? gstNo = null; // TODO: Get from settings/database
 
-            // Refund info
-            var infoPara = new Paragraph { Margin = new Thickness(0, 10, 0, 10) };
-            infoPara.Inlines.Add(new Run($"Refund #: {refundNumber}\n"));
-            infoPara.Inlines.Add(new Run($"Original Transaction: #{refund.SellingTransactionId}\n"));
-            infoPara.Inlines.Add(new Run($"Date: {refund.RefundTime:dd/MM/yyyy}\n"));
-            infoPara.Inlines.Add(new Run($"Time: {refund.RefundTime:HH:mm:ss}\n"));
-            infoPara.Inlines.Add(new Run($"Customer: {refund.CustomerName ?? "Walk-in"}\n"));
-            document.Blocks.Add(infoPara);
+            // Generate PDF and auto-print to thermal printer
+            string pdfPath = refundPrinter.GenerateAndPrintRefund(
+                refund: refund,
+                companyName: companyName,
+                companyAddress: companyAddress,
+                companyPhone: companyPhone,
+                gstNo: gstNo
+            );
 
-            // Separator
-            var separatorPara1 = new Paragraph
-            {
-                Margin = new Thickness(0, 5, 0, 5),
-                TextAlignment = TextAlignment.Center
-            };
-            separatorPara1.Inlines.Add(new Run("───────────────────────────────────") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(separatorPara1);
-
-            // Items header
-            var itemsHeaderPara = new Paragraph { Margin = new Thickness(0, 5, 0, 5) };
-            itemsHeaderPara.Inlines.Add(new Run("REFUNDED ITEMS\n") { FontWeight = FontWeights.Bold });
-            itemsHeaderPara.Inlines.Add(new Run("───────────────────────────────────\n"));
-            document.Blocks.Add(itemsHeaderPara);
-
-            // Items
-            decimal subtotal = 0;
-            foreach (var product in refund.RefundProducts)
-            {
-                var itemPara = new Paragraph { Margin = new Thickness(0, 2, 0, 2) };
-                
-                // Product name
-                itemPara.Inlines.Add(new Run($"{product.ProductName ?? "Unknown"}\n"));
-                
-                // Quantity and price
-                var qtyPriceText = $"  {product.TotalQuantityReturned:0.##} x {_activeCurrencyService.FormatPrice(product.TotalAmount / product.TotalQuantityReturned)}";
-                var totalText = _activeCurrencyService.FormatPrice(product.TotalAmount);
-                var spacing = new string(' ', Math.Max(0, 35 - qtyPriceText.Length - totalText.Length));
-                itemPara.Inlines.Add(new Run($"{qtyPriceText}{spacing}{totalText}\n"));
-                
-                document.Blocks.Add(itemPara);
-                subtotal += product.TotalAmount;
-            }
-
-            // Separator
-            var separatorPara2 = new Paragraph
-            {
-                Margin = new Thickness(0, 5, 0, 5),
-                TextAlignment = TextAlignment.Center
-            };
-            separatorPara2.Inlines.Add(new Run("───────────────────────────────────") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(separatorPara2);
-
-            // Totals
-            var totalsPara = new Paragraph { Margin = new Thickness(0, 5, 0, 10) };
-            
-            // Subtotal
-            var subtotalLine = $"Subtotal:";
-            var subtotalAmount = _activeCurrencyService.FormatPrice(subtotal);
-            var subtotalSpacing = new string(' ', Math.Max(0, 35 - subtotalLine.Length - subtotalAmount.Length));
-            totalsPara.Inlines.Add(new Run($"{subtotalLine}{subtotalSpacing}{subtotalAmount}\n"));
-
-            // VAT
-            if (refund.TotalVat > 0)
-            {
-                var vatLine = $"VAT:";
-                var vatAmount = _activeCurrencyService.FormatPrice(refund.TotalVat);
-                var vatSpacing = new string(' ', Math.Max(0, 35 - vatLine.Length - vatAmount.Length));
-                totalsPara.Inlines.Add(new Run($"{vatLine}{vatSpacing}{vatAmount}\n"));
-            }
-
-            // Total
-            totalsPara.Inlines.Add(new Run("───────────────────────────────────\n") { FontWeight = FontWeights.Bold });
-            var totalLine = $"TOTAL REFUND:";
-            var totalAmount = _activeCurrencyService.FormatPrice(refund.TotalAmount);
-            var totalSpacing = new string(' ', Math.Max(0, 35 - totalLine.Length - totalAmount.Length));
-            totalsPara.Inlines.Add(new Run($"{totalLine}{totalSpacing}{totalAmount}\n") { FontWeight = FontWeights.Bold, FontSize = 13 });
-            
-            document.Blocks.Add(totalsPara);
-
-            // Footer
-            var footerPara = new Paragraph
-            {
-                TextAlignment = TextAlignment.Center,
-                Margin = new Thickness(0, 20, 0, 0)
-            };
-            footerPara.Inlines.Add(new Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
-            footerPara.Inlines.Add(new Run("Amount refunded as per above\n"));
-            footerPara.Inlines.Add(new Run("Thank you!\n"));
-            footerPara.Inlines.Add(new Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(footerPara);
-
-            // Print
-            var printDialog = new PrintDialog();
-            if (printDialog.ShowDialog() == true)
-            {
-                var paginator = ((IDocumentPaginatorSource)document).DocumentPaginator;
-                printDialog.PrintDocument(paginator, $"Refund Receipt - {refundNumber}");
-                MessageBox.Show("Refund receipt printed successfully!", "Print Complete", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
+            AppLogger.Log($"Refund receipt printed successfully. PDF saved at: {pdfPath}");
+            MessageBox.Show("Refund receipt printed successfully!", "Print Complete", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
+            AppLogger.LogError($"Error printing refund receipt: {ex.Message}");
             MessageBox.Show($"Error printing refund receipt: {ex.Message}\n\nPlease check your printer connection.", "Print Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -1554,115 +1681,57 @@ public partial class TransactionViewModel : ObservableObject
     {
         try
         {
-            var exchangeNumber = $"E{exchange.Id:D4}";
-            
-            var document = new FlowDocument
-            {
-                PagePadding = new Thickness(50),
-                FontFamily = new FontFamily("Courier New"),
-                FontSize = 11
-            };
+            // Use QuestPDF for professional exchange receipt generation and printing
+            var exchangePrinter = new QuestPdfExchangePrinter(_activeCurrencyService);
 
-            // Header
-            var headerPara = new Paragraph
-            {
-                TextAlignment = TextAlignment.Center,
-                Margin = new Thickness(0, 0, 0, 10)
-            };
-            headerPara.Inlines.Add(new Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
-            headerPara.Inlines.Add(new Run("EXCHANGE RECEIPT\n") { FontSize = 16, FontWeight = FontWeights.Bold });
-            headerPara.Inlines.Add(new Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(headerPara);
+            // Get company information from settings or use defaults
+            string companyName = "CHRONO POS"; // TODO: Get from settings/database
+            string? companyAddress = null; // TODO: Get from settings/database
+            string? companyPhone = null; // TODO: Get from settings/database
+            string? gstNo = null; // TODO: Get from settings/database
 
-            // Exchange info
-            var infoPara = new Paragraph { Margin = new Thickness(0, 10, 0, 10) };
-            infoPara.Inlines.Add(new Run($"Exchange #: {exchangeNumber}\n"));
-            infoPara.Inlines.Add(new Run($"Original Transaction: #{exchange.SellingTransactionId}\n"));
-            infoPara.Inlines.Add(new Run($"Date: {exchange.ExchangeTime:dd/MM/yyyy}\n"));
-            infoPara.Inlines.Add(new Run($"Time: {exchange.ExchangeTime:HH:mm:ss}\n"));
-            infoPara.Inlines.Add(new Run($"Customer: {exchange.CustomerName ?? "Walk-in"}\n"));
-            document.Blocks.Add(infoPara);
+            // Convert exchange products to ExchangeItemModel lists
+            var returnItems = exchange.ExchangeProducts
+                .Where(p => p.OldProductName != null && p.ReturnedQuantity > 0)
+                .Select(p => new ExchangeItemModel
+                {
+                    ProductId = p.OriginalTransactionProductId ?? 0,
+                    ProductName = p.OldProductName ?? "Unknown",
+                    UnitPrice = p.ReturnedQuantity > 0 ? p.OldProductAmount / p.ReturnedQuantity : 0,
+                    ReturnQuantity = (int)Math.Round(p.ReturnedQuantity)
+                }).ToList();
 
-            // Separator
-            var separatorPara1 = new Paragraph
-            {
-                Margin = new Thickness(0, 5, 0, 5),
-                TextAlignment = TextAlignment.Center
-            };
-            separatorPara1.Inlines.Add(new Run("───────────────────────────────────"));
-            document.Blocks.Add(separatorPara1);
+            var newItems = exchange.ExchangeProducts
+                .Where(p => p.NewProductName != null && p.NewQuantity > 0)
+                .Select(p => new ExchangeItemModel
+                {
+                    ProductId = p.NewProductId ?? 0,
+                    ProductName = p.NewProductName ?? "Unknown",
+                    UnitPrice = p.NewQuantity > 0 ? p.NewProductAmount / p.NewQuantity : 0,
+                    Quantity = (int)Math.Round(p.NewQuantity)
+                }).ToList();
 
-            // Items Returned
-            var returnedHeader = new Paragraph { Margin = new Thickness(0, 5, 0, 5) };
-            returnedHeader.Inlines.Add(new Run("ITEMS RETURNED\n") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(returnedHeader);
+            decimal totalReturnAmount = returnItems.Sum(i => i.ReturnQuantity * i.UnitPrice);
+            decimal totalNewAmount = newItems.Sum(i => i.Quantity * i.UnitPrice);
+            decimal differenceToPay = totalNewAmount - totalReturnAmount;
 
-            foreach (var product in exchange.ExchangeProducts.Where(p => p.OldProductName != null))
-            {
-                var productPara = new Paragraph { Margin = new Thickness(0, 2, 0, 2) };
-                productPara.Inlines.Add(new Run($"{product.OldProductName}\n"));
-                productPara.Inlines.Add(new Run($"  Qty: {product.ReturnedQuantity:0.##}"));
-                productPara.Inlines.Add(new Run(_activeCurrencyService.FormatPrice(product.OldProductAmount).PadLeft(35 - $"  Qty: {product.ReturnedQuantity:0.##}".Length)) { FontWeight = FontWeights.Bold });
-                document.Blocks.Add(productPara);
-            }
+            // Generate PDF and auto-print to thermal printer
+            string pdfPath = exchangePrinter.GenerateAndPrintExchange(
+                exchange: exchange,
+                returnItems: returnItems,
+                newItems: newItems,
+                invoiceNumber: $"#{exchange.SellingTransactionId}",
+                customerName: exchange.CustomerName ?? "Walk-in",
+                totalReturnAmount: totalReturnAmount,
+                totalNewAmount: totalNewAmount,
+                differenceToPay: differenceToPay,
+                companyName: companyName,
+                companyAddress: companyAddress,
+                companyPhone: companyPhone,
+                gstNo: gstNo
+            );
 
-            // Separator
-            var separatorPara2 = new Paragraph
-            {
-                Margin = new Thickness(0, 5, 0, 5),
-                TextAlignment = TextAlignment.Center
-            };
-            separatorPara2.Inlines.Add(new Run("───────────────────────────────────"));
-            document.Blocks.Add(separatorPara2);
-
-            // Items Given
-            var givenHeader = new Paragraph { Margin = new Thickness(0, 5, 0, 5) };
-            givenHeader.Inlines.Add(new Run("ITEMS GIVEN\n") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(givenHeader);
-
-            foreach (var product in exchange.ExchangeProducts.Where(p => p.NewProductName != null))
-            {
-                var productPara = new Paragraph { Margin = new Thickness(0, 2, 0, 2) };
-                productPara.Inlines.Add(new Run($"{product.NewProductName}\n"));
-                productPara.Inlines.Add(new Run($"  Qty: {product.NewQuantity:0.##}"));
-                productPara.Inlines.Add(new Run(_activeCurrencyService.FormatPrice(product.NewProductAmount).PadLeft(35 - $"  Qty: {product.NewQuantity:0.##}".Length)) { FontWeight = FontWeights.Bold });
-                document.Blocks.Add(productPara);
-            }
-
-            // Separator
-            var separatorPara3 = new Paragraph
-            {
-                Margin = new Thickness(0, 5, 0, 5),
-                TextAlignment = TextAlignment.Center
-            };
-            separatorPara3.Inlines.Add(new Run("═══════════════════════════════════") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(separatorPara3);
-
-            // Total difference
-            var totalPara = new Paragraph { Margin = new Thickness(0, 5, 0, 5) };
-            totalPara.Inlines.Add(new Run("PRICE DIFFERENCE:"));
-            totalPara.Inlines.Add(new Run(_activeCurrencyService.FormatPrice(Math.Abs(exchange.TotalExchangedAmount)).PadLeft(18)) { FontWeight = FontWeights.Bold, FontSize = 13 });
-            totalPara.Inlines.Add(new Run($"\n({(exchange.TotalExchangedAmount > 0 ? "Customer pays" : exchange.TotalExchangedAmount < 0 ? "Customer refund" : "Even exchange")})") { FontSize = 9 });
-            document.Blocks.Add(totalPara);
-
-            // Footer
-            var footerPara = new Paragraph
-            {
-                TextAlignment = TextAlignment.Center,
-                Margin = new Thickness(0, 15, 0, 0)
-            };
-            footerPara.Inlines.Add(new Run("───────────────────────────────────\n"));
-            footerPara.Inlines.Add(new Run("Thank you for your business!\n"));
-            footerPara.Inlines.Add(new Run("───────────────────────────────────"));
-            document.Blocks.Add(footerPara);
-
-            // Print the document
-            var printDialog = new PrintDialog();
-            if (printDialog.ShowDialog() == true)
-            {
-                var paginator = ((IDocumentPaginatorSource)document).DocumentPaginator;
-                printDialog.PrintDocument(paginator, "Exchange Receipt");
-            }
+            // Success - no MessageBox needed, printing happens silently
         }
         catch (Exception ex)
         {
@@ -1746,6 +1815,12 @@ public partial class TransactionViewModel : ObservableObject
 
                 SalesTransactions.Add(cardModel);
             }
+            
+            // Apply search filter after loading
+            ApplySearchFilter();
+            
+            // Notify empty state property changed
+            OnPropertyChanged(nameof(HasSalesTransactions));
         }
         catch (Exception ex)
         {
@@ -1819,6 +1894,12 @@ public partial class TransactionViewModel : ObservableObject
                     StatusColor = GetStatusColor(refund.Status)
                 });
             }
+            
+            // Apply search filter after loading
+            ApplySearchFilter();
+            
+            // Notify empty state property changed
+            OnPropertyChanged(nameof(HasRefundTransactions));
         }
         catch (Exception ex)
         {
@@ -1908,6 +1989,12 @@ public partial class TransactionViewModel : ObservableObject
                 
                 ExchangeTransactions.Add(exchangeCard);
             }
+            
+            // Apply search filter after loading
+            ApplySearchFilter();
+            
+            // Notify empty state property changed
+            OnPropertyChanged(nameof(HasExchangeTransactions));
         }
         catch (Exception ex)
         {
@@ -1959,9 +2046,13 @@ public partial class TransactionViewModel : ObservableObject
 
     private UIElement CreateSalesGrid()
     {
+        // Create main grid container
+        var mainGrid = new Grid();
+        
+        // Create ItemsControl for data
         var itemsControl = new ItemsControl
         {
-            ItemsSource = SalesTransactions
+            ItemsSource = FilteredSalesTransactions
         };
 
         // Wrap panel for card layout
@@ -1970,15 +2061,76 @@ public partial class TransactionViewModel : ObservableObject
         
         itemsControl.ItemsPanel = new ItemsPanelTemplate(wrapPanelFactory);
         itemsControl.ItemTemplate = CreateSalesCardTemplate();
+        
+        // Bind visibility - show when HasSalesTransactions is true
+        itemsControl.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasSalesTransactions")
+        {
+            Source = this,
+            Converter = new System.Windows.Controls.BooleanToVisibilityConverter()
+        });
+        
+        // Create empty state
+        var emptyState = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        
+        var icon = new TextBlock
+        {
+            Text = "💳",
+            FontSize = 48,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 16)
+        };
+        
+        var primaryMessage = new TextBlock
+        {
+            FontSize = 16,
+            FontWeight = FontWeights.Medium,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        primaryMessage.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding("NoSalesTransactionsLabel")
+        {
+            Source = this
+        });
+        primaryMessage.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimary");
+        
+        var secondaryMessage = new TextBlock
+        {
+            FontSize = 12,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        secondaryMessage.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding("StartCreatingSalesLabel")
+        {
+            Source = this
+        });
+        secondaryMessage.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
+        
+        emptyState.Children.Add(icon);
+        emptyState.Children.Add(primaryMessage);
+        emptyState.Children.Add(secondaryMessage);
+        
+        // Bind visibility - show when HasSalesTransactions is false
+        emptyState.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasSalesTransactions")
+        {
+            Source = this,
+            Converter = new InverseBoolToVisibilityConverter()
+        });
+        
+        // Add both to grid
+        mainGrid.Children.Add(emptyState);
+        mainGrid.Children.Add(itemsControl);
 
-        return itemsControl;
+        return mainGrid;
     }
 
     private DataTemplate CreateSalesCardTemplate()
     {
         var xaml = @"
             <DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'>
-                <Border Background='White' BorderBrush='#E5E7EB' BorderThickness='1' CornerRadius='12' Padding='16' Margin='0,0,15,15' Width='340' Height='Auto' Cursor='Hand'>
+                <Border Background='{DynamicResource CardBackground}' BorderBrush='{DynamicResource BorderLight}' BorderThickness='1' CornerRadius='12' Padding='16' Margin='0,0,15,15' Width='340' Height='Auto' Cursor='Hand'>
                     <Border.InputBindings>
                         <MouseBinding MouseAction='LeftClick' Command='{Binding DataContext.OpenTransactionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}' CommandParameter='{Binding TransactionId}'/>
                     </Border.InputBindings>
@@ -2015,7 +2167,7 @@ public partial class TransactionViewModel : ObservableObject
                         
                         <!-- Header: Order Number + Status Badge -->
                         <Grid Grid.Row='0'>
-                            <Border Background='#F59E0B' CornerRadius='8' Padding='10,5' HorizontalAlignment='Left'>
+                            <Border Background='{DynamicResource ChronoPosOrange}' CornerRadius='8' Padding='10,5' HorizontalAlignment='Left'>
                                 <TextBlock Text='{Binding OrderNumber}' FontSize='13' FontWeight='Bold' Foreground='White'/>
                             </Border>
                             <Border Background='{Binding StatusColor}' CornerRadius='6' Padding='8,4' HorizontalAlignment='Right'>
@@ -2025,12 +2177,12 @@ public partial class TransactionViewModel : ObservableObject
                         
                         <!-- Customer Info -->
                         <StackPanel Grid.Row='1' Margin='0,12,0,0'>
-                            <TextBlock Text='{Binding CustomerName}' FontSize='15' FontWeight='SemiBold' Foreground='#1F2937'/>
-                            <TextBlock FontSize='11' Foreground='#6B7280' Margin='0,4,0,0'>
+                            <TextBlock Text='{Binding CustomerName}' FontSize='15' FontWeight='SemiBold' Foreground='{DynamicResource TextPrimary}'/>
+                            <TextBlock FontSize='11' Foreground='{DynamicResource TextSecondary}' Margin='0,4,0,0'>
                                 <Run Text='{Binding Date}'/> - <Run Text='{Binding Time}'/>
                             </TextBlock>
                             <Grid Margin='0,4,0,0'>
-                                <TextBlock FontSize='12' Foreground='#3B82F6' FontWeight='Medium' HorizontalAlignment='Left'>
+                                <TextBlock FontSize='12' Foreground='{DynamicResource Info}' FontWeight='Medium' HorizontalAlignment='Left'>
                                     <Run Text='Table: '/><Run Text='{Binding TableName}'/>
                                 </TextBlock>
                                 <!-- Reservation Info -->
@@ -2121,18 +2273,18 @@ public partial class TransactionViewModel : ObservableObject
                         <ItemsControl Grid.Row='4' ItemsSource='{Binding DisplayItems}' Margin='0,0,0,8'>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background='#F9FAFB' BorderBrush='#E5E7EB' BorderThickness='1' CornerRadius='6' Padding='8,6' Margin='0,0,0,4'>
+                                    <Border Background='{DynamicResource PageBackground}' BorderBrush='{DynamicResource BorderLight}' BorderThickness='1' CornerRadius='6' Padding='8,6' Margin='0,0,0,4'>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width='Auto'/>
                                                 <ColumnDefinition Width='*'/>
                                                 <ColumnDefinition Width='Auto'/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column='0' FontSize='10' FontWeight='Bold' Foreground='#F59E0B' Margin='0,0,6,0'>
+                                            <TextBlock Grid.Column='0' FontSize='10' FontWeight='Bold' Foreground='{DynamicResource ChronoPosOrange}' Margin='0,0,6,0'>
                                                 <Run Text='{Binding Quantity}'/><Run Text='x'/>
                                             </TextBlock>
-                                            <TextBlock Grid.Column='1' Text='{Binding ItemName}' FontSize='10' Foreground='#374151' TextTrimming='CharacterEllipsis'/>
-                                            <TextBlock Grid.Column='2' Text='{Binding Price}' FontSize='10' FontWeight='SemiBold' Foreground='#1F2937'/>
+                                            <TextBlock Grid.Column='1' Text='{Binding ItemName}' FontSize='10' Foreground='{DynamicResource TextPrimary}' TextTrimming='CharacterEllipsis'/>
+                                            <TextBlock Grid.Column='2' Text='{Binding Price}' FontSize='10' FontWeight='SemiBold' Foreground='{DynamicResource TextPrimary}'/>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -2141,14 +2293,14 @@ public partial class TransactionViewModel : ObservableObject
                         
                         <!-- Total -->
                         <Grid Grid.Row='5' Margin='0,4,0,0'>
-                            <TextBlock Text='Subtotal' FontSize='13' FontWeight='SemiBold' Foreground='#1F2937'/>
-                            <TextBlock Text='{Binding Subtotal, Converter={StaticResource CurrencyPriceConverter}}' FontSize='15' FontWeight='Bold' Foreground='#1F2937' HorizontalAlignment='Right'/>
+                            <TextBlock Text='Total' FontSize='13' FontWeight='SemiBold' Foreground='{DynamicResource TextPrimary}'/>
+                            <TextBlock Text='{Binding Subtotal, Converter={StaticResource CurrencyPriceConverter}}' FontSize='15' FontWeight='Bold' Foreground='{DynamicResource TextPrimary}' HorizontalAlignment='Right'/>
                         </Grid>
                         
                         <!-- Action Buttons - Status Based -->
                         <UniformGrid Grid.Row='7' Columns='2' HorizontalAlignment='Stretch'>
                             <!-- Save & Print Button - for draft/billed/hold/pending/partial -->
-                            <Button Content='Save &amp; Print' Height='35' Margin='0,0,4,0' Background='#3B82F6' Foreground='White' BorderThickness='0' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
+                            <Button Content='Save &amp; Print' Height='35' Margin='0,0,4,0' Background='{DynamicResource Info}' Foreground='White' BorderThickness='0' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
                                     Command='{Binding DataContext.SaveAndPrintFromCardCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}'
                                     CommandParameter='{Binding TransactionId}'>
                                 <Button.Style>
@@ -2185,7 +2337,7 @@ public partial class TransactionViewModel : ObservableObject
                             </Button>
                             
                             <!-- Settle Button - for draft/billed/hold/pending/partial -->
-                            <Button Content='Settle' Height='35' Margin='4,0,0,0' Background='#10B981' Foreground='White' BorderThickness='0' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
+                            <Button Content='Settle' Height='35' Margin='4,0,0,0' Background='{DynamicResource SuccessGreen}' Foreground='White' BorderThickness='0' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
                                     Command='{Binding DataContext.SettleFromCardCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}'
                                     CommandParameter='{Binding TransactionId}'>
                                 <Button.Style>
@@ -2222,7 +2374,7 @@ public partial class TransactionViewModel : ObservableObject
                             </Button>
                             
                             <!-- Refund Button - for settled -->
-                            <Button Content='Refund' Height='35' Margin='0,0,4,0' Background='#EF4444' Foreground='White' BorderThickness='0' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
+                            <Button Content='Refund' Height='35' Margin='0,0,4,0' Background='{DynamicResource ErrorRed}' Foreground='White' BorderThickness='0' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
                                     Command='{Binding DataContext.RefundFromCardCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}'
                                     CommandParameter='{Binding TransactionId}'>
                                 <Button.Style>
@@ -2247,7 +2399,7 @@ public partial class TransactionViewModel : ObservableObject
                             </Button>
                             
                             <!-- Exchange Button - for settled -->
-                            <Button Content='Exchange' Height='35' Margin='4,0,0,0' Background='#60A5FA' Foreground='White' BorderThickness='0' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
+                            <Button Content='Exchange' Height='35' Margin='4,0,0,0' Background='{DynamicResource Info}' Foreground='White' BorderThickness='0' FontWeight='SemiBold' FontSize='11' Cursor='Hand'
                                     Command='{Binding DataContext.ExchangeFromCardCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}'
                                     CommandParameter='{Binding TransactionId}'>
                                 <Button.Style>
@@ -2280,9 +2432,13 @@ public partial class TransactionViewModel : ObservableObject
 
     private UIElement CreateRefundGrid()
     {
+        // Create main grid container
+        var mainGrid = new Grid();
+        
+        // Create ItemsControl for data
         var itemsControl = new ItemsControl
         {
-            ItemsSource = RefundTransactions
+            ItemsSource = FilteredRefundTransactions
         };
 
         // Wrap panel for card layout
@@ -2291,15 +2447,73 @@ public partial class TransactionViewModel : ObservableObject
         
         itemsControl.ItemsPanel = new ItemsPanelTemplate(wrapPanelFactory);
         itemsControl.ItemTemplate = CreateRefundCardTemplate();
+        
+        // Bind visibility - show when HasRefundTransactions is true
+        itemsControl.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasRefundTransactions")
+        {
+            Source = this,
+            Converter = new System.Windows.Controls.BooleanToVisibilityConverter()
+        });
+        
+        // Create empty state
+        var emptyState = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        
+        var icon = new TextBlock
+        {
+            Text = "🔄",
+            FontSize = 48,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 16)
+        };
+        
+        var primaryMessage = new TextBlock
+        {
+            FontSize = 16,
+            FontWeight = FontWeights.Medium,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        primaryMessage.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding("NoRefundTransactionsLabel")
+        {
+            Source = this
+        });
+        primaryMessage.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimary");
+        
+        var secondaryMessage = new TextBlock
+        {
+            Text = "Refunds will appear here when transactions are refunded",
+            FontSize = 12,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        secondaryMessage.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
+        
+        emptyState.Children.Add(icon);
+        emptyState.Children.Add(primaryMessage);
+        emptyState.Children.Add(secondaryMessage);
+        
+        // Bind visibility - show when HasRefundTransactions is false
+        emptyState.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasRefundTransactions")
+        {
+            Source = this,
+            Converter = new InverseBoolToVisibilityConverter()
+        });
+        
+        // Add both to grid
+        mainGrid.Children.Add(emptyState);
+        mainGrid.Children.Add(itemsControl);
 
-        return itemsControl;
+        return mainGrid;
     }
 
     private DataTemplate CreateRefundCardTemplate()
     {
         var xaml = @"
             <DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'>
-                <Border Background='White' BorderBrush='#E5E7EB' BorderThickness='1' CornerRadius='12' Padding='16' Margin='0,0,15,15' Width='340' Height='Auto' Cursor='Hand'>
+                <Border Background='{DynamicResource CardBackground}' BorderBrush='{DynamicResource BorderLight}' BorderThickness='1' CornerRadius='12' Padding='16' Margin='0,0,15,15' Width='340' Height='Auto' Cursor='Hand'>
                     <Border.InputBindings>
                         <MouseBinding MouseAction='LeftClick' Command='{Binding DataContext.OpenRefundCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}' CommandParameter='{Binding RefundId}'/>
                     </Border.InputBindings>
@@ -2336,7 +2550,7 @@ public partial class TransactionViewModel : ObservableObject
                         
                         <!-- Header: Refund Number + Status Badge -->
                         <Grid Grid.Row='0'>
-                            <Border Background='#EF4444' CornerRadius='8' Padding='10,5' HorizontalAlignment='Left'>
+                            <Border Background='{DynamicResource ErrorRed}' CornerRadius='8' Padding='10,5' HorizontalAlignment='Left'>
                                 <TextBlock Text='{Binding RefundNumber}' FontSize='13' FontWeight='Bold' Foreground='White'/>
                             </Border>
                             <Border Background='{Binding StatusColor}' CornerRadius='6' Padding='8,4' HorizontalAlignment='Right'>
@@ -2346,11 +2560,11 @@ public partial class TransactionViewModel : ObservableObject
                         
                         <!-- Customer Info -->
                         <StackPanel Grid.Row='1' Margin='0,12,0,0'>
-                            <TextBlock Text='{Binding CustomerName}' FontSize='15' FontWeight='SemiBold' Foreground='#1F2937'/>
-                            <TextBlock FontSize='11' Foreground='#6B7280' Margin='0,4,0,0'>
+                            <TextBlock Text='{Binding CustomerName}' FontSize='15' FontWeight='SemiBold' Foreground='{DynamicResource TextPrimary}'/>
+                            <TextBlock FontSize='11' Foreground='{DynamicResource TextSecondary}' Margin='0,4,0,0'>
                                 <Run Text='{Binding Date}'/> - <Run Text='{Binding Time}'/>
                             </TextBlock>
-                            <TextBlock FontSize='12' Foreground='#EF4444' FontWeight='Medium' Margin='0,4,0,0'>
+                            <TextBlock FontSize='12' Foreground='{DynamicResource ErrorRed}' FontWeight='Medium' Margin='0,4,0,0'>
                                 <Run Text='Original Invoice: '/><Run Text='{Binding OriginalInvoice}'/>
                             </TextBlock>
                         </StackPanel>
@@ -2498,9 +2712,13 @@ public partial class TransactionViewModel : ObservableObject
 
     private UIElement CreateExchangeGrid()
     {
+        // Create main grid container
+        var mainGrid = new Grid();
+        
+        // Create ItemsControl for data
         var itemsControl = new ItemsControl
         {
-            ItemsSource = ExchangeTransactions
+            ItemsSource = FilteredExchangeTransactions
         };
 
         // Wrap panel for card layout
@@ -2509,15 +2727,73 @@ public partial class TransactionViewModel : ObservableObject
         
         itemsControl.ItemsPanel = new ItemsPanelTemplate(wrapPanelFactory);
         itemsControl.ItemTemplate = CreateExchangeCardTemplate();
+        
+        // Bind visibility - show when HasExchangeTransactions is true
+        itemsControl.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasExchangeTransactions")
+        {
+            Source = this,
+            Converter = new System.Windows.Controls.BooleanToVisibilityConverter()
+        });
+        
+        // Create empty state
+        var emptyState = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        
+        var icon = new TextBlock
+        {
+            Text = "🔁",
+            FontSize = 48,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 16)
+        };
+        
+        var primaryMessage = new TextBlock
+        {
+            FontSize = 16,
+            FontWeight = FontWeights.Medium,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        primaryMessage.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding("NoExchangeTransactionsLabel")
+        {
+            Source = this
+        });
+        primaryMessage.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimary");
+        
+        var secondaryMessage = new TextBlock
+        {
+            Text = "Product exchanges will appear here when processed",
+            FontSize = 12,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        secondaryMessage.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
+        
+        emptyState.Children.Add(icon);
+        emptyState.Children.Add(primaryMessage);
+        emptyState.Children.Add(secondaryMessage);
+        
+        // Bind visibility - show when HasExchangeTransactions is false
+        emptyState.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding("HasExchangeTransactions")
+        {
+            Source = this,
+            Converter = new InverseBoolToVisibilityConverter()
+        });
+        
+        // Add both to grid
+        mainGrid.Children.Add(emptyState);
+        mainGrid.Children.Add(itemsControl);
 
-        return itemsControl;
+        return mainGrid;
     }
 
     private DataTemplate CreateExchangeCardTemplate()
     {
         var xaml = @"
             <DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'>
-                <Border Background='White' BorderBrush='#E5E7EB' BorderThickness='1' CornerRadius='12' Padding='16' Margin='0,0,15,15' Width='340' Height='Auto' Cursor='Hand'>
+                <Border Background='{DynamicResource CardBackground}' BorderBrush='{DynamicResource BorderLight}' BorderThickness='1' CornerRadius='12' Padding='16' Margin='0,0,15,15' Width='340' Height='Auto' Cursor='Hand'>
                     <Border.InputBindings>
                         <MouseBinding MouseAction='LeftClick' Command='{Binding DataContext.OpenExchangeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}' CommandParameter='{Binding ExchangeId}'/>
                     </Border.InputBindings>
@@ -2557,7 +2833,7 @@ public partial class TransactionViewModel : ObservableObject
                         
                         <!-- Header: Exchange Number + Status Badge -->
                         <Grid Grid.Row='0'>
-                            <Border Background='#3B82F6' CornerRadius='8' Padding='10,5' HorizontalAlignment='Left'>
+                            <Border Background='{DynamicResource Info}' CornerRadius='8' Padding='10,5' HorizontalAlignment='Left'>
                                 <TextBlock Text='{Binding ExchangeNumber}' FontSize='13' FontWeight='Bold' Foreground='White'/>
                             </Border>
                             <Border Background='{Binding StatusColor}' CornerRadius='6' Padding='8,4' HorizontalAlignment='Right'>
@@ -2567,11 +2843,11 @@ public partial class TransactionViewModel : ObservableObject
                         
                         <!-- Customer Info -->
                         <StackPanel Grid.Row='1' Margin='0,12,0,0'>
-                            <TextBlock Text='{Binding CustomerName}' FontSize='15' FontWeight='SemiBold' Foreground='#1F2937'/>
-                            <TextBlock FontSize='11' Foreground='#6B7280' Margin='0,4,0,0'>
+                            <TextBlock Text='{Binding CustomerName}' FontSize='15' FontWeight='SemiBold' Foreground='{DynamicResource TextPrimary}'/>
+                            <TextBlock FontSize='11' Foreground='{DynamicResource TextSecondary}' Margin='0,4,0,0'>
                                 <Run Text='{Binding Date}'/> - <Run Text='{Binding Time}'/>
                             </TextBlock>
-                            <TextBlock FontSize='12' Foreground='#3B82F6' FontWeight='Medium' Margin='0,4,0,0'>
+                            <TextBlock FontSize='12' Foreground='{DynamicResource Info}' FontWeight='Medium' Margin='0,4,0,0'>
                                 <Run Text='Original Invoice: '/><Run Text='{Binding OriginalInvoice}'/>
                             </TextBlock>
                         </StackPanel>
@@ -2774,197 +3050,176 @@ public partial class TransactionViewModel : ObservableObject
     }
     
     /// <summary>
-    /// Print professional bill
+    /// Print professional bill using QuestPDF
     /// </summary>
     private void PrintBill(TransactionDto transaction)
     {
         try
         {
-            var printDialog = new System.Windows.Controls.PrintDialog();
-            
-            // Create print document
-            var document = new System.Windows.Documents.FlowDocument
-            {
-                PagePadding = new Thickness(50),
-                FontFamily = new FontFamily("Courier New"),
-                FontSize = 11
-            };
+            // Use QuestPDF for professional receipt generation and printing
+            var pdfPrinter = new QuestPdfReceiptPrinter(_activeCurrencyService);
 
-            // Header
-            var headerPara = new System.Windows.Documents.Paragraph
-            {
-                TextAlignment = TextAlignment.Center,
-                Margin = new Thickness(0, 0, 0, 10)
-            };
-            headerPara.Inlines.Add(new System.Windows.Documents.Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
-            headerPara.Inlines.Add(new System.Windows.Documents.Run("SALES RECEIPT\n") { FontSize = 16, FontWeight = FontWeights.Bold });
-            headerPara.Inlines.Add(new System.Windows.Documents.Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(headerPara);
+            // Get company information from settings or use defaults
+            string companyName = "CHRONO POS"; // TODO: Get from settings/database
+            string? companyAddress = null; // TODO: Get from settings/database
+            string? companyPhone = null; // TODO: Get from settings/database
+            string? gstNo = null; // TODO: Get from settings/database
 
-            // Bill Info
-            var infoPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 10, 0, 10) };
-            infoPara.Inlines.Add(new System.Windows.Documents.Run($"Invoice #: {transaction.InvoiceNumber ?? transaction.Id.ToString()}\n"));
-            infoPara.Inlines.Add(new System.Windows.Documents.Run($"Date: {transaction.SellingTime:dd-MM-yyyy}\n"));
-            infoPara.Inlines.Add(new System.Windows.Documents.Run($"Time: {transaction.SellingTime:HH:mm:ss}\n"));
-            
-            if (!string.IsNullOrEmpty(transaction.CustomerName))
+            // Convert TransactionProducts to CartItemModel for the printer
+            var cartItems = transaction.TransactionProducts.Select(p => new CartItemModel
             {
-                infoPara.Inlines.Add(new System.Windows.Documents.Run($"Customer: {transaction.CustomerName}\n"));
-            }
-            else
-            {
-                infoPara.Inlines.Add(new System.Windows.Documents.Run("Customer: Walk-in\n"));
-            }
-            
-            if (!string.IsNullOrEmpty(transaction.TableNumber))
-            {
-                infoPara.Inlines.Add(new System.Windows.Documents.Run($"Table: {transaction.TableNumber}\n"));
-            }
-            
-            document.Blocks.Add(infoPara);
+                ProductId = p.ProductId,
+                ProductName = p.ProductName ?? "Unknown",
+                ProductUnitId = p.ProductUnitId,
+                Quantity = (int)Math.Round(p.Quantity), // Convert decimal to int
+                UnitPrice = p.SellingPrice,
+                TotalPrice = p.Quantity * p.SellingPrice
+            }).ToList();
 
-            // Separator
-            var separatorPara1 = new System.Windows.Documents.Paragraph
-            {
-                Margin = new Thickness(0, 5, 0, 5),
-                TextAlignment = TextAlignment.Center
-            };
-            separatorPara1.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(separatorPara1);
-
-            // Items Header
-            var itemsHeaderPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 5, 0, 5) };
-            itemsHeaderPara.Inlines.Add(new System.Windows.Documents.Run("ITEMS\n") { FontWeight = FontWeights.Bold });
-            itemsHeaderPara.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────\n"));
-            document.Blocks.Add(itemsHeaderPara);
-
-            // Items
-            foreach (var item in transaction.TransactionProducts)
-            {
-                var itemPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 2, 0, 2) };
-                
-                // Product name
-                itemPara.Inlines.Add(new System.Windows.Documents.Run($"{item.ProductName}\n"));
-                
-                // Modifiers if any
-                if (item.Modifiers != null && item.Modifiers.Any())
-                {
-                    var modifierText = "  + " + string.Join(", ", item.Modifiers.Select(m => m.ModifierName));
-                    itemPara.Inlines.Add(new System.Windows.Documents.Run($"{modifierText}\n") { FontStyle = FontStyles.Italic, Foreground = Brushes.Gray });
-                }
-                
-                // Quantity and price
-                var qtyPriceText = $"  {item.Quantity:0.##} x ${item.SellingPrice:N2}";
-                var totalText = $"${(item.Quantity * item.SellingPrice):N2}";
-                var spacing = new string(' ', Math.Max(0, 35 - qtyPriceText.Length - totalText.Length));
-                itemPara.Inlines.Add(new System.Windows.Documents.Run($"{qtyPriceText}{spacing}{totalText}\n"));
-                
-                document.Blocks.Add(itemPara);
-            }
-
-            // Separator
-            var separatorPara2 = new System.Windows.Documents.Paragraph
-            {
-                Margin = new Thickness(0, 5, 0, 5),
-                TextAlignment = TextAlignment.Center
-            };
-            separatorPara2.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(separatorPara2);
-
-            // Totals
-            var totalsPara = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 5, 0, 10) };
-            
-            // Subtotal
-            var subtotalLine = $"Subtotal:";
-            var subtotalAmount = $"${transaction.TotalAmount:N2}";
-            var subtotalSpacing = new string(' ', Math.Max(0, 35 - subtotalLine.Length - subtotalAmount.Length));
-            totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{subtotalLine}{subtotalSpacing}{subtotalAmount}\n"));
-            
-            if (transaction.TotalDiscount > 0)
-            {
-                var discountLine = $"Discount:";
-                var discountAmount = $"-${transaction.TotalDiscount:N2}";
-                var discountSpacing = new string(' ', Math.Max(0, 35 - discountLine.Length - discountAmount.Length));
-                totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{discountLine}{discountSpacing}{discountAmount}\n"));
-            }
-            
-            if (transaction.Vat > 0)
-            {
-                var taxLine = $"Tax ({transaction.Vat}%):";
-                var taxAmount = $"${transaction.TotalVat:N2}";
-                var taxSpacing = new string(' ', Math.Max(0, 35 - taxLine.Length - taxAmount.Length));
-                totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{taxLine}{taxSpacing}{taxAmount}\n"));
-            }
-            
-            // Get customer balance if customer exists
-            decimal customerBalanceAmount = 0m;
+            // Get customer info if available
+            CustomerDto? customer = null;
             if (transaction.CustomerId.HasValue)
             {
                 try
                 {
-                    var customer = _customerService.GetByIdAsync(transaction.CustomerId.Value).Result;
-                    customerBalanceAmount = customer?.CustomerBalanceAmount ?? 0m;
+                    customer = _customerService.GetByIdAsync(transaction.CustomerId.Value).Result;
                 }
-                catch
+                catch { /* Ignore if customer not found */ }
+            }
+
+            // Create table DTO from transaction data if available
+            RestaurantTableDto? table = null;
+            if (transaction.TableId.HasValue && !string.IsNullOrEmpty(transaction.TableNumber))
+            {
+                table = new RestaurantTableDto
                 {
-                    // Ignore customer balance fetch errors
-                }
+                    Id = transaction.TableId.Value,
+                    TableNumber = transaction.TableNumber
+                };
             }
-            
-            // Show customer balance if applicable
-            if (customerBalanceAmount != 0)
-            {
-                string balanceLabel = customerBalanceAmount > 0 ? "Previous Pending:" : "Store Credit:";
-                var balanceLine = $"{balanceLabel}";
-                var balanceAmount = customerBalanceAmount > 0 ? $"${customerBalanceAmount:N2}" : $"-${Math.Abs(customerBalanceAmount):N2}";
-                var balanceSpacing = new string(' ', Math.Max(0, 35 - balanceLine.Length - balanceAmount.Length));
-                totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{balanceLine}{balanceSpacing}{balanceAmount}\n"));
-            }
-            
-            // Total line separator
-            totalsPara.Inlines.Add(new System.Windows.Documents.Run("───────────────────────────────────\n") { FontWeight = FontWeights.Bold });
-            
-            // Calculate bill total (sale + customer balance)
-            decimal billTotal = transaction.TotalAmount + customerBalanceAmount;
-            
-            // Grand Total
-            var totalLine = $"TOTAL:";
-            var totalAmount = $"${billTotal:N2}";
-            var totalSpacing = new string(' ', Math.Max(0, 35 - totalLine.Length - totalAmount.Length));
-            totalsPara.Inlines.Add(new System.Windows.Documents.Run($"{totalLine}{totalSpacing}{totalAmount}\n") { FontWeight = FontWeights.Bold, FontSize = 13 });
-            
-            // Show payment status for billed transactions
-            if (transaction.Status == "billed" && billTotal > 0)
-            {
-                totalsPara.Inlines.Add(new System.Windows.Documents.Run("\n"));
-                totalsPara.Inlines.Add(new System.Windows.Documents.Run("STATUS: PENDING PAYMENT\n") { FontWeight = FontWeights.Bold, Foreground = Brushes.Red });
-                totalsPara.Inlines.Add(new System.Windows.Documents.Run($"Amount Due: ${billTotal:N2}\n") { FontWeight = FontWeights.Bold });
-            }
-            
-            document.Blocks.Add(totalsPara);
 
-            // Footer
-            var footerPara = new System.Windows.Documents.Paragraph
-            {
-                TextAlignment = TextAlignment.Center,
-                Margin = new Thickness(0, 20, 0, 0)
-            };
-            footerPara.Inlines.Add(new System.Windows.Documents.Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
-            footerPara.Inlines.Add(new System.Windows.Documents.Run("Thank you for your business!\n"));
-            footerPara.Inlines.Add(new System.Windows.Documents.Run("Please come again\n"));
-            footerPara.Inlines.Add(new System.Windows.Documents.Run("═══════════════════════════════════\n") { FontWeight = FontWeights.Bold });
-            document.Blocks.Add(footerPara);
+            // Calculate amounts
+            decimal subtotal = transaction.TransactionProducts.Sum(p => p.Quantity * p.SellingPrice);
+            decimal discount = transaction.TotalDiscount;
+            decimal taxPercent = transaction.Vat;
+            decimal taxAmount = transaction.TotalVat;
+            decimal serviceCharge = 0m; // TODO: Get service charge from transaction if stored
+            decimal total = transaction.TotalAmount;
 
-            // Print
-            var paginator = ((System.Windows.Documents.IDocumentPaginatorSource)document).DocumentPaginator;
-            printDialog.PrintDocument(paginator, "Sales Receipt");
+            // Generate PDF and auto-print to thermal printer
+            string pdfPath = pdfPrinter.GenerateAndPrintReceipt(
+                transaction: transaction,
+                items: cartItems,
+                customer: customer,
+                table: table,
+                subtotal: subtotal,
+                discount: discount,
+                taxPercent: taxPercent,
+                taxAmount: taxAmount,
+                serviceCharge: serviceCharge,
+                total: total,
+                companyName: companyName,
+                companyAddress: companyAddress,
+                companyPhone: companyPhone,
+                gstNo: gstNo
+            );
+
+            // Success - no MessageBox needed, printing happens silently
         }
         catch (Exception ex)
         {
-            AppLogger.LogError($"Error printing bill: {ex.Message}");
-            new MessageDialog("Print Error", $"Error printing bill: {ex.Message}\n\nThe transaction was saved successfully.", MessageDialog.MessageType.Warning).ShowDialog();
+            MessageBox.Show($"Error printing bill: {ex.Message}\n\nThe transaction was saved successfully.", "Print Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
+
+    #region Translation and Language Support
+
+    private async Task LoadTranslationsAsync()
+    {
+        TransactionTitleLabel = await _localizationService.GetTranslationAsync("transaction_title");
+        SalesTabLabel = await _localizationService.GetTranslationAsync("sales_tab");
+        RefundTabLabel = await _localizationService.GetTranslationAsync("refund_tab");
+        ExchangeTabLabel = await _localizationService.GetTranslationAsync("exchange_tab");
+        SearchPlaceholderLabel = await _localizationService.GetTranslationAsync("search_placeholder");
+        CreateNewTransactionLabel = await _localizationService.GetTranslationAsync("create_new_transaction");
+        
+        InvoiceLabel = await _localizationService.GetTranslationAsync("invoice_label");
+        CustomerLabel = await _localizationService.GetTranslationAsync("customer_label");
+        TableLabel = await _localizationService.GetTranslationAsync("table_label");
+        ItemsLabel = await _localizationService.GetTranslationAsync("items_label");
+        TotalLabel = await _localizationService.GetTranslationAsync("total_label");
+        PaidLabel = await _localizationService.GetTranslationAsync("paid_label");
+        RemainingLabel = await _localizationService.GetTranslationAsync("remaining_label");
+        
+        ViewDetailsLabel = await _localizationService.GetTranslationAsync("view_details");
+        EditTransactionLabel = await _localizationService.GetTranslationAsync("edit_transaction");
+        PayBillLabel = await _localizationService.GetTranslationAsync("pay_bill");
+        PrintInvoiceLabel = await _localizationService.GetTranslationAsync("print_invoice");
+        ProcessRefundLabel = await _localizationService.GetTranslationAsync("process_refund");
+        ProcessExchangeLabel = await _localizationService.GetTranslationAsync("process_exchange");
+        
+        NoSalesTransactionsLabel = await _localizationService.GetTranslationAsync("no_sales_transactions");
+        NoRefundTransactionsLabel = await _localizationService.GetTranslationAsync("no_refund_transactions");
+        NoExchangeTransactionsLabel = await _localizationService.GetTranslationAsync("no_exchange_transactions");
+        StartCreatingSalesLabel = await _localizationService.GetTranslationAsync("start_creating_sales");
+        
+        // Settle Popup Translations
+        PaymentPopupTitleLabel = await _localizationService.GetTranslationAsync("payment_popup_title");
+        PaymentMethodLabel = await _localizationService.GetTranslationAsync("payment_method_label");
+        AmountPaidLabel = await _localizationService.GetTranslationAsync("amount_paid_label");
+        CreditDaysLabel = await _localizationService.GetTranslationAsync("credit_days_label");
+        CancelButtonLabel = await _localizationService.GetTranslationAsync("cancel_button");
+        SaveSettleButtonLabel = await _localizationService.GetTranslationAsync("save_settle_button");
+        CustomerPendingAmountLabel = await _localizationService.GetTranslationAsync("customer_pending_amount");
+        RemainingAmountTransactionLabel = await _localizationService.GetTranslationAsync("remaining_amount_transaction");
+        AlreadyPaidLabelText = await _localizationService.GetTranslationAsync("already_paid_label");
+        SaleAmountLabel = await _localizationService.GetTranslationAsync("sale_amount_label");
+        BillTotalLabel = await _localizationService.GetTranslationAsync("bill_total_label");
+        CustomerPendingAddedLabel = await _localizationService.GetTranslationAsync("customer_pending_added");
+        StoreCreditAvailableLabel = await _localizationService.GetTranslationAsync("store_credit_available");
+        AddedToBillLabel = await _localizationService.GetTranslationAsync("added_to_bill");
+        DeductedFromBillLabel = await _localizationService.GetTranslationAsync("deducted_from_bill");
+    }
+
+    private async void OnLanguageChanged(object? sender, string languageCode)
+    {
+        await LoadTranslationsAsync();
+        // Refresh the current tab to apply translations
+        switch (CurrentTab)
+        {
+            case "Sales":
+                SwitchToSales();
+                break;
+            case "Refund":
+                SwitchToRefund();
+                break;
+            case "Exchange":
+                SwitchToExchange();
+                break;
+        }
+    }
+
+    private void OnLayoutDirectionChanged(LayoutDirection direction)
+    {
+        var newDirection = direction == LayoutDirection.RightToLeft
+            ? FlowDirection.RightToLeft
+            : FlowDirection.LeftToRight;
+        
+        System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+        {
+            CurrentFlowDirection = newDirection;
+            Console.WriteLine($"[TransactionViewModel] FlowDirection changed to: {CurrentFlowDirection}");
+        });
+    }
+
+    public void Cleanup()
+    {
+        _localizationService.LanguageChanged -= OnLanguageChanged;
+        _layoutDirectionService.DirectionChanged -= OnLayoutDirectionChanged;
+        _timerUpdateTimer?.Stop();
+    }
+
+    #endregion
 }
 
 // Models

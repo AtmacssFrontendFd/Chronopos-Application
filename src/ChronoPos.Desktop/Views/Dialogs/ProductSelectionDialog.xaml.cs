@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -9,13 +10,14 @@ using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Application.Logging;
+using ChronoPos.Infrastructure.Services;
 
 namespace ChronoPos.Desktop.Views.Dialogs
 {
     /// <summary>
     /// Product Selection Dialog for choosing Product Units, Combinations, Modifiers, and Groups
     /// </summary>
-    public partial class ProductSelectionDialog : Window
+    public partial class ProductSelectionDialog : Window, INotifyPropertyChanged
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IProductUnitService _productUnitService;
@@ -27,6 +29,8 @@ namespace ChronoPos.Desktop.Views.Dialogs
         private readonly IProductService _productService;
         private readonly IActiveCurrencyService _activeCurrencyService;
         private readonly IProductCombinationItemService _combinationItemService;
+        private readonly IDatabaseLocalizationService _localizationService;
+        private readonly ILayoutDirectionService _layoutDirectionService;
 
         private readonly ProductDto _product;
         private decimal _basePrice;
@@ -42,6 +46,113 @@ namespace ChronoPos.Desktop.Views.Dialogs
         
         public ProductSelectionResult? SelectionResult { get; private set; }
 
+        // Translation properties
+        private string _dialogTitle = "Select Product Options";
+        private string _basePriceLabel = "Base Price:";
+        private string _closeTooltip = "Close";
+        private string _productUnitsHeader = "Product Units";
+        private string _selectUnitLabel = "Select a unit of measurement:";
+        private string _productCombinationsHeader = "Product Combinations";
+        private string _selectCombinationLabel = "Select a product combination:";
+        private string _modifiersHeader = "Modifiers";
+        private string _customizeProductLabel = "Customize your product:";
+        private string _productGroupsHeader = "Product Groups";
+        private string _selectGroupLabel = "Select a product group:";
+        private string _totalPriceLabel = "Total Price:";
+        private string _cancelButtonLabel = "Cancel";
+        private string _addToCartButtonLabel = "Add to Cart";
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public string DialogTitle
+        {
+            get => _dialogTitle;
+            set { _dialogTitle = value; OnPropertyChanged(nameof(DialogTitle)); }
+        }
+
+        public string BasePriceLabel
+        {
+            get => _basePriceLabel;
+            set { _basePriceLabel = value; OnPropertyChanged(nameof(BasePriceLabel)); }
+        }
+
+        public string CloseTooltip
+        {
+            get => _closeTooltip;
+            set { _closeTooltip = value; OnPropertyChanged(nameof(CloseTooltip)); }
+        }
+
+        public string ProductUnitsHeader
+        {
+            get => _productUnitsHeader;
+            set { _productUnitsHeader = value; OnPropertyChanged(nameof(ProductUnitsHeader)); }
+        }
+
+        public string SelectUnitLabel
+        {
+            get => _selectUnitLabel;
+            set { _selectUnitLabel = value; OnPropertyChanged(nameof(SelectUnitLabel)); }
+        }
+
+        public string ProductCombinationsHeader
+        {
+            get => _productCombinationsHeader;
+            set { _productCombinationsHeader = value; OnPropertyChanged(nameof(ProductCombinationsHeader)); }
+        }
+
+        public string SelectCombinationLabel
+        {
+            get => _selectCombinationLabel;
+            set { _selectCombinationLabel = value; OnPropertyChanged(nameof(SelectCombinationLabel)); }
+        }
+
+        public string ModifiersHeader
+        {
+            get => _modifiersHeader;
+            set { _modifiersHeader = value; OnPropertyChanged(nameof(ModifiersHeader)); }
+        }
+
+        public string CustomizeProductLabel
+        {
+            get => _customizeProductLabel;
+            set { _customizeProductLabel = value; OnPropertyChanged(nameof(CustomizeProductLabel)); }
+        }
+
+        public string ProductGroupsHeader
+        {
+            get => _productGroupsHeader;
+            set { _productGroupsHeader = value; OnPropertyChanged(nameof(ProductGroupsHeader)); }
+        }
+
+        public string SelectGroupLabel
+        {
+            get => _selectGroupLabel;
+            set { _selectGroupLabel = value; OnPropertyChanged(nameof(SelectGroupLabel)); }
+        }
+
+        public string TotalPriceLabel
+        {
+            get => _totalPriceLabel;
+            set { _totalPriceLabel = value; OnPropertyChanged(nameof(TotalPriceLabel)); }
+        }
+
+        public string CancelButtonLabel
+        {
+            get => _cancelButtonLabel;
+            set { _cancelButtonLabel = value; OnPropertyChanged(nameof(CancelButtonLabel)); }
+        }
+
+        public string AddToCartButtonLabel
+        {
+            get => _addToCartButtonLabel;
+            set { _addToCartButtonLabel = value; OnPropertyChanged(nameof(AddToCartButtonLabel)); }
+        }
+
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
         public ProductSelectionDialog(
             IServiceProvider serviceProvider,
             ProductDto product)
@@ -52,7 +163,7 @@ namespace ChronoPos.Desktop.Views.Dialogs
             InitializeComponent();
             
             _serviceProvider = serviceProvider;
-            _product = product;
+            _product = product ?? throw new ArgumentNullException(nameof(product));
             _basePrice = product.Price;
             _totalPrice = _basePrice;
             
@@ -71,8 +182,22 @@ namespace ChronoPos.Desktop.Views.Dialogs
                 _productService = serviceProvider.GetRequiredService<IProductService>();
                 _activeCurrencyService = serviceProvider.GetRequiredService<IActiveCurrencyService>();
                 _combinationItemService = serviceProvider.GetRequiredService<IProductCombinationItemService>();
+                _localizationService = serviceProvider.GetRequiredService<IDatabaseLocalizationService>();
+                _layoutDirectionService = serviceProvider.GetRequiredService<ILayoutDirectionService>();
                 
                 AppLogger.Log("All services obtained successfully", filename: "product_selection_dialog");
+                
+                // Subscribe to language changes
+                _localizationService.LanguageChanged += OnLanguageChanged;
+                _layoutDirectionService.DirectionChanged += OnLayoutDirectionChanged;
+                
+                // Load initial translations
+                _ = LoadTranslationsAsync();
+                
+                // Set initial flow direction
+                FlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
+                    ? System.Windows.FlowDirection.RightToLeft 
+                    : System.Windows.FlowDirection.LeftToRight;
             }
             catch (Exception ex)
             {
@@ -82,10 +207,55 @@ namespace ChronoPos.Desktop.Views.Dialogs
             
             // Set header
             ProductNameText.Text = product.Name;
-            ProductPriceText.Text = $"Base Price: {FormatPrice(_basePrice)}";
+            UpdateProductPriceText();
             
             AppLogger.Log("Calling LoadProductOptionsAsync...", filename: "product_selection_dialog");
             _ = LoadProductOptionsAsync();
+        }
+
+        private async System.Threading.Tasks.Task LoadTranslationsAsync()
+        {
+            try
+            {
+                DialogTitle = await _localizationService.GetTranslationAsync("product_selection_dialog_title") ?? "Select Product Options";
+                BasePriceLabel = await _localizationService.GetTranslationAsync("product_selection_base_price") ?? "Base Price:";
+                CloseTooltip = await _localizationService.GetTranslationAsync("product_selection_close") ?? "Close";
+                ProductUnitsHeader = await _localizationService.GetTranslationAsync("product_selection_units_header") ?? "Product Units";
+                SelectUnitLabel = await _localizationService.GetTranslationAsync("product_selection_select_unit") ?? "Select a unit of measurement:";
+                ProductCombinationsHeader = await _localizationService.GetTranslationAsync("product_selection_combinations_header") ?? "Product Combinations";
+                SelectCombinationLabel = await _localizationService.GetTranslationAsync("product_selection_select_combination") ?? "Select a product combination:";
+                ModifiersHeader = await _localizationService.GetTranslationAsync("product_selection_modifiers_header") ?? "Modifiers";
+                CustomizeProductLabel = await _localizationService.GetTranslationAsync("product_selection_customize_product") ?? "Customize your product:";
+                ProductGroupsHeader = await _localizationService.GetTranslationAsync("product_selection_groups_header") ?? "Product Groups";
+                SelectGroupLabel = await _localizationService.GetTranslationAsync("product_selection_select_group") ?? "Select a product group:";
+                TotalPriceLabel = await _localizationService.GetTranslationAsync("product_selection_total_price") ?? "Total Price:";
+                CancelButtonLabel = await _localizationService.GetTranslationAsync("product_selection_cancel") ?? "Cancel";
+                AddToCartButtonLabel = await _localizationService.GetTranslationAsync("product_selection_add_to_cart") ?? "Add to Cart";
+                
+                // Update ProductPriceText with translated label
+                UpdateProductPriceText();
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogError("Error loading translations in ProductSelectionDialog", ex, filename: "product_selection_dialog");
+            }
+        }
+
+        private void OnLanguageChanged(object? sender, string languageCode)
+        {
+            _ = LoadTranslationsAsync();
+        }
+
+        private void OnLayoutDirectionChanged(LayoutDirection direction)
+        {
+            FlowDirection = direction == LayoutDirection.RightToLeft 
+                ? System.Windows.FlowDirection.RightToLeft 
+                : System.Windows.FlowDirection.LeftToRight;
+        }
+
+        private void UpdateProductPriceText()
+        {
+            ProductPriceText.Text = $"{BasePriceLabel} {FormatPrice(_basePrice)}";
         }
 
         private async System.Threading.Tasks.Task LoadProductOptionsAsync()
