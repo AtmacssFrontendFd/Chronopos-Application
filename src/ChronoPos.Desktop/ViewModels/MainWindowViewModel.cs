@@ -3172,6 +3172,7 @@ public partial class MainWindowViewModel : ObservableObject
             var brandViewModel = new BrandViewModel(
                 _serviceProvider.GetRequiredService<IBrandService>(),
                 _currentUserService,
+                _databaseLocalizationService,
                 navigateBack: () => ShowAddOptionsCommand.Execute(null)
             );
 
@@ -3459,6 +3460,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _serviceProvider,
                 _serviceProvider.GetRequiredService<ILogger<CategoryViewModel>>(),
                 _currentUserService,
+                _databaseLocalizationService,
                 navigateBack: () => ShowAddOptionsCommand.Execute(null)
             );
 
