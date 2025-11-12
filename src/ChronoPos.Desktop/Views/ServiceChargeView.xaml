@@ -1,0 +1,945 @@
+<UserControl x:Class="ChronoPos.Desktop.Views.ServiceChargeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ChronoPos.Desktop.Views.Controls"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             mc:Ignorable="d" 
+             Background="{DynamicResource MainBackground}"
+             FlowDirection="{Binding CurrentFlowDirection}"
+             FontFamily="{DynamicResource PoppinsFontFallback}">
+
+    <UserControl.Resources>
+        <!-- Converters -->
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+        <converters:FlowDirectionToGridColumnConverter x:Key="FlowDirectionToGridColumnConverter"/>
+        <converters:FlowDirectionToHorizontalAlignmentConverter x:Key="FlowDirectionToHorizontalAlignmentConverter"/>
+        <converters:BoolToGridLengthConverter x:Key="BoolToGridLengthConverter"/>
+        <converters:BoolToYesNoConverter x:Key="BoolToYesNoConverter"/>
+        <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
+        <converters:CurrencyPriceConverter x:Key="CurrencyPriceConverter"/>
+
+        <!-- Button Style -->
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Primary}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryDark}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryDarker}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Small Action Button Style -->
+        <Style x:Key="SmallActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeExtraSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Card Style -->
+        <Style x:Key="ServiceChargeCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="{DynamicResource BorderCornerRadius}"/>
+            <Setter Property="Margin" Value="{DynamicResource DefaultMarginThickness}"/>
+            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <!-- Main Content -->
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header Section -->
+            <Grid Grid.Row="0" Margin="{DynamicResource DefaultMarginThickness}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Back Button and Title -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
+                                        <Setter Property="FlowDirection" Value="LeftToRight"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <controls:CircularBackButton 
+                            Command="{Binding BackCommand}"
+                            ButtonSize="30"
+                            ButtonBackground="{DynamicResource SurfaceBackground}"
+                            ButtonForeground="{DynamicResource TextSecondary}"
+                            ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                            ButtonHoverForeground="{DynamicResource TextSecondary}"
+                            Margin="0,0,10,0"/>
+                    </StackPanel>
+
+                    <TextBlock Text="Service Charges" 
+                               FontSize="{DynamicResource FontSizeLarge}"
+                               FontWeight="Bold"
+                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                               Foreground="{DynamicResource TextPrimary}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Action Buttons -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
+                                        <Setter Property="FlowDirection" Value="LeftToRight"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <controls:RefreshButton 
+                            Command="{Binding RefreshDataCommand}"
+                            ButtonText="Refresh"
+                            ButtonIcon="🔄"
+                            MinButtonWidth="120"
+                            ButtonHeight="36"
+                            Margin="0,0,10,0"/>
+                    </StackPanel>
+
+                    <!-- Add Button - Changes based on selected tab -->
+                    <Button Margin="0,0,0,0">
+                        <Button.Content>
+                            <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="Add Service Charge Type"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SelectedTabIndex}" Value="1">
+                                                <Setter Property="Text" Value="Add Service Charge Option"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Button.Content>
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedTabIndex}" Value="0">
+                                        <Setter Property="Command" Value="{Binding AddServiceChargeTypeCommand}"/>
+                                        <Setter Property="Visibility" Value="{Binding CanCreateServiceCharge, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding SelectedTabIndex}" Value="1">
+                                        <Setter Property="Command" Value="{Binding AddServiceChargeOptionCommand}"/>
+                                        <Setter Property="Visibility" Value="{Binding CanCreateServiceCharge, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- Search and Filter Section -->
+            <Border Grid.Row="1" Style="{StaticResource ServiceChargeCardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Search Box -->
+                    <TextBox Grid.Column="0"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             FontSize="{DynamicResource FontSizeSmall}"
+                             FontFamily="{DynamicResource PoppinsFontFallback}"
+                             Padding="{DynamicResource DefaultPaddingThickness}"
+                             Margin="0,0,10,0">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox">
+                                <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+                                <Setter Property="BorderThickness" Value="1"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="TextBox">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    CornerRadius="{DynamicResource BorderCornerRadius}">
+                                                <Grid>
+                                                    <ScrollViewer x:Name="PART_ContentHost" 
+                                                                Margin="{TemplateBinding Padding}"
+                                                                VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Search service charges..."
+                                                             Margin="{TemplateBinding Padding}"
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{DynamicResource TextSecondary}"
+                                                             FontFamily="{TemplateBinding FontFamily}"
+                                                             FontSize="{TemplateBinding FontSize}"
+                                                             IsHitTestVisible="False">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Text, RelativeSource={RelativeSource TemplatedParent}}" Value="">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </Grid>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+
+                    <!-- Filter Buttons -->
+                    <Button Grid.Column="1"
+                            Style="{StaticResource SmallActionButtonStyle}"
+                            Command="{Binding FilterActiveCommand}"
+                            Margin="0,0,10,0">
+                        <Button.Content>
+                            <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="Active Only"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ShowActiveOnly}" Value="True">
+                                                <Setter Property="Text" Value="Show All"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Button.Content>
+                    </Button>
+
+                    <Button Grid.Column="2" Content="Clear Filters" 
+                            Style="{StaticResource SmallActionButtonStyle}"
+                            Command="{Binding ClearFiltersCommand}"/>
+                </Grid>
+            </Border>
+
+            <!-- Tab Control -->
+            <Border Grid.Row="2" 
+                    Background="{DynamicResource CardBackground}"
+                    BorderBrush="{DynamicResource BorderLight}"
+                    BorderThickness="1,0,1,0"
+                    Margin="{DynamicResource DefaultMarginThickness}">
+                <TabControl SelectedIndex="{Binding SelectedTabIndex}"
+                            Background="Transparent"
+                            BorderThickness="0">
+                    <TabControl.Resources>
+                        <Style TargetType="TabItem">
+                            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                            <Setter Property="Padding" Value="20,10"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="TabItem">
+                                        <Border Name="Border" 
+                                                Background="Transparent"
+                                                BorderThickness="0,0,0,2"
+                                                BorderBrush="Transparent"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter x:Name="ContentSite"
+                                                            VerticalAlignment="Center"
+                                                            HorizontalAlignment="Center"
+                                                            ContentSource="Header"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource Primary}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </TabControl.Resources>
+
+                    <TabItem Header="Service Charge Types"/>
+                    <TabItem Header="Service Charge Options"/>
+                </TabControl>
+            </Border>
+
+            <!-- Content Area - Changes based on selected tab -->
+            <Border Grid.Row="3" Style="{StaticResource ServiceChargeCardStyle}">
+                <Grid>
+                    <!-- Tab 0: Service Charge Types -->
+                    <Grid>
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedTabIndex}" Value="0">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Loading Indicator -->
+                        <Grid Grid.Row="0" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <TextBlock Text="Loading service charge types..."
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="{DynamicResource FontSizeMedium}"
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Foreground="{DynamicResource TextSecondary}"/>
+                        </Grid>
+
+                        <!-- Service Charge Types DataGrid -->
+                        <DataGrid Grid.Row="0" 
+                                  ItemsSource="{Binding FilteredServiceChargeTypes}"
+                                  SelectedItem="{Binding SelectedServiceChargeType}"
+                                  AutoGenerateColumns="False"
+                                  GridLinesVisibility="None"
+                                  HeadersVisibility="Column"
+                                  Background="Transparent"
+                                  BorderThickness="0"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  IsReadOnly="True"
+                                  FontFamily="{DynamicResource PoppinsFontFallback}"
+                                  FontSize="{DynamicResource FontSizeSmall}"
+                                  FlowDirection="{Binding CurrentFlowDirection}"
+                                  HorizontalGridLinesBrush="{DynamicResource BorderLight}"
+                                  VerticalGridLinesBrush="Transparent"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                  ScrollViewer.CanContentScroll="True"
+                                  Visibility="{Binding IsLoading, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+
+                            <DataGrid.ColumnHeaderStyle>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                    <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+                                    <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+                                    <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"/>
+                                </Style>
+                            </DataGrid.ColumnHeaderStyle>
+
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                    <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.RowStyle>
+
+                            <DataGrid.CellStyle>
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                    <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                    <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.CellStyle>
+
+                            <DataGrid.Columns>
+                                <!-- Code Column -->
+                                <DataGridTextColumn Header="Code" 
+                                                    Binding="{Binding Code}" 
+                                                    Width="120"
+                                                    MinWidth="100">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="FontFamily" Value="Consolas"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Name Column -->
+                                <DataGridTextColumn Header="Name" 
+                                                    Binding="{Binding Name}" 
+                                                    Width="200"
+                                                    MinWidth="150">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="TextWrapping" Value="Wrap"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Scope Column -->
+                                <DataGridTextColumn Header="Scope" 
+                                                    Binding="{Binding ChargeOptionScope}" 
+                                                    Width="120"
+                                                    MinWidth="100">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Is Default Column -->
+                                <DataGridTemplateColumn Header="Default" Width="100">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="12"
+                                                    Padding="8,4"
+                                                    HorizontalAlignment="Center">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsDefault}" Value="True">
+                                                                <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock Text="{Binding IsDefault, Converter={StaticResource BoolToYesNoConverter}}"
+                                                           Foreground="White"
+                                                           FontSize="{DynamicResource FontSizeExtraSmall}"
+                                                           FontWeight="SemiBold"
+                                                           HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- Options Count Column -->
+                                <DataGridTextColumn Header="Options" 
+                                                    Binding="{Binding OptionsCount}" 
+                                                    Width="100"
+                                                    MinWidth="80">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource Primary}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Status Column -->
+                                <DataGridTemplateColumn Header="Status" Width="100">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="12"
+                                                    Padding="8,4"
+                                                    HorizontalAlignment="Center"
+                                                    Background="{Binding Status, Converter={StaticResource StatusToColorConverter}}">
+                                                <TextBlock Text="{Binding Status}"
+                                                           Foreground="White"
+                                                           FontSize="{DynamicResource FontSizeExtraSmall}"
+                                                           FontWeight="SemiBold"
+                                                           HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- Actions Column -->
+                                <DataGridTemplateColumn Header="Actions" Width="150">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <Button Content="Edit" 
+                                                        Style="{StaticResource SmallActionButtonStyle}"
+                                                        Command="{Binding DataContext.EditServiceChargeTypeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Margin="2"
+                                                        Visibility="{Binding DataContext.CanEditServiceCharge, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                                <Button Content="Delete" 
+                                                        Style="{StaticResource SmallActionButtonStyle}"
+                                                        Command="{Binding DataContext.DeleteServiceChargeTypeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Foreground="Red"
+                                                        Margin="2"
+                                                        Visibility="{Binding DataContext.CanDeleteServiceCharge, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <!-- No Data Message -->
+                        <Grid Grid.Row="0" 
+                              Visibility="{Binding HasServiceChargeTypes, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock Text="💳" 
+                                           FontSize="48" 
+                                           HorizontalAlignment="Center" 
+                                           Margin="0,0,0,10"/>
+                                <TextBlock Text="No service charge types found"
+                                           FontSize="{DynamicResource FontSizeMedium}"
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,5"/>
+                                <TextBlock Text="Click 'Add Service Charge Type' to create your first type"
+                                           FontSize="{DynamicResource FontSizeSmall}"
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Status Bar -->
+                        <Border Grid.Row="1" 
+                                Background="{DynamicResource SurfaceBackground}"
+                                BorderThickness="0,1,0,0"
+                                BorderBrush="{DynamicResource BorderLight}"
+                                Padding="{DynamicResource DefaultPaddingThickness}"
+                                Margin="0,10,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding StatusMessage}"
+                                           FontSize="{DynamicResource FontSizeExtraSmall}"
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           VerticalAlignment="Center"/>
+
+                                <TextBlock Grid.Column="1"
+                                           FontSize="{DynamicResource FontSizeExtraSmall}"
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           VerticalAlignment="Center">
+                                    <Run Text="{Binding FilteredServiceChargeTypes.Count, Mode=OneWay}"/>
+                                    <Run Text="of"/>
+                                    <Run Text="{Binding TotalServiceChargeTypes, Mode=OneWay}"/>
+                                    <Run Text="types"/>
+                                </TextBlock>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- Tab 1: Service Charge Options -->
+                    <Grid>
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedTabIndex}" Value="1">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Loading Indicator -->
+                        <Grid Grid.Row="0" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <TextBlock Text="Loading service charge options..."
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="{DynamicResource FontSizeMedium}"
+                                       FontFamily="{DynamicResource PoppinsFontFallback}"
+                                       Foreground="{DynamicResource TextSecondary}"/>
+                        </Grid>
+
+                        <!-- Service Charge Options DataGrid -->
+                        <DataGrid Grid.Row="0" 
+                                  ItemsSource="{Binding FilteredServiceChargeOptions}"
+                                  SelectedItem="{Binding SelectedServiceChargeOption}"
+                                  AutoGenerateColumns="False"
+                                  GridLinesVisibility="None"
+                                  HeadersVisibility="Column"
+                                  Background="Transparent"
+                                  BorderThickness="0"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  IsReadOnly="True"
+                                  FontFamily="{DynamicResource PoppinsFontFallback}"
+                                  FontSize="{DynamicResource FontSizeSmall}"
+                                  FlowDirection="{Binding CurrentFlowDirection}"
+                                  HorizontalGridLinesBrush="{DynamicResource BorderLight}"
+                                  VerticalGridLinesBrush="Transparent"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                  ScrollViewer.CanContentScroll="True"
+                                  Visibility="{Binding IsLoading, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+
+                            <DataGrid.ColumnHeaderStyle>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                    <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+                                    <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+                                    <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"/>
+                                </Style>
+                            </DataGrid.ColumnHeaderStyle>
+
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                    <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.RowStyle>
+
+                            <DataGrid.CellStyle>
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                    <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                                    <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.CellStyle>
+
+                            <DataGrid.Columns>
+                                <!-- Option Name Column -->
+                                <DataGridTextColumn Header="Option Name" 
+                                                    Binding="{Binding Name}" 
+                                                    Width="200"
+                                                    MinWidth="150">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="TextWrapping" Value="Wrap"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Service Charge Type Column -->
+                                <DataGridTextColumn Header="Type" 
+                                                    Binding="{Binding ServiceChargeTypeName}" 
+                                                    Width="180"
+                                                    MinWidth="150">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="TextWrapping" Value="Wrap"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Price Column -->
+                                <DataGridTextColumn Header="Price" 
+                                                    Binding="{Binding Price, Converter={StaticResource CurrencyPriceConverter}}" 
+                                                    Width="120"
+                                                    MinWidth="100">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource Primary}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Cost Column -->
+                                <DataGridTextColumn Header="Cost" 
+                                                    Binding="{Binding Cost, Converter={StaticResource CurrencyPriceConverter}}" 
+                                                    Width="120"
+                                                    MinWidth="100">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Language Column -->
+                                <DataGridTextColumn Header="Language" 
+                                                    Binding="{Binding LanguageName}" 
+                                                    Width="120"
+                                                    MinWidth="100">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Status Column -->
+                                <DataGridTemplateColumn Header="Status" Width="100">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="12"
+                                                    Padding="8,4"
+                                                    HorizontalAlignment="Center"
+                                                    Background="{Binding Status, Converter={StaticResource StatusToColorConverter}}">
+                                                <TextBlock Text="{Binding Status}"
+                                                           Foreground="White"
+                                                           FontSize="{DynamicResource FontSizeExtraSmall}"
+                                                           FontWeight="SemiBold"
+                                                           HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- Actions Column -->
+                                <DataGridTemplateColumn Header="Actions" Width="150">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <Button Content="Edit" 
+                                                        Style="{StaticResource SmallActionButtonStyle}"
+                                                        Command="{Binding DataContext.EditServiceChargeOptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Margin="2"
+                                                        Visibility="{Binding DataContext.CanEditServiceCharge, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                                <Button Content="Delete" 
+                                                        Style="{StaticResource SmallActionButtonStyle}"
+                                                        Command="{Binding DataContext.DeleteServiceChargeOptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Foreground="Red"
+                                                        Margin="2"
+                                                        Visibility="{Binding DataContext.CanDeleteServiceCharge, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <!-- No Data Message -->
+                        <Grid Grid.Row="0" 
+                              Visibility="{Binding HasServiceChargeOptions, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock Text="💰" 
+                                           FontSize="48" 
+                                           HorizontalAlignment="Center" 
+                                           Margin="0,0,0,10"/>
+                                <TextBlock Text="No service charge options found"
+                                           FontSize="{DynamicResource FontSizeMedium}"
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,5"/>
+                                <TextBlock Text="Click 'Add Service Charge Option' to create your first option"
+                                           FontSize="{DynamicResource FontSizeSmall}"
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Status Bar -->
+                        <Border Grid.Row="1" 
+                                Background="{DynamicResource SurfaceBackground}"
+                                BorderThickness="0,1,0,0"
+                                BorderBrush="{DynamicResource BorderLight}"
+                                Padding="{DynamicResource DefaultPaddingThickness}"
+                                Margin="0,10,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding StatusMessage}"
+                                           FontSize="{DynamicResource FontSizeExtraSmall}"
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           VerticalAlignment="Center"/>
+
+                                <TextBlock Grid.Column="1"
+                                           FontSize="{DynamicResource FontSizeExtraSmall}"
+                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           VerticalAlignment="Center">
+                                    <Run Text="{Binding FilteredServiceChargeOptions.Count, Mode=OneWay}"/>
+                                    <Run Text="of"/>
+                                    <Run Text="{Binding TotalServiceChargeOptions, Mode=OneWay}"/>
+                                    <Run Text="options"/>
+                                </TextBlock>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Side Panel Overlay -->
+        <Border HorizontalAlignment="Right"
+                VerticalAlignment="Stretch"
+                Width="600"
+                Background="{DynamicResource CardBackground}"
+                BorderThickness="1,0,0,0"
+                BorderBrush="{DynamicResource BorderLight}"
+                Panel.ZIndex="1000"
+                Visibility="{Binding IsSidePanelVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="SidePanelTransform"/>
+            </Border.RenderTransform>
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsSidePanelVisible}" Value="True">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
+                                                       From="600" To="0" Duration="0:0:0.3">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.EnterActions>
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
+                                                       From="0" To="600" Duration="0:0:0.2">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseIn"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Border.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="12" Opacity="0.3" Direction="180"/>
+            </Border.Effect>
+            <ContentControl Content="{Binding SidePanelContent}"/>
+        </Border>
+    </Grid>
+
+</UserControl>

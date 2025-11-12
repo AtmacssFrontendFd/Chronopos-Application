@@ -242,6 +242,21 @@ public class RestaurantTableService : IRestaurantTableService
     }
 
     /// <summary>
+    /// Gets all unique floor locations from tables
+    /// </summary>
+    /// <returns>Collection of distinct location names</returns>
+    public async Task<IEnumerable<string>> GetDistinctLocationsAsync()
+    {
+        var tables = await _restaurantTableRepository.GetAllAsync();
+        return tables
+            .Where(t => !string.IsNullOrEmpty(t.Location))
+            .Select(t => t.Location!)
+            .Distinct()
+            .OrderBy(l => l)
+            .ToList();
+    }
+
+    /// <summary>
     /// Maps RestaurantTable entity to RestaurantTableDto
     /// </summary>
     /// <param name="table">RestaurantTable entity</param>

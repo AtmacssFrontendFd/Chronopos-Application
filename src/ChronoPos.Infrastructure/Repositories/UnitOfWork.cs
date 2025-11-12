@@ -14,7 +14,7 @@ public class UnitOfWork : IUnitOfWork
     
     private IProductRepository? _productRepository;
     private ICategoryRepository? _categoryRepository;
-    private IRepository<Customer>? _customerRepository;
+    private ICustomerRepository? _customerRepository;
     private IRepository<CustomerGroup>? _customerGroupRepository;
     private IProductGroupRepository? _productGroupRepository;
     private IProductGroupItemRepository? _productGroupItemRepository;
@@ -25,6 +25,7 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<TaxType>? _taxTypeRepository;
     private IProductDiscountRepository? _productDiscountRepository;
     private ICategoryDiscountRepository? _categoryDiscountRepository;
+    private ICustomerDiscountRepository? _customerDiscountRepository;
     private ISellingPriceTypeRepository? _sellingPriceTypeRepository;
     private IPaymentTypeRepository? _paymentTypeRepository;
     private ISupplierRepository? _supplierRepository;
@@ -44,8 +45,8 @@ public class UnitOfWork : IUnitOfWork
     public ICategoryRepository Categories => 
         _categoryRepository ??= new CategoryRepository(_context);
     
-    public IRepository<Customer> Customers => 
-        _customerRepository ??= new Repository<Customer>(_context);
+    public ICustomerRepository Customers => 
+        _customerRepository ??= new CustomerRepository(_context);
     
     public IRepository<CustomerGroup> CustomerGroups => 
         _customerGroupRepository ??= new Repository<CustomerGroup>(_context);
@@ -73,6 +74,9 @@ public class UnitOfWork : IUnitOfWork
     
     public ICategoryDiscountRepository CategoryDiscounts =>
         _categoryDiscountRepository ??= new CategoryDiscountRepository(_context);
+    
+    public ICustomerDiscountRepository CustomerDiscounts =>
+        _customerDiscountRepository ??= new CustomerDiscountRepository(_context);
     
     public ISellingPriceTypeRepository SellingPriceTypes =>
         _sellingPriceTypeRepository ??= new SellingPriceTypeRepository(_context);

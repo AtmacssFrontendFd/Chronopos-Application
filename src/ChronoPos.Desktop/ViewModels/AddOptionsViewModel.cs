@@ -10,6 +10,7 @@ using ChronoPos.Desktop.Services;
 using ChronoPos.Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
 using ChronoPos.Application.Constants;
+using ChronoPos.Desktop.Views.Dialogs;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -34,6 +35,17 @@ public partial class AddOptionsViewModel : ObservableObject
     private readonly ICustomerGroupService _customerGroupService;
     private readonly ISupplierService _supplierService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ICategoryService _categoryService;
+    private readonly IProductAttributeService _productAttributeService;
+    private readonly IProductCombinationItemService _productCombinationItemService;
+    private readonly IDiscountService _discountService;
+    private readonly IProductGroupService _productGroupService;
+    private readonly IPaymentTypeService _paymentTypeService;
+    private readonly IBrandService _brandService;
+    private readonly IUomService _uomService;
+    private readonly IStoreService _storeService;
+    private readonly ICurrencyService _currencyService;
+    private readonly IProductModifierService _productModifierService;
 
     #endregion
 
@@ -82,6 +94,12 @@ public partial class AddOptionsViewModel : ObservableObject
     private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
 
     /// <summary>
+    /// Refresh button text with localization support
+    /// </summary>
+    [ObservableProperty]
+    private string _refreshButtonText = "Refresh";
+
+    /// <summary>
     /// Visibility flag for Brand module
     /// </summary>
     [ObservableProperty]
@@ -110,6 +128,12 @@ public partial class AddOptionsViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     private bool _isProductAttributesVisible = true;
+
+    /// <summary>
+    /// Visibility flag for Product Modifiers module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isProductModifiersVisible = true;
 
     /// <summary>
     /// Visibility flag for Product Combinations module
@@ -171,6 +195,12 @@ public partial class AddOptionsViewModel : ObservableObject
     [ObservableProperty]
     private bool _isWarehousesVisible = true;
 
+    /// <summary>
+    /// Visibility flag for Currency module
+    /// </summary>
+    [ObservableProperty]
+    private bool _isCurrencyVisible = true;
+
     #endregion
 
     #region Commands
@@ -198,8 +228,7 @@ public partial class AddOptionsViewModel : ObservableObject
         else
         {
             // Fallback for debug
-            MessageBox.Show($"Navigating to {moduleType} module", "Navigation", 
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            new MessageDialog("Navigation", $"Navigating to {moduleType} module", MessageDialog.MessageType.Info).ShowDialog();
         }
     }
 
@@ -216,8 +245,7 @@ public partial class AddOptionsViewModel : ObservableObject
         else
         {
             // Fallback for debug
-            MessageBox.Show("Going back to Management", "Navigation", 
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            new MessageDialog("Navigation", "Going back to Management", MessageDialog.MessageType.Info).ShowDialog();
         }
     }
 
@@ -249,7 +277,18 @@ public partial class AddOptionsViewModel : ObservableObject
         ICustomerService customerService,
         ICustomerGroupService customerGroupService,
         ISupplierService supplierService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ICategoryService categoryService,
+        IProductAttributeService productAttributeService,
+        IProductCombinationItemService productCombinationItemService,
+        IDiscountService discountService,
+        IProductGroupService productGroupService,
+        IPaymentTypeService paymentTypeService,
+        IBrandService brandService,
+        IUomService uomService,
+        IStoreService storeService,
+        ICurrencyService currencyService,
+        IProductModifierService productModifierService)
     {
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
@@ -263,6 +302,17 @@ public partial class AddOptionsViewModel : ObservableObject
         _customerGroupService = customerGroupService ?? throw new ArgumentNullException(nameof(customerGroupService));
         _supplierService = supplierService ?? throw new ArgumentNullException(nameof(supplierService));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _categoryService = categoryService ?? throw new ArgumentNullException(nameof(categoryService));
+        _productAttributeService = productAttributeService ?? throw new ArgumentNullException(nameof(productAttributeService));
+        _productCombinationItemService = productCombinationItemService ?? throw new ArgumentNullException(nameof(productCombinationItemService));
+        _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
+        _productGroupService = productGroupService ?? throw new ArgumentNullException(nameof(productGroupService));
+        _paymentTypeService = paymentTypeService ?? throw new ArgumentNullException(nameof(paymentTypeService));
+        _brandService = brandService ?? throw new ArgumentNullException(nameof(brandService));
+        _uomService = uomService ?? throw new ArgumentNullException(nameof(uomService));
+        _storeService = storeService ?? throw new ArgumentNullException(nameof(storeService));
+        _currencyService = currencyService ?? throw new ArgumentNullException(nameof(currencyService));
+        _productModifierService = productModifierService ?? throw new ArgumentNullException(nameof(productModifierService));
 
         // Subscribe to service events (commented out until proper event signatures are confirmed)
         // _themeService.ThemeChanged += OnThemeChanged;
@@ -301,14 +351,15 @@ public partial class AddOptionsViewModel : ObservableObject
             IsDiscountsVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.DISCOUNTS);
             IsUomVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.UOM);
             IsProductAttributesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRODUCT_ATTRIBUTES);
+            IsProductModifiersVisible = true; // TODO: Add ScreenNames.PRODUCT_MODIFIERS when permission constant is added
             IsProductCombinationsVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRODUCT_COMBINATIONS);
             IsProductGroupsVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRODUCT_GROUPING);
             IsPriceTypesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PRICE_TYPES);
             IsPaymentTypesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.PAYMENT_TYPES);
             IsTaxRatesVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.TAX_RATES);
-            IsCustomersVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS);
+            IsCustomersVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.CUSTOMERS);
             IsCustomerGroupsVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.CUSTOMER_GROUPS);
-            IsSuppliersVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.SUPPLIERS_ADD_OPTIONS);
+            IsSuppliersVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.SUPPLIERS);
             IsShopVisible = _currentUserService.HasAnyScreenPermission(ScreenNames.SHOP);
             // Note: Warehouses doesn't have a screen constant, so keeping it visible by default
             IsWarehousesVisible = true;
@@ -325,6 +376,7 @@ public partial class AddOptionsViewModel : ObservableObject
             IsDiscountsVisible = true;
             IsUomVisible = true;
             IsProductAttributesVisible = true;
+            IsProductModifiersVisible = true;
             IsProductCombinationsVisible = true;
             IsProductGroupsVisible = true;
             IsPriceTypesVisible = true;
@@ -354,23 +406,22 @@ public partial class AddOptionsViewModel : ObservableObject
                 var primaryColorBrush = GetPrimaryColorBrush();
                 var buttonBackgroundBrush = GetButtonBackgroundBrush();
 
-                // Create all 14 modules with visibility flags
+                // Create all 11 modules with visibility flags (removed Customer, CustomerGroups, and Suppliers)
                 var moduleData = new[]
                 {
                     new { Type = "Brand", TitleKey = "add_options.brand", CountLabel = "Brands", Count = await GetBrandCountAsync(), IsVisible = IsBrandVisible },
                     new { Type = "Category", TitleKey = "add_options.category", CountLabel = "Categories", Count = await GetCategoryCountAsync(), IsVisible = IsCategoryVisible },
                     new { Type = "ProductAttributes", TitleKey = "add_options.product_attributes", CountLabel = "Attributes", Count = await GetProductAttributesCountAsync(), IsVisible = IsProductAttributesVisible },
+                    new { Type = "ProductModifiers", TitleKey = "add_options.product_modifiers", CountLabel = "Modifiers", Count = await GetProductModifiersCountAsync(), IsVisible = IsProductModifiersVisible },
                     new { Type = "ProductCombinations", TitleKey = "add_options.product_combinations", CountLabel = "Combinations", Count = await GetProductCombinationsCountAsync(), IsVisible = IsProductCombinationsVisible },
                     new { Type = "ProductGrouping", TitleKey = "add_options.product_grouping", CountLabel = "Groups", Count = await GetProductGroupingCountAsync(), IsVisible = IsProductGroupsVisible },
                     new { Type = "PriceTypes", TitleKey = "add_options.price_types", CountLabel = "Price Types", Count = await GetPriceTypesCountAsync(), IsVisible = IsPriceTypesVisible },
                     new { Type = "PaymentTypes", TitleKey = "add_options.payment_types", CountLabel = "Payment Types", Count = await GetPaymentTypesCountAsync(), IsVisible = IsPaymentTypesVisible },
                     new { Type = "TaxRates", TitleKey = "add_options.tax_rates", CountLabel = "Tax Rates", Count = await GetTaxRatesCountAsync(), IsVisible = IsTaxRatesVisible },
-                    new { Type = "Customers", TitleKey = "add_options.customer", CountLabel = "Customers", Count = await GetCustomerCountAsync(), IsVisible = IsCustomersVisible },
-                    new { Type = "Suppliers", TitleKey = "add_options.suppliers", CountLabel = "Suppliers", Count = await GetSuppliersCountAsync(), IsVisible = IsSuppliersVisible },
                     new { Type = "UOM", TitleKey = "add_options.uom", CountLabel = "UOMs", Count = await GetUOMCountAsync(), IsVisible = IsUomVisible },
                     new { Type = "Shop", TitleKey = "add_options.shop", CountLabel = "Shops", Count = await GetShopCountAsync(), IsVisible = IsShopVisible },
-                    new { Type = "CustomerGroups", TitleKey = "add_options.customer_groups", CountLabel = "Groups", Count = await GetCustomerGroupsCountAsync(), IsVisible = IsCustomerGroupsVisible },
-                    new { Type = "Discounts", TitleKey = "add_options.discounts", CountLabel = "Discounts", Count = await GetDiscountsCountAsync(), IsVisible = IsDiscountsVisible }
+                    new { Type = "Discounts", TitleKey = "add_options.discounts", CountLabel = "Discounts", Count = await GetDiscountsCountAsync(), IsVisible = IsDiscountsVisible },
+                    new { Type = "Currency", TitleKey = "add_options.currency", CountLabel = "Currencies", Count = await GetCurrencyCountAsync(), IsVisible = IsCurrencyVisible }
                 };
 
                 // Add modules to collection - Only add visible modules
@@ -393,8 +444,9 @@ public partial class AddOptionsViewModel : ObservableObject
                     }
                 }
                 
-                // Update page title
+                // Update page title and refresh button text
                 PageTitle = await _databaseLocalizationService.GetTranslationAsync("add_options.page_title") ?? "Others";
+                RefreshButtonText = await _databaseLocalizationService.GetTranslationAsync("add_options.refresh_button") ?? "Refresh";
             });
         }
         catch (Exception ex)
@@ -430,50 +482,83 @@ public partial class AddOptionsViewModel : ObservableObject
     {
         try
         {
-            // Get the Brand service from the service provider if available
-            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
-            if (serviceProvider != null)
-            {
-                var brandService = serviceProvider.GetService<IBrandService>();
-                if (brandService != null)
-                {
-                    var brands = await brandService.GetAllAsync();
-                    return brands.Count();
-                }
-            }
+            var brands = await _brandService.GetAllAsync();
+            return brands.Count();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error getting Brand count: {ex.Message}");
+            return 0;
         }
-        
-        // Fallback to mock data
-        await Task.Delay(50);
-        return 45; // Mock count
     }
 
     private async Task<int> GetCategoryCountAsync()
     {
-        await Task.Delay(50);
-        return 28;
+        try
+        {
+            var categories = await _categoryService.GetAllAsync();
+            return categories.Count();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting Category count: {ex.Message}");
+            return 0;
+        }
     }
 
     private async Task<int> GetProductAttributesCountAsync()
     {
-        await Task.Delay(50);
-        return 67;
+        try
+        {
+            var attributes = await _productAttributeService.GetAllAttributesAsync();
+            return attributes.Count();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting ProductAttributes count: {ex.Message}");
+            return 0;
+        }
+    }
+
+    private async Task<int> GetProductModifiersCountAsync()
+    {
+        try
+        {
+            var modifiers = await _productModifierService.GetAllAsync();
+            return modifiers.Count();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting ProductModifier count: {ex.Message}");
+            return 0;
+        }
     }
 
     private async Task<int> GetProductCombinationsCountAsync()
     {
-        await Task.Delay(50);
-        return 134;
+        try
+        {
+            var combinations = await _productCombinationItemService.GetAllCombinationItemsAsync();
+            return combinations.Count();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting ProductCombinations count: {ex.Message}");
+            return 0;
+        }
     }
 
     private async Task<int> GetProductGroupingCountAsync()
     {
-        await Task.Delay(50);
-        return 15;
+        try
+        {
+            return await _productGroupService.GetCountAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting ProductGrouping count: {ex.Message}");
+            return 0;
+        }
     }
 
     private async Task<int> GetPriceTypesCountAsync()
@@ -499,13 +584,11 @@ public partial class AddOptionsViewModel : ObservableObject
     {
         try
         {
-            // For now, return a placeholder count
-            // TODO: Inject IPaymentTypeService and get real count
-            await Task.Delay(50);
-            return 6; // Number of seeded payment types
+            return await _paymentTypeService.GetCountAsync();
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"Error getting PaymentTypes count: {ex.Message}");
             return 0;
         }
     }
@@ -553,52 +636,28 @@ public partial class AddOptionsViewModel : ObservableObject
     {
         try
         {
-            // Get the UOM service from the service provider if available
-            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
-            if (serviceProvider != null)
-            {
-                var uomService = serviceProvider.GetService<IUomService>();
-                if (uomService != null)
-                {
-                    var uoms = await uomService.GetAllAsync();
-                    return uoms.Count();
-                }
-            }
+            var uoms = await _uomService.GetAllAsync();
+            return uoms.Count();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error getting UOM count: {ex.Message}");
+            return 0;
         }
-        
-        // Fallback to mock data
-        await Task.Delay(50);
-        return 18;
     }
 
     private async Task<int> GetShopCountAsync()
     {
         try
         {
-            // Get the Store service from the service provider if available
-            var serviceProvider = System.Windows.Application.Current?.Resources["ServiceProvider"] as IServiceProvider;
-            if (serviceProvider != null)
-            {
-                var storeService = serviceProvider.GetService<IStoreService>();
-                if (storeService != null)
-                {
-                    var stores = await storeService.GetAllAsync();
-                    return stores.Count();
-                }
-            }
+            var stores = await _storeService.GetAllAsync();
+            return stores.Count();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error getting Store count: {ex.Message}");
+            return 0;
         }
-        
-        // Fallback to mock data
-        await Task.Delay(50);
-        return 3; // Mock count
     }
 
     private async Task<int> GetCustomerGroupsCountAsync()
@@ -619,8 +678,30 @@ public partial class AddOptionsViewModel : ObservableObject
 
     private async Task<int> GetDiscountsCountAsync()
     {
-        await Task.Delay(50);
-        return 31;
+        try
+        {
+            var discounts = await _discountService.GetAllAsync();
+            return discounts.Count();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting Discounts count: {ex.Message}");
+            return 0;
+        }
+    }
+
+    private async Task<int> GetCurrencyCountAsync()
+    {
+        try
+        {
+            var currencies = await _currencyService.GetAllAsync();
+            return currencies.Count();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting Currency count: {ex.Message}");
+            return 0;
+        }
     }
 
     #endregion

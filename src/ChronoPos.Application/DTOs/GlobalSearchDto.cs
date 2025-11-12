@@ -34,6 +34,8 @@ public class GlobalSearchFilterDto
     public bool IncludeStock { get; set; } = true;
     public bool IncludeBrands { get; set; } = true;
     public bool IncludeCategories { get; set; } = true;
+    public bool IncludePages { get; set; } = true; // Include navigable pages/screens
+    public bool IncludeFeatures { get; set; } = true; // Include features/actions
 }
 
 /// <summary>

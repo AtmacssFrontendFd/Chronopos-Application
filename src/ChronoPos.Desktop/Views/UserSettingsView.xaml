@@ -225,28 +225,24 @@
                 </userControls:UsersManagementUserControl>
 
                 <!-- Company Details Content -->
-                <Border Padding="20">
-                    <Border.Visibility>
+                <userControls:CompanyDetailsUserControl 
+                    DataContext="{Binding CompanyDetailsViewModel}">
+                    <userControls:CompanyDetailsUserControl.Visibility>
                         <Binding Path="DataContext.IsCompanyDetailsTabSelected" 
                                  RelativeSource="{RelativeSource AncestorType=UserControl}"
                                  Converter="{StaticResource BoolToVisibilityConverter}"/>
-                    </Border.Visibility>
-                    <TextBlock Text="Company Details - Coming Soon"
-                               FontSize="18"
-                               Foreground="{DynamicResource TextSecondary}"/>
-                </Border>
+                    </userControls:CompanyDetailsUserControl.Visibility>
+                </userControls:CompanyDetailsUserControl>
 
                 <!-- Company Settings Content -->
-                <Border Padding="20">
-                    <Border.Visibility>
+                <userControls:CompanySettingsUserControl 
+                    DataContext="{Binding CompanySettingsViewModel}">
+                    <userControls:CompanySettingsUserControl.Visibility>
                         <Binding Path="DataContext.IsCompanySettingsTabSelected" 
                                  RelativeSource="{RelativeSource AncestorType=UserControl}"
                                  Converter="{StaticResource BoolToVisibilityConverter}"/>
-                    </Border.Visibility>
-                    <TextBlock Text="Company Settings - Coming Soon"
-                               FontSize="18"
-                               Foreground="{DynamicResource TextSecondary}"/>
-                </Border>
+                    </userControls:CompanySettingsUserControl.Visibility>
+                </userControls:CompanySettingsUserControl>
 
             </Grid>
         </Grid>

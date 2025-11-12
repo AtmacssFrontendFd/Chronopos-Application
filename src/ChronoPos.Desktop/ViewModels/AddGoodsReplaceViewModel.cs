@@ -5,6 +5,7 @@ using ChronoPos.Application.DTOs;
 using System.Collections.ObjectModel;
 using System.Windows;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Views.Dialogs;
 using InfrastructureServices = ChronoPos.Infrastructure.Services;
 using ChronoPos.Application.Logging;
 
@@ -25,6 +26,7 @@ public partial class AddGoodsReplaceViewModel : ObservableObject, IDisposable
     private readonly IUomService _uomService;
     private readonly IProductBatchService _productBatchService;
     internal readonly IStockService _stockService;
+    private readonly IActiveCurrencyService _activeCurrencyService;
     private readonly Action? _navigateBack;
     private readonly int? _replaceId;
     
@@ -40,6 +42,11 @@ public partial class AddGoodsReplaceViewModel : ObservableObject, IDisposable
     #endregion
 
     #region Observable Properties
+    
+    /// <summary>
+    /// Gets the active currency symbol for dynamic table headers
+    /// </summary>
+    public string ActiveCurrencySymbol => _activeCurrencyService?.CurrencySymbol ?? "$";
 
     // Goods Replace Header Properties
     [ObservableProperty]
@@ -202,6 +209,7 @@ public partial class AddGoodsReplaceViewModel : ObservableObject, IDisposable
         IUomService uomService,
         IProductBatchService productBatchService,
         IStockService stockService,
+        IActiveCurrencyService activeCurrencyService,
         IThemeService themeService,
         IZoomService zoomService,
         ILocalizationService localizationService,
@@ -220,6 +228,7 @@ public partial class AddGoodsReplaceViewModel : ObservableObject, IDisposable
         _uomService = uomService ?? throw new ArgumentNullException(nameof(uomService));
         _productBatchService = productBatchService ?? throw new ArgumentNullException(nameof(productBatchService));
         _stockService = stockService ?? throw new ArgumentNullException(nameof(stockService));
+        _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         _zoomService = zoomService ?? throw new ArgumentNullException(nameof(zoomService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -649,13 +658,14 @@ public partial class AddGoodsReplaceViewModel : ObservableObject, IDisposable
     {
         if (ValidateReplace())
         {
-            var result = MessageBox.Show(
-                "Are you sure you want to post this replacement? This will update stock levels and the replacement cannot be edited afterwards.",
+            var dialog = new ConfirmationDialog(
                 "Confirm Post",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
+                "Are you sure you want to post this replacement? This will update stock levels and the replacement cannot be edited afterwards.",
+                ConfirmationDialog.DialogType.Warning);
 
-            if (result == MessageBoxResult.Yes)
+            var result = dialog.ShowDialog();
+
+            if (result == true)
             {
                 await SaveReplaceAsync("Posted");
             }
@@ -665,13 +675,14 @@ public partial class AddGoodsReplaceViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void Cancel()
     {
-        var result = MessageBox.Show(
-            "Are you sure you want to cancel? All unsaved changes will be lost.",
+        var dialog = new ConfirmationDialog(
             "Confirm Cancel",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            "Are you sure you want to cancel? All unsaved changes will be lost.",
+            ConfirmationDialog.DialogType.Warning);
 
-        if (result == MessageBoxResult.Yes)
+        var result = dialog.ShowDialog();
+
+        if (result == true)
         {
             _navigateBack?.Invoke();
             AppLogger.LogInfo("Goods Replace cancelled", "ViewModel", "viewmodel");
@@ -829,11 +840,7 @@ public partial class AddGoodsReplaceViewModel : ObservableObject, IDisposable
                 ? $"Goods Replacement {(IsEditMode ? "updated and posted" : "posted")} successfully! Stock has been updated."
                 : $"Goods Replacement saved as draft successfully!";
 
-            MessageBox.Show(
-                successMessage,
-                "Success",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            new MessageDialog("Success", successMessage, MessageDialog.MessageType.Success).ShowDialog();
 
             _navigateBack?.Invoke();
         }

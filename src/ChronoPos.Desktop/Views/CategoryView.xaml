@@ -63,6 +63,42 @@
             <Setter Property="MinWidth" Value="60"/>
         </Style>
 
+        <!-- Success Button Style (Green Button) -->
+        <Style x:Key="SuccessButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#27ae60"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#1e8449"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- TreeView Item Style -->
         <Style x:Key="CategoryTreeViewItemStyle" TargetType="TreeViewItem">
             <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
@@ -155,27 +191,27 @@
 
                                     <!-- Action Buttons -->
                                     <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="8,0,0,0">
-                                        <Button Content="Edit" 
+                                        <Button Content="{Binding DataContext.EditButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.EditCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Background="{DynamicResource WarningBrush}"
                                                 Margin="2,0"
-                                                Visibility="{Binding DataContext.CanEditCategory, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                        <Button Content="Add Sub" 
+                                                Visibility="{Binding DataContext.CanEditCategory, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        <Button Content="{Binding DataContext.AddSubCategoryButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.AddSubCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Background="{DynamicResource SuccessBrush}"
                                                 Margin="2,0"
-                                                Visibility="{Binding DataContext.CanCreateCategory, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                        <Button Content="Delete" 
+                                                Visibility="{Binding DataContext.CanCreateCategory, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        <Button Content="{Binding DataContext.DeleteButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.DeleteCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Background="{DynamicResource DangerBrush}"
                                                 Margin="2,0"
-                                                Visibility="{Binding DataContext.CanDeleteCategory, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                Visibility="{Binding DataContext.CanDeleteCategory, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                     </StackPanel>
                                 </Grid>
                             </Border>
@@ -223,13 +259,16 @@
                         </StackPanel.Style>
                         <controls:CircularBackButton 
                             Command="{Binding BackCommand}"
-                            Width="{DynamicResource ButtonHeight}"
-                            Height="{DynamicResource ButtonHeight}"
+                            ButtonSize="30"
+                            ButtonBackground="{DynamicResource SurfaceBackground}"
+                            ButtonForeground="{DynamicResource TextSecondary}"
+                            ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                            ButtonHoverForeground="{DynamicResource TextSecondary}"
                             Margin="0,0,10,0"/>
                     </StackPanel>
 
                     <!-- Title -->
-                    <TextBlock Text="Category Management" 
+                    <TextBlock Text="{Binding PageTitle}" 
                                FontSize="{DynamicResource FontSizeLarge}"
                                FontWeight="Bold"
                                FontFamily="{DynamicResource PoppinsFontFallback}"
@@ -242,30 +281,30 @@
                     <!-- Import Button -->
                     <Button Style="{StaticResource SuccessButtonStyle}"
                             Command="{Binding ImportCommand}"
-                            Visibility="{Binding CanImportCategory, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Visibility="{Binding CanImportCategory, Converter={StaticResource BoolToVisibilityConverter}}"
                             Margin="0,0,10,0">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="📥" FontSize="16" Margin="0,0,5,0"/>
-                            <TextBlock Text="Import"/>
+                            <TextBlock Text="{Binding ImportButtonText}"/>
                         </StackPanel>
                     </Button>
 
                     <!-- Export Button -->
                     <Button Style="{StaticResource SuccessButtonStyle}"
                             Command="{Binding ExportCommand}"
-                            Visibility="{Binding CanExportCategory, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Visibility="{Binding CanExportCategory, Converter={StaticResource BoolToVisibilityConverter}}"
                             Margin="0,0,10,0">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="📤" FontSize="16" Margin="0,0,5,0"/>
-                            <TextBlock Text="Export"/>
+                            <TextBlock Text="{Binding ExportButtonText}"/>
                         </StackPanel>
                     </Button>
 
                     <!-- Add Category Button -->
-                    <Button Content="+ Add Category"
+                    <Button Content="{Binding AddCategoryButtonText}"
                             Style="{StaticResource ActionButtonStyle}"
                             Command="{Binding AddCategoryCommand}"
-                            Visibility="{Binding CanCreateCategory, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            Visibility="{Binding CanCreateCategory, Converter={StaticResource BoolToVisibilityConverter}}"/>
                 </StackPanel>
             </Grid>
 
@@ -304,7 +343,7 @@
 
                 <!-- Filter Button -->
                 <Button Grid.Column="1"
-                        Content="Filter"
+                        Content="{Binding SearchPlaceholder}"
                         Style="{StaticResource ActionButtonStyle}"
                         Command="{Binding FilterCommand}"
                         Background="Transparent"
@@ -315,7 +354,7 @@
 
                 <!-- Refresh Button -->
                 <Button Grid.Column="2"
-                        Content="Refresh"
+                        Content="{Binding RefreshButtonText}"
                         Style="{StaticResource ActionButtonStyle}"
                         Command="{Binding RefreshDataCommand}"
                         Background="Transparent"
@@ -393,7 +432,7 @@
         <!-- Side Panel Overlay - Direct child of root Grid for proper z-index -->
         <Border HorizontalAlignment="Right"
                 VerticalAlignment="Stretch"
-                Width="400"
+                Width="600"
                 Background="{DynamicResource CardBackground}"
                 BorderThickness="1,0,0,0"
                 BorderBrush="{DynamicResource BorderLight}"
@@ -410,7 +449,7 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
-                                                       From="400" To="0" Duration="0:0:0.3">
+                                                       From="600" To="0" Duration="0:0:0.3">
                                             <DoubleAnimation.EasingFunction>
                                                 <CubicEase EasingMode="EaseOut"/>
                                             </DoubleAnimation.EasingFunction>
@@ -422,7 +461,7 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
-                                                       From="0" To="400" Duration="0:0:0.2">
+                                                       From="0" To="600" Duration="0:0:0.2">
                                             <DoubleAnimation.EasingFunction>
                                                 <CubicEase EasingMode="EaseIn"/>
                                             </DoubleAnimation.EasingFunction>

@@ -1,0 +1,136 @@
+<Window x:Class="ChronoPos.Desktop.Views.Dialogs.ProductGroupSelectionDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Select Product Group" 
+        Height="600" 
+        Width="800"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource PageBackground}"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True">
+    
+    <Window.Resources>
+        <!-- Group Card Style -->
+        <Style x:Key="ProductGroupCard" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource WhiteText}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderMedium}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="Margin" Value="0,0,0,15"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{StaticResource PageBackground}"
+            CornerRadius="12"
+            BorderThickness="1"
+            BorderBrush="{StaticResource BorderMedium}">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" Opacity="0.3" BlurRadius="20" ShadowDepth="0"/>
+        </Border.Effect>
+        
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" 
+                    Background="{StaticResource ChronoPosGold}"
+                    CornerRadius="12,12,0,0"
+                    Padding="20,15">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Select Product Group"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource WhiteText}"/>
+                        <TextBlock Text="Choose a group to add all products to cart"
+                                   FontSize="13"
+                                   Foreground="{StaticResource WhiteText}"
+                                   Opacity="0.9"
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+
+                    <Button Grid.Column="1"
+                            Content="✕"
+                            Width="32"
+                            Height="32"
+                            FontSize="16"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{StaticResource WhiteText}"
+                            Cursor="Hand"
+                            Click="CloseButton_Click"
+                            ToolTip="Close">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    CornerRadius="16">
+                                                <ContentPresenter HorizontalAlignment="Center" 
+                                                                VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#40FFFFFF"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Content Area with Product Groups -->
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto"
+                          Padding="20">
+                <StackPanel x:Name="ProductGroupsPanel">
+                    <TextBlock Text="Available Product Groups:"
+                               FontSize="14"
+                               Foreground="{StaticResource SecondaryText}"
+                               Margin="0,0,0,15"/>
+                    <!-- Product groups will be populated here -->
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Footer -->
+            <Border Grid.Row="2"
+                    Background="{StaticResource WhiteText}"
+                    BorderBrush="{StaticResource BorderLight}"
+                    BorderThickness="0,1,0,0"
+                    Padding="20"
+                    CornerRadius="0,0,12,12">
+                <Grid>
+                    <TextBlock x:Name="StatusText"
+                               Text="Click on a group to view details and add products"
+                               FontSize="13"
+                               Foreground="{StaticResource SecondaryText}"
+                               VerticalAlignment="Center"/>
+                    
+                    <Button Content="Cancel"
+                            Width="120"
+                            Height="44"
+                            HorizontalAlignment="Right"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Click="CancelButton_Click"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

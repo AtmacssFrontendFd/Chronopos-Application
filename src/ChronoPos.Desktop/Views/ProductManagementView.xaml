@@ -14,6 +14,7 @@
     <UserControl.Resources>
         <!-- Converters -->
         <converters:FlowDirectionToGridColumnConverter x:Key="FlowDirectionToGridColumnConverter" />
+        <converters:CurrencyPriceConverter x:Key="CurrencyPriceConverter" />
         
         <!-- Category Button Style with Dynamic Resources -->
         <Style x:Key="CategoryButtonStyle" TargetType="Button">
@@ -561,6 +562,16 @@
                     </TextBlock>
                     
                     <!-- Action Buttons -->
+                    <controls:RefreshButton ButtonText="Export Barcodes (PDF)"
+                                            ButtonIcon="📄"
+                                            Command="{Binding ExportBarcodesPdfCommand}"
+                                            ButtonBackground="#3B82F6"
+                                            ButtonForeground="White"
+                                            MinButtonWidth="200"
+                                            ButtonHeight="{DynamicResource ButtonHeight}"
+                                            ButtonWidth="200"
+                                            Margin="0,0,10,0"/>
+                    
                     <controls:RefreshButton ButtonText="{Binding AddNewProductButtonText}"
                                             ButtonIcon="➕"
                                             Command="{Binding AddNewProductCommand}"
@@ -762,9 +773,15 @@
                         </DataGridTextColumn>
 
                         <!-- Price -->
-                        <DataGridTextColumn Header="Price" 
-                                          Binding="{Binding Price, StringFormat=C}" 
+                        <DataGridTextColumn Binding="{Binding Price, Converter={StaticResource CurrencyPriceConverter}}" 
                                           Width="100">
+                            <DataGridTextColumn.Header>
+                                <TextBlock>
+                                    <Run Text="Price ("/>
+                                    <Run Text="{Binding DataContext.ActiveCurrencySymbol, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue='$'}"/>
+                                    <Run Text=")"/>
+                                </TextBlock>
+                            </DataGridTextColumn.Header>
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="FontWeight" Value="SemiBold"/>

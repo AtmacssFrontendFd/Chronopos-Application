@@ -72,7 +72,7 @@ public class SaleRepository : Repository<Sale>, ISaleRepository
     {
         return await _dbSet
             .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate && 
-                       s.Status == Domain.Enums.SaleStatus.Completed)
+                       s.Status == Domain.Enums.SaleStatus.Settled)
             .SumAsync(s => s.TotalAmount);
     }
     

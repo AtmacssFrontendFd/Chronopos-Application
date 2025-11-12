@@ -12,6 +12,7 @@ using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Constants;
 using ChronoPos.Desktop.Services;
 using ChronoPos.Desktop.ViewModels;
+using ChronoPos.Desktop.Views.Dialogs;
 using ChronoPos.Infrastructure.Services;
 using Microsoft.Win32;
 
@@ -107,6 +108,58 @@ public partial class TaxTypesViewModel : ObservableObject
     [ObservableProperty]
     private TaxTypeSidePanelViewModel _sidePanelViewModel;
 
+    #region Localization Properties
+
+    [ObservableProperty]
+    private string _pageTitle = "Tax Types";
+
+    [ObservableProperty]
+    private string _searchPlaceholder = "Search tax types...";
+
+    [ObservableProperty]
+    private string _addButtonText = "Add Tax Type";
+
+    [ObservableProperty]
+    private string _refreshButtonText = "Refresh";
+
+    [ObservableProperty]
+    private string _importButtonText = "Import";
+
+    [ObservableProperty]
+    private string _exportButtonText = "Export";
+
+    [ObservableProperty]
+    private string _activeOnlyText = "Active Only";
+
+    [ObservableProperty]
+    private string _showAllText = "Show All";
+
+    [ObservableProperty]
+    private string _columnActions = "Actions";
+
+    [ObservableProperty]
+    private string _columnActive = "Active";
+
+    [ObservableProperty]
+    private string _columnStatus = "Status";
+
+    [ObservableProperty]
+    private string _columnAppliesTo = "Applies To";
+
+    [ObservableProperty]
+    private string _columnType = "Type";
+
+    [ObservableProperty]
+    private string _columnValue = "Value";
+
+    [ObservableProperty]
+    private string _columnDescription = "Description";
+
+    [ObservableProperty]
+    private string _columnName = "Name";
+
+    #endregion
+
     #endregion
 
     #region Computed Properties
@@ -193,8 +246,15 @@ public partial class TaxTypesViewModel : ObservableObject
         CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
             ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
 
-        // Load tax types
-        _ = Task.Run(LoadTaxTypesAsync);
+        // Subscribe to language changes
+        _databaseLocalizationService.LanguageChanged += OnLanguageChanged;
+
+        // Load tax types and localized texts
+        _ = Task.Run(async () =>
+        {
+            await LoadLocalizedTextsAsync();
+            await LoadTaxTypesAsync();
+        });
     }
 
     #endregion
@@ -250,13 +310,13 @@ public partial class TaxTypesViewModel : ObservableObject
     {
         if (taxType != null)
         {
-            var result = MessageBox.Show(
-                $"Are you sure you want to delete the tax type '{taxType.Name}'?",
-                "Confirm Delete",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
+            var confirmDialog = new ConfirmationDialog(
+                "Delete Tax Type",
+                $"Are you sure you want to delete the tax type '{taxType.Name}'?\n\nThis action cannot be undone.",
+                ConfirmationDialog.DialogType.Danger);
+            
+            var result = confirmDialog.ShowDialog();
+            if (result == true)
             {
                 try
                 {
@@ -267,12 +327,22 @@ public partial class TaxTypesViewModel : ObservableObject
                     
                     StatusMessage = "Tax type deleted successfully";
                     await LoadTaxTypesAsync();
+                    
+                    var successDialog = new MessageDialog(
+                        "Success",
+                        "Tax type deleted successfully.",
+                        MessageDialog.MessageType.Success);
+                    successDialog.ShowDialog();
                 }
                 catch (Exception ex)
                 {
                     StatusMessage = $"Error deleting tax type: {ex.Message}";
-                    MessageBox.Show($"Error deleting tax type: {ex.Message}", "Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    
+                    var errorDialog = new MessageDialog(
+                        "Delete Error",
+                        $"An error occurred while deleting the tax type:\n\n{ex.Message}",
+                        MessageDialog.MessageType.Error);
+                    errorDialog.ShowDialog();
                 }
                 finally
                 {
@@ -307,8 +377,7 @@ public partial class TaxTypesViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error updating tax type status: {ex.Message}";
-            MessageBox.Show($"Error updating tax type status: {ex.Message}", "Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error updating tax type status: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {
@@ -356,12 +425,11 @@ public partial class TaxTypesViewModel : ObservableObject
                 StatusMessage = "Exporting tax rates...";
 
                 var csv = new StringBuilder();
-                csv.AppendLine("Id,Name,Description,Value,IsPercentage,IncludedInPrice,AppliesToBuying,AppliesToSelling,CalculationOrder,IsActive");
+                csv.AppendLine("Name,Description,Value,IsPercentage,IncludedInPrice,AppliesToBuying,AppliesToSelling,CalculationOrder,IsActive");
 
                 foreach (var taxType in TaxTypes)
                 {
-                    csv.AppendLine($"{taxType.Id}," +
-                                 $"\"{taxType.Name}\"," +
+                    csv.AppendLine($"\"{taxType.Name}\"," +
                                  $"\"{taxType.Description ?? ""}\"," +
                                  $"{taxType.Value}," +
                                  $"{taxType.IsPercentage}," +
@@ -374,15 +442,23 @@ public partial class TaxTypesViewModel : ObservableObject
 
                 await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
                 StatusMessage = $"Exported {TaxTypes.Count} tax rates successfully";
-                MessageBox.Show($"Exported {TaxTypes.Count} tax rates to:\n{saveFileDialog.FileName}", 
-                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                var successDialog = new MessageDialog(
+                    "Export Successful",
+                    $"Successfully exported {TaxTypes.Count} tax rates to:\n\n{saveFileDialog.FileName}",
+                    MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error exporting tax rates: {ex.Message}";
-            MessageBox.Show($"Error exporting tax rates: {ex.Message}", "Export Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            
+            var errorDialog = new MessageDialog(
+                "Export Error",
+                $"An error occurred while exporting tax rates:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -398,20 +474,14 @@ public partial class TaxTypesViewModel : ObservableObject
     {
         try
         {
-            // Show dialog with Download Template and Upload File options
-            var result = MessageBox.Show(
-                "Would you like to download a template first?\n\n" +
-                "• Click 'Yes' to download the CSV template\n" +
-                "• Click 'No' to upload your file directly\n" +
-                "• Click 'Cancel' to exit",
-                "Import Tax Rates",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Cancel)
+            // Show custom import dialog
+            var importDialog = new ImportDialog();
+            var dialogResult = importDialog.ShowDialog();
+            
+            if (dialogResult != true)
                 return;
 
-            if (result == MessageBoxResult.Yes)
+            if (importDialog.SelectedAction == ImportDialog.ImportAction.DownloadTemplate)
             {
                 // Download Template
                 var saveFileDialog = new SaveFileDialog
@@ -429,31 +499,40 @@ public partial class TaxTypesViewModel : ObservableObject
                     templateCsv.AppendLine("VAT 15%,Value Added Tax,15,true,false,false,true,2,true");
 
                     await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
-                    MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
-                        "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                    
+                    var successDialog = new MessageDialog(
+                        "Template Downloaded",
+                        $"Template downloaded successfully to:\n\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.",
+                        MessageDialog.MessageType.Success);
+                    successDialog.ShowDialog();
                 }
                 return;
             }
-
-            // Upload File
-            var openFileDialog = new OpenFileDialog
+            else if (importDialog.SelectedAction == ImportDialog.ImportAction.UploadFile)
             {
-                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
-                DefaultExt = ".csv"
-            };
-
-            if (openFileDialog.ShowDialog() == true)
-            {
-                IsLoading = true;
-                StatusMessage = "Importing tax rates...";
-
-                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
-                if (lines.Length <= 1)
+                // Upload File
+                var openFileDialog = new OpenFileDialog
                 {
-                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    DefaultExt = ".csv"
+                };
+
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    IsLoading = true;
+                    StatusMessage = "Importing tax rates...";
+
+                    var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                    if (lines.Length <= 1)
+                    {
+                        var warningDialog = new MessageDialog(
+                            "Import Error",
+                            "The CSV file is empty or contains only headers.",
+                            MessageDialog.MessageType.Warning);
+                        warningDialog.ShowDialog();
+                        IsLoading = false;
+                        return;
+                    }
 
                 int successCount = 0;
                 int errorCount = 0;
@@ -494,29 +573,51 @@ public partial class TaxTypesViewModel : ObservableObject
                     catch (Exception ex)
                     {
                         errorCount++;
-                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                        var errorMessage = ex.Message;
+                        
+                        // Include inner exception details if available
+                        if (ex.InnerException != null)
+                        {
+                            errorMessage += $" | Inner: {ex.InnerException.Message}";
+                            
+                            // Go deeper if there's another inner exception
+                            if (ex.InnerException.InnerException != null)
+                            {
+                                errorMessage += $" | Details: {ex.InnerException.InnerException.Message}";
+                            }
+                        }
+                        
+                        errors.AppendLine($"Line {i + 1}: {errorMessage}");
                     }
                 }
 
-                await LoadTaxTypesAsync();
+                    await LoadTaxTypesAsync();
 
-                var message = $"Import completed:\n✓ {successCount} tax rates imported successfully";
-                if (errorCount > 0)
-                {
-                    message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                    var message = $"Import completed:\n\n✓ {successCount} tax rates imported successfully";
+                    if (errorCount > 0)
+                    {
+                        message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                    }
+
+                    var resultDialog = new MessageDialog(
+                        "Import Complete",
+                        message,
+                        errorCount > 0 ? MessageDialog.MessageType.Warning : MessageDialog.MessageType.Success);
+                    resultDialog.ShowDialog();
+                    
+                    StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
                 }
-
-                MessageBox.Show(message, "Import Complete", 
-                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
-                
-                StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error importing tax rates: {ex.Message}";
-            MessageBox.Show($"Error importing tax rates: {ex.Message}", "Import Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            
+            var errorDialog = new MessageDialog(
+                "Import Error",
+                $"An error occurred while importing tax rates:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -551,15 +652,13 @@ public partial class TaxTypesViewModel : ObservableObject
 
                 await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
                 StatusMessage = "Template downloaded successfully";
-                MessageBox.Show($"Template file downloaded to:\n{saveFileDialog.FileName}\n\nYou can now fill in your data and import it.", 
-                    "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Template Downloaded", $"Template file downloaded to:\n{saveFileDialog.FileName}\n\nYou can now fill in your data and import it.", MessageDialog.MessageType.Info).ShowDialog();
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error downloading template: {ex.Message}";
-            MessageBox.Show($"Error downloading template: {ex.Message}", "Template Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Template Error", $"Error downloading template: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -613,7 +712,7 @@ public partial class TaxTypesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading tax types: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading tax types: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -675,6 +774,44 @@ public partial class TaxTypesViewModel : ObservableObject
             CanImportTaxRate = false;
             CanExportTaxRate = false;
         }
+    }
+
+    /// <summary>
+    /// Load localized texts from database
+    /// </summary>
+    private async Task LoadLocalizedTextsAsync()
+    {
+        try
+        {
+            PageTitle = await _databaseLocalizationService.GetTranslationAsync("taxtype.page_title") ?? "Tax Types";
+            SearchPlaceholder = await _databaseLocalizationService.GetTranslationAsync("taxtype.search_placeholder") ?? "Search tax types...";
+            AddButtonText = await _databaseLocalizationService.GetTranslationAsync("taxtype.add_tax_type") ?? "Add Tax Type";
+            RefreshButtonText = await _databaseLocalizationService.GetTranslationAsync("common.refresh") ?? "Refresh";
+            ImportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.import") ?? "Import";
+            ExportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.export") ?? "Export";
+            ActiveOnlyText = await _databaseLocalizationService.GetTranslationAsync("taxtype.active_only") ?? "Active Only";
+            ShowAllText = await _databaseLocalizationService.GetTranslationAsync("taxtype.show_all") ?? "Show All";
+            ColumnActions = await _databaseLocalizationService.GetTranslationAsync("common.column.actions") ?? "Actions";
+            ColumnActive = await _databaseLocalizationService.GetTranslationAsync("common.column.active") ?? "Active";
+            ColumnStatus = await _databaseLocalizationService.GetTranslationAsync("common.column.status") ?? "Status";
+            ColumnAppliesTo = await _databaseLocalizationService.GetTranslationAsync("taxtype.column.applies_to") ?? "Applies To";
+            ColumnType = await _databaseLocalizationService.GetTranslationAsync("taxtype.column.type") ?? "Type";
+            ColumnValue = await _databaseLocalizationService.GetTranslationAsync("taxtype.column.value") ?? "Value";
+            ColumnDescription = await _databaseLocalizationService.GetTranslationAsync("common.column.description") ?? "Description";
+            ColumnName = await _databaseLocalizationService.GetTranslationAsync("common.column.name") ?? "Name";
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading localized texts: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Handle language change event
+    /// </summary>
+    private async void OnLanguageChanged(object? sender, string languageCode)
+    {
+        await LoadLocalizedTextsAsync();
     }
 
     #endregion

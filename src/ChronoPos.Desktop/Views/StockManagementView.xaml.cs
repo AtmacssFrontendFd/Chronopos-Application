@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Views.Dialogs;
 using ChronoPos.Infrastructure.Services;
 using ChronoPos.Desktop.Models;
 using DesktopFileLogger = ChronoPos.Desktop.Services.FileLogger;
@@ -436,14 +437,14 @@ public class StockManagementSimpleViewModel : System.ComponentModel.INotifyPrope
     private void SaveAdjustProduct()
     {
         // TODO: Implement save logic
-        System.Windows.MessageBox.Show($"Saving adjustment: {AdjustProduct.ProductName} {AdjustProduct.AdjustmentType} by {AdjustProduct.Quantity}");
+        new MessageDialog("Info", $"Saving adjustment: {AdjustProduct.ProductName} {AdjustProduct.AdjustmentType} by {AdjustProduct.Quantity}", MessageDialog.MessageType.Info).ShowDialog();
         CloseAdjustProductPanel();
     }
 
     private void SearchProduct()
     {
         // TODO: Implement product search
-        System.Windows.MessageBox.Show("Product search functionality will be implemented");
+        new MessageDialog("Info", "Product search functionality will be implemented", MessageDialog.MessageType.Info).ShowDialog();
     }
 
     private void InitializeAdjustProduct()
@@ -516,7 +517,7 @@ public class StockManagementSimpleViewModel : System.ComponentModel.INotifyPrope
     private void SaveTransferProduct()
     {
         // TODO: Implement save transfer logic
-        System.Windows.MessageBox.Show($"Saving transfer: {TransferProduct.ProductName} from {TransferProduct.FromShop} to {TransferProduct.ToShop} qty: {TransferProduct.Quantity}");
+        new MessageDialog("Info", $"Saving transfer: {TransferProduct.ProductName} from {TransferProduct.FromShop} to {TransferProduct.ToShop} qty: {TransferProduct.Quantity}", MessageDialog.MessageType.Info).ShowDialog();
         CloseTransferFormPanel();
     }
 

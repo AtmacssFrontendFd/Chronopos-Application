@@ -1,0 +1,685 @@
+<UserControl x:Class="ChronoPos.Desktop.Views.ReservationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             xmlns:models="clr-namespace:ChronoPos.Desktop.Models"
+             xmlns:views="clr-namespace:ChronoPos.Desktop.Views"
+             mc:Ignorable="d"
+             Background="{DynamicResource MainBackground}"
+             FlowDirection="{Binding CurrentFlowDirection}"
+             FontFamily="{DynamicResource PoppinsFontFallback}">
+
+    <UserControl.Resources>
+        <!-- Converters -->
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+        <converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
+        <converters:ReservationStatusToColorConverter x:Key="StatusToColorConverter"/>
+        <converters:ReservationStatusToTextColorConverter x:Key="StatusToTextColorConverter"/>
+        <converters:ReservationStatusToBadgeConverter x:Key="StatusToBadgeConverter"/>
+        <converters:ColumnIndexToLeftConverter x:Key="ColumnIndexToLeftConverter"/>
+        <converters:ColumnSpanToWidthConverter x:Key="ColumnSpanToWidthConverter"/>
+        <converters:EqualityConverter x:Key="EqualityConverter"/>
+
+        <!-- Button Style -->
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Primary}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryDark}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Icon Button Style -->
+        <Style x:Key="IconButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Tab Button Style -->
+        <Style x:Key="TabButtonStyle" TargetType="RadioButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{DynamicResource Primary}"
+                                BorderThickness="0,0,0,2"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource Primary}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Reservation Block Style -->
+        <Style x:Key="ReservationBlockStyle" TargetType="Border">
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="6"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="ToolTipService.ShowDuration" Value="30000"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Effect">
+                        <Setter.Value>
+                            <DropShadowEffect Color="Black" Opacity="0.3" 
+                                            BlurRadius="8" ShadowDepth="2"/>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid MinHeight="600">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Header -->
+            <RowDefinition Height="Auto"/> <!-- Floor Tabs -->
+            <RowDefinition Height="*" MinHeight="400"/>    <!-- Timeline Grid -->
+            <RowDefinition Height="Auto"/> <!-- Status Bar -->
+        </Grid.RowDefinitions>
+
+        <!-- Header Section -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource CardBackground}"
+                BorderBrush="{DynamicResource BorderLight}"
+                BorderThickness="0,0,0,1"
+                Padding="16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Title -->
+                <TextBlock Grid.Column="0" 
+                           Text="Restaurant Reservations"
+                           FontSize="{DynamicResource FontSizeLarge}"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextPrimary}"/>
+
+                <!-- Actions -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Start Time Selection -->
+                    <TextBlock Text="Start:" 
+                              FontSize="13"
+                              VerticalAlignment="Center"
+                              Margin="0,0,6,0"
+                              Foreground="{DynamicResource TextSecondary}"/>
+                    <ComboBox ItemsSource="{Binding AvailableHours}"
+                              SelectedItem="{Binding GridStartHour}"
+                              Width="60"
+                              VerticalAlignment="Center"
+                              Margin="0,0,16,0">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding StringFormat='{}{0:D2}:00'}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    
+                    <!-- End Time Selection -->
+                    <TextBlock Text="End:" 
+                              FontSize="13"
+                              VerticalAlignment="Center"
+                              Margin="0,0,6,0"
+                              Foreground="{DynamicResource TextSecondary}"/>
+                    <ComboBox ItemsSource="{Binding AvailableHours}"
+                              SelectedItem="{Binding GridEndHour}"
+                              Width="60"
+                              VerticalAlignment="Center"
+                              Margin="0,0,24,0">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding StringFormat='{}{0:D2}:00'}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    
+                    <Button Content="🔄 Refresh" Style="{StaticResource ActionButtonStyle}"
+                            Command="{Binding ReloadDataCommand}"
+                            Margin="0,0,8,0"
+                            IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBoolConverter}}"/>
+                    <Button Content="➕ Add Reservation" Style="{StaticResource ActionButtonStyle}"
+                            Command="{Binding AddReservationCommand}"
+                            IsEnabled="{Binding CanCreateReservation}"
+                            Visibility="{Binding CanCreateReservation, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Floor Tabs with Date Navigation -->
+        <Border Grid.Row="1"
+                Background="{DynamicResource CardBackground}"
+                BorderBrush="{DynamicResource BorderLight}"
+                BorderThickness="0,0,0,1"
+                Padding="16,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Floor Tabs -->
+                <ScrollViewer Grid.Column="0"
+                             HorizontalScrollBarVisibility="Auto" 
+                             VerticalScrollBarVisibility="Disabled">
+                    <ListBox ItemsSource="{Binding Floors}"
+                             SelectedItem="{Binding SelectedFloor, Mode=TwoWay}"
+                             Background="Transparent"
+                             BorderThickness="0">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" 
+                                          Padding="16,8"
+                                          Cursor="Hand"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0,0,4,0"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border Background="{TemplateBinding Background}"
+                                                   BorderBrush="{DynamicResource BorderLight}"
+                                                   BorderThickness="0,0,0,2"
+                                                   CornerRadius="{DynamicResource BorderCornerRadius}">
+                                                <ContentPresenter/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource Primary}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource BackgroundHover}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                </ScrollViewer>
+                
+                <!-- Date Navigation -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                    <!-- Previous Day Button -->
+                    <Button Content="◀" Style="{StaticResource IconButtonStyle}" 
+                            Command="{Binding PreviousDayCommand}"
+                            ToolTip="Previous Day"/>
+                    
+                    <!-- Date Filter Dropdown -->
+                    <ComboBox Width="120" Height="32" Margin="8,0"
+                              VerticalContentAlignment="Center"
+                              FontSize="{DynamicResource FontSizeSmall}"
+                              ItemsSource="{Binding DateFilterOptions}"
+                              SelectedItem="{Binding SelectedDateFilter, Mode=TwoWay}"/>
+                    
+                    <!-- Next Day Button -->
+                    <Button Content="▶" Style="{StaticResource IconButtonStyle}"
+                            Command="{Binding NextDayCommand}"
+                            ToolTip="Next Day"
+                            Margin="0,0,12,0"/>
+                    
+                    <!-- Date Picker -->
+                    <DatePicker SelectedDate="{Binding SelectedDate, Mode=TwoWay}"
+                                VerticalAlignment="Center"
+                                Width="150"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Timeline Grid -->
+        <Border Grid.Row="2" Margin="8">
+            <Grid>
+                <!-- Loading Indicator -->
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="🔄" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,16">
+                        <TextBlock.RenderTransform>
+                            <RotateTransform x:Name="LoadingRotate" CenterX="24" CenterY="24"/>
+                        </TextBlock.RenderTransform>
+                        <TextBlock.Triggers>
+                            <EventTrigger RoutedEvent="Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard RepeatBehavior="Forever">
+                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle"
+                                                       From="0" To="360" Duration="0:0:2"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </TextBlock.Triggers>
+                    </TextBlock>
+                    <TextBlock Text="Loading reservations..."
+                              FontSize="{DynamicResource FontSizeMedium}"
+                              Foreground="{DynamicResource TextSecondary}"
+                              HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- No Data Message -->
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Visibility="{Binding HasTables, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                    <TextBlock Text="📋" FontSize="64" HorizontalAlignment="Center" 
+                              Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,16"/>
+                    <TextBlock Text="No tables found for this floor"
+                              FontSize="{DynamicResource FontSizeMedium}"
+                              Foreground="{DynamicResource TextSecondary}"
+                              HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Actual Timeline Grid -->
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" 
+                             VerticalScrollBarVisibility="Auto"
+                             Visibility="{Binding HasTables, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid x:Name="TimelineGrid" Margin="16" MinHeight="500" ShowGridLines="True">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="60"/> <!-- Time Headers - Fixed height -->
+                            <RowDefinition Height="*"/>    <!-- Table Rows -->
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Time Slot Headers -->
+                        <Grid Grid.Row="0" Background="{DynamicResource CardBackground}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/> <!-- Table Name Column -->
+                                <ColumnDefinition Width="*"/> <!-- Time slots column -->
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Table Header with Add Button -->
+                            <Border Grid.Column="0" 
+                                   BorderBrush="{DynamicResource BorderLight}"
+                                   BorderThickness="0,0,1,1"
+                                   Background="{DynamicResource SurfaceBackground}"
+                                   Padding="8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <TextBlock Grid.Column="0"
+                                              Text="Table" 
+                                              FontWeight="Bold"
+                                              FontSize="{DynamicResource FontSizeSmall}"
+                                              Foreground="{DynamicResource TextPrimary}"
+                                              VerticalAlignment="Center"
+                                              Margin="4,0,0,0"/>
+                                    
+                                    <Button Grid.Column="1"
+                                            Content="+"
+                                            Command="{Binding AddTableCommand}"
+                                            Width="24"
+                                            Height="24"
+                                            FontSize="16"
+                                            FontWeight="Bold"
+                                            Background="#4CAF50"
+                                            Foreground="White"
+                                            BorderThickness="0"
+                                            ToolTip="Add New Table"
+                                            Cursor="Hand"
+                                            Margin="4,0,0,0">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Grid>
+                                                    <Ellipse Fill="{TemplateBinding Background}"/>
+                                                    <TextBlock Text="+"
+                                                              FontSize="16"
+                                                              FontWeight="Bold"
+                                                              Foreground="White"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#45A049"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </Grid>
+                            </Border>
+
+                            <!-- Time Headers -->
+                            <ItemsControl Grid.Column="1" ItemsSource="{Binding TimeSlots}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Width="100" 
+                                               BorderBrush="{DynamicResource BorderLight}"
+                                               BorderThickness="0,0,1,1"
+                                               Background="{DynamicResource SurfaceBackground}"
+                                               Padding="8">
+                                            <TextBlock Text="{Binding DisplayTime}"
+                                                      FontSize="{DynamicResource FontSizeExtraSmall}"
+                                                      FontWeight="SemiBold"
+                                                      HorizontalAlignment="Center"
+                                                      Foreground="{DynamicResource TextPrimary}"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+
+                        <!-- Table Rows with Reservations -->
+                        <ItemsControl Grid.Row="1" ItemsSource="{Binding TableGridRows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type models:TableGridRow}">
+                                    <Grid Height="60" Margin="0,0,0,1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="120"/> <!-- Table Name -->
+                                            <ColumnDefinition Width="*"/> <!-- Reservation timeline -->
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Table Name -->
+                                        <Border Grid.Column="0" 
+                                               BorderBrush="{DynamicResource BorderLight}"
+                                               BorderThickness="0,0,1,1"
+                                               Background="{DynamicResource CardBackground}"
+                                               Padding="12,8"
+                                               Cursor="Hand">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#F0F0F0"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Border.InputBindings>
+                                                <MouseBinding MouseAction="LeftClick" 
+                                                            Command="{Binding DataContext.EditTableCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding Table}"/>
+                                            </Border.InputBindings>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Table.TableNumber}"
+                                                          FontWeight="SemiBold"
+                                                          FontSize="{DynamicResource FontSizeSmall}"
+                                                          Foreground="{DynamicResource TextPrimary}"/>
+                                                <TextBlock Text="{Binding Table.CapacityDisplay}"
+                                                          FontSize="{DynamicResource FontSizeExtraSmall}"
+                                                          Foreground="{DynamicResource TextSecondary}"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Time Slots Canvas for Reservations -->
+                                        <Border Grid.Column="1"
+                                                BorderBrush="{DynamicResource BorderLight}"
+                                                BorderThickness="0,0,0,1"
+                                                Background="{DynamicResource CardBackground}">
+                                            <Grid>
+                                                <!-- Vertical Grid Lines for Time Slots -->
+                                                <ItemsControl ItemsSource="{Binding DataContext.TimeSlots, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel Orientation="Horizontal"/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Width="100" 
+                                                                   BorderBrush="{DynamicResource BorderLight}"
+                                                                   BorderThickness="0,0,1,0"
+                                                                   Background="Transparent"/>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                
+                                                <!-- Reservation Blocks -->
+                                                <Canvas>
+                                                    <!-- Draw reservation blocks -->
+                                                    <ItemsControl ItemsSource="{Binding Reservations}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <Canvas/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemContainerStyle>
+                                                    <Style>
+                                                        <Setter Property="Canvas.Left" Value="{Binding StartColumn, Converter={StaticResource ColumnIndexToLeftConverter}}"/>
+                                                        <Setter Property="Canvas.Top" Value="4"/>
+                                                    </Style>
+                                                </ItemsControl.ItemContainerStyle>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="{x:Type models:ReservationGridItem}">
+                                                        <Border Background="{Binding StatusColorHex}"
+                                                               Style="{StaticResource ReservationBlockStyle}"
+                                                               Width="{Binding ColumnSpan, Converter={StaticResource ColumnSpanToWidthConverter}}"
+                                                               Height="50"
+                                                               ToolTip="{Binding TooltipText}">
+                                                            <Border.InputBindings>
+                                                                <MouseBinding MouseAction="LeftClick"
+                                                                            Command="{Binding Path=DataContext.ViewReservationDetailsCommand,
+                                                                                             RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                            CommandParameter="{Binding Reservation}"/>
+                                                            </Border.InputBindings>
+                                                            <StackPanel>
+                                                                <TextBlock Text="{Binding CustomerName}"
+                                                                          FontSize="{DynamicResource FontSizeExtraSmall}"
+                                                                          FontWeight="SemiBold"
+                                                                          Foreground="Black"
+                                                                          TextTrimming="CharacterEllipsis"/>
+                                                                <TextBlock Text="{Binding PersonsDisplay}"
+                                                                          FontSize="10"
+                                                                          Foreground="Black"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                                </Canvas>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Status Bar - Hidden -->
+        <Border Grid.Row="3" 
+                Visibility="Collapsed"
+                Background="{DynamicResource SurfaceBackground}"
+                BorderBrush="{DynamicResource BorderLight}"
+                BorderThickness="0,1,0,0"
+                Padding="16,8">
+            <Grid>
+                <TextBlock Text="{Binding StatusMessage}"
+                          FontSize="{DynamicResource FontSizeExtraSmall}"
+                          Foreground="{DynamicResource TextSecondary}"
+                          HorizontalAlignment="Left"/>
+                <TextBlock FontSize="{DynamicResource FontSizeExtraSmall}"
+                          Foreground="{DynamicResource TextSecondary}"
+                          HorizontalAlignment="Right">
+                    <Run Text="Total Reservations:"/>
+                    <Run Text="{Binding TotalReservations, Mode=OneWay}" FontWeight="SemiBold"/>
+                </TextBlock>
+            </Grid>
+        </Border>
+        
+        <!-- Sliding Side Panel for Add/Edit Reservation -->
+        <Border Grid.Row="0" Grid.RowSpan="4"
+                Width="550"
+                HorizontalAlignment="Right"
+                Background="{DynamicResource CardBackground}"
+                BorderThickness="1,0,0,0"
+                BorderBrush="{DynamicResource BorderLight}"
+                Panel.ZIndex="1000"
+                Visibility="{Binding IsSidePanelVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="SidePanelTransform"/>
+            </Border.RenderTransform>
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsSidePanelVisible}" Value="True">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
+                                                       From="550" To="0" Duration="0:0:0.3">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.EnterActions>
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
+                                                       From="0" To="550" Duration="0:0:0.2">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseIn"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Border.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="12" Opacity="0.3" Direction="180"/>
+            </Border.Effect>
+            <views:ReservationSidePanelView DataContext="{Binding SidePanelViewModel}"/>
+        </Border>
+
+        <!-- Sliding Side Panel for Add/Edit Table -->
+        <Border Grid.Row="0" Grid.RowSpan="4"
+                Width="480"
+                HorizontalAlignment="Right"
+                Background="{DynamicResource CardBackground}"
+                BorderThickness="1,0,0,0"
+                BorderBrush="{DynamicResource BorderLight}"
+                Panel.ZIndex="999"
+                Visibility="{Binding IsTableSidePanelVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="TableSidePanelTransform"/>
+            </Border.RenderTransform>
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsTableSidePanelVisible}" Value="True">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
+                                                       From="480" To="0" Duration="0:0:0.3">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.EnterActions>
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
+                                                       From="0" To="480" Duration="0:0:0.2">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseIn"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Border.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="12" Opacity="0.3" Direction="180"/>
+            </Border.Effect>
+            <views:RestaurantTableSidePanelView DataContext="{Binding TableSidePanelViewModel}"/>
+        </Border>
+    </Grid>
+</UserControl>

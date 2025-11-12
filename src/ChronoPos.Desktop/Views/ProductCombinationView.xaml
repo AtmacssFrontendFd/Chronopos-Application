@@ -130,13 +130,16 @@
                     </StackPanel.Style>
                     <controls:CircularBackButton 
                         Command="{Binding BackCommand}"
-                        Width="{DynamicResource ButtonHeight}"
-                        Height="{DynamicResource ButtonHeight}"
+                        ButtonSize="30"
+                        ButtonBackground="{DynamicResource SurfaceBackground}"
+                        ButtonForeground="{DynamicResource TextSecondary}"
+                        ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                        ButtonHoverForeground="{DynamicResource TextSecondary}"
                         Margin="0,0,10,0"/>
                 </StackPanel>
 
                 <!-- Title -->
-                <TextBlock Text="Product Combinations" 
+                <TextBlock Text="{Binding PageTitle}" 
                            FontSize="{DynamicResource FontSizeLarge}"
                            FontWeight="Bold"
                            FontFamily="{DynamicResource PoppinsFontFallback}"
@@ -159,7 +162,7 @@
                     </StackPanel.Style>
                     <controls:RefreshButton 
                         Command="{Binding RefreshDataCommand}"
-                        ButtonText="Refresh"
+                        ButtonText="{Binding RefreshButtonText}"
                         ButtonIcon="🔄"
                         MinButtonWidth="120"
                         ButtonHeight="36"
@@ -167,7 +170,7 @@
                 </StackPanel>
 
                 <!-- Add Combination Button -->
-                <Button Content="Add Combination"
+                <Button Content="{Binding AddCombinationButtonText}"
                         Style="{StaticResource ActionButtonStyle}"
                         Command="{Binding AddCombinationCommand}"
                         Visibility="{Binding CanCreateProductCombination, Converter={StaticResource BooleanToVisibilityConverter}}"/>
@@ -207,7 +210,7 @@
                                                 <ScrollViewer x:Name="PART_ContentHost" 
                                                             Margin="{TemplateBinding Padding}"
                                                             VerticalAlignment="Center"/>
-                                                <TextBlock Text="Search combinations..."
+                                                <TextBlock Text="{Binding DataContext.SearchPlaceholder, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                          Margin="{TemplateBinding Padding}"
                                                          VerticalAlignment="Center"
                                                          Foreground="{DynamicResource TextSecondary}"
@@ -238,10 +241,10 @@
                 <Button Grid.Column="1"
                         Style="{StaticResource SmallActionButtonStyle}"
                         Command="{Binding FilterCommand}"
-                        Content="Filter"
+                        Content="{Binding FilterButtonText}"
                         Margin="0,0,10,0"/>
 
-                <Button Grid.Column="2" Content="Clear Filters" 
+                <Button Grid.Column="2" Content="{Binding ClearFiltersButtonText}" 
                         Style="{StaticResource SmallActionButtonStyle}"
                         Command="{Binding ClearFiltersCommand}"/>
             </Grid>
@@ -378,10 +381,16 @@
                         </DataGridTextColumn>
 
                         <!-- Price Column -->
-                        <DataGridTextColumn Header="Price" 
-                                            Binding="{Binding PriceDisplay}" 
-                                            Width="100"
-                                            MinWidth="80">
+                        <DataGridTextColumn Width="100"
+                                            MinWidth="80"
+                                            Binding="{Binding PriceOfUnit, Converter={StaticResource CurrencyPriceConverter}}">
+                            <DataGridTextColumn.Header>
+                                <TextBlock>
+                                    <Run Text="Price ("/>
+                                    <Run Text="{Binding DataContext.ActiveCurrencySymbol, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue='$'}"/>
+                                    <Run Text=")"/>
+                                </TextBlock>
+                            </DataGridTextColumn.Header>
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
@@ -392,10 +401,16 @@
                         </DataGridTextColumn>
 
                         <!-- Cost Column -->
-                        <DataGridTextColumn Header="Cost" 
-                                            Binding="{Binding CostDisplay}" 
-                                            Width="100"
-                                            MinWidth="80">
+                        <DataGridTextColumn Width="100"
+                                            MinWidth="80"
+                                            Binding="{Binding CostOfUnit, Converter={StaticResource CurrencyPriceConverter}}">
+                            <DataGridTextColumn.Header>
+                                <TextBlock>
+                                    <Run Text="Cost ("/>
+                                    <Run Text="{Binding DataContext.ActiveCurrencySymbol, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue='$'}"/>
+                                    <Run Text=")"/>
+                                </TextBlock>
+                            </DataGridTextColumn.Header>
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
@@ -473,13 +488,13 @@
                                    FontSize="48" 
                                    HorizontalAlignment="Center" 
                                    Margin="0,0,0,10"/>
-                        <TextBlock Text="No product combinations found"
+                        <TextBlock Text="{Binding NoCombinationsMessage}"
                                    FontSize="{DynamicResource FontSizeMedium}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
                                    Foreground="{DynamicResource TextSecondary}"
                                    HorizontalAlignment="Center"
                                    Margin="0,0,0,5"/>
-                        <TextBlock Text="Click 'Add Combination' to create your first product combination"
+                        <TextBlock Text="{Binding ClickAddToCreateMessage}"
                                    FontSize="{DynamicResource FontSizeSmall}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
                                    Foreground="{DynamicResource TextSecondary}"

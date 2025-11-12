@@ -157,6 +157,9 @@ public partial class PermissionSidePanelViewModel : ObservableObject
             }
         }
         
+        // Update available operations based on selected screens
+        UpdateAvailableOperations();
+        
         // Parse type matrix (comma-separated)
         SelectedTypeMatrixList.Clear();
         if (!string.IsNullOrWhiteSpace(permission.TypeMatrix))
@@ -194,6 +197,9 @@ public partial class PermissionSidePanelViewModel : ObservableObject
             {
                 SelectedScreenNames.Add(screenName);
                 SelectedScreenName = string.Empty; // Clear selection
+                
+                // Update available operations when screen selection changes
+                UpdateAvailableOperations();
             }
             else
             {
@@ -207,6 +213,53 @@ public partial class PermissionSidePanelViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(screenName))
         {
             SelectedScreenNames.Remove(screenName);
+            
+            // Update available operations when screen selection changes
+            UpdateAvailableOperations();
+        }
+    }
+
+    /// <summary>
+    /// Updates the available operations dropdown based on currently selected screens.
+    /// Only shows operations that are valid for all selected screens (intersection).
+    /// </summary>
+    private void UpdateAvailableOperations()
+    {
+        // Get available operations for the selected screens
+        var availableOps = ChronoPos.Application.Constants.ScreenOperationsMap
+            .GetAvailableOperationsForMultipleScreens(SelectedScreenNames.ToList());
+
+        // Clear and update the dropdown
+        AvailableTypeMatrix.Clear();
+        
+        // Add "-- All Operations --" only if all operations are available
+        var allOps = ChronoPos.Application.Constants.TypeMatrix.GetAllTypeMatrixValues();
+        if (availableOps.Count == allOps.Count)
+        {
+            AvailableTypeMatrix.Add(ChronoPos.Application.Constants.TypeMatrix.ALL_OPERATIONS);
+        }
+        
+        // Add available operations
+        foreach (var op in availableOps)
+        {
+            AvailableTypeMatrix.Add(op);
+        }
+
+        // Remove any selected operations that are no longer available
+        var toRemove = SelectedTypeMatrixList
+            .Where(op => !availableOps.Contains(op, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+        foreach (var op in toRemove)
+        {
+            SelectedTypeMatrixList.Remove(op);
+        }
+        
+        // Clear the dropdown selection if it's no longer valid
+        if (!string.IsNullOrWhiteSpace(SelectedTypeMatrix) && 
+            !AvailableTypeMatrix.Contains(SelectedTypeMatrix))
+        {
+            SelectedTypeMatrix = string.Empty;
         }
     }
 

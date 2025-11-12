@@ -23,14 +23,16 @@ namespace ChronoPos.Application.Logging
                 
                 if (srcPath != null)
                 {
-                    // Go up one level from src to get solution root
+                    // Development environment: use solution root logs folder
                     var solutionRoot = Directory.GetParent(srcPath)?.FullName;
                     BaseLogDirectory = Path.Combine(solutionRoot ?? currentDirectory, "logs");
                 }
                 else
                 {
-                    // Fallback to current directory
-                    BaseLogDirectory = Path.Combine(currentDirectory, "logs");
+                    // Production/Installed environment: use LocalApplicationData folder
+                    // This avoids permission issues in Program Files and keeps logs with app data
+                    var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                    BaseLogDirectory = Path.Combine(localAppData, "ChronoPos", "logs");
                 }
 
                 Console.WriteLine($"[AppLogger] Base Log Directory: {BaseLogDirectory}");
@@ -44,9 +46,28 @@ namespace ChronoPos.Application.Logging
             catch (Exception ex)
             {
                 Console.WriteLine($"[AppLogger] Error in static constructor: {ex.Message}");
-                // Fallback to current directory
-                BaseLogDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
-                Directory.CreateDirectory(BaseLogDirectory);
+                Console.WriteLine($"[AppLogger] Stack trace: {ex.StackTrace}");
+                
+                // Fallback to LocalApplicationData (safer than Program Files)
+                try
+                {
+                    var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                    BaseLogDirectory = Path.Combine(localAppData, "ChronoPos", "logs");
+                    
+                    if (!Directory.Exists(BaseLogDirectory))
+                    {
+                        Directory.CreateDirectory(BaseLogDirectory);
+                    }
+                    Console.WriteLine($"[AppLogger] Using fallback log directory: {BaseLogDirectory}");
+                }
+                catch (Exception fallbackEx)
+                {
+                    Console.WriteLine($"[AppLogger] Fallback also failed: {fallbackEx.Message}");
+                    // Last resort: use temp folder
+                    BaseLogDirectory = Path.Combine(Path.GetTempPath(), "ChronoPos", "logs");
+                    Directory.CreateDirectory(BaseLogDirectory);
+                    Console.WriteLine($"[AppLogger] Using temp log directory: {BaseLogDirectory}");
+                }
             }
         }
 

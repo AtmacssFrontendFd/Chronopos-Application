@@ -139,7 +139,7 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-        <!-- Top Button Bar with Back and Refresh -->
+        <!-- Top Button Bar with Back Button, Title and Refresh -->
         <Grid Grid.Row="0" Margin="0,0,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
@@ -147,20 +147,26 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Back Button aligned dynamically -->
-            <controls:RefreshButton Grid.Column="0"
-                                    HorizontalAlignment="{DynamicResource AppHorizontalAlignment}"
-                                    VerticalAlignment="Top"
-                                    ButtonText="{Binding BackButtonText}"
-                                    ButtonIcon="←"
-                                    Command="{Binding GoBackCommand}"
-                                    ButtonBackground="{DynamicResource SecondaryBrush}"
-                                    ButtonForeground="White"
-                                    MinButtonWidth="100"
-                                    ButtonHeight="36"
-                                    ButtonWidth="100" />
+            <!-- Back Button + Title (Left Side) -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <controls:CircularBackButton VerticalAlignment="Center"
+                                             Command="{Binding GoBackCommand}"
+                                             ButtonSize="30"
+                                             ButtonBackground="{DynamicResource SurfaceBackground}"
+                                             ButtonForeground="{DynamicResource TextSecondary}"
+                                             ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                                             ButtonHoverForeground="{DynamicResource TextSecondary}"
+                                             Margin="0,0,10,0"/>
 
-            <!-- Refresh Button aligned dynamically -->
+                <TextBlock Text="Stock Management"
+                           FontSize="{DynamicResource FontSizeLarge}"
+                           FontWeight="Bold"
+                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                           Foreground="{DynamicResource TextPrimary}"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Refresh Button (Right Side) -->
             <controls:RefreshButton Grid.Column="2"
                                     HorizontalAlignment="{DynamicResource AppReverseHorizontalAlignment}"
                                     VerticalAlignment="Top"
@@ -460,7 +466,7 @@
 
                                         <!-- Cost Price Column -->
                                         <DataGridTextColumn Header="Cost Price" 
-                                                            Binding="{Binding CostPrice, StringFormat='{}{0:C2}'}" 
+                                                            Binding="{Binding CostPrice, Converter={StaticResource CurrencyPriceConverter}}" 
                                                             Width="110"
                                                             MinWidth="90">
                                             <DataGridTextColumn.ElementStyle>
@@ -473,7 +479,7 @@
 
                                         <!-- Value After Column -->
                                         <DataGridTextColumn Header="Total Value" 
-                                                            Binding="{Binding ValueAfter, StringFormat='{}{0:C2}'}" 
+                                                            Binding="{Binding ValueAfter, Converter={StaticResource CurrencyPriceConverter}}" 
                                                             Width="120"
                                                             MinWidth="100">
                                             <DataGridTextColumn.ElementStyle>
@@ -1039,7 +1045,7 @@
                                     
                                         <!-- Total Amount Column -->
                                         <DataGridTextColumn Header="Total Amount" 
-                                                            Binding="{Binding TotalAmount, StringFormat='{}{0:C2}'}" 
+                                                            Binding="{Binding TotalAmount, Converter={StaticResource CurrencyPriceConverter}}" 
                                                             Width="120"
                                                             MinWidth="100">
                                             <DataGridTextColumn.ElementStyle>
@@ -1418,10 +1424,16 @@
                                         </DataGridTextColumn>
 
                                         <!-- Amount Column -->
-                                        <DataGridTextColumn Header="Amount" 
-                                                            Binding="{Binding TotalAmount, StringFormat=C}" 
+                                        <DataGridTextColumn Binding="{Binding TotalAmount, StringFormat=C}" 
                                                             Width="120"
                                                             MinWidth="100">
+                                            <DataGridTextColumn.Header>
+                                                <TextBlock>
+                                                    <Run Text="Amount ("/>
+                                                    <Run Text="{Binding DataContext.ActiveCurrencySymbol, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue='$'}"/>
+                                                    <Run Text=")"/>
+                                                </TextBlock>
+                                            </DataGridTextColumn.Header>
                                             <DataGridTextColumn.ElementStyle>
                                                 <Style TargetType="TextBlock">
                                                     <Setter Property="VerticalAlignment" Value="Center"/>
@@ -1705,7 +1717,7 @@
 
                                         <!-- Total Amount Column -->
                                         <DataGridTextColumn Header="Total Amount" 
-                                                            Binding="{Binding TotalAmount, StringFormat=C2}" 
+                                                            Binding="{Binding TotalAmount, Converter={StaticResource CurrencyPriceConverter}}" 
                                                             Width="130"
                                                             MinWidth="110">
                                             <DataGridTextColumn.ElementStyle>

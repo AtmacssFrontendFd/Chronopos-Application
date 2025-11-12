@@ -8,10 +8,19 @@
             <ResourceDictionary.MergedDictionaries>
                 <!-- Default theme (Light) will be loaded here by ThemeService -->
                 <ResourceDictionary Source="pack://application:,,,/ChronoPos.Desktop;component/Themes/LightTheme.xaml"/>
+                <!-- Report Table Styles -->
+                <ResourceDictionary Source="pack://application:,,,/ChronoPos.Desktop;component/Resources/Styles/ReportTableStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             
             <!-- Built-in WPF Converter for Boolean to Visibility -->
             <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+            
+            <!-- Null to Visibility Converter -->
+            <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+            
+            <!-- Currency Converters -->
+            <converters:CurrencyPriceConverter x:Key="CurrencyPriceConverter"/>
+            <converters:NegativeCurrencyPriceConverter x:Key="NegativeCurrencyPriceConverter"/>
             
             <!-- Add converters for Product Batches -->
             <converters:DaysToExpiryConverter x:Key="DaysToExpiryConverter"/>

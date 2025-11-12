@@ -186,6 +186,9 @@ public class CustomerService : ICustomerService
         ShopId = c.ShopId,
         Status = c.Status,
         CreatedAt = c.CreatedAt,
-        UpdatedAt = c.UpdatedAt
+        UpdatedAt = c.UpdatedAt,
+        SelectedDiscountIds = c.CustomerDiscounts?.Where(cd => cd.DeletedAt == null)
+                                                  .Select(cd => cd.DiscountsId)
+                                                  .ToList() ?? new List<int>()
     };
 }

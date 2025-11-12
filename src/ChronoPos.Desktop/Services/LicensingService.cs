@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
 using ChronoPos.Desktop.Models.Licensing;
+using ChronoPos.Application.Logging;
 
 namespace ChronoPos.Desktop.Services
 {
@@ -86,17 +87,30 @@ namespace ChronoPos.Desktop.Services
         public bool IsLicenseValid()
         {
             var license = GetCurrentLicense();
-            if (license == null) return false;
+            if (license == null)
+            {
+                AppLogger.Log("License validation failed: No license found", "LicensingService", "licensing");
+                return false;
+            }
 
             // Check expiry
             if (license.ExpiryDate < DateTime.UtcNow)
+            {
+                AppLogger.Log($"License validation failed: License expired on {license.ExpiryDate:yyyy-MM-dd}", "LicensingService", "licensing");
                 return false;
+            }
 
             // Check machine fingerprint
             var currentFingerprint = MachineFingerprint.Generate();
             if (license.MachineFingerprint != currentFingerprint)
+            {
+                AppLogger.Log($"License validation failed: Machine fingerprint mismatch", "LicensingService", "licensing");
+                AppLogger.Log($"Expected fingerprint: {license.MachineFingerprint}", "DEBUG", "licensing");
+                AppLogger.Log($"Current fingerprint: {currentFingerprint}", "DEBUG", "licensing");
                 return false;
+            }
 
+            AppLogger.Log($"License validation successful. Expires: {license.ExpiryDate:yyyy-MM-dd}", "LicensingService", "licensing");
             return true;
         }
 
@@ -105,14 +119,32 @@ namespace ChronoPos.Desktop.Services
             try
             {
                 var licensePath = Path.Combine(_appDataPath, "license.dat");
+                AppLogger.Log($"Checking for license at: {licensePath}", "LicensingService", "licensing");
+                
                 if (!File.Exists(licensePath))
+                {
+                    AppLogger.Log("License file does not exist", "LicensingService", "licensing");
                     return null;
+                }
 
                 var encryptedLicense = File.ReadAllText(licensePath);
-                return DecryptLicenseKey(encryptedLicense);
+                AppLogger.Log($"License file found, attempting to decrypt ({encryptedLicense.Length} chars)", "LicensingService", "licensing");
+                
+                var license = DecryptLicenseKey(encryptedLicense);
+                if (license != null)
+                {
+                    AppLogger.Log($"License decrypted successfully - Expiry: {license.ExpiryDate:yyyy-MM-dd}, Fingerprint: {license.MachineFingerprint.Substring(0, 8)}...", "LicensingService", "licensing");
+                }
+                else
+                {
+                    AppLogger.Log("Failed to decrypt license key", "LicensingService", "licensing");
+                }
+                
+                return license;
             }
-            catch
+            catch (Exception ex)
             {
+                AppLogger.LogError("Error in GetCurrentLicense", ex, filename: "licensing");
                 return null;
             }
         }

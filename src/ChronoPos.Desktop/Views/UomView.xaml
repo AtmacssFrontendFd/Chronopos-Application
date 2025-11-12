@@ -116,27 +116,21 @@
             </Grid.ColumnDefinitions>
 
             <!-- Back Button and Title -->
-            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                <!-- Back Button -->
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <StackPanel.Style>
-                        <Style TargetType="StackPanel">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
-                                    <Setter Property="FlowDirection" Value="LeftToRight"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Style>
-                    <controls:CircularBackButton 
-                        Command="{Binding BackCommand}"
-                        Width="{DynamicResource ButtonHeight}"
-                        Height="{DynamicResource ButtonHeight}"
-                        Margin="0,0,10,0"/>
-                </StackPanel>
+            <StackPanel Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='start3'}" 
+                        Orientation="Horizontal" 
+                        VerticalAlignment="Center"
+                        FlowDirection="LeftToRight">
+                <controls:CircularBackButton 
+                    Command="{Binding BackCommand}"
+                    ButtonSize="30"
+                    ButtonBackground="{DynamicResource SurfaceBackground}"
+                    ButtonForeground="{DynamicResource TextSecondary}"
+                    ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                    ButtonHoverForeground="{DynamicResource TextSecondary}"
+                    Margin="0,0,10,0"/>
 
                 <!-- Title -->
-                <TextBlock Text="Units of Measurement" 
+                <TextBlock Text="{Binding PageTitle}" 
                            FontSize="{DynamicResource FontSizeLarge}"
                            FontWeight="Bold"
                            FontFamily="{DynamicResource PoppinsFontFallback}"
@@ -145,26 +139,18 @@
             </StackPanel>
 
             <!-- Action Buttons -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
-                <!-- Refresh Button -->
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
-                    <StackPanel.Style>
-                        <Style TargetType="StackPanel">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
-                                    <Setter Property="FlowDirection" Value="LeftToRight"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Style>
-                    <controls:RefreshButton 
-                        Command="{Binding RefreshDataCommand}"
-                        ButtonText="Refresh"
-                        ButtonIcon="🔄"
-                        MinButtonWidth="120"
-                        ButtonHeight="36"
-                        Margin="0,0,10,0"/>
-                </StackPanel>
+            <StackPanel Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='end3'}" 
+                        Orientation="Horizontal" 
+                        VerticalAlignment="Center" 
+                        HorizontalAlignment="Right"
+                        FlowDirection="LeftToRight">
+                <controls:RefreshButton 
+                    Command="{Binding RefreshDataCommand}"
+                    ButtonText="{Binding RefreshButtonText}"
+                    ButtonIcon="🔄"
+                    MinButtonWidth="120"
+                    ButtonHeight="36"
+                    Margin="0,0,10,0"/>
 
                 <!-- Import Button -->
                 <Button Style="{StaticResource ActionButtonStyle}"
@@ -173,7 +159,7 @@
                         Margin="0,0,10,0">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="📥" FontSize="16" Margin="0,0,5,0"/>
-                        <TextBlock Text="Import"/>
+                        <TextBlock Text="{Binding ImportButtonText}"/>
                     </StackPanel>
                 </Button>
 
@@ -184,12 +170,12 @@
                         Margin="0,0,10,0">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="📤" FontSize="16" Margin="0,0,5,0"/>
-                        <TextBlock Text="Export"/>
+                        <TextBlock Text="{Binding ExportButtonText}"/>
                     </StackPanel>
                 </Button>
 
                 <!-- Add UOM Button -->
-                <Button Content="Add UOM"
+                <Button Content="{Binding AddNewUomButtonText}"
                         Style="{StaticResource ActionButtonStyle}"
                         Command="{Binding AddUomCommand}"
                         Visibility="{Binding CanCreateUom, Converter={StaticResource BooleanToVisibilityConverter}}"/>
@@ -229,7 +215,7 @@
                                                 <ScrollViewer x:Name="PART_ContentHost" 
                                                             Margin="{TemplateBinding Padding}"
                                                             VerticalAlignment="Center"/>
-                                                <TextBlock Text="Search units of measurement..."
+                                                <TextBlock Text="{Binding DataContext.SearchPlaceholder, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                          Margin="{TemplateBinding Padding}"
                                                          VerticalAlignment="Center"
                                                          Foreground="{DynamicResource TextSecondary}"
@@ -257,12 +243,12 @@
                 </TextBox>
 
                 <!-- Filter Buttons -->
-                <Button Grid.Column="1" Content="Base Units Only" 
+                <Button Grid.Column="1" Content="{Binding BaseUnitsOnlyButtonText}" 
                         Style="{StaticResource SmallActionButtonStyle}"
                         Command="{Binding FilterBaseUnitsCommand}"
                         Margin="0,0,10,0"/>
 
-                <Button Grid.Column="2" Content="Clear Filters" 
+                <Button Grid.Column="2" Content="{Binding ClearFiltersButtonText}" 
                         Style="{StaticResource SmallActionButtonStyle}"
                         Command="{Binding ClearFiltersCommand}"/>
             </Grid>
@@ -278,7 +264,7 @@
 
                 <!-- Loading Indicator -->
                 <Grid Grid.Row="0" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <TextBlock Text="Loading units of measurement..."
+                    <TextBlock Text="{Binding LoadingMessage}"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
                                FontSize="{DynamicResource FontSizeMedium}"
@@ -359,7 +345,7 @@
 
                     <DataGrid.Columns>
                         <!-- Name Column -->
-                        <DataGridTextColumn Header="Name" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnName, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding Name}" 
                                             Width="200"
                                             MinWidth="150">
@@ -373,7 +359,7 @@
                         </DataGridTextColumn>
 
                         <!-- Symbol Column -->
-                        <DataGridTextColumn Header="Symbol" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnSymbol, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding AbbreviationDisplay}" 
                                             Width="80"
                                             MinWidth="60">
@@ -387,7 +373,7 @@
                         </DataGridTextColumn>
 
                         <!-- Type Column -->
-                        <DataGridTextColumn Header="Type" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnType, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding TypeDisplay}" 
                                             Width="100"
                                             MinWidth="80">
@@ -400,7 +386,7 @@
                         </DataGridTextColumn>
 
                         <!-- Category Column -->
-                        <DataGridTextColumn Header="Category" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnCategory, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding CategoryTitle}" 
                                             Width="140"
                                             MinWidth="120">
@@ -412,7 +398,7 @@
                         </DataGridTextColumn>
 
                         <!-- Base UOM Column -->
-                        <DataGridTextColumn Header="Base UOM" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnBaseUom, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding BaseUomDisplay}" 
                                             Width="120"
                                             MinWidth="100">
@@ -425,7 +411,7 @@
                         </DataGridTextColumn>
 
                         <!-- Conversion Factor Column -->
-                        <DataGridTextColumn Header="Conversion" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnConversion, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding ConversionFactorDisplay}" 
                                             Width="120"
                                             MinWidth="100">
@@ -439,7 +425,7 @@
                         </DataGridTextColumn>
 
                         <!-- Created Date Column -->
-                        <DataGridTextColumn Header="Created" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnCreated, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding CreatedAtFormatted}" 
                                             Width="100"
                                             MinWidth="80">
@@ -452,7 +438,7 @@
                         </DataGridTextColumn>
 
                         <!-- Status Column -->
-                        <DataGridTemplateColumn Header="Status" Width="100">
+                        <DataGridTemplateColumn Header="{Binding DataContext.ColumnStatus, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="100">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Border CornerRadius="12"
@@ -479,7 +465,7 @@
                         </DataGridTemplateColumn>
 
                         <!-- Toggle Active Column -->
-                        <DataGridTemplateColumn Header="Active" Width="80">
+                        <DataGridTemplateColumn Header="{Binding DataContext.ActiveLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="80">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <ToggleButton IsChecked="{Binding IsActive, Mode=OneWay}"
@@ -522,17 +508,17 @@
                         </DataGridTemplateColumn>
 
                         <!-- Actions Column -->
-                        <DataGridTemplateColumn Header="Actions" Width="160">
+                        <DataGridTemplateColumn Header="{Binding DataContext.ColumnActions, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="160">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Edit" 
+                                        <Button Content="{Binding DataContext.EditButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.EditUomCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Margin="2"
                                                 Visibility="{Binding DataContext.CanEditUom, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                        <Button Content="Delete" 
+                                        <Button Content="{Binding DataContext.DeleteButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.DeleteUomCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
@@ -543,7 +529,7 @@
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.ViewConversionsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
-                                                ToolTip="View Conversions"
+                                                ToolTip="{Binding DataContext.ViewConversionsTooltip, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 FontSize="12"
                                                 Margin="2"/>
                                     </StackPanel>
@@ -561,13 +547,13 @@
                                    FontSize="48" 
                                    HorizontalAlignment="Center" 
                                    Margin="0,0,0,10"/>
-                        <TextBlock Text="No units of measurement found"
+                        <TextBlock Text="{Binding NoDataMessage}"
                                    FontSize="{DynamicResource FontSizeMedium}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
                                    Foreground="{DynamicResource TextSecondary}"
                                    HorizontalAlignment="Center"
                                    Margin="0,0,0,5"/>
-                        <TextBlock Text="Click 'Add UOM' to create your first unit of measurement"
+                        <TextBlock Text="{Binding NoDataHint}"
                                    FontSize="{DynamicResource FontSizeSmall}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
                                    Foreground="{DynamicResource TextSecondary}"
@@ -603,9 +589,9 @@
                                    Foreground="{DynamicResource TextSecondary}"
                                    VerticalAlignment="Center">
                             <Run Text="{Binding FilteredUoms.Count, Mode=OneWay}"/>
-                            <Run Text="of"/>
+                            <Run Text="{Binding OfText}"/>
                             <Run Text="{Binding TotalUoms, Mode=OneWay}"/>
-                            <Run Text="units"/>
+                            <Run Text="{Binding ItemsCountText}"/>
                         </TextBlock>
                     </Grid>
                 </Border>

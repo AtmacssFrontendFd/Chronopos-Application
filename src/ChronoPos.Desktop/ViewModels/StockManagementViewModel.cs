@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ChronoPos.Desktop.Views.Dialogs;
 using DesktopFileLogger = ChronoPos.Desktop.Services.FileLogger;
 using ChronoPos.Application.Logging;
 using ChronoPos.Desktop.Models;
@@ -39,6 +40,7 @@ public partial class StockManagementViewModel : ObservableObject
     private readonly IGoodsReceivedService? _goodsReceivedService;
     private readonly ISupplierService? _supplierService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IActiveCurrencyService _activeCurrencyService;
     private readonly Action? _navigateToAddGrn;
     private readonly Action<long>? NavigateToEditGrn;
     private readonly Action? _navigateToAddStockTransfer;
@@ -51,6 +53,11 @@ public partial class StockManagementViewModel : ObservableObject
     #endregion
 
     #region Observable Properties
+    
+    /// <summary>
+    /// Gets the active currency symbol for dynamic table headers
+    /// </summary>
+    public string ActiveCurrencySymbol => _activeCurrencyService?.CurrencySymbol ?? "$";
 
     /// <summary>
     /// Collection of stock management modules
@@ -451,8 +458,9 @@ public partial class StockManagementViewModel : ObservableObject
             // Check if transfer can be edited (only Pending status should be editable)
             if (transfer.Status != "Pending")
             {
-                MessageBox.Show($"Cannot edit Stock Transfer {transfer.TransferNo}. Only transfers with 'Pending' status can be edited.\nCurrent status: {transfer.Status}", 
-                               "Edit Not Allowed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Edit Not Allowed", 
+                    $"Cannot edit Stock Transfer {transfer.TransferNo}. Only transfers with 'Pending' status can be edited.\nCurrent status: {transfer.Status}", 
+                    MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
@@ -462,7 +470,7 @@ public partial class StockManagementViewModel : ObservableObject
         catch (Exception ex)
         {
             AppLogger.LogError("Failed to edit Stock Transfer", ex, $"Transfer: {transfer.TransferNo}, ID: {transfer.TransferId}", "stock_management");
-            MessageBox.Show($"Failed to edit stock transfer: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to edit stock transfer: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -476,20 +484,22 @@ public partial class StockManagementViewModel : ObservableObject
             // Check if transfer can be deleted (only Pending status should be deletable)
             if (transfer.Status != "Pending")
             {
-                MessageBox.Show($"Cannot delete Stock Transfer {transfer.TransferNo}. Only transfers with 'Pending' status can be deleted.\nCurrent status: {transfer.Status}", 
-                               "Delete Not Allowed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Delete Not Allowed", 
+                    $"Cannot delete Stock Transfer {transfer.TransferNo}. Only transfers with 'Pending' status can be deleted.\nCurrent status: {transfer.Status}", 
+                    MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
-            var result = MessageBox.Show($"Are you sure you want to delete Stock Transfer {transfer.TransferNo}?\n\nThis action cannot be undone and will restore the stock quantities.", 
-                                       "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var result = new ConfirmationDialog("Confirm Delete", 
+                $"Are you sure you want to delete Stock Transfer {transfer.TransferNo}?\n\nThis action cannot be undone and will restore the stock quantities.", 
+                ConfirmationDialog.DialogType.Warning).ShowDialog();
             
-            if (result == MessageBoxResult.Yes && _stockTransferService != null)
+            if (result == true && _stockTransferService != null)
             {
                 await _stockTransferService.DeleteStockTransferAsync(transfer.TransferId);
                     
                 AppLogger.LogInfo($"Stock Transfer deleted successfully: {transfer.TransferNo}", $"Transfer ID: {transfer.TransferId}", "stock_management");
-                MessageBox.Show($"Stock Transfer {transfer.TransferNo} deleted successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Success", $"Stock Transfer {transfer.TransferNo} deleted successfully!", MessageDialog.MessageType.Success).ShowDialog();
                 
                 // Refresh the list
                 await LoadStockTransfersAsync();
@@ -497,13 +507,13 @@ public partial class StockManagementViewModel : ObservableObject
             else if (_stockTransferService == null)
             {
                 AppLogger.LogWarning("StockTransferService not available for delete operation", "Service injection failed", "stock_management");
-                MessageBox.Show("Delete service not available. Please try again later.", "Service Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Service Error", "Delete service not available. Please try again later.", MessageDialog.MessageType.Warning).ShowDialog();
             }
         }
         catch (Exception ex)
         {
             AppLogger.LogError("Failed to delete Stock Transfer", ex, $"Transfer: {transfer.TransferNo}, ID: {transfer.TransferId}", "stock_management");
-            MessageBox.Show($"Failed to delete stock transfer: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to delete stock transfer: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -525,12 +535,12 @@ public partial class StockManagementViewModel : ObservableObject
                          $"Created Date: {transfer.CreatedAt:yyyy-MM-dd HH:mm}\n" +
                          $"Remarks: {transfer.Remarks ?? "N/A"}";
             
-            MessageBox.Show(message, $"View Stock Transfer - {transfer.TransferNo}", MessageBoxButton.OK, MessageBoxImage.Information);
+            new MessageDialog($"View Stock Transfer - {transfer.TransferNo}", message, MessageDialog.MessageType.Info).ShowDialog();
         }
         catch (Exception ex)
         {
             AppLogger.LogError("Failed to view Stock Transfer", ex, $"Transfer: {transfer.TransferNo}, ID: {transfer.TransferId}", "stock_management");
-            MessageBox.Show($"Failed to view stock transfer: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to view stock transfer: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -574,7 +584,7 @@ public partial class StockManagementViewModel : ObservableObject
         if (goodsReturn == null)
         {
             AppLogger.LogWarning("Edit Goods Return attempted with null object", "", "stock_management");
-            MessageBox.Show("No goods return selected for editing.", "Selection Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog("Selection Error", "No goods return selected for editing.", MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -585,8 +595,9 @@ public partial class StockManagementViewModel : ObservableObject
             // Check if goods return can be edited (only Pending status should be editable)
             if (goodsReturn.Status != "Pending")
             {
-                MessageBox.Show($"Cannot edit Goods Return {goodsReturn.ReturnNo}. Only returns with 'Pending' status can be edited.\nCurrent status: {goodsReturn.Status}", 
-                               "Edit Not Allowed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Edit Not Allowed", 
+                    $"Cannot edit Goods Return {goodsReturn.ReturnNo}. Only returns with 'Pending' status can be edited.\nCurrent status: {goodsReturn.Status}", 
+                    MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
             
@@ -596,7 +607,7 @@ public partial class StockManagementViewModel : ObservableObject
         catch (Exception ex)
         {
             AppLogger.LogError("Failed to edit Goods Return", ex, $"Return: {goodsReturn.ReturnNo}, ID: {goodsReturn.Id}", "stock_management");
-            MessageBox.Show($"Failed to edit goods return: {ex.Message}", "Edit Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Edit Error", $"Failed to edit goods return: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -606,21 +617,22 @@ public partial class StockManagementViewModel : ObservableObject
         if (goodsReturn == null)
         {
             AppLogger.LogWarning("Delete Goods Return attempted with null object", "", "stock_management");
-            MessageBox.Show("No goods return selected for deletion.", "Selection Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog("Selection Error", "No goods return selected for deletion.", MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
-        var result = MessageBox.Show($"Are you sure you want to delete Goods Return {goodsReturn.ReturnNo}?\n\nThis action cannot be undone.", 
-                                   "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        var result = new ConfirmationDialog("Confirm Delete", 
+            $"Are you sure you want to delete Goods Return {goodsReturn.ReturnNo}?\n\nThis action cannot be undone.", 
+            ConfirmationDialog.DialogType.Warning).ShowDialog();
         
-        if (result == MessageBoxResult.Yes && _goodsReturnService != null)
+        if (result == true && _goodsReturnService != null)
         {
             try
             {
                 await _goodsReturnService.DeleteGoodsReturnAsync(goodsReturn.Id);
                 
                 AppLogger.LogInfo($"Goods Return deleted successfully: {goodsReturn.ReturnNo}", $"Return ID: {goodsReturn.Id}", "stock_management");
-                MessageBox.Show($"Goods Return {goodsReturn.ReturnNo} deleted successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Success", $"Goods Return {goodsReturn.ReturnNo} deleted successfully!", MessageDialog.MessageType.Success).ShowDialog();
                 
                 // Refresh the list
                 await LoadGoodsReturnsAsync();
@@ -628,13 +640,13 @@ public partial class StockManagementViewModel : ObservableObject
             catch (Exception ex)
             {
                 AppLogger.LogError("Failed to delete Goods Return", ex, $"Return: {goodsReturn.ReturnNo}, ID: {goodsReturn.Id}", "stock_management");
-                MessageBox.Show($"Failed to delete goods return: {ex.Message}", "Delete Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Delete Error", $"Failed to delete goods return: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
             }
         }
         else if (_goodsReturnService == null)
         {
             AppLogger.LogWarning("GoodsReturnService not available for delete operation", "Service injection failed", "stock_management");
-            MessageBox.Show("Delete service not available. Please try again later.", "Service Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog("Service Error", "Delete service not available. Please try again later.", MessageDialog.MessageType.Warning).ShowDialog();
         }
     }
 
@@ -657,12 +669,12 @@ public partial class StockManagementViewModel : ObservableObject
                          $"Return Date: {goodsReturn.ReturnDate:yyyy-MM-dd}\n" +
                          $"Remarks: {goodsReturn.Remarks ?? "N/A"}";
             
-            MessageBox.Show(message, $"View Goods Return - {goodsReturn.ReturnNo}", MessageBoxButton.OK, MessageBoxImage.Information);
+            new MessageDialog($"View Goods Return - {goodsReturn.ReturnNo}", message, MessageDialog.MessageType.Info).ShowDialog();
         }
         catch (Exception ex)
         {
             AppLogger.LogError("Failed to view Goods Return", ex, $"Return: {goodsReturn.ReturnNo}, ID: {goodsReturn.Id}", "stock_management");
-            MessageBox.Show($"Failed to view goods return: {ex.Message}", "View Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("View Error", $"Failed to view goods return: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -690,7 +702,7 @@ public partial class StockManagementViewModel : ObservableObject
         if (goodsReplace == null)
         {
             AppLogger.LogWarning("Edit Goods Replace attempted with null object", "", "stock_management");
-            MessageBox.Show("No goods replace selected for editing.", "Selection Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog("Selection Error", "No goods replace selected for editing.", MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
@@ -702,8 +714,9 @@ public partial class StockManagementViewModel : ObservableObject
             if (goodsReplace.Status != "Pending")
             {
                 AppLogger.LogWarning($"Cannot edit Goods Replace with status: {goodsReplace.Status}", $"Replace: {goodsReplace.ReplaceNo}", "stock_management");
-                MessageBox.Show($"Goods Replace with status '{goodsReplace.Status}' cannot be edited.\nOnly 'Pending' replacements can be edited.", 
-                    "Edit Not Allowed", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Edit Not Allowed", 
+                    $"Goods Replace with status '{goodsReplace.Status}' cannot be edited.\nOnly 'Pending' replacements can be edited.", 
+                    MessageDialog.MessageType.Info).ShowDialog();
                 return;
             }
 
@@ -713,7 +726,7 @@ public partial class StockManagementViewModel : ObservableObject
         catch (Exception ex)
         {
             AppLogger.LogError("Failed to edit Goods Replace", ex, $"Replace: {goodsReplace.ReplaceNo}, ID: {goodsReplace.Id}", "stock_management");
-            MessageBox.Show($"Failed to open goods replace for editing: {ex.Message}", "Edit Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Edit Error", $"Failed to open goods replace for editing: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -723,21 +736,22 @@ public partial class StockManagementViewModel : ObservableObject
         if (goodsReplace == null)
         {
             AppLogger.LogWarning("Delete Goods Replace attempted with null object", "", "stock_management");
-            MessageBox.Show("No goods replace selected for deletion.", "Selection Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog("Selection Error", "No goods replace selected for deletion.", MessageDialog.MessageType.Warning).ShowDialog();
             return;
         }
 
-        var result = MessageBox.Show($"Are you sure you want to delete Goods Replace {goodsReplace.ReplaceNo}?\n\nThis action cannot be undone.", 
-                                   "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        var result = new ConfirmationDialog("Confirm Delete", 
+            $"Are you sure you want to delete Goods Replace {goodsReplace.ReplaceNo}?\n\nThis action cannot be undone.", 
+            ConfirmationDialog.DialogType.Warning).ShowDialog();
         
-        if (result == MessageBoxResult.Yes && _goodsReplaceService != null)
+        if (result == true && _goodsReplaceService != null)
         {
             try
             {
                 await _goodsReplaceService.DeleteGoodsReplaceAsync(goodsReplace.Id);
                 
                 AppLogger.LogInfo($"Goods Replace deleted successfully: {goodsReplace.ReplaceNo}", $"Replace ID: {goodsReplace.Id}", "stock_management");
-                MessageBox.Show($"Goods Replace {goodsReplace.ReplaceNo} deleted successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Success", $"Goods Replace {goodsReplace.ReplaceNo} deleted successfully!", MessageDialog.MessageType.Success).ShowDialog();
                 
                 // Refresh the list
                 await LoadGoodsReplacesAsync();
@@ -745,13 +759,13 @@ public partial class StockManagementViewModel : ObservableObject
             catch (Exception ex)
             {
                 AppLogger.LogError("Failed to delete Goods Replace", ex, $"Replace: {goodsReplace.ReplaceNo}, ID: {goodsReplace.Id}", "stock_management");
-                MessageBox.Show($"Failed to delete goods replace: {ex.Message}", "Delete Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Delete Error", $"Failed to delete goods replace: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
             }
         }
         else if (_goodsReplaceService == null)
         {
             AppLogger.LogWarning("GoodsReplaceService not available for delete operation", "Service injection failed", "stock_management");
-            MessageBox.Show("Delete service not available. Please try again later.", "Service Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            new MessageDialog("Service Error", "Delete service not available. Please try again later.", MessageDialog.MessageType.Warning).ShowDialog();
         }
     }
 
@@ -774,12 +788,12 @@ public partial class StockManagementViewModel : ObservableObject
                          $"Created By: {goodsReplace.CreatedByName}\n" +
                          $"Remarks: {goodsReplace.Remarks ?? "N/A"}";
             
-            MessageBox.Show(message, "Goods Replace Details", MessageBoxButton.OK, MessageBoxImage.Information);
+            new MessageDialog("Goods Replace Details", message, MessageDialog.MessageType.Info).ShowDialog();
         }
         catch (Exception ex)
         {
             AppLogger.LogError("Failed to view Goods Replace details", ex, $"Replace: {goodsReplace.ReplaceNo}", "stock_management");
-            MessageBox.Show($"Failed to load goods replace details: {ex.Message}", "View Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("View Error", $"Failed to load goods replace details: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -853,28 +867,28 @@ public partial class StockManagementViewModel : ObservableObject
             {
                 DesktopFileLogger.Log($"[SaveAdjustProduct] ERROR: No valid selection - SelectedSearchItem: {AdjustProduct.SelectedSearchItem?.Name ?? "NULL"}, ProductId: {AdjustProduct.ProductId}");
                 var modeText = AdjustProduct.AdjustmentMode == StockAdjustmentMode.Product ? "product" : "product unit";
-                MessageBox.Show($"Please select a {modeText}.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Validation Error", $"Please select a {modeText}.", MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(AdjustProduct.ReasonText))
             {
                 DesktopFileLogger.Log("[SaveAdjustProduct] ERROR: No reason provided");
-                MessageBox.Show("Please provide a reason for the adjustment.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Validation Error", "Please provide a reason for the adjustment.", MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
             if (AdjustProduct.DifferenceQuantity == 0)
             {
                 DesktopFileLogger.Log("[SaveAdjustProduct] ERROR: No quantity difference");
-                MessageBox.Show("No quantity change detected. Please enter a different quantity.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Validation Error", "No quantity change detected. Please enter a different quantity.", MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
             if (_stockAdjustmentService == null)
             {
                 DesktopFileLogger.Log("[SaveAdjustProduct] ERROR: StockAdjustmentService is null");
-                MessageBox.Show("Stock adjustment service not available.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Stock adjustment service not available.", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -892,7 +906,7 @@ public partial class StockManagementViewModel : ObservableObject
             {
                 DesktopFileLogger.Log($"[SaveAdjustProduct] ERROR creating reason: {ex.Message}");
                 DesktopFileLogger.Log($"[SaveAdjustProduct] Exception details: {ex}");
-                MessageBox.Show($"Error creating adjustment reason: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", $"Error creating adjustment reason: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
                 return;
             }
 
@@ -961,7 +975,7 @@ public partial class StockManagementViewModel : ObservableObject
             if (result != null)
             {
                 DesktopFileLogger.Log($"[SaveAdjustProduct] SUCCESS! Adjustment saved with number: {result.AdjustmentNo}");
-                MessageBox.Show("Stock adjustment saved successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Success", "Stock adjustment saved successfully!", MessageDialog.MessageType.Success).ShowDialog();
                 
                 // Reset form and close panel
                 DesktopFileLogger.Log("[SaveAdjustProduct] Resetting form and closing panel...");
@@ -976,7 +990,7 @@ public partial class StockManagementViewModel : ObservableObject
             else
             {
                 DesktopFileLogger.Log($"[SaveAdjustProduct] ERROR: Service returned null result");
-                MessageBox.Show("Failed to save stock adjustment. No records were created.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", "Failed to save stock adjustment. No records were created.", MessageDialog.MessageType.Error).ShowDialog();
             }
         }
         catch (Exception ex)
@@ -988,7 +1002,7 @@ public partial class StockManagementViewModel : ObservableObject
             {
                 DesktopFileLogger.Log($"[SaveAdjustProduct] Inner exception: {ex.InnerException.Message}");
             }
-            MessageBox.Show($"An error occurred while saving: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"An error occurred while saving: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
         finally
         {
@@ -1291,8 +1305,9 @@ public partial class StockManagementViewModel : ObservableObject
                 await LoadProductBatchesAsync(AdjustProduct.ProductId);
                 
                 // Show success message
-                MessageBox.Show($"Stock adjustment saved successfully!\nAdjustment No: {result.AdjustmentNo}", 
-                               "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog("Success", 
+                    $"Stock adjustment saved successfully!\nAdjustment No: {result.AdjustmentNo}", 
+                    MessageDialog.MessageType.Success).ShowDialog();
                 
                 // Reset form and close panel
                 AdjustProduct.Reset();
@@ -1301,8 +1316,8 @@ public partial class StockManagementViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error saving stock adjustment: {ex.Message}", 
-                           "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error saving stock adjustment: {ex.Message}", 
+                MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1316,8 +1331,8 @@ public partial class StockManagementViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error navigating to Add GRN: {ex.Message}", 
-                           "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error navigating to Add GRN: {ex.Message}", 
+                MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1343,15 +1358,15 @@ public partial class StockManagementViewModel : ObservableObject
                                 $"Store: {detailedGrn.StoreName}\n" +
                                 $"Invoice No: {detailedGrn.InvoiceNo ?? "N/A"}\n" +
                                 $"Status: {detailedGrn.Status}\n" +
-                                $"Total Amount: ₹{detailedGrn.TotalAmount:N2}\n" +
+                                $"Total Amount: {_activeCurrencyService.FormatPrice(detailedGrn.TotalAmount)}\n" +
                                 $"Created: {detailedGrn.CreatedAt:dd/MM/yyyy HH:mm}\n" +
                                 $"Remarks: {detailedGrn.Remarks ?? "N/A"}";
                     
-                    MessageBox.Show(details, $"View GRN - {grn.GrnNo}", MessageBoxButton.OK, MessageBoxImage.Information);
+                    new MessageDialog($"View GRN - {grn.GrnNo}", details, MessageDialog.MessageType.Info).ShowDialog();
                 }
                 else
                 {
-                    MessageBox.Show($"GRN {grn.GrnNo} not found in database.", "GRN Not Found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    new MessageDialog("GRN Not Found", $"GRN {grn.GrnNo} not found in database.", MessageDialog.MessageType.Warning).ShowDialog();
                 }
             }
             else
@@ -1364,16 +1379,16 @@ public partial class StockManagementViewModel : ObservableObject
                             $"Store: {grn.StoreName}\n" +
                             $"Invoice No: {grn.InvoiceNo ?? "N/A"}\n" +
                             $"Status: {grn.Status}\n" +
-                            $"Total Amount: ₹{grn.TotalAmount:N2}\n" +
+                            $"Total Amount: {_activeCurrencyService.FormatPrice(grn.TotalAmount)}\n" +
                             $"Created: {grn.CreatedAt:dd/MM/yyyy HH:mm}";
                 
-                MessageBox.Show(details, $"View GRN - {grn.GrnNo}", MessageBoxButton.OK, MessageBoxImage.Information);
+                new MessageDialog($"View GRN - {grn.GrnNo}", details, MessageDialog.MessageType.Info).ShowDialog();
             }
         }
         catch (Exception ex)
         {
             AppLogger.LogError("Failed to view GRN details", ex, $"GRN: {grn.GrnNo}, ID: {grn.Id}", "stock_management");
-            MessageBox.Show($"Error loading GRN details: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading GRN details: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1387,8 +1402,9 @@ public partial class StockManagementViewModel : ObservableObject
             // Check if GRN can be edited (only Draft status should be editable)
             if (grn.Status != "Draft")
             {
-                MessageBox.Show($"Cannot edit GRN {grn.GrnNo}. Only GRNs with 'Draft' status can be edited.\nCurrent status: {grn.Status}", 
-                               "Edit Not Allowed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Edit Not Allowed", 
+                    $"Cannot edit GRN {grn.GrnNo}. Only GRNs with 'Draft' status can be edited.\nCurrent status: {grn.Status}", 
+                    MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
@@ -1398,8 +1414,8 @@ public partial class StockManagementViewModel : ObservableObject
         catch (Exception ex)
         {
             AppLogger.LogError("Failed to edit GRN", ex, $"GRN: {grn.GrnNo}, ID: {grn.Id}", "stock_management");
-            MessageBox.Show($"Error opening GRN for editing: {ex.Message}", 
-                           "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error opening GRN for editing: {ex.Message}", 
+                MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1413,15 +1429,17 @@ public partial class StockManagementViewModel : ObservableObject
             // Check if GRN can be deleted (only Draft status should be deletable)
             if (grn.Status != "Draft")
             {
-                MessageBox.Show($"Cannot delete GRN {grn.GrnNo}. Only GRNs with 'Draft' status can be deleted.\nCurrent status: {grn.Status}", 
-                               "Delete Not Allowed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Delete Not Allowed", 
+                    $"Cannot delete GRN {grn.GrnNo}. Only GRNs with 'Draft' status can be deleted.\nCurrent status: {grn.Status}", 
+                    MessageDialog.MessageType.Warning).ShowDialog();
                 return;
             }
 
-            var result = MessageBox.Show($"Are you sure you want to delete GRN {grn.GrnNo}?\n\nThis action cannot be undone.", 
-                                       "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var result = new ConfirmationDialog("Confirm Delete", 
+                $"Are you sure you want to delete GRN {grn.GrnNo}?\n\nThis action cannot be undone.", 
+                ConfirmationDialog.DialogType.Warning).ShowDialog();
             
-            if (result == MessageBoxResult.Yes && _goodsReceivedService != null)
+            if (result == true && _goodsReceivedService != null)
             {
                 // Check if the service has a delete method
                 var serviceType = _goodsReceivedService.GetType();
@@ -1434,7 +1452,7 @@ public partial class StockManagementViewModel : ObservableObject
                     await deleteTask;
                     
                     AppLogger.LogInfo($"GRN deleted successfully: {grn.GrnNo}", $"GRN ID: {grn.Id}", "stock_management");
-                    MessageBox.Show($"GRN {grn.GrnNo} deleted successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    new MessageDialog("Success", $"GRN {grn.GrnNo} deleted successfully!", MessageDialog.MessageType.Success).ShowDialog();
                     
                     // Refresh the list
                     await LoadGoodsReceivedNotesAsync();
@@ -1445,19 +1463,19 @@ public partial class StockManagementViewModel : ObservableObject
                     
                     // Fallback: Remove from collection (for testing purposes)
                     GoodsReceivedNotes.Remove(grn);
-                    MessageBox.Show($"GRN {grn.GrnNo} deleted successfully! (Test mode)", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    new MessageDialog("Success", $"GRN {grn.GrnNo} deleted successfully! (Test mode)", MessageDialog.MessageType.Success).ShowDialog();
                 }
             }
             else if (_goodsReceivedService == null)
             {
                 AppLogger.LogWarning("GoodsReceivedService not available for delete operation", "Service injection failed", "stock_management");
-                MessageBox.Show("Delete service not available. Please try again later.", "Service Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                new MessageDialog("Service Error", "Delete service not available. Please try again later.", MessageDialog.MessageType.Warning).ShowDialog();
             }
         }
         catch (Exception ex)
         {
             AppLogger.LogError("Failed to delete GRN", ex, $"GRN: {grn.GrnNo}, ID: {grn.Id}", "stock_management");
-            MessageBox.Show($"Error deleting GRN: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error deleting GRN: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -1480,6 +1498,7 @@ public partial class StockManagementViewModel : ObservableObject
         IFontService fontService,
         InfrastructureServices.IDatabaseLocalizationService databaseLocalizationService,
         ICurrentUserService currentUserService,
+        IActiveCurrencyService activeCurrencyService,
         IProductService? productService = null,
         IStockAdjustmentService? stockAdjustmentService = null,
         IProductBatchService? productBatchService = null,
@@ -1514,6 +1533,7 @@ public partial class StockManagementViewModel : ObservableObject
         _fontService = fontService;
         _databaseLocalizationService = databaseLocalizationService;
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
         _productService = productService;
         _stockAdjustmentService = stockAdjustmentService;
         _productBatchService = productBatchService;

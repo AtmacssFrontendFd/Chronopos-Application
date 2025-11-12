@@ -22,10 +22,9 @@ public static class ScreenNames
     
     public const string DASHBOARD = "Dashboard";
     public const string SALES_WINDOW = "SalesWindow";  // Previously TRANSACTIONS
-    public const string TRANSACTION = "Transaction";    // New Transaction button
+    public const string TRANSACTION = "Transaction";    // Transaction history
     public const string BACK_OFFICE = "BackOffice";     // Previously MANAGEMENT
     public const string RESERVATION = "Reservation";
-    public const string ORDER_TABLE = "OrderTable";
     public const string REPORTS = "Reports";
     public const string SETTINGS = "Settings";
     
@@ -43,8 +42,6 @@ public static class ScreenNames
     public const string PRODUCT_MANAGEMENT = "ProductManagement";
     public const string CUSTOMER_MANAGEMENT = "CustomerManagement";
     public const string SUPPLIER_MANAGEMENT = "SupplierManagement";
-    public const string PAYMENT_MANAGEMENT = "PaymentManagement";
-    public const string SERVICE_MANAGEMENT = "ServiceManagement";
 
     // ==========================================
     // STOCK MANAGEMENT SUB-MODULES (Tabs)
@@ -64,17 +61,24 @@ public static class ScreenNames
     public const string BRAND = "Brand";
     public const string CATEGORY = "Category";
     public const string PRODUCT_ATTRIBUTES = "ProductAttributes";
+    public const string PRODUCT_MODIFIERS = "ProductModifiers";
     public const string PRODUCT_COMBINATIONS = "ProductCombinations";
     public const string PRODUCT_GROUPING = "ProductGrouping";
     public const string PRICE_TYPES = "PriceTypes";
     public const string PAYMENT_TYPES = "PaymentTypes";
     public const string TAX_RATES = "TaxRates";
-    public const string CUSTOMERS_ADD_OPTIONS = "CustomersAddOptions";
-    public const string CUSTOMER_GROUPS = "CustomerGroups";
-    public const string SUPPLIERS_ADD_OPTIONS = "SuppliersAddOptions";
     public const string UOM = "UOM";
     public const string SHOP = "Shop";
     public const string DISCOUNTS = "Discounts";
+    public const string CURRENCY = "Currency";
+    
+    // ==========================================
+    // CUSTOMER & SUPPLIER SCREENS
+    // ==========================================
+    
+    public const string CUSTOMERS = "Customers";
+    public const string CUSTOMER_GROUPS = "CustomerGroups";
+    public const string SUPPLIERS = "Suppliers";
 
     // ==========================================
     // SETTINGS SCREENS
@@ -86,6 +90,7 @@ public static class ScreenNames
     public const string ROLES = "Roles";
     public const string PERMISSIONS = "Permissions";
     public const string SERVICES = "Services";                     // New Services screen
+    public const string SERVICE_CHARGE = "ServiceCharge";          // Service Charge Types and Options
     
     // Legacy constants (for backward compatibility - deprecated)
     [Obsolete("Use CLIENT_SETTINGS instead")]
@@ -110,7 +115,6 @@ public static class ScreenNames
             TRANSACTION,
             BACK_OFFICE,
             RESERVATION,
-            ORDER_TABLE,
             REPORTS,
             SETTINGS,
             
@@ -119,8 +123,6 @@ public static class ScreenNames
             PRODUCT_MANAGEMENT,
             CUSTOMER_MANAGEMENT,
             SUPPLIER_MANAGEMENT,
-            PAYMENT_MANAGEMENT,
-            SERVICE_MANAGEMENT,
             
             // Stock Management Sub-modules
             INVENTORY,
@@ -134,17 +136,21 @@ public static class ScreenNames
             BRAND,
             CATEGORY,
             PRODUCT_ATTRIBUTES,
+            PRODUCT_MODIFIERS,
             PRODUCT_COMBINATIONS,
             PRODUCT_GROUPING,
             PRICE_TYPES,
             PAYMENT_TYPES,
             TAX_RATES,
-            CUSTOMERS_ADD_OPTIONS,
-            CUSTOMER_GROUPS,
-            SUPPLIERS_ADD_OPTIONS,
             UOM,
             SHOP,
             DISCOUNTS,
+            CURRENCY,
+            
+            // Customer & Supplier Screens
+            CUSTOMERS,
+            CUSTOMER_GROUPS,
+            SUPPLIERS,
             
             // Settings Screens
             CLIENT_SETTINGS,
@@ -152,7 +158,8 @@ public static class ScreenNames
             ADD_OPTIONS,
             ROLES,
             PERMISSIONS,
-            SERVICES
+            SERVICES,
+            SERVICE_CHARGE
         };
     }
 
@@ -184,19 +191,16 @@ public static class ScreenNames
         {
             ALL_SCREENS => "-- All Screens --",
             DASHBOARD => "Dashboard",
-            SALES_WINDOW => "Sales Window",
+            SALES_WINDOW => "Add Sales",
             TRANSACTION => "Transaction",
-            BACK_OFFICE => "Back Office",
+            BACK_OFFICE => "Management",
             RESERVATION => "Reservation",
-            ORDER_TABLE => "Order Table",
             REPORTS => "Reports",
             SETTINGS => "Settings",
             STOCK_MANAGEMENT => "Stock Management",
             PRODUCT_MANAGEMENT => "Product Management",
             CUSTOMER_MANAGEMENT => "Customer Management",
             SUPPLIER_MANAGEMENT => "Supplier Management",
-            PAYMENT_MANAGEMENT => "Payment Management",
-            SERVICE_MANAGEMENT => "Service Management",
             INVENTORY => "Inventory",
             STOCK_ADJUSTMENT => "Stock Adjustment",
             STOCK_TRANSFER => "Stock Transfer",
@@ -206,23 +210,26 @@ public static class ScreenNames
             BRAND => "Brand",
             CATEGORY => "Category",
             PRODUCT_ATTRIBUTES => "Product Attributes",
+            PRODUCT_MODIFIERS => "Product Modifiers",
             PRODUCT_COMBINATIONS => "Product Combinations",
-            PRODUCT_GROUPING => "Product Grouping",
+            PRODUCT_GROUPING => "Product Groups",
             PRICE_TYPES => "Price Types",
             PAYMENT_TYPES => "Payment Types",
             TAX_RATES => "Tax Rates",
-            CUSTOMERS_ADD_OPTIONS => "Customers",
-            CUSTOMER_GROUPS => "Customer Groups",
-            SUPPLIERS_ADD_OPTIONS => "Suppliers",
             UOM => "Unit of Measure (UOM)",
             SHOP => "Shop",
             DISCOUNTS => "Discounts",
+            CURRENCY => "Currency",
+            CUSTOMERS => "Customers",
+            CUSTOMER_GROUPS => "Customer Groups",
+            SUPPLIERS => "Suppliers",
             CLIENT_SETTINGS => "Client Settings",
             GLOBAL_SETTINGS => "Global Settings",
             ADD_OPTIONS => "Others",
             ROLES => "Roles",
             PERMISSIONS => "Permissions",
             SERVICES => "Services",
+            SERVICE_CHARGE => "Service Charges",
             _ => screenName
         };
     }

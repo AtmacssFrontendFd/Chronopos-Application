@@ -26,14 +26,63 @@ namespace ChronoPos.Infrastructure.Services
         private Dictionary<string, string> _cachedTranslations = new();
         private DateTime _lastCacheUpdate = DateTime.MinValue;
         private readonly TimeSpan _cacheExpiry = TimeSpan.FromMinutes(30);
+        private readonly string _languagePreferenceFile;
 
         public event EventHandler<string>? LanguageChanged;
 
         public DatabaseLocalizationService(IServiceScopeFactory scopeFactory)
         {
             _scopeFactory = scopeFactory;
-            // Set default language to English
-            _currentLanguage = new Language { Id = 1, LanguageName = "English", LanguageCode = "en", IsRtl = false };
+            
+            // Set path for language preference file
+            var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ChronoPos");
+            Directory.CreateDirectory(appDataPath);
+            _languagePreferenceFile = Path.Combine(appDataPath, "language_preference.txt");
+            
+            // Try to load saved language preference
+            var savedLanguageCode = LoadLanguagePreference();
+            
+            // Set default language
+            _currentLanguage = new Language 
+            { 
+                Id = 1, 
+                LanguageName = savedLanguageCode == "ur" ? "Urdu" : "English", 
+                LanguageCode = savedLanguageCode ?? "en", 
+                IsRtl = savedLanguageCode == "ur" 
+            };
+            
+            Console.WriteLine($"🌐 [DatabaseLocalizationService] Initialized with language: {_currentLanguage.LanguageCode}");
+        }
+
+        private string? LoadLanguagePreference()
+        {
+            try
+            {
+                if (File.Exists(_languagePreferenceFile))
+                {
+                    var languageCode = File.ReadAllText(_languagePreferenceFile).Trim();
+                    Console.WriteLine($"📂 [DatabaseLocalizationService] Loaded saved language preference: '{languageCode}'");
+                    return languageCode;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ [DatabaseLocalizationService] Error loading language preference: {ex.Message}");
+            }
+            return null;
+        }
+
+        private void SaveLanguagePreference(string languageCode)
+        {
+            try
+            {
+                File.WriteAllText(_languagePreferenceFile, languageCode);
+                Console.WriteLine($"💾 [DatabaseLocalizationService] Saved language preference: '{languageCode}'");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ [DatabaseLocalizationService] Error saving language preference: {ex.Message}");
+            }
         }
 
         private async Task InitializeCurrentLanguageAsync()
@@ -196,6 +245,9 @@ namespace ChronoPos.Infrastructure.Services
                     
                     var previousLanguage = _currentLanguage?.LanguageCode ?? "none";
                     _currentLanguage = language;
+                    
+                    // Save language preference to file
+                    SaveLanguagePreference(languageCode);
                     
                     Console.WriteLine($"🔄 [DatabaseLocalizationService] Language changed from '{previousLanguage}' to '{languageCode}'");
                     

@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ChronoPos.Infrastructure;
 using ChronoPos.Domain.Entities;
+using ChronoPos.Desktop.Views.Dialogs;
 
 namespace ChronoPos.Desktop.Views
 {
@@ -44,13 +45,12 @@ namespace ChronoPos.Desktop.Views
             // If window is closing without admin created, confirm with user
             if (!AdminCreated)
             {
-                var result = MessageBox.Show(
-                    "Admin account is required to use ChronoPos. Are you sure you want to exit?",
+                var result = new ConfirmationDialog(
                     "Exit Application",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning);
+                    "Admin account is required to use ChronoPos. Are you sure you want to exit?",
+                    ConfirmationDialog.DialogType.Warning).ShowDialog();
                 
-                if (result == MessageBoxResult.No)
+                if (result == false)
                 {
                     e.Cancel = true;
                     LogMessage("Window close cancelled by user");
@@ -94,8 +94,11 @@ namespace ChronoPos.Desktop.Views
 
         private async void CreateAdminButton_Click(object sender, RoutedEventArgs e)
         {
-            ErrorTextBlock.Visibility = Visibility.Collapsed;
-            SuccessTextBlock.Visibility = Visibility.Collapsed;
+            // Hide any previous messages
+            ErrorBorder.Visibility = Visibility.Collapsed;
+            SuccessBorder.Visibility = Visibility.Collapsed;
+            ErrorTextBlock.Text = string.Empty;
+            SuccessTextBlock.Text = string.Empty;
 
             // Validate inputs
             if (string.IsNullOrWhiteSpace(FullNameTextBox.Text))
@@ -215,6 +218,7 @@ namespace ChronoPos.Desktop.Views
                     var adminUser = new User
                     {
                         FullName = FullNameTextBox.Text.Trim(),
+                        Username = UsernameTextBox.Text.Trim(),
                         Email = EmailTextBox.Text.Trim().ToLower(),
                         Password = HashPassword(PasswordBox.Password),
                         Role = "Company Owner",
@@ -283,16 +287,32 @@ namespace ChronoPos.Desktop.Views
 
         private void ShowError(string message)
         {
+            // Ensure message is not null or empty
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                message = "An error occurred. Please check your input and try again.";
+            }
+            
             ErrorTextBlock.Text = message;
             ErrorBorder.Visibility = Visibility.Visible;
             SuccessBorder.Visibility = Visibility.Collapsed;
+            
+            LogMessage($"Error displayed to user: {message}");
         }
 
         private void ShowSuccess(string message)
         {
+            // Ensure message is not null or empty
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                message = "Operation completed successfully.";
+            }
+            
             SuccessTextBlock.Text = message;
             SuccessBorder.Visibility = Visibility.Visible;
             ErrorBorder.Visibility = Visibility.Collapsed;
+            
+            LogMessage($"Success message displayed to user: {message}");
         }
 
         private bool IsValidEmail(string email)

@@ -116,27 +116,21 @@
             </Grid.ColumnDefinitions>
 
             <!-- Back Button and Title -->
-            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                <!-- Back Button -->
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <StackPanel.Style>
-                        <Style TargetType="StackPanel">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
-                                    <Setter Property="FlowDirection" Value="LeftToRight"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Style>
-                    <controls:CircularBackButton 
-                        Command="{Binding BackCommand}"
-                        Width="{DynamicResource ButtonHeight}"
-                        Height="{DynamicResource ButtonHeight}"
-                        Margin="0,0,10,0"/>
-                </StackPanel>
+            <StackPanel Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='start3'}" 
+                        Orientation="Horizontal" 
+                        VerticalAlignment="Center"
+                        FlowDirection="LeftToRight">
+                <controls:CircularBackButton 
+                    Command="{Binding BackCommand}"
+                    ButtonSize="30"
+                    ButtonBackground="{DynamicResource SurfaceBackground}"
+                    ButtonForeground="{DynamicResource TextSecondary}"
+                    ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                    ButtonHoverForeground="{DynamicResource TextSecondary}"
+                    Margin="0,0,10,0"/>
 
                 <!-- Title -->
-                <TextBlock Text="Price Types" 
+                <TextBlock Text="{Binding PageTitle}" 
                            FontSize="{DynamicResource FontSizeLarge}"
                            FontWeight="Bold"
                            FontFamily="{DynamicResource PoppinsFontFallback}"
@@ -145,26 +139,18 @@
             </StackPanel>
 
             <!-- Action Buttons -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
-                <!-- Refresh Button -->
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
-                    <StackPanel.Style>
-                        <Style TargetType="StackPanel">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
-                                    <Setter Property="FlowDirection" Value="LeftToRight"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Style>
-                    <controls:RefreshButton 
-                        Command="{Binding RefreshDataCommand}"
-                        ButtonText="Refresh"
-                        ButtonIcon="🔄"
-                        MinButtonWidth="120"
-                        ButtonHeight="36"
-                        Margin="0,0,10,0"/>
-                </StackPanel>
+            <StackPanel Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='end3'}" 
+                        Orientation="Horizontal" 
+                        VerticalAlignment="Center" 
+                        HorizontalAlignment="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"
+                        FlowDirection="LeftToRight">
+                <controls:RefreshButton 
+                    Command="{Binding RefreshDataCommand}"
+                    ButtonText="{Binding RefreshButtonText}"
+                    ButtonIcon="🔄"
+                    MinButtonWidth="120"
+                    ButtonHeight="36"
+                    Margin="0,0,10,0"/>
 
                 <!-- Import Button -->
                 <Button Command="{Binding ImportCommand}"
@@ -206,7 +192,7 @@
                     </Button.Style>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="📥" FontSize="16" Margin="0,0,6,0"/>
-                        <TextBlock Text="Import" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding ImportButtonText}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
 
@@ -250,12 +236,12 @@
                     </Button.Style>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="📤" FontSize="16" Margin="0,0,6,0"/>
-                        <TextBlock Text="Export" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding ExportButtonText}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
 
                 <!-- Add Price Type Button -->
-                <Button Content="Add Price Type"
+                <Button Content="{Binding AddButtonText}"
                         Style="{StaticResource ActionButtonStyle}"
                         Command="{Binding AddPriceTypeCommand}"
                         Visibility="{Binding CanCreatePriceType, Converter={StaticResource BooleanToVisibilityConverter}}"/>
@@ -272,7 +258,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Search Box -->
-                <TextBox Grid.Column="0"
+                <TextBox Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='start3'}"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                          FontSize="{DynamicResource FontSizeSmall}"
                          FontFamily="{DynamicResource PoppinsFontFallback}"
@@ -295,7 +281,7 @@
                                                 <ScrollViewer x:Name="PART_ContentHost" 
                                                             Margin="{TemplateBinding Padding}"
                                                             VerticalAlignment="Center"/>
-                                                <TextBlock Text="Search price types..."
+                                                <TextBlock Text="{Binding DataContext.SearchPlaceholder, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                          Margin="{TemplateBinding Padding}"
                                                          VerticalAlignment="Center"
                                                          Foreground="{DynamicResource TextSecondary}"
@@ -331,10 +317,10 @@
                         <TextBlock>
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="Text" Value="Active Only"/>
+                                    <Setter Property="Text" Value="{Binding DataContext.ActiveOnlyText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding ShowActiveOnly}" Value="True">
-                                            <Setter Property="Text" Value="Show All"/>
+                                            <Setter Property="Text" Value="{Binding DataContext.ShowAllText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -343,7 +329,8 @@
                     </Button.Content>
                 </Button>
 
-                <Button Grid.Column="2" Content="Clear Filters" 
+                <Button Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='end3'}" 
+                        Content="{Binding ClearFiltersText}" 
                         Style="{StaticResource SmallActionButtonStyle}"
                         Command="{Binding ClearFiltersCommand}"/>
             </Grid>
@@ -359,7 +346,7 @@
 
                 <!-- Loading Indicator -->
                 <Grid Grid.Row="0" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <TextBlock Text="Loading price types..."
+                    <TextBlock Text="{Binding LoadingText}"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
                                FontSize="{DynamicResource FontSizeMedium}"
@@ -440,7 +427,7 @@
 
                     <DataGrid.Columns>
                         <!-- Type Name Column -->
-                        <DataGridTextColumn Header="Type Name" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnTypeName, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding TypeName}" 
                                             Width="200"
                                             MinWidth="150">
@@ -454,7 +441,7 @@
                         </DataGridTextColumn>
 
                         <!-- Arabic Name Column -->
-                        <DataGridTextColumn Header="Arabic Name" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnArabicName, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding ArabicNameDisplay}" 
                                             Width="150"
                                             MinWidth="120">
@@ -467,7 +454,7 @@
                         </DataGridTextColumn>
 
                         <!-- Description Column -->
-                        <DataGridTextColumn Header="Description" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnDescription, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding DescriptionDisplay}" 
                                             Width="300"
                                             MinWidth="200">
@@ -480,7 +467,7 @@
                         </DataGridTextColumn>
 
                         <!-- Created Date Column -->
-                        <DataGridTextColumn Header="Created" 
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnCreated, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding CreatedAtFormatted}" 
                                             Width="140"
                                             MinWidth="120">
@@ -493,7 +480,7 @@
                         </DataGridTextColumn>
 
                         <!-- Status Column -->
-                        <DataGridTemplateColumn Header="Status" Width="100">
+                        <DataGridTemplateColumn Header="{Binding DataContext.ColumnStatus, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="100">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Border CornerRadius="12"
@@ -520,7 +507,7 @@
                         </DataGridTemplateColumn>
 
                         <!-- Toggle Active Column -->
-                        <DataGridTemplateColumn Header="Active" Width="80">
+                        <DataGridTemplateColumn Header="{Binding DataContext.ColumnActive, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="80">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <ToggleButton IsChecked="{Binding Status, Mode=OneWay}"
@@ -563,17 +550,17 @@
                         </DataGridTemplateColumn>
 
                         <!-- Actions Column -->
-                        <DataGridTemplateColumn Header="Actions" Width="150">
+                        <DataGridTemplateColumn Header="{Binding DataContext.ColumnActions, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="150">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Edit" 
+                                        <Button Content="{Binding DataContext.EditButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.EditPriceTypeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Margin="2"
                                                 Visibility="{Binding DataContext.CanEditPriceType, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                        <Button Content="Delete" 
+                                        <Button Content="{Binding DataContext.DeleteButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.DeletePriceTypeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
@@ -602,13 +589,13 @@
                                    FontSize="48" 
                                    HorizontalAlignment="Center" 
                                    Margin="0,0,0,10"/>
-                        <TextBlock Text="No price types found"
+                        <TextBlock Text="{Binding EmptyStateTitle}"
                                    FontSize="{DynamicResource FontSizeMedium}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
                                    Foreground="{DynamicResource TextSecondary}"
                                    HorizontalAlignment="Center"
                                    Margin="0,0,0,5"/>
-                        <TextBlock Text="Click 'Add Price Type' to create your first price type"
+                        <TextBlock Text="{Binding EmptyStateMessage}"
                                    FontSize="{DynamicResource FontSizeSmall}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
                                    Foreground="{DynamicResource TextSecondary}"
@@ -630,7 +617,7 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- Status Message -->
-                        <TextBlock Grid.Column="0"
+                        <TextBlock Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='start'}"
                                    Text="{Binding StatusMessage}"
                                    FontSize="{DynamicResource FontSizeExtraSmall}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
@@ -638,16 +625,12 @@
                                    VerticalAlignment="Center"/>
 
                         <!-- Count Info -->
-                        <TextBlock Grid.Column="1"
+                        <TextBlock Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='end'}"
                                    FontSize="{DynamicResource FontSizeExtraSmall}"
                                    FontFamily="{DynamicResource PoppinsFontFallback}"
                                    Foreground="{DynamicResource TextSecondary}"
-                                   VerticalAlignment="Center">
-                            <Run Text="{Binding FilteredPriceTypes.Count, Mode=OneWay}"/>
-                            <Run Text="of"/>
-                            <Run Text="{Binding TotalPriceTypes, Mode=OneWay}"/>
-                            <Run Text="price types"/>
-                        </TextBlock>
+                                   VerticalAlignment="Center"
+                                   Visibility="Collapsed"/>
                     </Grid>
                 </Border>
             </Grid>

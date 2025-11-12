@@ -76,27 +76,21 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Back Button and Title -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <!-- Back Button -->
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <StackPanel.Style>
-                            <Style TargetType="StackPanel">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
-                                        <Setter Property="FlowDirection" Value="LeftToRight"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </StackPanel.Style>
-                        <controls:CircularBackButton 
-                            Command="{Binding GoBackCommand}"
-                            Width="{DynamicResource ButtonHeight}"
-                            Height="{DynamicResource ButtonHeight}"
-                            Margin="0,0,10,0"/>
-                    </StackPanel>
+                <StackPanel Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='start3'}"
+                            Orientation="Horizontal" 
+                            VerticalAlignment="Center"
+                            FlowDirection="LeftToRight">
+                    <controls:CircularBackButton 
+                        Command="{Binding GoBackCommand}"
+                        ButtonSize="30"
+                        ButtonBackground="{DynamicResource SurfaceBackground}"
+                        ButtonForeground="{DynamicResource TextSecondary}"
+                        ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                        ButtonHoverForeground="{DynamicResource TextSecondary}"
+                        Margin="0,0,10,0"/>
 
                     <!-- Title -->
-                    <TextBlock Text="Tax Types" 
+                    <TextBlock Text="{Binding PageTitle}" 
                                FontSize="{DynamicResource FontSizeLarge}"
                                FontWeight="Bold"
                                Foreground="{DynamicResource TextPrimary}"
@@ -104,43 +98,42 @@
                 </StackPanel>
 
                 <!-- Action Buttons -->
-                <StackPanel Grid.Column="2" 
-                           Orientation="Horizontal" 
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Right">
-                    <StackPanel.Style>
-                        <Style TargetType="StackPanel">
-                            <Setter Property="FlowDirection" Value="LeftToRight"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding CurrentFlowDirection}" Value="RightToLeft">
-                                    <Setter Property="FlowDirection" Value="RightToLeft"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Style>
+                <StackPanel Grid.Column="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToGridColumnConverter}, ConverterParameter='end3'}"
+                            Orientation="Horizontal" 
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Right"
+                            FlowDirection="LeftToRight">
                     <controls:RefreshButton 
                         Command="{Binding RefreshCommand}"
-                        ButtonText="Refresh"
+                        ButtonText="{Binding RefreshButtonText}"
                         ButtonIcon="🔄"
                         MinButtonWidth="120"
                         ButtonHeight="36"
                         Margin="0,0,10,0"/>
                     
                     <!-- Import Button -->
-                    <Button Content="📥 Import"
+                    <Button Command="{Binding ImportCommand}"
                             Style="{StaticResource ActionButtonStyle}"
-                            Command="{Binding ImportCommand}"
                             Visibility="{Binding CanImportTaxRate, Converter={StaticResource BooleanToVisibilityConverter}}"
-                            Margin="0,0,10,0"/>
+                            Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal" FlowDirection="LeftToRight">
+                            <TextBlock Text="📥" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding ImportButtonText}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
 
                     <!-- Export Button -->
-                    <Button Content="📤 Export"
+                    <Button Command="{Binding ExportCommand}"
                             Style="{StaticResource ActionButtonStyle}"
-                            Command="{Binding ExportCommand}"
                             Visibility="{Binding CanExportTaxRate, Converter={StaticResource BooleanToVisibilityConverter}}"
-                            Margin="0,0,10,0"/>
+                            Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal" FlowDirection="LeftToRight">
+                            <TextBlock Text="📤" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding ExportButtonText}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
 
-                    <Button Content="Add Tax Type"
+                    <Button Content="{Binding AddButtonText}"
                             Style="{StaticResource ActionButtonStyle}"
                             Command="{Binding AddNewCommand}"
                             Visibility="{Binding CanCreateTaxRate, Converter={StaticResource BooleanToVisibilityConverter}}"/>
@@ -194,7 +187,7 @@
 
                             <!-- Placeholder Text -->
                             <TextBlock Grid.Column="1"
-                                      Text="Search tax types..."
+                                      Text="{Binding SearchPlaceholder}"
                                       FontSize="14"
                                       Foreground="{DynamicResource TextSecondary}"
                                       VerticalAlignment="Center"
@@ -226,10 +219,10 @@
                             <TextBlock>
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="Active Only"/>
+                                        <Setter Property="Text" Value="{Binding ActiveOnlyText}"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding ShowActiveOnly}" Value="True">
-                                                <Setter Property="Text" Value="Show All"/>
+                                                <Setter Property="Text" Value="{Binding ShowAllText}"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -322,7 +315,7 @@
 
                         <DataGrid.Columns>
                             <!-- Name Column -->
-                            <DataGridTextColumn Header="Name" 
+                            <DataGridTextColumn Header="{Binding DataContext.ColumnName, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                               Binding="{Binding Name}"
                                               Width="200"
                                               MinWidth="150">
@@ -336,7 +329,7 @@
                             </DataGridTextColumn>
 
                             <!-- Description Column -->
-                            <DataGridTextColumn Header="Description" 
+                            <DataGridTextColumn Header="{Binding DataContext.ColumnDescription, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                               Binding="{Binding Description}"
                                               Width="250"
                                               MinWidth="200">
@@ -350,7 +343,7 @@
                             </DataGridTextColumn>
 
                             <!-- Value Column -->
-                            <DataGridTextColumn Header="Value" 
+                            <DataGridTextColumn Header="{Binding DataContext.ColumnValue, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                               Binding="{Binding ValueDisplay}"
                                               Width="120"
                                               MinWidth="100">
@@ -364,7 +357,7 @@
                             </DataGridTextColumn>
 
                             <!-- Type Column -->
-                            <DataGridTextColumn Header="Type" 
+                            <DataGridTextColumn Header="{Binding DataContext.ColumnType, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                               Binding="{Binding TypeDisplay}"
                                               Width="130"
                                               MinWidth="120">
@@ -377,7 +370,7 @@
                             </DataGridTextColumn>
 
                             <!-- Applies To Column -->
-                            <DataGridTextColumn Header="Applies To" 
+                            <DataGridTextColumn Header="{Binding DataContext.ColumnAppliesTo, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                               Binding="{Binding AppliesToDisplay}"
                                               Width="150"
                                               MinWidth="130">
@@ -390,7 +383,7 @@
                             </DataGridTextColumn>
 
                             <!-- Status Column -->
-                            <DataGridTemplateColumn Header="Status" Width="100" MinWidth="80">
+                            <DataGridTemplateColumn Header="{Binding DataContext.ColumnStatus, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="100" MinWidth="80">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border CornerRadius="12"
@@ -417,7 +410,7 @@
                             </DataGridTemplateColumn>
 
                             <!-- Toggle Active Column -->
-                            <DataGridTemplateColumn Header="Active" Width="80">
+                            <DataGridTemplateColumn Header="{Binding DataContext.ColumnActive, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="80">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ToggleButton IsChecked="{Binding IsActive, Mode=OneWay}"
@@ -463,7 +456,7 @@
                             </DataGridTemplateColumn>
 
                             <!-- Actions Column -->
-                            <DataGridTemplateColumn Header="Actions" Width="150" MinWidth="140">
+                            <DataGridTemplateColumn Header="{Binding DataContext.ColumnActions, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="150" MinWidth="140">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" 

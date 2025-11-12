@@ -132,7 +132,7 @@
                     CornerRadius="8"
                     MinWidth="380"
                     MaxWidth="500"
-                    Effect="{StaticResource DropShadowEffect}">
+                    Effect="{DynamicResource DropShadowEffect}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -203,7 +203,7 @@
                                                HorizontalAlignment="Right"
                                                VerticalAlignment="Center"
                                                Margin="8,0,0,0">
-                                        <TextBlock Text="{Binding Price, StringFormat='{}{0:C}'}"
+                                        <TextBlock Text="{Binding Price, Converter={StaticResource CurrencyPriceConverter}}"
                                                   FontWeight="SemiBold"
                                                   HorizontalAlignment="Right"
                                                   Visibility="{Binding Price, Converter={StaticResource NullToVisibilityConverter}}"/>

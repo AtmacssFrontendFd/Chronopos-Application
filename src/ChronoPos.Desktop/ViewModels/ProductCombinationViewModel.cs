@@ -3,12 +3,16 @@ using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Constants;
 using ChronoPos.Domain.Entities;
 using ChronoPos.Desktop.Models;
+using ChronoPos.Desktop.Views.Dialogs;
+using ChronoPos.Desktop.Services;
+using ChronoPos.Infrastructure.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Data;
 using System.Windows;
+using FileLogger = ChronoPos.Desktop.Services.FileLogger;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -18,6 +22,8 @@ public partial class ProductCombinationViewModel : ObservableObject
     private readonly IProductUnitService _productUnitService;
     private readonly IProductAttributeService _attributeService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IActiveCurrencyService _activeCurrencyService;
+    private readonly IDatabaseLocalizationService _localizationService;
     private readonly Action? _navigateBack;
 
     [ObservableProperty]
@@ -53,21 +59,58 @@ public partial class ProductCombinationViewModel : ObservableObject
     [ObservableProperty]
     private bool canDeleteProductCombination = false;
 
+    #region Localization Properties
+
+    [ObservableProperty]
+    private string _pageTitle = "Product Combinations";
+
+    [ObservableProperty]
+    private string _refreshButtonText = "Refresh";
+
+    [ObservableProperty]
+    private string _addCombinationButtonText = "Add Combination";
+
+    [ObservableProperty]
+    private string _searchPlaceholder = "Search combinations...";
+
+    [ObservableProperty]
+    private string _filterButtonText = "Filter";
+
+    [ObservableProperty]
+    private string _clearFiltersButtonText = "Clear Filters";
+
+    [ObservableProperty]
+    private string _noCombinationsMessage = "No product combinations available";
+
+    [ObservableProperty]
+    private string _clickAddToCreateMessage = "Click 'Add Combination' to create one";
+
+    #endregion
+
     private readonly ICollectionView _filteredProductUnitsView;
 
     public ICollectionView FilteredCombinations => _filteredProductUnitsView;
 
     public bool HasCombinations => ProductUnits.Count > 0;
     public int TotalCombinations => ProductUnits.Count;
+    
+    public string ActiveCurrencySymbol => _activeCurrencyService?.CurrencySymbol ?? "$";
 
     public ProductCombinationViewModel(
         IProductCombinationItemService combinationService,
         IProductUnitService productUnitService,
         IProductAttributeService attributeService,
         ICurrentUserService currentUserService,
+        IActiveCurrencyService activeCurrencyService,
+        IDatabaseLocalizationService localizationService,
         Action? navigateBack = null)
     {
         _combinationService = combinationService;
+        _productUnitService = productUnitService;
+        _attributeService = attributeService;
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
+        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
         _productUnitService = productUnitService;
         _attributeService = attributeService;
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
@@ -93,8 +136,12 @@ public partial class ProductCombinationViewModel : ObservableObject
         // Subscribe to search text changes
         PropertyChanged += OnPropertyChanged;
         
-        // Load combinations on startup
-        _ = LoadCombinationsAsync();
+        // Load localization and combinations on startup
+        _ = Task.Run(async () =>
+        {
+            await LoadLocalizationAsync();
+            await LoadCombinationsAsync();
+        });
     }
 
     public IAsyncRelayCommand LoadCombinationsCommand { get; }
@@ -106,6 +153,29 @@ public partial class ProductCombinationViewModel : ObservableObject
     public IAsyncRelayCommand RefreshDataCommand { get; }
     public RelayCommand BackCommand { get; }
     public RelayCommand CloseSidePanelCommand { get; }
+
+    #region Localization
+
+    private async Task LoadLocalizationAsync()
+    {
+        try
+        {
+            PageTitle = await _localizationService.GetTranslationAsync("product_combination.page_title") ?? "Product Combinations";
+            RefreshButtonText = await _localizationService.GetTranslationAsync("product_combination.refresh_button") ?? "Refresh";
+            AddCombinationButtonText = await _localizationService.GetTranslationAsync("product_combination.add_combination") ?? "Add Combination";
+            SearchPlaceholder = await _localizationService.GetTranslationAsync("product_combination.search_placeholder") ?? "Search combinations...";
+            FilterButtonText = await _localizationService.GetTranslationAsync("product_combination.filter") ?? "Filter";
+            ClearFiltersButtonText = await _localizationService.GetTranslationAsync("product_combination.clear_filters") ?? "Clear Filters";
+            NoCombinationsMessage = await _localizationService.GetTranslationAsync("product_combination.no_combinations") ?? "No product combinations available";
+            ClickAddToCreateMessage = await _localizationService.GetTranslationAsync("product_combination.click_add_combination") ?? "Click 'Add Combination' to create one";
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Log($"❌ Error loading localization: {ex.Message}");
+        }
+    }
+
+    #endregion
 
     private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -297,13 +367,12 @@ public partial class ProductCombinationViewModel : ObservableObject
 
         try
         {
-            var result = MessageBox.Show(
-                $"Are you sure you want to delete all combinations for '{productUnit.DisplayName}'?",
+            var result = new ConfirmationDialog(
                 "Confirm Delete",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
+                $"Are you sure you want to delete all combinations for '{productUnit.DisplayName}'?",
+                ConfirmationDialog.DialogType.Warning).ShowDialog();
 
-            if (result == MessageBoxResult.Yes)
+            if (result == true)
             {
                 StatusMessage = "Deleting combinations...";
                 // Get all combinations for this product unit and delete them
@@ -318,8 +387,8 @@ public partial class ProductCombinationViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error deleting combinations: {ex.Message}";
-            MessageBox.Show($"Failed to delete combinations: {ex.Message}", "Error", 
-                          MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Failed to delete combinations: {ex.Message}", 
+                          MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 

@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.ComponentModel.DataAnnotations;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Desktop.Views.Dialogs;
 using InfrastructureServices = ChronoPos.Infrastructure.Services;
 using System.Globalization;
 using ChronoPos.Application.Logging;
@@ -35,6 +36,7 @@ public partial class AddGrnViewModel : ObservableObject, IDisposable
     private readonly ILayoutDirectionService _layoutDirectionService;
     private readonly IFontService _fontService;
     private readonly InfrastructureServices.IDatabaseLocalizationService _databaseLocalizationService;
+    private readonly IActiveCurrencyService _activeCurrencyService;
     
     #endregion
 
@@ -464,6 +466,7 @@ public partial class AddGrnViewModel : ObservableObject, IDisposable
         ILayoutDirectionService layoutDirectionService,
         IFontService fontService,
         InfrastructureServices.IDatabaseLocalizationService databaseLocalizationService,
+        IActiveCurrencyService activeCurrencyService,
         Action? navigateBack = null)
     {
         AppLogger.LogSeparator("AddGrnViewModel Constructor", "grn_viewmodel_lifecycle");
@@ -482,6 +485,7 @@ public partial class AddGrnViewModel : ObservableObject, IDisposable
         _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
         _fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
         _databaseLocalizationService = databaseLocalizationService ?? throw new ArgumentNullException(nameof(databaseLocalizationService));
+        _activeCurrencyService = activeCurrencyService ?? throw new ArgumentNullException(nameof(activeCurrencyService));
         _navigateBack = navigateBack;
         
         AppLogger.LogInfo("✅ All services injected successfully", "Service injection completed", "grn_viewmodel_lifecycle");
@@ -987,7 +991,7 @@ public partial class AddGrnViewModel : ObservableObject, IDisposable
     {
         System.Windows.Application.Current.Dispatcher.Invoke(() =>
         {
-            MessageBox.Show(message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", message, MessageDialog.MessageType.Error).ShowDialog();
         });
     }
 
@@ -995,7 +999,7 @@ public partial class AddGrnViewModel : ObservableObject, IDisposable
     {
         System.Windows.Application.Current.Dispatcher.Invoke(() =>
         {
-            MessageBox.Show(message, "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            new MessageDialog("Success", message, MessageDialog.MessageType.Success).ShowDialog();
         });
     }
 
@@ -1135,7 +1139,7 @@ public partial class AddGrnViewModel : ObservableObject, IDisposable
                             
                             GrnItems.Add(grnItem);
                             AppLogger.LogDebug($"Added GRN item", 
-                                $"Product: {item.ProductName}, Qty: {item.Quantity}, Cost: ₹{item.CostPrice}", "grn_edit_mode");
+                                $"Product: {item.ProductName}, Qty: {item.Quantity}, Cost: {_activeCurrencyService.FormatPrice(item.CostPrice)}", "grn_edit_mode");
                         }
                         
                         AppLogger.LogInfo($"Loaded {GrnItems.Count} GRN items", "Items populated successfully", "grn_edit_mode");
@@ -1152,7 +1156,7 @@ public partial class AddGrnViewModel : ObservableObject, IDisposable
                     
                     StatusMessage = $"GRN {grn.GrnNo} loaded for editing";
                     AppLogger.LogInfo($"Edit mode setup complete", 
-                        $"GRN No: {grn.GrnNo}, Items: {GrnItems.Count}, Total: ₹{TotalAmount:N2}", "grn_edit_mode");
+                        $"GRN No: {grn.GrnNo}, Items: {GrnItems.Count}, Total: {_activeCurrencyService.FormatPrice(TotalAmount)}", "grn_edit_mode");
                 }
                 else
                 {

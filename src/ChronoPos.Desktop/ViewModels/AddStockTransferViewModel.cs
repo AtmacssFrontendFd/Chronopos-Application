@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
+using ChronoPos.Desktop.Views.Dialogs;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.ComponentModel;
@@ -463,12 +464,11 @@ public partial class AddStockTransferViewModel : ObservableObject, IDisposable
                 {
                     AppLogger.LogInfo($"Transfer draft updated successfully", 
                         $"Transfer No: {result.TransferNo}, Status: Draft", "stock_transfer");
-                    MessageBox.Show(
-                        "Transfer saved as draft successfully!",
+                    new MessageDialog(
                         "Success",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information
-                    );
+                        "Transfer saved as draft successfully!",
+                        MessageDialog.MessageType.Success
+                    ).ShowDialog();
                     _navigateBack?.Invoke();
                 }
             }
@@ -484,12 +484,11 @@ public partial class AddStockTransferViewModel : ObservableObject, IDisposable
                 {
                     AppLogger.LogInfo($"Transfer draft created successfully", 
                         $"Transfer No: {result.TransferNo}, Status: Draft", "stock_transfer");
-                    MessageBox.Show(
-                        "Transfer saved as draft successfully!",
+                    new MessageDialog(
                         "Success",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information
-                    );
+                        "Transfer saved as draft successfully!",
+                        MessageDialog.MessageType.Success
+                    ).ShowDialog();
                     _navigateBack?.Invoke();
                 }
             }
@@ -539,12 +538,11 @@ public partial class AddStockTransferViewModel : ObservableObject, IDisposable
                 {
                     AppLogger.LogInfo($"Transfer submitted for approval successfully", 
                         $"Transfer No: {result.TransferNo}, Status: Pending", "stock_transfer");
-                    MessageBox.Show(
-                        "Transfer submitted for approval successfully!",
+                    new MessageDialog(
                         "Success",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information
-                    );
+                        "Transfer submitted for approval successfully!",
+                        MessageDialog.MessageType.Success
+                    ).ShowDialog();
                     _navigateBack?.Invoke();
                 }
             }
@@ -560,12 +558,11 @@ public partial class AddStockTransferViewModel : ObservableObject, IDisposable
                 {
                     AppLogger.LogInfo($"Transfer submitted for approval successfully", 
                         $"Transfer No: {result.TransferNo}, Status: Pending", "stock_transfer");
-                    MessageBox.Show(
-                        "Transfer submitted for approval successfully!",
+                    new MessageDialog(
                         "Success",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information
-                    );
+                        "Transfer submitted for approval successfully!",
+                        MessageDialog.MessageType.Success
+                    ).ShowDialog();
                     _navigateBack?.Invoke();
                 }
             }
@@ -623,19 +620,26 @@ public partial class AddStockTransferViewModel : ObservableObject, IDisposable
             
             AppLogger.LogInfo($"Stock transfer created successfully with ID: {createdTransfer?.TransferId}", filename: "stock_transfer");
 
-            MessageBox.Show(
-                "Stock transfer completed successfully! Stock has been reduced.",
+            new MessageDialog(
                 "Success",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information
-            );
+                "Stock transfer completed successfully! Stock has been reduced.",
+                MessageDialog.MessageType.Success
+            ).ShowDialog();
 
             _navigateBack?.Invoke();
         }
         catch (Exception ex)
         {
             AppLogger.LogError($"Error creating stock transfer", ex, $"FromStore: {FromStoreId}, ToStore: {ToStoreId}, Items: {TransferItems.Count}", "stock_transfer");
-            ShowValidationError("Failed to create transfer");
+            
+            // Show specific error message for insufficient batch stock
+            string errorMessage = "Failed to create transfer";
+            if (ex.Message.Contains("Insufficient stock in batch"))
+            {
+                errorMessage = ex.Message; // Show the detailed batch stock error
+            }
+            
+            ShowValidationError(errorMessage);
         }
         finally
         {

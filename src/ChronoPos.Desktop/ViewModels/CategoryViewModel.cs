@@ -18,6 +18,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Windows;
 using ChronoPos.Application.DTOs;
+using ChronoPos.Desktop.Views.Dialogs;
+using ChronoPos.Infrastructure.Services;
 
 namespace ChronoPos.Desktop.ViewModels
 {
@@ -28,6 +30,7 @@ namespace ChronoPos.Desktop.ViewModels
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<CategoryViewModel> _logger;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IDatabaseLocalizationService _localizationService;
         private readonly Action? _navigateBack;
 
         // Cache for discount information to avoid repeated service calls
@@ -70,12 +73,77 @@ namespace ChronoPos.Desktop.ViewModels
         [ObservableProperty]
         private bool canExportCategory = false;
 
+        // Localized Text Properties
+        [ObservableProperty]
+        private string pageTitle = "Categories";
+
+        [ObservableProperty]
+        private string searchPlaceholder = "Search categories...";
+
+        [ObservableProperty]
+        private string refreshButtonText = "Refresh";
+
+        [ObservableProperty]
+        private string importButtonText = "Import";
+
+        [ObservableProperty]
+        private string exportButtonText = "Export";
+
+        [ObservableProperty]
+        private string addCategoryButtonText = "Add Category";
+
+        [ObservableProperty]
+        private string columnName = "Name";
+
+        [ObservableProperty]
+        private string columnArabicName = "Arabic Name";
+
+        [ObservableProperty]
+        private string columnDescription = "Description";
+
+        [ObservableProperty]
+        private string columnProducts = "Products";
+
+        [ObservableProperty]
+        private string columnDiscounts = "Discounts";
+
+        [ObservableProperty]
+        private string columnStatus = "Status";
+
+        [ObservableProperty]
+        private string columnActions = "Actions";
+
+        [ObservableProperty]
+        private string editButtonText = "Edit";
+
+        [ObservableProperty]
+        private string deleteButtonText = "Delete";
+
+        [ObservableProperty]
+        private string addSubCategoryButtonText = "Add Subcategory";
+
+        [ObservableProperty]
+        private string noCategoriesFoundText = "No categories found";
+
+        [ObservableProperty]
+        private string noCategoriesMessageText = "Click 'Add Category' to create your first category";
+
+        [ObservableProperty]
+        private string categoriesCountText = "categories";
+
+        [ObservableProperty]
+        private string activeText = "Active";
+
+        [ObservableProperty]
+        private string inactiveText = "Inactive";
+
         public CategoryViewModel(
             IProductService productService,
             IDiscountService discountService,
             IServiceProvider serviceProvider,
             ILogger<CategoryViewModel> logger,
             ICurrentUserService currentUserService,
+            IDatabaseLocalizationService localizationService,
             Action? navigateBack = null)
         {
             _productService = productService ?? throw new ArgumentNullException(nameof(productService));
@@ -83,6 +151,7 @@ namespace ChronoPos.Desktop.ViewModels
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
             _navigateBack = navigateBack;
 
             // Initialize permissions
@@ -101,6 +170,9 @@ namespace ChronoPos.Desktop.ViewModels
 
             // Subscribe to property changes for search
             PropertyChanged += OnPropertyChanged;
+
+            // Load localized texts
+            _ = LoadLocalizedTextsAsync();
 
             // Load initial data
             _ = LoadCategoriesAsync();
@@ -158,7 +230,12 @@ namespace ChronoPos.Desktop.ViewModels
             {
                 _logger?.LogError(ex, "Error loading categories");
                 StatusMessage = "Error loading categories";
-                MessageBox.Show("Failed to load categories. Please try again.", "Loading Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                
+                var errorDialog = new MessageDialog(
+                    "Loading Error",
+                    "Failed to load categories. Please try again.",
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
             }
             finally
             {
@@ -337,7 +414,12 @@ namespace ChronoPos.Desktop.ViewModels
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "Error opening add category panel");
-                MessageBox.Show("Failed to open add category panel. Please try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                
+                var errorDialog = new MessageDialog(
+                    "Error",
+                    "Failed to open add category panel. Please try again.",
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
             }
         }
 
@@ -353,7 +435,12 @@ namespace ChronoPos.Desktop.ViewModels
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "Error opening edit category panel for category ID: {CategoryId}", categoryItem.Category.Id);
-                MessageBox.Show("Failed to open edit category panel. Please try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                
+                var errorDialog = new MessageDialog(
+                    "Error",
+                    "Failed to open edit category panel. Please try again.",
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
             }
         }
 
@@ -369,7 +456,12 @@ namespace ChronoPos.Desktop.ViewModels
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "Error opening add subcategory panel for parent ID: {ParentId}", parentCategoryItem.Category.Id);
-                MessageBox.Show("Failed to open add subcategory panel. Please try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                
+                var errorDialog = new MessageDialog(
+                    "Error",
+                    "Failed to open add subcategory panel. Please try again.",
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
             }
         }
 
@@ -383,17 +475,31 @@ namespace ChronoPos.Desktop.ViewModels
                 var hasSubCategories = categoryItem.SubCategories?.Any() == true;
 
                 string message;
+                string title;
+                
                 if (hasSubCategories)
                 {
-                    message = $"Category '{categoryItem.Category.Name}' has subcategories. Deleting it will also remove all subcategories. Are you sure?";
+                    title = "Delete Category with Subcategories";
+                    message = $"Category '{categoryItem.Category.Name}' has subcategories.\n\n" +
+                             "Deleting it will also remove all subcategories.\n\n" +
+                             "Are you sure you want to proceed?";
                 }
                 else
                 {
-                    message = $"Are you sure you want to delete category '{categoryItem.Category.Name}'?";
+                    title = "Delete Category";
+                    message = $"Are you sure you want to delete category '{categoryItem.Category.Name}'?\n\n" +
+                             "This action cannot be undone.";
                 }
 
-                var result = MessageBox.Show(message, "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-                if (result != MessageBoxResult.Yes)
+                var dialog = new ConfirmationDialog(
+                    title,
+                    message,
+                    ConfirmationDialog.DialogType.Danger,
+                    "Delete",
+                    "Cancel");
+                    
+                var result = dialog.ShowDialog();
+                if (result != true)
                     return;
 
                 IsLoading = true;
@@ -405,11 +511,22 @@ namespace ChronoPos.Desktop.ViewModels
                 StatusMessage = $"Category '{categoryItem.Category.Name}' deleted successfully";
                 _logger?.LogInformation("Category deleted successfully: {CategoryName} (ID: {CategoryId})", 
                     categoryItem.Category.Name, categoryItem.Category.Id);
+                    
+                var successDialog = new MessageDialog(
+                    "Success",
+                    $"Category '{categoryItem.Category.Name}' has been deleted successfully.",
+                    MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "Error deleting category: {CategoryId}", categoryItem.Category.Id);
-                MessageBox.Show($"Failed to delete category. {ex.Message}", "Delete Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                
+                var errorDialog = new MessageDialog(
+                    "Delete Error",
+                    $"Failed to delete category.\n\n{ex.Message}",
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
             }
             finally
             {
@@ -500,6 +617,51 @@ namespace ChronoPos.Desktop.ViewModels
             }
         }
 
+        private async Task LoadLocalizedTextsAsync()
+        {
+            try
+            {
+                PageTitle = await _localizationService.GetTranslationAsync("category.page_title") ?? "Categories";
+                SearchPlaceholder = await _localizationService.GetTranslationAsync("category.search_placeholder") ?? "Search categories...";
+                RefreshButtonText = await _localizationService.GetTranslationAsync("common.refresh") ?? "Refresh";
+                ImportButtonText = await _localizationService.GetTranslationAsync("common.import") ?? "Import";
+                ExportButtonText = await _localizationService.GetTranslationAsync("common.export") ?? "Export";
+                AddCategoryButtonText = await _localizationService.GetTranslationAsync("category.add_category") ?? "Add Category";
+                
+                // Column headers
+                ColumnName = await _localizationService.GetTranslationAsync("category.column.name") ?? "Name";
+                ColumnArabicName = await _localizationService.GetTranslationAsync("category.column.arabic_name") ?? "Arabic Name";
+                ColumnDescription = await _localizationService.GetTranslationAsync("category.column.description") ?? "Description";
+                ColumnProducts = await _localizationService.GetTranslationAsync("category.column.products") ?? "Products";
+                ColumnDiscounts = await _localizationService.GetTranslationAsync("category.column.discounts") ?? "Discounts";
+                ColumnStatus = await _localizationService.GetTranslationAsync("category.column.status") ?? "Status";
+                ColumnActions = await _localizationService.GetTranslationAsync("category.column.actions") ?? "Actions";
+                
+                // Action buttons
+                EditButtonText = await _localizationService.GetTranslationAsync("common.edit") ?? "Edit";
+                DeleteButtonText = await _localizationService.GetTranslationAsync("common.delete") ?? "Delete";
+                AddSubCategoryButtonText = await _localizationService.GetTranslationAsync("category.add_subcategory") ?? "Add Subcategory";
+                
+                // Messages
+                NoCategoriesFoundText = await _localizationService.GetTranslationAsync("category.no_categories_found") ?? "No categories found";
+                NoCategoriesMessageText = await _localizationService.GetTranslationAsync("category.no_categories_message") ?? "Click 'Add Category' to create your first category";
+                CategoriesCountText = await _localizationService.GetTranslationAsync("category.categories_count") ?? "categories";
+                
+                // Status text
+                ActiveText = await _localizationService.GetTranslationAsync("common.active") ?? "Active";
+                InactiveText = await _localizationService.GetTranslationAsync("common.inactive") ?? "Inactive";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading localized texts for CategoryViewModel");
+            }
+        }
+
+        public async Task RefreshTranslationsAsync()
+        {
+            await LoadLocalizedTextsAsync();
+        }
+
         private async Task ExportAsync()
         {
             try
@@ -518,32 +680,43 @@ namespace ChronoPos.Desktop.ViewModels
 
                     var allCategories = await _productService.GetAllCategoriesAsync();
                     var csv = new StringBuilder();
-                    csv.AppendLine("Id,Name,NameArabic,Description,IsActive,ParentCategoryId,ParentCategoryName,DisplayOrder,ProductCount");
+                    csv.AppendLine("Name,NameArabic,Description,ParentCategoryName,DisplayOrder,IsActive");
 
                     foreach (var category in allCategories)
                     {
-                        csv.AppendLine($"{category.Id}," +
-                                     $"\"{category.Name}\"," +
+                        // Add visual indentation for subcategories to make hierarchy clear
+                        var displayName = string.IsNullOrEmpty(category.ParentCategoryName) 
+                            ? category.Name 
+                            : $"  ↳ {category.Name}";
+                            
+                        csv.AppendLine($"\"{displayName}\"," +
                                      $"\"{category.NameArabic ?? ""}\"," +
                                      $"\"{category.Description ?? ""}\"," +
-                                     $"{category.IsActive}," +
-                                     $"{category.ParentCategoryId?.ToString() ?? ""}," +
                                      $"\"{category.ParentCategoryName ?? ""}\"," +
                                      $"{category.DisplayOrder}," +
-                                     $"{category.ProductCount}");
+                                     $"{category.IsActive}");
                     }
 
                     await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
                     StatusMessage = $"Exported {allCategories.Count()} categories successfully";
-                    MessageBox.Show($"Exported {allCategories.Count()} categories to:\n{saveFileDialog.FileName}", 
-                        "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                    
+                    var successDialog = new MessageDialog(
+                        "Export Successful",
+                        $"Successfully exported {allCategories.Count()} categories to:\n\n{saveFileDialog.FileName}",
+                        MessageDialog.MessageType.Success);
+                    successDialog.ShowDialog();
                 }
             }
             catch (Exception ex)
             {
                 StatusMessage = $"Error exporting categories: {ex.Message}";
-                MessageBox.Show($"Error exporting categories: {ex.Message}", "Export Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                
+                var errorDialog = new MessageDialog(
+                    "Export Error",
+                    $"An error occurred while exporting categories:\n\n{ex.Message}",
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
+                
                 _logger?.LogError(ex, "Error exporting categories");
             }
             finally
@@ -556,20 +729,14 @@ namespace ChronoPos.Desktop.ViewModels
         {
             try
             {
-                // Show dialog with Download Template and Upload File options
-                var result = MessageBox.Show(
-                    "Would you like to download a template first?\n\n" +
-                    "• Click 'Yes' to download the CSV template\n" +
-                    "• Click 'No' to upload your file directly\n" +
-                    "• Click 'Cancel' to exit",
-                    "Import Categories",
-                    MessageBoxButton.YesNoCancel,
-                    MessageBoxImage.Question);
+                // Show custom import dialog
+                var importDialog = new ImportDialog();
+                var dialogResult = importDialog.ShowDialog();
 
-                if (result == MessageBoxResult.Cancel)
+                if (dialogResult != true || importDialog.SelectedAction == ImportDialog.ImportAction.None)
                     return;
 
-                if (result == MessageBoxResult.Yes)
+                if (importDialog.SelectedAction == ImportDialog.ImportAction.DownloadTemplate)
                 {
                     // Download Template
                     var saveFileDialog = new SaveFileDialog
@@ -582,13 +749,27 @@ namespace ChronoPos.Desktop.ViewModels
                     if (saveFileDialog.ShowDialog() == true)
                     {
                         var templateCsv = new StringBuilder();
-                        templateCsv.AppendLine("Id,Name,NameAr,Description,IsActive");
-                        templateCsv.AppendLine("0,Sample Category,الفئة النموذجية,Sample category description,true");
-                        templateCsv.AppendLine("0,Electronics,الإلكترونيات,Electronic devices and accessories,true");
+                        templateCsv.AppendLine("Name,NameArabic,Description,ParentCategoryName,DisplayOrder,IsActive");
+                        templateCsv.AppendLine("Electronics,الإلكترونيات,Electronic devices and accessories,,1,true");
+                        templateCsv.AppendLine("  ↳ Laptops,اللابتوب,Portable computers,Electronics,1,true");
+                        templateCsv.AppendLine("  ↳ Smartphones,الهواتف الذكية,Mobile phones,Electronics,2,true");
+                        templateCsv.AppendLine("Clothing,الملابس,Apparel and fashion,,2,true");
+                        templateCsv.AppendLine("  ↳ Men's Wear,ملابس رجالية,Men's clothing,Clothing,1,true");
+                        templateCsv.AppendLine("  ↳ Women's Wear,ملابس نسائية,Women's clothing,Clothing,2,true");
 
                         await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
-                        MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
-                            "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                        
+                        var successDialog = new MessageDialog(
+                            "Template Downloaded",
+                            $"Template downloaded successfully to:\n\n{saveFileDialog.FileName}\n\n" +
+                            "📝 Template Instructions:\n" +
+                            "• ParentCategoryName: Leave empty for main categories\n" +
+                            "• For subcategories: Enter the exact parent category name\n" +
+                            "• Use '  ↳ ' prefix for subcategories (optional, for visual clarity)\n" +
+                            "• DisplayOrder: Number to control display sequence\n\n" +
+                            "Please fill in your data and use the Import function again to upload it.",
+                            MessageDialog.MessageType.Success);
+                        successDialog.ShowDialog();
                     }
                     return;
                 }
@@ -608,8 +789,11 @@ namespace ChronoPos.Desktop.ViewModels
                     var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
                     if (lines.Length <= 1)
                     {
-                        MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
-                            MessageBoxButton.OK, MessageBoxImage.Warning);
+                        var warningDialog = new MessageDialog(
+                            "Import Error",
+                            "The CSV file is empty or contains only headers.",
+                            MessageDialog.MessageType.Warning);
+                        warningDialog.ShowDialog();
                         return;
                     }
 
@@ -617,7 +801,15 @@ namespace ChronoPos.Desktop.ViewModels
                     int errorCount = 0;
                     var errors = new StringBuilder();
 
-                    // Skip header row
+                    // First pass: Load existing categories to resolve parent names
+                    var existingCategories = await _productService.GetAllCategoriesAsync();
+                    var categoryLookup = existingCategories.ToDictionary(c => c.Name, c => c.Id, StringComparer.OrdinalIgnoreCase);
+
+                    // Second pass: Import in two phases - parents first, then children
+                    var parentCategories = new List<(int lineNumber, CategoryDto category)>();
+                    var childCategories = new List<(int lineNumber, CategoryDto category, string parentName)>();
+
+                    // Parse all lines first
                     for (int i = 1; i < lines.Length; i++)
                     {
                         try
@@ -626,43 +818,138 @@ namespace ChronoPos.Desktop.ViewModels
                             if (string.IsNullOrWhiteSpace(line)) continue;
 
                             var values = ParseCsvLine(line);
-                            if (values.Length < 9)
+                            if (values.Length < 6)
                             {
                                 errorCount++;
-                                errors.AppendLine($"Line {i + 1}: Invalid format (expected 9 columns)");
+                                errors.AppendLine($"Line {i + 1}: Invalid format (expected 6 columns: Name,NameArabic,Description,ParentCategoryName,DisplayOrder,IsActive)");
                                 continue;
                             }
 
+                            // Clean up the name (remove visual indentation markers)
+                            var name = values[0].Trim('"').Replace("↳", "").Trim();
+                            var parentName = values[3].Trim('"');
+
                             var categoryDto = new CategoryDto
                             {
-                                Name = values[1].Trim('"'),
-                                NameArabic = values[2].Trim('"'),
-                                Description = values[3].Trim('"'),
-                                IsActive = bool.Parse(values[4]),
-                                ParentCategoryId = string.IsNullOrWhiteSpace(values[5]) ? null : int.Parse(values[5]),
-                                DisplayOrder = int.Parse(values[7])
+                                Name = name,
+                                NameArabic = values[1].Trim('"'),
+                                Description = values[2].Trim('"'),
+                                DisplayOrder = int.Parse(values[4]),
+                                IsActive = bool.Parse(values[5])
                             };
 
-                            await _productService.CreateCategoryAsync(categoryDto);
-                            successCount++;
+                            // Separate parent and child categories
+                            if (string.IsNullOrWhiteSpace(parentName))
+                            {
+                                parentCategories.Add((i + 1, categoryDto));
+                            }
+                            else
+                            {
+                                childCategories.Add((i + 1, categoryDto, parentName));
+                            }
                         }
                         catch (Exception ex)
                         {
                             errorCount++;
-                            errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                            var errorMessage = $"Parse error - {ex.Message}";
+                            
+                            // Include inner exception details if available
+                            if (ex.InnerException != null)
+                            {
+                                errorMessage += $" | Inner: {ex.InnerException.Message}";
+                                
+                                if (ex.InnerException.InnerException != null)
+                                {
+                                    errorMessage += $" | Details: {ex.InnerException.InnerException.Message}";
+                                }
+                            }
+                            
+                            errors.AppendLine($"Line {i + 1}: {errorMessage}");
+                        }
+                    }
+
+                    // Phase 1: Create parent categories first
+                    foreach (var (lineNumber, categoryDto) in parentCategories)
+                    {
+                        try
+                        {
+                            var created = await _productService.CreateCategoryAsync(categoryDto);
+                            if (created != null)
+                            {
+                                categoryLookup[created.Name] = created.Id;
+                                successCount++;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            errorCount++;
+                            var errorMessage = ex.Message;
+                            
+                            // Include inner exception details if available
+                            if (ex.InnerException != null)
+                            {
+                                errorMessage += $" | Inner: {ex.InnerException.Message}";
+                                
+                                if (ex.InnerException.InnerException != null)
+                                {
+                                    errorMessage += $" | Details: {ex.InnerException.InnerException.Message}";
+                                }
+                            }
+                            
+                            errors.AppendLine($"Line {lineNumber}: {errorMessage}");
+                        }
+                    }
+
+                    // Phase 2: Create child categories with resolved parent IDs
+                    foreach (var (lineNumber, categoryDto, parentName) in childCategories)
+                    {
+                        try
+                        {
+                            if (categoryLookup.TryGetValue(parentName, out int parentId))
+                            {
+                                categoryDto.ParentCategoryId = parentId;
+                                await _productService.CreateCategoryAsync(categoryDto);
+                                successCount++;
+                            }
+                            else
+                            {
+                                errorCount++;
+                                errors.AppendLine($"Line {lineNumber}: Parent category '{parentName}' not found. Make sure parent categories are created first.");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            errorCount++;
+                            var errorMessage = ex.Message;
+                            
+                            // Include inner exception details if available
+                            if (ex.InnerException != null)
+                            {
+                                errorMessage += $" | Inner: {ex.InnerException.Message}";
+                                
+                                if (ex.InnerException.InnerException != null)
+                                {
+                                    errorMessage += $" | Details: {ex.InnerException.InnerException.Message}";
+                                }
+                            }
+                            
+                            errors.AppendLine($"Line {lineNumber}: {errorMessage}");
                         }
                     }
 
                     await LoadCategoriesAsync();
 
-                    var message = $"Import completed:\n✓ {successCount} categories imported successfully";
+                    var message = $"Import completed:\n\n✓ {successCount} categories imported successfully";
                     if (errorCount > 0)
                     {
                         message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
                     }
 
-                    MessageBox.Show(message, "Import Complete", 
-                        MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                    var resultDialog = new MessageDialog(
+                        "Import Complete",
+                        message,
+                        errorCount > 0 ? MessageDialog.MessageType.Warning : MessageDialog.MessageType.Success);
+                    resultDialog.ShowDialog();
                     
                     StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
                 }
@@ -670,8 +957,13 @@ namespace ChronoPos.Desktop.ViewModels
             catch (Exception ex)
             {
                 StatusMessage = $"Error importing categories: {ex.Message}";
-                MessageBox.Show($"Error importing categories: {ex.Message}", "Import Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                
+                var errorDialog = new MessageDialog(
+                    "Import Error",
+                    $"An error occurred while importing categories:\n\n{ex.Message}",
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
+                
                 _logger?.LogError(ex, "Error importing categories");
             }
             finally

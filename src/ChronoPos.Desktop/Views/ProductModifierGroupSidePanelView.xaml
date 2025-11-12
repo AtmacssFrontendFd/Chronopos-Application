@@ -1,0 +1,544 @@
+<UserControl x:Class="ChronoPos.Desktop.Views.ProductModifierGroupSidePanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="600"
+             FontFamily="{DynamicResource PoppinsFontFallback}"
+             Width="600">
+
+    <UserControl.Resources>
+        <!-- Converters -->
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        
+        <!-- Input Style -->
+        <Style x:Key="InputTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- ComboBox Style -->
+        <Style x:Key="InputComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Foreground" Value="Black"/>
+        </Style>
+
+        <!-- Button Style -->
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Primary}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeNormal}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryDark}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Secondary Button Style -->
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderNormal}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <!-- Small Button Style -->
+        <Style x:Key="SmallButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeExtraSmall}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource SidePanelBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource Primary}"
+                Padding="20,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="{Binding FormTitle}" 
+                             FontSize="{DynamicResource FontSizeLarge}"
+                             FontWeight="Bold"
+                             Foreground="White"/>
+                    <TextBlock Text="Configure modifier group and add modifiers" 
+                             FontSize="{DynamicResource FontSizeSmall}"
+                             Foreground="White"
+                             Opacity="0.9"/>
+                </StackPanel>
+
+                <Button Grid.Column="1" 
+                      Content="✕"
+                      Background="Transparent"
+                      BorderThickness="0"
+                      Foreground="White"
+                      FontSize="16"
+                      Width="30" Height="30"
+                      Command="{Binding CancelCommand}"
+                      Cursor="Hand"/>
+            </Grid>
+        </Border>
+
+        <!-- Tab Control -->
+        <TabControl Grid.Row="1" 
+                    SelectedIndex="{Binding SelectedTabIndex}"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Margin="20">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+                    <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                    <Setter Property="Padding" Value="15,8"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Border Name="Border" 
+                                        Background="Transparent"
+                                        BorderThickness="0,0,0,2"
+                                        BorderBrush="Transparent"
+                                        Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter x:Name="ContentSite"
+                                                    VerticalAlignment="Center"
+                                                    HorizontalAlignment="Center"
+                                                    ContentSource="Header"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource Primary}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Border" Property="Background" Value="{DynamicResource OverlayBackground}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </TabControl.Resources>
+
+            <!-- Tab 1: Group Details -->
+            <TabItem Header="Group Details">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,15,0,0">
+                    <StackPanel>
+                        
+                        <!-- Group Name -->
+                        <StackPanel Margin="0,0,0,15">
+                            <TextBlock Text="Group Name *" 
+                                     FontWeight="SemiBold"
+                                     FontSize="14"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     Margin="0,0,0,5"/>
+                            <TextBox Text="{Binding GroupName, UpdateSourceTrigger=PropertyChanged}"
+                                   Style="{StaticResource InputTextBoxStyle}"
+                                   Tag="Enter group name (e.g., Pizza Toppings, Drink Sizes)"/>
+                        </StackPanel>
+
+                        <!-- Description -->
+                        <StackPanel Margin="0,0,0,15">
+                            <TextBlock Text="Description" 
+                                     FontWeight="SemiBold"
+                                     FontSize="14"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     Margin="0,0,0,5"/>
+                            <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                                   Style="{StaticResource InputTextBoxStyle}"
+                                   AcceptsReturn="True"
+                                   TextWrapping="Wrap"
+                                   MinHeight="60"
+                                   Tag="Enter description (optional)"/>
+                        </StackPanel>
+
+                        <!-- Selection Type -->
+                        <StackPanel Margin="0,0,0,15">
+                            <TextBlock Text="Selection Type *" 
+                                     FontWeight="SemiBold"
+                                     FontSize="14"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     Margin="0,0,0,5"/>
+                            <ComboBox SelectedItem="{Binding SelectedSelectionType}"
+                                    ItemsSource="{Binding SelectionTypes}"
+                                    Style="{StaticResource InputComboBoxStyle}"/>
+                            <TextBlock Text="Single: User can select only one • Multiple: User can select multiple" 
+                                     FontSize="12"
+                                     Foreground="{DynamicResource TextSecondary}"
+                                     Margin="0,5,0,0"
+                                     TextWrapping="Wrap"
+                                     FontStyle="Italic"/>
+                        </StackPanel>
+
+                        <!-- Required -->
+                        <StackPanel Margin="0,0,0,15">
+                            <CheckBox IsChecked="{Binding IsRequired}"
+                                    Content="Required Group"
+                                    FontSize="14"
+                                    Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="Customer must make a selection from this group" 
+                                     FontSize="12"
+                                     Foreground="{DynamicResource TextSecondary}"
+                                     Margin="20,5,0,0"
+                                     FontStyle="Italic"/>
+                        </StackPanel>
+
+                        <!-- Min Selections -->
+                        <StackPanel Margin="0,0,0,15">
+                            <TextBlock Text="Minimum Selections *" 
+                                     FontWeight="SemiBold"
+                                     FontSize="14"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     Margin="0,0,0,5"/>
+                            <TextBox Text="{Binding MinSelections, UpdateSourceTrigger=PropertyChanged}"
+                                   Style="{StaticResource InputTextBoxStyle}"
+                                   Tag="Minimum number of modifiers customer must select"/>
+                            <TextBlock Text="0 = no minimum required" 
+                                     FontSize="12"
+                                     Foreground="{DynamicResource TextSecondary}"
+                                     Margin="0,5,0,0"
+                                     FontStyle="Italic"/>
+                        </StackPanel>
+
+                        <!-- Max Selections -->
+                        <StackPanel Margin="0,0,0,15">
+                            <TextBlock Text="Maximum Selections" 
+                                     FontWeight="SemiBold"
+                                     FontSize="14"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     Margin="0,0,0,5"/>
+                            <TextBox Text="{Binding MaxSelections, UpdateSourceTrigger=PropertyChanged}"
+                                   Style="{StaticResource InputTextBoxStyle}"
+                                   Tag="Maximum number of modifiers customer can select"/>
+                            <TextBlock Text="Leave empty for unlimited selections" 
+                                     FontSize="12"
+                                     Foreground="{DynamicResource TextSecondary}"
+                                     Margin="0,5,0,0"
+                                     FontStyle="Italic"/>
+                        </StackPanel>
+
+                        <!-- Status -->
+                        <StackPanel Margin="0,0,0,15">
+                            <TextBlock Text="Status *" 
+                                     FontWeight="SemiBold"
+                                     FontSize="{DynamicResource FontSizeNormal}"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     Margin="0,0,0,5"/>
+                            <ComboBox SelectedItem="{Binding SelectedStatus}"
+                                    ItemsSource="{Binding StatusOptions}"
+                                    Style="{StaticResource InputComboBoxStyle}"/>
+                        </StackPanel>
+
+                        <!-- Action Buttons -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                            <Button Content="Reset" 
+                                  Style="{StaticResource SecondaryButtonStyle}"
+                                  Command="{Binding ResetCommand}"
+                                  Width="80"
+                                  Margin="0,0,10,0"/>
+                            <Button Content="Save Group" 
+                                  Style="{StaticResource PrimaryButtonStyle}"
+                                  Command="{Binding SaveGroupCommand}"
+                                  IsEnabled="{Binding CanSave}"
+                                  Width="120"/>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Tab 2: Add Items -->
+            <TabItem Header="Add Items">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Add Item Form -->
+                    <Border Grid.Row="0" 
+                            Background="{DynamicResource SurfaceBackground}"
+                            BorderBrush="{DynamicResource BorderLight}"
+                            BorderThickness="1"
+                            CornerRadius="{DynamicResource BorderCornerRadius}"
+                            Padding="15"
+                            Margin="0,15,0,15">
+                        <StackPanel>
+                            <TextBlock Text="Add Modifier to Group" 
+                                     FontWeight="Bold"
+                                     FontSize="{DynamicResource FontSizeNormal}"
+                                     Foreground="{DynamicResource Primary}"
+                                     Margin="0,0,0,10"/>
+
+                            <!-- Select Modifier -->
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock Text="Select Modifier *" 
+                                         FontWeight="SemiBold"
+                                         FontSize="{DynamicResource FontSizeSmall}"
+                                         Foreground="{DynamicResource TextPrimary}"
+                                         Margin="0,0,0,5"/>
+                                <ComboBox SelectedItem="{Binding SelectedModifierToAdd}"
+                                        ItemsSource="{Binding AvailableModifiers}"
+                                        DisplayMemberPath="Name"
+                                        Style="{StaticResource InputComboBoxStyle}"/>
+                            </StackPanel>
+
+                            <!-- Price Adjustment -->
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock Text="Price Adjustment" 
+                                         FontWeight="SemiBold"
+                                         FontSize="{DynamicResource FontSizeSmall}"
+                                         Foreground="{DynamicResource TextPrimary}"
+                                         Margin="0,0,0,5"/>
+                                <TextBox Text="{Binding PriceAdjustment, UpdateSourceTrigger=PropertyChanged}"
+                                       Style="{StaticResource InputTextBoxStyle}"
+                                       Tag="Price adjustment (can be negative)"/>
+                                <TextBlock Text="Additional price on top of modifier's base price (can be negative)" 
+                                         FontSize="{DynamicResource FontSizeExtraSmall}"
+                                         Foreground="{DynamicResource TextSecondary}"
+                                         Margin="0,3,0,0"
+                                         TextWrapping="Wrap"
+                                         FontStyle="Italic"/>
+                            </StackPanel>
+
+                            <!-- Sort Order -->
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock Text="Sort Order" 
+                                         FontWeight="SemiBold"
+                                         FontSize="{DynamicResource FontSizeSmall}"
+                                         Foreground="{DynamicResource TextPrimary}"
+                                         Margin="0,0,0,5"/>
+                                <TextBox Text="{Binding SortOrder, UpdateSourceTrigger=PropertyChanged}"
+                                       Style="{StaticResource InputTextBoxStyle}"
+                                       Tag="Display order (0 = auto)"/>
+                            </StackPanel>
+
+                            <!-- Default Selection -->
+                            <StackPanel Margin="0,0,0,10">
+                                <CheckBox IsChecked="{Binding DefaultSelection}"
+                                        Content="Default Selection"
+                                        FontSize="{DynamicResource FontSizeSmall}"
+                                        Foreground="{DynamicResource TextPrimary}"/>
+                                <TextBlock Text="This modifier will be pre-selected by default" 
+                                         FontSize="{DynamicResource FontSizeExtraSmall}"
+                                         Foreground="{DynamicResource TextSecondary}"
+                                         Margin="20,3,0,0"
+                                         FontStyle="Italic"/>
+                            </StackPanel>
+
+                            <!-- Action Buttons -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                                <Button Content="Reset" 
+                                      Style="{StaticResource SecondaryButtonStyle}"
+                                      Command="{Binding ResetItemFormCommand}"
+                                      Padding="15,8"
+                                      Margin="0,0,10,0"/>
+                                <Button Content="Add to Group" 
+                                      Style="{StaticResource PrimaryButtonStyle}"
+                                      Command="{Binding AddItemToGroupCommand}"
+                                      Padding="15,8"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Current Items List -->
+                    <Border Grid.Row="1"
+                            Background="{DynamicResource CardBackground}"
+                            BorderBrush="{DynamicResource BorderLight}"
+                            BorderThickness="1"
+                            CornerRadius="{DynamicResource BorderCornerRadius}"
+                            Padding="15">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0"
+                                     Text="Modifiers in Group" 
+                                     FontWeight="Bold"
+                                     FontSize="{DynamicResource FontSizeNormal}"
+                                     Foreground="{DynamicResource Primary}"
+                                     Margin="0,0,0,10"/>
+
+                            <!-- Items List -->
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding GroupItems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource SurfaceBackground}"
+                                                    BorderBrush="{DynamicResource BorderLight}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="4"
+                                                    Padding="10"
+                                                    Margin="0,0,0,8">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <StackPanel Grid.Column="0">
+                                                        <TextBlock Text="{Binding ModifierName}" 
+                                                                 FontWeight="SemiBold"
+                                                                 FontSize="{DynamicResource FontSizeSmall}"
+                                                                 Foreground="{DynamicResource TextPrimary}"/>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                                            <TextBlock Text="Price Adj: " 
+                                                                     FontSize="{DynamicResource FontSizeExtraSmall}"
+                                                                     Foreground="{DynamicResource TextSecondary}"/>
+                                                            <TextBlock Text="{Binding PriceAdjustment, Converter={StaticResource CurrencyPriceConverter}}" 
+                                                                     FontSize="{DynamicResource FontSizeExtraSmall}"
+                                                                     Foreground="{DynamicResource Primary}"
+                                                                     FontWeight="SemiBold"/>
+                                                            <TextBlock Text=" • Sort: " 
+                                                                     FontSize="{DynamicResource FontSizeExtraSmall}"
+                                                                     Foreground="{DynamicResource TextSecondary}"
+                                                                     Margin="10,0,0,0"/>
+                                                            <TextBlock Text="{Binding SortOrder}" 
+                                                                     FontSize="{DynamicResource FontSizeExtraSmall}"
+                                                                     Foreground="{DynamicResource TextSecondary}"/>
+                                                            <TextBlock Text=" • Default" 
+                                                                     FontSize="{DynamicResource FontSizeExtraSmall}"
+                                                                     Foreground="{DynamicResource Primary}"
+                                                                     FontWeight="SemiBold"
+                                                                     Margin="10,0,0,0"
+                                                                     Visibility="{Binding DefaultSelection, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                                        </StackPanel>
+                                                    </StackPanel>
+
+                                                    <Button Grid.Column="1"
+                                                          Content="Remove"
+                                                          Style="{StaticResource SmallButtonStyle}"
+                                                          Foreground="Red"
+                                                          Command="{Binding DataContext.RemoveItemFromGroupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                          CommandParameter="{Binding}"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+
+                            <!-- No Items Message -->
+                            <TextBlock Grid.Row="1"
+                                     Text="No modifiers added yet. Add modifiers using the form above."
+                                     FontSize="{DynamicResource FontSizeSmall}"
+                                     Foreground="{DynamicResource TextSecondary}"
+                                     FontStyle="Italic"
+                                     TextWrapping="Wrap"
+                                     HorizontalAlignment="Center"
+                                     VerticalAlignment="Center"
+                                     Visibility="{Binding GroupItems.Count, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding GroupItems.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- Footer Status -->
+        <Border Grid.Row="2" 
+                Background="{DynamicResource BorderLight}"
+                Padding="20,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" 
+                         Text="{Binding StatusMessage}" 
+                         FontSize="{DynamicResource FontSizeSmall}"
+                         Foreground="{DynamicResource TextSecondary}"
+                         VerticalAlignment="Center"/>
+
+                <ProgressBar Grid.Column="1" 
+                           IsIndeterminate="True"
+                           Width="100" Height="4"
+                           Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
+                           Background="{DynamicResource BorderLight}"
+                           Foreground="{DynamicResource Primary}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

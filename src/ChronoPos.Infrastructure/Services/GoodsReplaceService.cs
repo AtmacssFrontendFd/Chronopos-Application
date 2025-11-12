@@ -1,7 +1,9 @@
 using ChronoPos.Application.DTOs;
+using ChronoPos.Application.DTOs.Inventory;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Logging;
 using ChronoPos.Domain.Entities;
+using ChronoPos.Domain.Enums;
 using ChronoPos.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,17 +18,20 @@ public class GoodsReplaceService : IGoodsReplaceService
     private readonly IGoodsReplaceRepository _goodsReplaceRepository;
     private readonly ISupplierRepository _supplierRepository;
     private readonly IShopLocationRepository _shopLocationRepository;
+    private readonly IStockLedgerService _stockLedgerService; // ✅ REMOVED nullable
 
     public GoodsReplaceService(
         ChronoPosDbContext context,
         IGoodsReplaceRepository goodsReplaceRepository,
         ISupplierRepository supplierRepository,
-        IShopLocationRepository shopLocationRepository)
+        IShopLocationRepository shopLocationRepository,
+        IStockLedgerService stockLedgerService) // ✅ REMOVED default null
     {
         _context = context;
         _goodsReplaceRepository = goodsReplaceRepository;
         _supplierRepository = supplierRepository;
         _shopLocationRepository = shopLocationRepository;
+        _stockLedgerService = stockLedgerService; // ✅ Now guaranteed to be injected
     }
 
     /// <summary>
@@ -291,6 +296,69 @@ public class GoodsReplaceService : IGoodsReplaceService
                 await _context.SaveChangesAsync();
             }
 
+            // Create stock ledger entries if status is Posted (AFTER saving to avoid nested transaction conflict)
+            if (dto.Status == "Posted")
+            {
+                AppLogger.LogInfo("CreateGoodsReplaceService", 
+                    $"Creating stock ledger entries for Posted goods replace ID: {replace.Id}", 
+                    "goods_replace");
+                
+                foreach (var itemDto in dto.Items)
+                {
+                    try
+                    {
+                        // Get product to find its ProductUnit (if UomId is specified)
+                        int? productUnitId = null;
+                        if (itemDto.UomId > 0)
+                        {
+                            var product = await _context.Products
+                                .Include(p => p.ProductUnits)
+                                .FirstOrDefaultAsync(p => p.Id == itemDto.ProductId);
+                                
+                            if (product != null)
+                            {
+                                var productUnit = product.ProductUnits?
+                                    .FirstOrDefault(pu => pu.UnitId == itemDto.UomId);
+                                productUnitId = productUnit?.Id;
+                                
+                                AppLogger.LogInfo("CreateGoodsReplaceService", 
+                                    $"ProductUnit lookup - ProductId: {itemDto.ProductId}, UomId: {itemDto.UomId}, ProductUnitId: {productUnitId}", 
+                                    "goods_replace");
+                            }
+                        }
+                        
+                        AppLogger.LogInfo("CreateGoodsReplaceService", 
+                            $"Creating stock ledger entry - ProductId: {itemDto.ProductId}, UnitId: {productUnitId}, Qty: {itemDto.Quantity}, ReplaceNo: {replace.ReplaceNo}", 
+                            "goods_replace");
+                        
+                        var stockLedgerDto = new CreateStockLedgerDto
+                        {
+                            ProductId = itemDto.ProductId,
+                            UnitId = productUnitId, // Nullable - can be null for product-level replacements
+                            MovementType = StockMovementType.Purchase, // Goods replaced adds stock back (like purchase)
+                            Qty = itemDto.Quantity, // POSITIVE for increment
+                            Location = "Main Store",
+                            ReferenceType = StockReferenceType.Replace, // Using Replace type for goods replacement
+                            ReferenceId = replace.Id,
+                            Note = $"Goods Replaced - {replace.ReplaceNo}"
+                        };
+                        
+                        await _stockLedgerService.CreateAsync(stockLedgerDto);
+                        
+                        AppLogger.LogInfo("CreateGoodsReplaceService", 
+                            $"Stock ledger entry created successfully - ProductId: {itemDto.ProductId}, UnitId: {productUnitId}, Qty: {itemDto.Quantity}, ReplaceNo: {replace.ReplaceNo}", 
+                            "goods_replace");
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLogger.LogError("CreateGoodsReplaceService", ex,
+                            $"Failed to create stock ledger entry - ReplaceId: {replace.Id}, ProductId: {itemDto.ProductId}, Error: {ex.Message}", 
+                            "goods_replace");
+                        // Don't throw - ledger is supplementary
+                    }
+                }
+            }
+
             // Return the created replace
             AppLogger.LogInfo("CreateGoodsReplaceService", 
                 $"Retrieving created replace with ID: {replace.Id}", 
@@ -427,18 +495,66 @@ public class GoodsReplaceService : IGoodsReplaceService
         replace.Status = "Posted";
         replace.UpdatedAt = DateTime.UtcNow;
 
-        // Save all stock and tracking updates first
-        await _context.SaveChangesAsync();
-
-        // 4. Check if the entire return is now fully replaced
-        // IMPORTANT: This must be called AFTER SaveChangesAsync so tracking updates are committed
+        // 4. Check if the entire return is now fully replaced (before saving)
         if (replace.ReferenceReturnId.HasValue)
         {
             await CheckAndMarkReturnAsFullyReplacedAsync(replace.ReferenceReturnId.Value);
-            // Save the IsTotallyReplaced flag update
-            await _context.SaveChangesAsync();
         }
 
+        // Save all stock and tracking updates in one transaction
+        await _context.SaveChangesAsync();
+        
+        // Create stock ledger entries AFTER saving (to avoid nested transaction conflict)
+        foreach (var item in replace.Items)
+        {
+            try
+            {
+                // Get product to find its ProductUnit (if UomId is specified)
+                int? productUnitId = null;
+                if (item.UomId > 0)
+                {
+                    var product = await _context.Products
+                        .Include(p => p.ProductUnits)
+                        .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+                        
+                    if (product != null)
+                    {
+                        var productUnit = product.ProductUnits?
+                            .FirstOrDefault(pu => pu.UnitId == item.UomId);
+                        productUnitId = productUnit?.Id;
+                        
+                        AppLogger.LogInfo("ProductUnit lookup for goods replace stock ledger", 
+                            $"ProductId: {item.ProductId}, UomId: {item.UomId}, ProductUnitId: {productUnitId}", "goods_replace");
+                    }
+                }
+                
+                AppLogger.LogInfo("Creating stock ledger entry for goods replace", 
+                    $"ProductId: {item.ProductId}, UnitId: {productUnitId}, Qty: {item.Quantity}, ReplaceNo: {replace.ReplaceNo}", "goods_replace");
+                
+                var stockLedgerDto = new CreateStockLedgerDto
+                {
+                    ProductId = item.ProductId,
+                    UnitId = productUnitId, // Nullable - can be null for product-level replacements
+                    MovementType = StockMovementType.Purchase, // Goods replaced adds stock back (like purchase)
+                    Qty = item.Quantity, // POSITIVE for increment
+                    Location = "Main Store",
+                    ReferenceType = StockReferenceType.Replace, // Using Replace type for goods replacement
+                    ReferenceId = replace.Id,
+                    Note = $"Goods Replaced - {replace.ReplaceNo}"
+                };
+                
+                await _stockLedgerService.CreateAsync(stockLedgerDto);
+                AppLogger.LogInfo("Stock ledger entry created successfully for goods replace", 
+                    $"ProductId: {item.ProductId}, UnitId: {productUnitId}, Qty: {item.Quantity}, ReplaceNo: {replace.ReplaceNo}", "goods_replace");
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogError("Failed to create stock ledger entry for goods replace", ex,
+                    $"ReplaceId: {replaceId}, ProductId: {item.ProductId}", "goods_replace");
+                // Don't throw - ledger is supplementary
+            }
+        }
+        
         return true;
     }
 

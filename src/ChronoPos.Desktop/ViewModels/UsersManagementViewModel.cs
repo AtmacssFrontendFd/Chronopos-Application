@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Desktop.Models;
+using ChronoPos.Desktop.Views.Dialogs;
 using ChronoPos.Domain.Interfaces;
 using System.Collections.ObjectModel;
 using System.Windows;
@@ -180,14 +181,25 @@ public partial class UsersManagementViewModel : ObservableObject
     [RelayCommand]
     private void EditUser(UserWithPermissionsModel userModel)
     {
-        // Convert back to UserDto for the side panel
+        // Convert back to UserDto for the side panel with ALL user data
         var userDto = new UserDto
         {
             Id = userModel.Id,
             FullName = userModel.FullName,
+            Username = userModel.Username,
             Email = userModel.Email,
+            PhoneNo = userModel.PhoneNo,
+            Address = userModel.Address,
             RolePermissionId = userModel.RolePermissionId ?? 0,
-            RolePermissionName = userModel.RolePermissionName
+            RolePermissionName = userModel.RolePermissionName,
+            ShopId = userModel.ShopId,
+            ChangeAccess = userModel.ChangeAccess,
+            ShiftTypeId = userModel.ShiftTypeId,
+            AdditionalDetails = userModel.AdditionalDetails,
+            UaeId = userModel.UaeId,
+            Dob = userModel.Dob,
+            NationalityStatus = userModel.NationalityStatus,
+            Salary = userModel.Salary
         };
 
         UserSidePanelViewModel = new UserSidePanelViewModel(
@@ -212,32 +224,29 @@ public partial class UsersManagementViewModel : ObservableObject
     [RelayCommand]
     private async Task DeleteUser(UserWithPermissionsModel userModel)
     {
-        var result = MessageBox.Show(
-            $"Are you sure you want to delete user '{userModel.FullName}'?",
+        var result = new ConfirmationDialog(
             "Confirm Delete",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            $"Are you sure you want to delete user '{userModel.FullName}'?",
+            ConfirmationDialog.DialogType.Warning).ShowDialog();
 
-        if (result == MessageBoxResult.Yes)
+        if (result == true)
         {
             try
             {
                 await _userService.DeleteAsync(userModel.Id);
                 await LoadUsersAsync();
                 
-                MessageBox.Show(
-                    "User deleted successfully!",
+                new MessageDialog(
                     "Success",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                    "User deleted successfully!",
+                    MessageDialog.MessageType.Success).ShowDialog();
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
-                    $"Error deleting user: {ex.Message}",
+                new MessageDialog(
                     "Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                    $"Error deleting user: {ex.Message}",
+                    MessageDialog.MessageType.Error).ShowDialog();
             }
         }
     }

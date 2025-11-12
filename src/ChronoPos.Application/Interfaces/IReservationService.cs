@@ -147,4 +147,21 @@ public interface IReservationService
     /// </summary>
     /// <returns>Collection of reservation DTOs with related entity information</returns>
     Task<IEnumerable<ReservationDto>> GetReservationsWithDetailsAsync();
+
+    /// <summary>
+    /// Gets reservations for a specific date and location (floor)
+    /// </summary>
+    /// <param name="date">Reservation date</param>
+    /// <param name="location">Table location/floor</param>
+    /// <returns>Collection of reservation DTOs for the date and location</returns>
+    Task<IEnumerable<ReservationDto>> GetByDateAndLocationAsync(DateTime date, string location);
+
+    /// <summary>
+    /// Gets reservations by date with table details for timeline grid
+    /// Includes only active reservations with full table information
+    /// </summary>
+    /// <param name="date">Reservation date</param>
+    /// <param name="location">Optional location/floor filter</param>
+    /// <returns>Collection of reservation DTOs optimized for timeline display</returns>
+    Task<IEnumerable<ReservationDto>> GetReservationsForTimelineAsync(DateTime date, string? location = null);
 }

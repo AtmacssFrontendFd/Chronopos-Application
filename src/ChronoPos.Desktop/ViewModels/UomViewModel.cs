@@ -10,6 +10,7 @@ using System.Windows;
 using ChronoPos.Desktop.Services;
 using InfrastructureServices = ChronoPos.Infrastructure.Services;
 using Microsoft.Win32;
+using ChronoPos.Desktop.Views.Dialogs;
 
 namespace ChronoPos.Desktop.ViewModels;
 
@@ -112,6 +113,39 @@ public partial class UomViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string _itemsCountText = "units";
+
+    [ObservableProperty]
+    private string _importButtonText = "Import";
+
+    [ObservableProperty]
+    private string _exportButtonText = "Export";
+
+    [ObservableProperty]
+    private string _loadingMessage = "Loading units of measurement...";
+
+    [ObservableProperty]
+    private string _noDataMessage = "No units of measurement found";
+
+    [ObservableProperty]
+    private string _noDataHint = "Click 'Add UOM' to create your first unit of measurement";
+
+    [ObservableProperty]
+    private string _ofText = "of";
+
+    [ObservableProperty]
+    private string _editButtonText = "Edit";
+
+    [ObservableProperty]
+    private string _deleteButtonText = "Delete";
+
+    [ObservableProperty]
+    private string _baseUnitsOnlyButtonText = "Base Units Only";
+
+    [ObservableProperty]
+    private string _clearFiltersButtonText = "Clear Filters";
+
+    [ObservableProperty]
+    private string _activeLabel = "Active";
 
     // Permission Properties
     [ObservableProperty]
@@ -229,11 +263,15 @@ public partial class UomViewModel : ObservableObject, IDisposable
         // Subscribe to property changes
         PropertyChanged += OnPropertyChanged;
         
-        // Load data
-        _ = Task.Run(LoadUomsAsync);
+        // Subscribe to language changes
+        _databaseLocalizationService.LanguageChanged += OnLanguageChanged;
         
-        // Load translations
-        _ = Task.Run(LoadTranslationsAsync);
+        // Load data and translations
+        _ = Task.Run(async () =>
+        {
+            await LoadTranslationsAsync();
+            await LoadUomsAsync();
+        });
     }
 
     #endregion
@@ -287,13 +325,12 @@ public partial class UomViewModel : ObservableObject, IDisposable
     {
         if (uom == null) return;
 
-        var result = MessageBox.Show(
-            $"Are you sure you want to delete the unit '{uom.Name}'?\n\nWarning: This may affect products that use this unit.",
+        var confirmDialog = new ConfirmationDialog(
             "Confirm Delete",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+            $"Are you sure you want to delete the unit '{uom.Name}'?\n\nWarning: This may affect products that use this unit.",
+            ConfirmationDialog.DialogType.Danger);
 
-        if (result == MessageBoxResult.Yes)
+        if (confirmDialog.ShowDialog() == true)
         {
             try
             {
@@ -304,11 +341,32 @@ public partial class UomViewModel : ObservableObject, IDisposable
                 await LoadUomsAsync();
                 
                 StatusMessage = "UOM deleted successfully";
+                
+                var successDialog = new MessageDialog(
+                    "Success",
+                    "UOM deleted successfully",
+                    MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
             catch (Exception ex)
             {
                 StatusMessage = $"Error deleting UOM: {ex.Message}";
-                MessageBox.Show($"Error deleting UOM: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                
+                var errorMessage = $"Error deleting UOM: {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorMessage += $"\n\nInner: {ex.InnerException.Message}";
+                    if (ex.InnerException.InnerException != null)
+                    {
+                        errorMessage += $"\n\nDetails: {ex.InnerException.InnerException.Message}";
+                    }
+                }
+                
+                var errorDialog = new MessageDialog(
+                    "Error",
+                    errorMessage,
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
             }
             finally
             {
@@ -359,7 +417,22 @@ public partial class UomViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             StatusMessage = $"Error updating UOM status: {ex.Message}";
-            MessageBox.Show($"Error updating UOM status: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            
+            var errorMessage = $"Error updating UOM status: {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                errorMessage += $"\n\nInner: {ex.InnerException.Message}";
+                if (ex.InnerException.InnerException != null)
+                {
+                    errorMessage += $"\n\nDetails: {ex.InnerException.InnerException.Message}";
+                }
+            }
+            
+            var errorDialog = new MessageDialog(
+                "Error",
+                errorMessage,
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -427,7 +500,11 @@ public partial class UomViewModel : ObservableObject, IDisposable
                 message += "This is a base unit - no conversion needed.";
             }
 
-            MessageBox.Show(message, $"Conversion Info - {uom.Name}", MessageBoxButton.OK, MessageBoxImage.Information);
+            var infoDialog = new MessageDialog(
+                $"Conversion Info - {uom.Name}",
+                message,
+                MessageDialog.MessageType.Info);
+            infoDialog.ShowDialog();
         }
         catch (Exception ex)
         {
@@ -575,7 +652,11 @@ public partial class UomViewModel : ObservableObject, IDisposable
             var fullUomData = await _uomService.GetByIdAsync(uom.Id);
             if (fullUomData == null)
             {
-                MessageBox.Show($"Error: Could not load UOM data for ID {uom.Id}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                var errorDialog = new MessageDialog(
+                    "Error",
+                    $"Error: Could not load UOM data for ID {uom.Id}",
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
                 return;
             }
             
@@ -636,6 +717,18 @@ public partial class UomViewModel : ObservableObject, IDisposable
             RefreshButtonText = await _databaseLocalizationService.GetTranslationAsync("common.refresh") ?? "Refresh";
             AddNewUomButtonText = await _databaseLocalizationService.GetTranslationAsync("uom.add_new") ?? "Add UOM";
             SearchPlaceholder = await _databaseLocalizationService.GetTranslationAsync("uom.search_placeholder") ?? "Search units of measurement...";
+            ImportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.import") ?? "Import";
+            ExportButtonText = await _databaseLocalizationService.GetTranslationAsync("common.export") ?? "Export";
+            LoadingMessage = await _databaseLocalizationService.GetTranslationAsync("uom.loading") ?? "Loading units of measurement...";
+            NoDataMessage = await _databaseLocalizationService.GetTranslationAsync("uom.no_data") ?? "No units of measurement found";
+            NoDataHint = await _databaseLocalizationService.GetTranslationAsync("uom.no_data_hint") ?? "Click 'Add UOM' to create your first unit of measurement";
+            OfText = await _databaseLocalizationService.GetTranslationAsync("common.of") ?? "of";
+            ItemsCountText = await _databaseLocalizationService.GetTranslationAsync("uom.items_count") ?? "units";
+            EditButtonText = await _databaseLocalizationService.GetTranslationAsync("common.edit") ?? "Edit";
+            DeleteButtonText = await _databaseLocalizationService.GetTranslationAsync("common.delete") ?? "Delete";
+            BaseUnitsOnlyButtonText = await _databaseLocalizationService.GetTranslationAsync("uom.base_units_only") ?? "Base Units Only";
+            ClearFiltersButtonText = await _databaseLocalizationService.GetTranslationAsync("common.clear_filters") ?? "Clear Filters";
+            ActiveLabel = await _databaseLocalizationService.GetTranslationAsync("common.active") ?? "Active";
             
             // Column headers
             ColumnName = await _databaseLocalizationService.GetTranslationAsync("uom.column.name") ?? "Name";
@@ -653,6 +746,14 @@ public partial class UomViewModel : ObservableObject, IDisposable
             // Log error but don't throw - use default English text
             System.Diagnostics.Debug.WriteLine($"Error loading translations: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Event handler for language changes - reload translations
+    /// </summary>
+    private void OnLanguageChanged(object? sender, string languageCode)
+    {
+        _ = Task.Run(LoadTranslationsAsync);
     }
 
     /// <summary>
@@ -696,21 +797,39 @@ public partial class UomViewModel : ObservableObject, IDisposable
                                  $"\"{uom.Type}\"," +
                                  $"\"{uom.CategoryTitle ?? ""}\"," +
                                  $"\"{uom.BaseUomName ?? ""}\"," +
-                                 $"{uom.ConversionFactor}," +
+                                 $"{uom.ConversionFactor ?? 0}," +
                                  $"\"{uom.Status}\"");
                 }
 
                 await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
                 StatusMessage = $"Exported {Uoms.Count} units successfully";
-                MessageBox.Show($"Exported {Uoms.Count} units to:\n{saveFileDialog.FileName}", 
-                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                var successDialog = new MessageDialog(
+                    "Export Successful",
+                    $"Exported {Uoms.Count} units to:\n{saveFileDialog.FileName}",
+                    MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error exporting units: {ex.Message}";
-            MessageBox.Show($"Error exporting units: {ex.Message}", "Export Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            
+            var errorMessage = $"Error exporting units: {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                errorMessage += $"\n\nInner: {ex.InnerException.Message}";
+                if (ex.InnerException.InnerException != null)
+                {
+                    errorMessage += $"\n\nDetails: {ex.InnerException.InnerException.Message}";
+                }
+            }
+            
+            var errorDialog = new MessageDialog(
+                "Export Error",
+                errorMessage,
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -726,20 +845,14 @@ public partial class UomViewModel : ObservableObject, IDisposable
     {
         try
         {
-            // Show dialog with Download Template and Upload File options
-            var result = MessageBox.Show(
-                "Would you like to download a template first?\n\n" +
-                "• Click 'Yes' to download the CSV template\n" +
-                "• Click 'No' to upload your file directly\n" +
-                "• Click 'Cancel' to exit",
-                "Import Units of Measurement",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question);
+            // Show import dialog
+            var importDialog = new ImportDialog();
+            importDialog.ShowDialog();
 
-            if (result == MessageBoxResult.Cancel)
+            if (importDialog.SelectedAction == ImportDialog.ImportAction.None)
                 return;
 
-            if (result == MessageBoxResult.Yes)
+            if (importDialog.SelectedAction == ImportDialog.ImportAction.DownloadTemplate)
             {
                 // Download Template
                 var saveFileDialog = new SaveFileDialog
@@ -752,98 +865,220 @@ public partial class UomViewModel : ObservableObject, IDisposable
                 if (saveFileDialog.ShowDialog() == true)
                 {
                     var templateCsv = new StringBuilder();
-                    templateCsv.AppendLine("Name,Abbreviation,Type,CategoryTitle,BaseUomId,ConversionFactor,Status,IsActive");
-                    templateCsv.AppendLine("Kilogram,kg,Base,Weight,,,Active,True");
-                    templateCsv.AppendLine("Gram,g,Derived,Weight,1,0.001,Active,True");
+                    templateCsv.AppendLine("Name,Abbreviation,Type,CategoryTitle,BaseUomName,ConversionFactor,Status");
+                    templateCsv.AppendLine("Kilogram,kg,Base,Weight,,0,Active");
+                    templateCsv.AppendLine("Gram,g,Derived,Weight,Kilogram,0.001,Active");
 
                     await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
-                    MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
-                        "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                    
+                    var successDialog = new MessageDialog(
+                        "Template Downloaded",
+                        $"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.",
+                        MessageDialog.MessageType.Success);
+                    successDialog.ShowDialog();
                 }
                 return;
             }
 
-            // Upload File
-            var openFileDialog = new OpenFileDialog
+            if (importDialog.SelectedAction == ImportDialog.ImportAction.UploadFile)
             {
-                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
-                DefaultExt = ".csv"
-            };
-
-            if (openFileDialog.ShowDialog() == true)
-            {
-                IsLoading = true;
-                StatusMessage = "Importing units of measurement...";
-
-                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
-                if (lines.Length <= 1)
+                // Upload File
+                var openFileDialog = new OpenFileDialog
                 {
-                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    DefaultExt = ".csv"
+                };
 
-                int successCount = 0;
-                int errorCount = 0;
-                var errors = new StringBuilder();
-
-                // Skip header row
-                for (int i = 1; i < lines.Length; i++)
+                if (openFileDialog.ShowDialog() == true)
                 {
-                    try
+                    IsLoading = true;
+                    StatusMessage = "Importing units of measurement...";
+
+                    // Reload UOMs to ensure we have the latest data for duplicate checking
+                    await LoadUomsAsync();
+
+                    var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                    if (lines.Length <= 1)
                     {
-                        var line = lines[i];
-                        if (string.IsNullOrWhiteSpace(line)) continue;
+                        var warningDialog = new MessageDialog(
+                            "Import Error",
+                            "The CSV file is empty or contains only headers.",
+                            MessageDialog.MessageType.Warning);
+                        warningDialog.ShowDialog();
+                        IsLoading = false;
+                        return;
+                    }
 
-                        var values = ParseCsvLine(line);
-                        if (values.Length < 8)
+                    int successCount = 0;
+                    int errorCount = 0;
+                    var errors = new StringBuilder();
+
+                    // Skip header row
+                    for (int i = 1; i < lines.Length; i++)
+                    {
+                        try
+                        {
+                            var line = lines[i];
+                            if (string.IsNullOrWhiteSpace(line)) continue;
+
+                            var values = ParseCsvLine(line);
+                            if (values.Length < 7)
+                            {
+                                errorCount++;
+                                errors.AppendLine($"Line {i + 1}: Invalid format (expected 7 columns, got {values.Length})");
+                                continue;
+                            }
+
+                            var name = values[0].Trim('"');
+                            var abbreviation = values[1].Trim('"');
+                            var type = values[2].Trim('"');
+                            var categoryTitle = values[3].Trim('"');
+                            var baseUomName = values[4].Trim('"');
+                            var conversionFactorStr = values[5].Trim();
+                            var status = values[6].Trim('"');
+
+                            // Validate name
+                            if (string.IsNullOrWhiteSpace(name))
+                            {
+                                errorCount++;
+                                errors.AppendLine($"Line {i + 1}: Name is required");
+                                continue;
+                            }
+
+                            // Check for duplicate name
+                            if (Uoms.Any(u => u.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                errorCount++;
+                                errors.AppendLine($"Line {i + 1}: Unit '{name}' already exists");
+                                continue;
+                            }
+
+                            // Check for duplicate abbreviation if provided
+                            if (!string.IsNullOrWhiteSpace(abbreviation) && 
+                                Uoms.Any(u => !string.IsNullOrEmpty(u.Abbreviation) && 
+                                             u.Abbreviation.Equals(abbreviation, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                errorCount++;
+                                errors.AppendLine($"Line {i + 1}: Abbreviation '{abbreviation}' already exists");
+                                continue;
+                            }
+
+                            // Validate type
+                            if (!type.Equals("Base", StringComparison.OrdinalIgnoreCase) && 
+                                !type.Equals("Derived", StringComparison.OrdinalIgnoreCase))
+                            {
+                                errorCount++;
+                                errors.AppendLine($"Line {i + 1}: Type must be 'Base' or 'Derived'");
+                                continue;
+                            }
+
+                            // Find BaseUomId by name if provided
+                            long? baseUomId = null;
+                            decimal? conversionFactor = null;
+
+                            if (type.Equals("Derived", StringComparison.OrdinalIgnoreCase))
+                            {
+                                // Derived units require BaseUomName and ConversionFactor
+                                if (string.IsNullOrWhiteSpace(baseUomName))
+                                {
+                                    errorCount++;
+                                    errors.AppendLine($"Line {i + 1}: Base UOM Name is required for Derived units");
+                                    continue;
+                                }
+
+                                var baseUom = Uoms.FirstOrDefault(u => u.Name.Equals(baseUomName, StringComparison.OrdinalIgnoreCase));
+                                if (baseUom == null)
+                                {
+                                    errorCount++;
+                                    errors.AppendLine($"Line {i + 1}: Base UOM '{baseUomName}' not found. Please import base units first.");
+                                    continue;
+                                }
+                                baseUomId = baseUom.Id;
+
+                                if (string.IsNullOrWhiteSpace(conversionFactorStr))
+                                {
+                                    errorCount++;
+                                    errors.AppendLine($"Line {i + 1}: Conversion Factor is required for Derived units");
+                                    continue;
+                                }
+
+                                if (!decimal.TryParse(conversionFactorStr, out var cf))
+                                {
+                                    errorCount++;
+                                    errors.AppendLine($"Line {i + 1}: Invalid Conversion Factor '{conversionFactorStr}'");
+                                    continue;
+                                }
+                                conversionFactor = cf;
+                            }
+
+                            var createDto = new CreateUomDto
+                            {
+                                Name = name,
+                                Abbreviation = string.IsNullOrWhiteSpace(abbreviation) ? null : abbreviation,
+                                Type = type,
+                                CategoryTitle = string.IsNullOrWhiteSpace(categoryTitle) ? null : categoryTitle,
+                                BaseUomId = baseUomId,
+                                ConversionFactor = conversionFactor,
+                                Status = string.IsNullOrWhiteSpace(status) ? "Active" : status,
+                                IsActive = string.IsNullOrWhiteSpace(status) || status.Equals("Active", StringComparison.OrdinalIgnoreCase)
+                            };
+
+                            await _uomService.CreateUomAsync(createDto, 1); // TODO: Get from current user
+                            successCount++;
+                        }
+                        catch (Exception ex)
                         {
                             errorCount++;
-                            errors.AppendLine($"Line {i + 1}: Invalid format (expected 8 columns)");
-                            continue;
+                            var errorDetail = ex.Message;
+                            if (ex.InnerException != null)
+                            {
+                                errorDetail += $" | Inner: {ex.InnerException.Message}";
+                                if (ex.InnerException.InnerException != null)
+                                {
+                                    errorDetail += $" | Details: {ex.InnerException.InnerException.Message}";
+                                }
+                            }
+                            errors.AppendLine($"Line {i + 1}: {errorDetail}");
                         }
-
-                        var createDto = new CreateUomDto
-                        {
-                            Name = values[0].Trim('"'),
-                            Abbreviation = string.IsNullOrWhiteSpace(values[1].Trim('"')) ? null : values[1].Trim('"'),
-                            Type = values[2].Trim('"'),
-                            CategoryTitle = string.IsNullOrWhiteSpace(values[3].Trim('"')) ? null : values[3].Trim('"'),
-                            BaseUomId = string.IsNullOrWhiteSpace(values[4]) ? null : long.Parse(values[4]),
-                            ConversionFactor = string.IsNullOrWhiteSpace(values[5]) ? null : decimal.Parse(values[5]),
-                            Status = values[6].Trim('"'),
-                            IsActive = bool.Parse(values[7])
-                        };
-
-                        await _uomService.CreateUomAsync(createDto, 1); // TODO: Get from current user
-                        successCount++;
                     }
-                    catch (Exception ex)
+
+                    await LoadUomsAsync();
+
+                    var message = $"Import completed:\n✓ {successCount} units imported successfully";
+                    if (errorCount > 0)
                     {
-                        errorCount++;
-                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                        message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
                     }
+
+                    var resultDialog = new MessageDialog(
+                        "Import Complete",
+                        message,
+                        errorCount > 0 ? MessageDialog.MessageType.Warning : MessageDialog.MessageType.Success);
+                    resultDialog.ShowDialog();
+                    
+                    StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
                 }
-
-                await LoadUomsAsync();
-
-                var message = $"Import completed:\n✓ {successCount} units imported successfully";
-                if (errorCount > 0)
-                {
-                    message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
-                }
-
-                MessageBox.Show(message, "Import Complete", 
-                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
-                
-                StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error importing units: {ex.Message}";
-            MessageBox.Show($"Error importing units: {ex.Message}", "Import Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            
+            var errorMessage = $"Error importing units: {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                errorMessage += $"\n\nInner: {ex.InnerException.Message}";
+                if (ex.InnerException.InnerException != null)
+                {
+                    errorMessage += $"\n\nDetails: {ex.InnerException.InnerException.Message}";
+                }
+            }
+            
+            var errorDialog = new MessageDialog(
+                "Import Error",
+                errorMessage,
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -912,6 +1147,7 @@ public partial class UomViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         PropertyChanged -= OnPropertyChanged;
+        _databaseLocalizationService.LanguageChanged -= OnLanguageChanged;
         GC.SuppressFinalize(this);
     }
 

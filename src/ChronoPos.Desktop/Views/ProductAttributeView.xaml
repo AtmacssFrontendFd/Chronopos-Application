@@ -90,6 +90,42 @@
             </Setter>
         </Style>
 
+        <!-- Success Button Style (Green Button) -->
+        <Style x:Key="SuccessButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource BorderCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#27ae60"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#1e8449"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="{DynamicResource BorderLight}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Card Style -->
         <Style x:Key="ProductAttributeCardStyle" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
@@ -133,13 +169,16 @@
                     </StackPanel.Style>
                     <controls:CircularBackButton 
                         Command="{Binding BackCommand}"
-                        Width="{DynamicResource ButtonHeight}"
-                        Height="{DynamicResource ButtonHeight}"
+                        ButtonSize="30"
+                        ButtonBackground="{DynamicResource SurfaceBackground}"
+                        ButtonForeground="{DynamicResource TextSecondary}"
+                        ButtonHoverBackground="{DynamicResource OverlayBackground}"
+                        ButtonHoverForeground="{DynamicResource TextSecondary}"
                         Margin="0,0,10,0"/>
                 </StackPanel>
 
                 <!-- Title -->
-                <TextBlock Text="Product Attributes" 
+                <TextBlock Text="{Binding PageTitle}" 
                            FontSize="{DynamicResource FontSizeLarge}"
                            FontWeight="Bold"
                            FontFamily="{DynamicResource PoppinsFontFallback}"
@@ -162,7 +201,7 @@
                     </StackPanel.Style>
                     <controls:RefreshButton 
                         Command="{Binding RefreshDataCommand}"
-                        ButtonText="Refresh"
+                        ButtonText="{Binding RefreshButtonText}"
                         ButtonIcon="🔄"
                         MinButtonWidth="120"
                         ButtonHeight="36"
@@ -172,30 +211,30 @@
                 <!-- Import Button -->
                 <Button Style="{StaticResource SuccessButtonStyle}"
                         Command="{Binding ImportCommand}"
-                        Visibility="{Binding CanImportProductAttribute, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Visibility="{Binding CanImportProductAttribute, Converter={StaticResource BoolToVisibilityConverter}}"
                         Margin="0,0,10,0">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="📥" FontSize="16" Margin="0,0,5,0"/>
-                        <TextBlock Text="Import" FontSize="{DynamicResource FontSizeSmall}"/>
+                        <TextBlock Text="{Binding ImportButtonText}" FontSize="{DynamicResource FontSizeSmall}"/>
                     </StackPanel>
                 </Button>
 
                 <!-- Export Button -->
                 <Button Style="{StaticResource SuccessButtonStyle}"
                         Command="{Binding ExportCommand}"
-                        Visibility="{Binding CanExportProductAttribute, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Visibility="{Binding CanExportProductAttribute, Converter={StaticResource BoolToVisibilityConverter}}"
                         Margin="0,0,10,0">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="📤" FontSize="16" Margin="0,0,5,0"/>
-                        <TextBlock Text="Export" FontSize="{DynamicResource FontSizeSmall}"/>
+                        <TextBlock Text="{Binding ExportButtonText}" FontSize="{DynamicResource FontSizeSmall}"/>
                     </StackPanel>
                 </Button>
 
                 <!-- Add Attribute Button -->
-                <Button Content="Add Attribute"
+                <Button Content="{Binding AddButtonText}"
                         Style="{StaticResource ActionButtonStyle}"
                         Command="{Binding AddAttributeCommand}"
-                        Visibility="{Binding CanCreateProductAttribute, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        Visibility="{Binding CanCreateProductAttribute, Converter={StaticResource BoolToVisibilityConverter}}"/>
             </StackPanel>
         </Grid>
 
@@ -232,7 +271,7 @@
                                                 <ScrollViewer x:Name="PART_ContentHost" 
                                                             Margin="{TemplateBinding Padding}"
                                                             VerticalAlignment="Center"/>
-                                                <TextBlock Text="Search attributes..."
+                                                <TextBlock Text="{Binding SearchPlaceholder, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                          Margin="{TemplateBinding Padding}"
                                                          VerticalAlignment="Center"
                                                          Foreground="{DynamicResource TextSecondary}"
@@ -268,10 +307,10 @@
                         <TextBlock>
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="Text" Value="Active Only"/>
+                                    <Setter Property="Text" Value="{Binding ActiveOnlyText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding ShowActiveOnly}" Value="True">
-                                            <Setter Property="Text" Value="Show All"/>
+                                            <Setter Property="Text" Value="{Binding ShowAllText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -280,7 +319,7 @@
                     </Button.Content>
                 </Button>
 
-                <Button Grid.Column="2" Content="Clear Filters" 
+                <Button Grid.Column="2" Content="{Binding ClearFiltersText}" 
                         Style="{StaticResource SmallActionButtonStyle}"
                         Command="{Binding ClearFiltersCommand}"/>
             </Grid>
@@ -338,6 +377,24 @@
                             <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
                             <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
                             <Setter Property="HorizontalContentAlignment" Value="{Binding CurrentFlowDirection, Converter={StaticResource FlowDirectionToHorizontalAlignmentConverter}}"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="DataGridColumnHeader">
+                                        <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                Padding="{TemplateBinding Padding}">
+                                            <TextBlock Text="{TemplateBinding Content}"
+                                                     HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                     VerticalAlignment="Center"
+                                                     Foreground="{DynamicResource TextPrimary}"
+                                                     FontWeight="{TemplateBinding FontWeight}"
+                                                     FontFamily="{TemplateBinding FontFamily}"
+                                                     FontSize="{TemplateBinding FontSize}"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
                         </Style>
                     </DataGrid.ColumnHeaderStyle>
 
@@ -377,7 +434,7 @@
 
                     <DataGrid.Columns>
                         <!-- Attribute Name Column -->
-                        <DataGridTextColumn Header="Attribute Name" 
+                        <DataGridTextColumn Header="{Binding ColumnAttribute, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding AttributeName}" 
                                             Width="200"
                                             MinWidth="150">
@@ -391,7 +448,7 @@
                         </DataGridTextColumn>
 
                         <!-- Value Name Column -->
-                        <DataGridTextColumn Header="Value Name" 
+                        <DataGridTextColumn Header="{Binding ColumnValue, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding Value}" 
                                             Width="200"
                                             MinWidth="150">
@@ -406,7 +463,7 @@
                         </DataGridTextColumn>
 
                         <!-- Arabic Value Column -->
-                        <DataGridTextColumn Header="Arabic Value" 
+                        <DataGridTextColumn Header="{Binding ColumnDescription, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             Binding="{Binding ValueAr}" 
                                             Width="150"
                                             MinWidth="120">
@@ -472,41 +529,60 @@
                         </DataGridTextColumn>
 
                         <!-- Status Column -->
-                        <DataGridTemplateColumn Header="Status" Width="100">
+                        <DataGridTemplateColumn Header="{Binding ColumnStatus, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="100">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Border CornerRadius="12"
                                             Padding="8,4"
-                                            HorizontalAlignment="Center"
-                                            Background="{Binding Status, Converter={StaticResource StatusToColorConverter}}">
-                                        <TextBlock Text="{Binding Status}"
-                                                   Foreground="White"
+                                            HorizontalAlignment="Center">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="#e74c3c"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Status}" Value="1">
+                                                        <Setter Property="Background" Value="#27ae60"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Foreground="White"
                                                    FontSize="{DynamicResource FontSizeExtraSmall}"
                                                    FontWeight="SemiBold"
-                                                   HorizontalAlignment="Center"/>
+                                                   HorizontalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="{Binding InactiveText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Status}" Value="1">
+                                                            <Setter Property="Text" Value="{Binding ActiveText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
                                     </Border>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
                         <!-- Actions Column -->
-                        <DataGridTemplateColumn Header="Actions" Width="150">
+                        <DataGridTemplateColumn Header="{Binding ColumnActions, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="150">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Edit" 
+                                        <Button Content="{Binding EditButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.EditAttributeValueCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Margin="2"
-                                                Visibility="{Binding DataContext.CanEditProductAttribute, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                        <Button Content="Delete" 
+                                                Visibility="{Binding DataContext.CanEditProductAttribute, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        <Button Content="{Binding DeleteButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.DeleteAttributeValueCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
                                                 Foreground="Red"
                                                 Margin="2"
-                                                Visibility="{Binding DataContext.CanDeleteProductAttribute, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                Visibility="{Binding DataContext.CanDeleteProductAttribute, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                         <Button Content="🖨️" 
                                                 Style="{StaticResource SmallActionButtonStyle}"
                                                 Command="{Binding DataContext.ViewAttributeDetailsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -585,7 +661,7 @@
         <!-- Side Panel Overlay - Direct child of root Grid for proper z-index -->
         <Border HorizontalAlignment="Right"
                 VerticalAlignment="Stretch"
-                Width="420"
+                Width="550"
                 Background="{DynamicResource CardBackground}"
                 BorderThickness="1,0,0,0"
                 BorderBrush="{DynamicResource BorderLight}"
@@ -602,7 +678,7 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
-                                                       From="420" To="0" Duration="0:0:0.3">
+                                                       From="550" To="0" Duration="0:0:0.3">
                                             <DoubleAnimation.EasingFunction>
                                                 <CubicEase EasingMode="EaseOut"/>
                                             </DoubleAnimation.EasingFunction>
@@ -614,7 +690,7 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetProperty="RenderTransform.X"
-                                                       From="0" To="420" Duration="0:0:0.2">
+                                                       From="0" To="550" Duration="0:0:0.2">
                                             <DoubleAnimation.EasingFunction>
                                                 <CubicEase EasingMode="EaseIn"/>
                                             </DoubleAnimation.EasingFunction>

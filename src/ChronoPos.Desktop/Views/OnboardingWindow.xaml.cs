@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using Microsoft.Win32;
 using ChronoPos.Desktop.ViewModels;
+using ChronoPos.Desktop.Views.Dialogs;
 
 namespace ChronoPos.Desktop.Views
 {
@@ -74,7 +75,7 @@ namespace ChronoPos.Desktop.Views
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Camera error: {ex.Message}", "Camera Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    new MessageDialog("Camera Error", $"Camera error: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
                 }
             }
         }
@@ -95,13 +96,12 @@ namespace ChronoPos.Desktop.Views
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            var result = MessageBox.Show(
-                "Are you sure you want to exit the setup wizard? ChronoPOS requires activation to continue.",
+            var result = new ConfirmationDialog(
                 "Exit Setup",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
+                "Are you sure you want to exit the setup wizard? ChronoPOS requires activation to continue.",
+                ConfirmationDialog.DialogType.Warning).ShowDialog();
 
-            if (result == MessageBoxResult.Yes)
+            if (result == true)
             {
                 System.Windows.Application.Current.Shutdown();
             }

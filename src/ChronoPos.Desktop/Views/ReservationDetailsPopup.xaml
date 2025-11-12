@@ -1,0 +1,333 @@
+<Window x:Class="ChronoPos.Desktop.Views.ReservationDetailsPopup"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+        mc:Ignorable="d"
+        Title="Reservation Details" 
+        Height="700" 
+        Width="550"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <!-- Converters -->
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <converters:ReservationStatusToColorConverter x:Key="ReservationStatusToColorConverter"/>
+        <converters:ReservationStatusToBadgeConverter x:Key="ReservationStatusToBadgeConverter"/>
+        <converters:ReservationStatusToTextColorConverter x:Key="ReservationStatusToTextColorConverter"/>
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+    </Window.Resources>
+
+    <Border Background="White" 
+            CornerRadius="12" 
+            BorderThickness="1" 
+            BorderBrush="#E0E0E0"
+            Margin="10">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" 
+                            Opacity="0.15" 
+                            BlurRadius="20" 
+                            ShadowDepth="0"/>
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" 
+                    Background="#4CAF50" 
+                    CornerRadius="12,12,0,0" 
+                    Padding="24,20">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{Binding Reservation.Id, StringFormat='Reservation #{0}'}" 
+                                   FontSize="20" 
+                                   FontWeight="Bold" 
+                                   Foreground="White"/>
+                        <Border Background="{Binding Reservation.Status, Converter={StaticResource ReservationStatusToColorConverter}}"
+                                CornerRadius="12"
+                                Padding="8,4"
+                                HorizontalAlignment="Left"
+                                Margin="0,8,0,0">
+                            <TextBlock Text="{Binding Reservation.Status, Converter={StaticResource ReservationStatusToBadgeConverter}}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="{Binding Reservation.Status, Converter={StaticResource ReservationStatusToTextColorConverter}}"/>
+                        </Border>
+                    </StackPanel>
+
+                    <Button Grid.Column="1" 
+                            Content="✕" 
+                            Width="36" 
+                            Height="36"
+                            FontSize="20"
+                            Foreground="White"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Click="CloseButton_Click"
+                            VerticalAlignment="Top"/>
+                </Grid>
+            </Border>
+
+            <!-- Content -->
+            <ScrollViewer Grid.Row="1" 
+                         VerticalScrollBarVisibility="Auto" 
+                         Padding="24,20">
+                <StackPanel>
+
+                    <!-- Customer Section -->
+                    <Border Background="#F5F5F5" 
+                            CornerRadius="8" 
+                            Padding="16" 
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="👤 Customer Information" 
+                                       FontSize="15" 
+                                       FontWeight="SemiBold" 
+                                       Foreground="#2C3E50"
+                                       Margin="0,0,0,12"/>
+                            
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Name:" FontSize="13" Foreground="#666" Margin="0,0,0,8"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Reservation.CustomerName}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Mobile:" FontSize="13" Foreground="#666" Margin="0,0,0,8"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Reservation.CustomerMobile}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Email:" FontSize="13" Foreground="#666"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Reservation.CustomerEmail}" FontSize="13" FontWeight="SemiBold"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Table Section -->
+                    <Border Background="#F5F5F5" 
+                            CornerRadius="8" 
+                            Padding="16" 
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="🪑 Table Information" 
+                                       FontSize="15" 
+                                       FontWeight="SemiBold" 
+                                       Foreground="#2C3E50"
+                                       Margin="0,0,0,12"/>
+                            
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Table Number:" FontSize="13" Foreground="#666" Margin="0,0,0,8"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Reservation.TableNumber}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Location:" FontSize="13" Foreground="#666" Margin="0,0,0,8"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Reservation.TableLocation}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Capacity:" FontSize="13" Foreground="#666"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Reservation.TableCapacity}" FontSize="13" FontWeight="SemiBold"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Reservation Details Section -->
+                    <Border Background="#F5F5F5" 
+                            CornerRadius="8" 
+                            Padding="16" 
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="📅 Reservation Details" 
+                                       FontSize="15" 
+                                       FontWeight="SemiBold" 
+                                       Foreground="#2C3E50"
+                                       Margin="0,0,0,12"/>
+                            
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Date:" FontSize="13" Foreground="#666" Margin="0,0,0,8"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Reservation.ReservationDate, StringFormat='{}{0:dddd, MMMM dd, yyyy}'}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Time:" FontSize="13" Foreground="#666" Margin="0,0,0,8"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" 
+                                          Text="{Binding Reservation.ReservationTime, StringFormat='hh\\:mm'}"
+                                          FontSize="13" 
+                                          FontWeight="SemiBold" 
+                                          Margin="0,0,0,8"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Duration:" FontSize="13" Foreground="#666" Margin="0,0,0,8"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="2 hours" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Persons:" FontSize="13" Foreground="#666"/>
+                                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Reservation.NumberOfPersons, StringFormat='{}{0} person(s)'}" FontSize="13" FontWeight="SemiBold"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Payment Section -->
+                    <Border Background="#F5F5F5" 
+                            CornerRadius="8" 
+                            Padding="16" 
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="💰 Payment Information" 
+                                       FontSize="15" 
+                                       FontWeight="SemiBold" 
+                                       Foreground="#2C3E50"
+                                       Margin="0,0,0,12"/>
+                            
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Deposit Fee:" FontSize="13" Foreground="#666" Margin="0,0,0,8"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Reservation.DepositFee, Converter={StaticResource CurrencyPriceConverter}}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Payment Type:" FontSize="13" Foreground="#666"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Reservation.PaymentTypeName}" FontSize="13" FontWeight="SemiBold"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Notes Section -->
+                    <Border Background="#F5F5F5" 
+                            CornerRadius="8" 
+                            Padding="16"
+                            Visibility="{Binding Reservation.Notes, Converter={StaticResource StringToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock Text="📝 Notes" 
+                                       FontSize="15" 
+                                       FontWeight="SemiBold" 
+                                       Foreground="#2C3E50"
+                                       Margin="0,0,0,12"/>
+                            
+                            <TextBlock Text="{Binding Reservation.Notes}" 
+                                       FontSize="13" 
+                                       Foreground="#555"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Action Buttons -->
+            <Border Grid.Row="2" 
+                    BorderBrush="#E0E0E0" 
+                    BorderThickness="0,1,0,0" 
+                    Padding="24,16">
+                <StackPanel>
+                    
+                    <!-- Edit Button -->
+                    <Button Content="✏️ Edit Reservation" 
+                            Height="44"
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            Background="#2196F3"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Command="{Binding EditCommand}"
+                            Margin="0,0,0,10"/>
+
+                    <!-- Status Action Buttons -->
+                    <UniformGrid Rows="1" Columns="4" HorizontalAlignment="Stretch">
+                        
+                        <!-- Confirm -->
+                        <Button Content="✓ Confirm" 
+                                Height="40"
+                                FontSize="12"
+                                Background="#4CAF50"
+                                Foreground="White"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                Command="{Binding ConfirmCommand}"
+                                Visibility="{Binding CanConfirm, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Margin="0,0,5,0"/>
+
+                        <!-- Check In -->
+                        <Button Content="🚪 Check In" 
+                                Height="40"
+                                FontSize="12"
+                                Background="#2196F3"
+                                Foreground="White"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                Command="{Binding CheckInCommand}"
+                                Visibility="{Binding CanCheckIn, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Margin="0,0,5,0"/>
+
+                        <!-- Complete -->
+                        <Button Content="✅ Complete" 
+                                Height="40"
+                                FontSize="12"
+                                Background="#00BCD4"
+                                Foreground="White"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                Command="{Binding CompleteCommand}"
+                                Visibility="{Binding CanComplete, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Margin="0,0,5,0"/>
+
+                        <!-- Cancel -->
+                        <Button Content="✗ Cancel" 
+                                Height="40"
+                                FontSize="12"
+                                Background="#F44336"
+                                Foreground="White"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                Command="{Binding CancelReservationCommand}"
+                                Visibility="{Binding CanCancelReservation, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    </UniformGrid>
+
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

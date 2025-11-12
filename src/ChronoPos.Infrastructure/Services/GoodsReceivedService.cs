@@ -1,6 +1,8 @@
 using ChronoPos.Application.DTOs;
+using ChronoPos.Application.DTOs.Inventory;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Domain.Entities;
+using ChronoPos.Domain.Enums;
 using ChronoPos.Domain.Interfaces;
 using ChronoPos.Application.Logging;
 
@@ -16,25 +18,29 @@ public class GoodsReceivedService : IGoodsReceivedService
     private readonly IProductBatchService? _productBatchService;
     private readonly IProductService? _productService;
     private readonly IProductRepository? _productRepository;
+    private readonly IStockLedgerService? _stockLedgerService;
 
     public GoodsReceivedService(
         IGoodsReceivedRepository repository,
         IGoodsReceivedItemRepository itemRepository,
         IProductBatchService? productBatchService = null,
         IProductService? productService = null,
-        IProductRepository? productRepository = null)
+        IProductRepository? productRepository = null,
+        IStockLedgerService? stockLedgerService = null)
     {
         _repository = repository;
         _itemRepository = itemRepository;
         _productBatchService = productBatchService;
         _productService = productService;
         _productRepository = productRepository;
+        _stockLedgerService = stockLedgerService;
 
         // Log dependency injection status
         AppLogger.LogInfo($"GoodsReceivedService created with dependencies", 
             $"ProductBatchService: {(productBatchService != null ? "✓" : "✗")}, " +
             $"ProductService: {(productService != null ? "✓" : "✗")}, " +
-            $"ProductRepository: {(productRepository != null ? "✓" : "✗")}", "grn_service_init");
+            $"ProductRepository: {(productRepository != null ? "✓" : "✗")}, " +
+            $"StockLedgerService: {(stockLedgerService != null ? "✓" : "✗")}", "grn_service_init");
     }
 
     public async Task<GoodsReceivedDto?> GetByIdAsync(int id)
@@ -322,6 +328,61 @@ public class GoodsReceivedService : IGoodsReceivedService
             
             AppLogger.LogInfo($"PHASE 2 completed: All Product stocks updated", 
                 $"GRN No: {entity.GrnNo}, Updated products: {updatedProducts.Count}", "grn_posting");
+            
+            // PHASE 2.5: Create Stock Ledger entries for all items
+            AppLogger.LogInfo($"PHASE 2.5: Creating Stock Ledger entries", 
+                $"GRN No: {entity.GrnNo}, Items count: {items.Count}", "grn_posting");
+            
+            if (_stockLedgerService != null)
+            {
+                foreach (var item in items)
+                {
+                    try
+                    {
+                        // Get product to find its ProductUnit
+                        int? productUnitId = null;
+                        if (_productRepository != null && item.UomId > 0)
+                        {
+                            var product = await _productRepository.GetByIdAsync(item.ProductId);
+                            if (product != null && product.SellingUnitId.HasValue)
+                            {
+                                var productUnit = product.ProductUnits?
+                                    .FirstOrDefault(pu => pu.UnitId == item.UomId);
+                                productUnitId = productUnit?.Id;
+                            }
+                        }
+                        
+                        var stockLedgerDto = new CreateStockLedgerDto
+                        {
+                            ProductId = item.ProductId,
+                            UnitId = productUnitId, // Can be null
+                            MovementType = StockMovementType.Purchase,
+                            Qty = item.Quantity,
+                            Location = "Main Store",
+                            ReferenceType = StockReferenceType.GRN,
+                            ReferenceId = entity.Id,
+                            Note = $"Goods Received - GRN #{entity.GrnNo}"
+                        };
+                        
+                        await _stockLedgerService.CreateAsync(stockLedgerDto);
+                        AppLogger.LogInfo($"Stock ledger entry created", 
+                            $"Product ID: {item.ProductId}, Qty: {item.Quantity}, GRN: {entity.GrnNo}", "grn_posting");
+                    }
+                    catch (Exception ledgerEx)
+                    {
+                        AppLogger.LogError($"Failed to create stock ledger entry", ledgerEx, 
+                            $"Product ID: {item.ProductId}, GRN: {entity.GrnNo}", "grn_posting");
+                        // Don't throw - stock ledger is supplementary, don't fail the whole GRN
+                    }
+                }
+                AppLogger.LogInfo($"PHASE 2.5 completed: Stock ledger entries created", 
+                    $"GRN No: {entity.GrnNo}", "grn_posting");
+            }
+            else
+            {
+                AppLogger.LogWarning($"StockLedgerService not available - skipping ledger entries", 
+                    $"GRN No: {entity.GrnNo}", "grn_posting");
+            }
             
             // PHASE 3: ONLY NOW update GRN status to Posted (after everything else succeeds)
             AppLogger.LogInfo($"PHASE 3: Updating GRN status to Posted (final step)", 

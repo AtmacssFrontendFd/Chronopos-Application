@@ -49,45 +49,38 @@
 
         <!-- Input Field Style -->
         <Style x:Key="InputFieldStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="{DynamicResource BorderCornerRadius}">
-                            <ScrollViewer x:Name="PART_ContentHost" 
-                                        Margin="{TemplateBinding Padding}"
-                                        VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
 
         <!-- ComboBox Style -->
         <Style x:Key="ComboBoxStyle" TargetType="ComboBox">
-            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="{DynamicResource DefaultPaddingThickness}"/>
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="MinHeight" Value="{DynamicResource ButtonHeight}"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- DatePicker Style -->
+        <Style x:Key="DatePickerStyle" TargetType="DatePicker">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
 
         <!-- Label Style -->
@@ -236,7 +229,7 @@
                     <TextBlock Text="Basic Information" Style="{StaticResource SectionHeaderStyle}"/>
                     
                     <!-- Discount Name -->
-                    <StackPanel Margin="0,0,0,20">
+                    <StackPanel Margin="0,0,0,15">
                         <TextBlock Text="Discount Name *" Style="{StaticResource LabelStyle}"/>
                         <TextBox Text="{Binding DiscountName, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource InputFieldStyle}"
@@ -244,7 +237,7 @@
                     </StackPanel>
 
                     <!-- Discount Name Arabic -->
-                    <StackPanel Margin="0,0,0,20">
+                    <StackPanel Margin="0,0,0,15">
                         <TextBlock Text="Discount Name (Arabic)" Style="{StaticResource LabelStyle}"/>
                         <TextBox Text="{Binding DiscountNameAr, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource InputFieldStyle}"
@@ -253,7 +246,7 @@
                     </StackPanel>
 
                     <!-- Discount Code -->
-                    <StackPanel Margin="0,0,0,20">
+                    <StackPanel Margin="0,0,0,15">
                         <TextBlock Text="Discount Code *" Style="{StaticResource LabelStyle}"/>
                         <TextBox Text="{Binding DiscountCode, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource InputFieldStyle}"
@@ -262,7 +255,7 @@
                     </StackPanel>
 
                     <!-- Description -->
-                    <StackPanel Margin="0,0,0,20">
+                    <StackPanel Margin="0,0,0,15">
                         <TextBlock Text="Description" Style="{StaticResource LabelStyle}"/>
                         <TextBox Text="{Binding DiscountDescription, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource InputFieldStyle}"
@@ -270,11 +263,12 @@
                                  TextWrapping="Wrap"
                                  AcceptsReturn="True"
                                  VerticalScrollBarVisibility="Auto"
+                                 VerticalAlignment="Top"
                                  ToolTip="Enter discount description"/>
                     </StackPanel>
 
                     <!-- Discount Type and Value -->
-                    <Grid Margin="0,0,0,20">
+                    <Grid Margin="0,0,0,15">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="20"/>
@@ -300,7 +294,7 @@
                     </Grid>
 
                     <!-- Max Discount Amount (only for percentage) -->
-                    <StackPanel Margin="0,0,0,20" Visibility="{Binding IsPercentageDiscount, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel Margin="0,0,0,15" Visibility="{Binding IsPercentageDiscount, Converter={StaticResource BoolToVisibilityConverter}}">
                         <TextBlock Text="Maximum Discount Amount" Style="{StaticResource LabelStyle}"/>
                         <TextBox Text="{Binding MaxDiscountAmount, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource InputFieldStyle}"
@@ -308,7 +302,7 @@
                     </StackPanel>
 
                     <!-- Currency -->
-                    <StackPanel Margin="0,0,0,20">
+                    <StackPanel Margin="0,0,0,15">
                         <TextBlock Text="Currency" Style="{StaticResource LabelStyle}"/>
                         <ComboBox SelectedItem="{Binding CurrencyCode}"
                                   ItemsSource="{Binding Currencies}"
@@ -324,7 +318,7 @@
                     <TextBlock Text="Discount Scope" Style="{StaticResource SectionHeaderStyle}"/>
                     
                     <!-- Applicable On -->
-                    <StackPanel>
+                    <StackPanel Margin="0,0,0,15">
                         <TextBlock Text="Applicable On *" Style="{StaticResource LabelStyle}"/>
                         <ComboBox SelectedItem="{Binding ApplicableOn}"
                                   ItemsSource="{Binding ApplicableOnOptions}"
@@ -333,7 +327,7 @@
                     </StackPanel>
 
                     <!-- Product Selection (when applicable on products) -->
-                    <StackPanel Visibility="{Binding IsProductApplicable, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel Margin="0,0,0,15" Visibility="{Binding IsProductApplicable, Converter={StaticResource BoolToVisibilityConverter}}">
                         <TextBlock Text="Select Products" Style="{StaticResource LabelStyle}"/>
                         <Grid>
                             <Grid.RowDefinitions>
@@ -346,7 +340,7 @@
                             <TextBox Grid.Row="0"
                                      Text="{Binding ProductSearchText, UpdateSourceTrigger=PropertyChanged}"
                                      Style="{StaticResource InputFieldStyle}"
-                                     Margin="0,0,0,10"
+                                     Margin="0,0,0,8"
                                      ToolTip="Search products"/>
                             
                             <!-- Select All Checkbox -->
@@ -354,20 +348,22 @@
                                       Content="Select All"
                                       IsChecked="{Binding SelectAllProducts}"
                                       Command="{Binding ToggleSelectAllProductsCommand}"
-                                      Margin="0,0,0,10"
-                                      FontWeight="SemiBold"/>
+                                      FontSize="14"
+                                      FontWeight="SemiBold"
+                                      Margin="0,0,0,8"/>
                             
                             <!-- Products List -->
                             <ListBox Grid.Row="2"
                                      ItemsSource="{Binding FilteredProducts}"
                                      SelectionMode="Multiple"
-                                     Background="{DynamicResource SurfaceBackground}"
-                                     BorderBrush="{DynamicResource BorderLight}"
+                                     Background="White"
+                                     BorderBrush="Gray"
                                      BorderThickness="1">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <CheckBox Content="{Binding Name}"
                                                   IsChecked="{Binding IsSelected}"
+                                                  FontSize="14"
                                                   Margin="5"/>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -376,7 +372,7 @@
                     </StackPanel>
 
                     <!-- Category Selection (when applicable on categories) -->
-                    <StackPanel Visibility="{Binding IsCategoryApplicable, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel Margin="0,0,0,15" Visibility="{Binding IsCategoryApplicable, Converter={StaticResource BoolToVisibilityConverter}}">
                         <TextBlock Text="Select Categories" Style="{StaticResource LabelStyle}"/>
                         <Grid>
                             <Grid.RowDefinitions>
@@ -389,7 +385,7 @@
                             <TextBox Grid.Row="0"
                                      Text="{Binding CategorySearchText, UpdateSourceTrigger=PropertyChanged}"
                                      Style="{StaticResource InputFieldStyle}"
-                                     Margin="0,0,0,10"
+                                     Margin="0,0,0,8"
                                      ToolTip="Search categories"/>
                             
                             <!-- Select All Checkbox -->
@@ -397,20 +393,22 @@
                                       Content="Select All"
                                       IsChecked="{Binding SelectAllCategories}"
                                       Command="{Binding ToggleSelectAllCategoriesCommand}"
-                                      Margin="0,0,0,10"
-                                      FontWeight="SemiBold"/>
+                                      FontSize="14"
+                                      FontWeight="SemiBold"
+                                      Margin="0,0,0,8"/>
                             
                             <!-- Categories List -->
                             <ListBox Grid.Row="2"
                                      ItemsSource="{Binding FilteredCategories}"
                                      SelectionMode="Multiple"
-                                     Background="{DynamicResource SurfaceBackground}"
-                                     BorderBrush="{DynamicResource BorderLight}"
+                                     Background="White"
+                                     BorderBrush="Gray"
                                      BorderThickness="1">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <CheckBox Content="{Binding Name}"
                                                   IsChecked="{Binding IsSelected}"
+                                                  FontSize="14"
                                                   Margin="5"/>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -418,33 +416,97 @@
                         </Grid>
                     </StackPanel>
 
-                    <!-- Customer Selection (when applicable on customers) -->
-                    <StackPanel Visibility="{Binding IsCustomerApplicable, Converter={StaticResource BoolToVisibilityConverter}}">
-                        <TextBlock Text="Select Customers" Style="{StaticResource LabelStyle}"/>
+                    <!-- Shop Selection (when applicable on shop) -->
+                    <StackPanel Margin="0,0,0,15" Visibility="{Binding IsShopApplicable, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="Select Shops" Style="{StaticResource LabelStyle}"/>
                         <Grid>
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="200"/>
                             </Grid.RowDefinitions>
                             
+                            <!-- Search Box -->
                             <TextBox Grid.Row="0"
-                                     Text="{Binding CustomerSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Text="{Binding ShopSearchText, UpdateSourceTrigger=PropertyChanged}"
                                      Style="{StaticResource InputFieldStyle}"
-                                     Margin="0,0,0,10"
-                                     ToolTip="Search customers"/>
+                                     Margin="0,0,0,8"
+                                     ToolTip="Search shops"/>
                             
-                            <ListBox Grid.Row="1"
-                                     ItemsSource="{Binding FilteredCustomers}"
-                                     SelectedItem="{Binding SelectedCustomer}"
+                            <!-- Select All Checkbox -->
+                            <CheckBox Grid.Row="1"
+                                      Content="Select All"
+                                      IsChecked="{Binding SelectAllShops}"
+                                      Command="{Binding ToggleSelectAllShopsCommand}"
+                                      FontSize="14"
+                                      FontWeight="SemiBold"
+                                      Margin="0,0,0,8"/>
+                            
+                            <!-- Shops List -->
+                            <ListBox Grid.Row="2"
+                                     ItemsSource="{Binding FilteredShops}"
                                      SelectionMode="Multiple"
-                                     Background="{DynamicResource SurfaceBackground}"
-                                     BorderBrush="{DynamicResource BorderLight}"
+                                     Background="White"
+                                     BorderBrush="Gray"
                                      BorderThickness="1">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
-                                        <CheckBox Content="{Binding FullName}"
+                                        <CheckBox Content="{Binding Name}"
                                                   IsChecked="{Binding IsSelected}"
+                                                  FontSize="14"
                                                   Margin="5"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Customer Selection (when applicable on customer) -->
+                    <StackPanel Margin="0,0,0,15" Visibility="{Binding IsCustomerApplicable, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="Select Customers" Style="{StaticResource LabelStyle}"/>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="200"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Search Box -->
+                            <TextBox Grid.Row="0"
+                                     Text="{Binding CustomerSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource InputFieldStyle}"
+                                     Margin="0,0,0,8"
+                                     ToolTip="Search customers by name, email, or phone"/>
+                            
+                            <!-- Select All Checkbox -->
+                            <CheckBox Grid.Row="1"
+                                      Content="Select All"
+                                      IsChecked="{Binding SelectAllCustomers}"
+                                      Command="{Binding ToggleSelectAllCustomersCommand}"
+                                      FontSize="14"
+                                      FontWeight="SemiBold"
+                                      Margin="0,0,0,8"/>
+                            
+                            <!-- Customers List -->
+                            <ListBox Grid.Row="2"
+                                     ItemsSource="{Binding FilteredCustomers}"
+                                     SelectionMode="Multiple"
+                                     Background="White"
+                                     BorderBrush="Gray"
+                                     BorderThickness="1">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected}"
+                                                  FontSize="14"
+                                                  Margin="5">
+                                            <CheckBox.Content>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding Email}" FontSize="12" Foreground="Gray"/>
+                                                    <TextBlock Text="{Binding Phone}" FontSize="12" Foreground="Gray"/>
+                                                </StackPanel>
+                                            </CheckBox.Content>
+                                        </CheckBox>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
@@ -452,7 +514,7 @@
                     </StackPanel>
 
                     <!-- Store Selection -->
-                    <StackPanel>
+                    <StackPanel Margin="0,0,0,15">
                         <TextBlock Text="Store" Style="{StaticResource LabelStyle}"/>
                         <ComboBox SelectedItem="{Binding SelectedStore}"
                                   ItemsSource="{Binding Stores}"
@@ -469,7 +531,7 @@
                     <TextBlock Text="Validity Period" Style="{StaticResource SectionHeaderStyle}"/>
                     
                     <!-- Date Range -->
-                    <Grid>
+                    <Grid Margin="0,0,0,15">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="20"/>
@@ -480,10 +542,7 @@
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="Start Date *" Style="{StaticResource LabelStyle}"/>
                             <DatePicker SelectedDate="{Binding StartDate}"
-                                        FontSize="{DynamicResource FontSizeSmall}"
-                                        FontFamily="{DynamicResource PoppinsFontFallback}"
-                                        Background="{DynamicResource SurfaceBackground}"
-                                        BorderBrush="{DynamicResource BorderLight}"
+                                        Style="{StaticResource DatePickerStyle}"
                                         ToolTip="Select start date"/>
                         </StackPanel>
 
@@ -491,47 +550,50 @@
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="End Date *" Style="{StaticResource LabelStyle}"/>
                             <DatePicker SelectedDate="{Binding EndDate}"
-                                        FontSize="{DynamicResource FontSizeSmall}"
-                                        FontFamily="{DynamicResource PoppinsFontFallback}"
-                                        Background="{DynamicResource SurfaceBackground}"
-                                        BorderBrush="{DynamicResource BorderLight}"
+                                        Style="{StaticResource DatePickerStyle}"
                                         ToolTip="Select end date"/>
                         </StackPanel>
                     </Grid>
 
                     <!-- Quick Date Presets -->
-                    <StackPanel>
+                    <StackPanel Margin="0,0,0,15">
                         <TextBlock Text="Quick Presets" Style="{StaticResource LabelStyle}"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
                             <Button Content="Today"
                                     Command="{Binding SetTodayCommand}"
                                     Style="{StaticResource SecondaryButtonStyle}"
-                                    Padding="12,6"/>
+                                    Height="36"
+                                    Padding="12,6"
+                                    Margin="0,0,5,0"/>
                             <Button Content="This Week"
                                     Command="{Binding SetThisWeekCommand}"
                                     Style="{StaticResource SecondaryButtonStyle}"
-                                    Padding="12,6"/>
+                                    Height="36"
+                                    Padding="12,6"
+                                    Margin="0,0,5,0"/>
                             <Button Content="This Month"
                                     Command="{Binding SetThisMonthCommand}"
                                     Style="{StaticResource SecondaryButtonStyle}"
-                                    Padding="12,6"/>
+                                    Height="36"
+                                    Padding="12,6"
+                                    Margin="0,0,5,0"/>
                             <Button Content="Next Month"
                                     Command="{Binding SetNextMonthCommand}"
                                     Style="{StaticResource SecondaryButtonStyle}"
+                                    Height="36"
                                     Padding="12,6"/>
                         </StackPanel>
                     </StackPanel>
 
                     <!-- Usage Limits -->
-                    <TextBlock Text="Usage Limits" Style="{StaticResource SectionHeaderStyle}"/>
+                    <TextBlock Text="Usage Limits" Style="{StaticResource SectionHeaderStyle}" Margin="0,10,0,15"/>
 
                     <!-- Total Usage Limit -->
-                    <StackPanel>
+                    <StackPanel Margin="0,0,0,15">
                         <CheckBox Content="Limit total uses"
                                   IsChecked="{Binding HasUsageLimit}"
-                                  FontSize="{DynamicResource FontSizeSmall}"
-                                  FontFamily="{DynamicResource PoppinsFontFallback}"
-                                  Margin="0,0,0,10"/>
+                                  FontSize="14"
+                                  Margin="0,0,0,8"/>
                         
                         <TextBox Text="{Binding UsageLimit, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource InputFieldStyle}"
@@ -540,12 +602,11 @@
                     </StackPanel>
 
                     <!-- Per Customer Limit -->
-                    <StackPanel>
+                    <StackPanel Margin="0,0,0,15">
                         <CheckBox Content="Limit uses per customer"
                                   IsChecked="{Binding HasPerCustomerLimit}"
-                                  FontSize="{DynamicResource FontSizeSmall}"
-                                  FontFamily="{DynamicResource PoppinsFontFallback}"
-                                  Margin="0,0,0,10"/>
+                                  FontSize="14"
+                                  Margin="0,0,0,8"/>
                         
                         <TextBox Text="{Binding PerCustomerLimit, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource InputFieldStyle}"
@@ -561,12 +622,11 @@
                     <TextBlock Text="Purchase Requirements" Style="{StaticResource SectionHeaderStyle}"/>
                     
                     <!-- Minimum Purchase Amount -->
-                    <StackPanel>
+                    <StackPanel Margin="0,0,0,15">
                         <CheckBox Content="Minimum purchase amount required"
                                   IsChecked="{Binding HasMinPurchaseAmount}"
-                                  FontSize="{DynamicResource FontSizeSmall}"
-                                  FontFamily="{DynamicResource PoppinsFontFallback}"
-                                  Margin="0,0,0,10"/>
+                                  FontSize="14"
+                                  Margin="0,0,0,8"/>
                         
                         <TextBox Text="{Binding MinPurchaseAmount, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource InputFieldStyle}"
@@ -575,10 +635,10 @@
                     </StackPanel>
 
                     <!-- Behavior Settings -->
-                    <TextBlock Text="Discount Behavior" Style="{StaticResource SectionHeaderStyle}"/>
+                    <TextBlock Text="Discount Behavior" Style="{StaticResource SectionHeaderStyle}" Margin="0,10,0,15"/>
 
                     <!-- Priority -->
-                    <StackPanel>
+                    <StackPanel Margin="0,0,0,15">
                         <TextBlock Text="Priority" Style="{StaticResource LabelStyle}"/>
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -596,55 +656,53 @@
                                     Content="+"
                                     Command="{Binding IncreasePriorityCommand}"
                                     Style="{StaticResource SecondaryButtonStyle}"
-                                    Width="30"
+                                    Width="40"
+                                    Height="40"
                                     Margin="5,0,0,0"/>
                             
                             <Button Grid.Column="2"
                                     Content="-"
                                     Command="{Binding DecreasePriorityCommand}"
                                     Style="{StaticResource SecondaryButtonStyle}"
-                                    Width="30"
+                                    Width="40"
+                                    Height="40"
                                     Margin="5,0,0,0"/>
                         </Grid>
                     </StackPanel>
 
                     <!-- Stackable -->
-                    <StackPanel>
+                    <StackPanel Margin="0,0,0,12">
                         <CheckBox Content="Allow stacking with other discounts"
                                   IsChecked="{Binding IsStackable}"
-                                  FontSize="{DynamicResource FontSizeSmall}"
-                                  FontFamily="{DynamicResource PoppinsFontFallback}"
+                                  FontSize="14"
                                   ToolTip="Allow this discount to be combined with other discounts"/>
                     </StackPanel>
 
                     <!-- Active Status -->
-                    <StackPanel>
+                    <StackPanel Margin="0,0,0,15">
                         <CheckBox Content="Active"
                                   IsChecked="{Binding IsActive}"
-                                  FontSize="{DynamicResource FontSizeMedium}"
+                                  FontSize="14"
                                   FontWeight="SemiBold"
-                                  FontFamily="{DynamicResource PoppinsFontFallback}"
                                   ToolTip="Enable or disable this discount"/>
                     </StackPanel>
 
                     <!-- Advanced Rules -->
-                    <TextBlock Text="Advanced Rules" Style="{StaticResource SectionHeaderStyle}"/>
+                    <TextBlock Text="Advanced Rules" Style="{StaticResource SectionHeaderStyle}" Margin="0,10,0,15"/>
 
                     <!-- Exclude Sale Items -->
-                    <StackPanel>
+                    <StackPanel Margin="0,0,0,12">
                         <CheckBox Content="Exclude items already on sale"
                                   IsChecked="{Binding ExcludeSaleItems}"
-                                  FontSize="{DynamicResource FontSizeSmall}"
-                                  FontFamily="{DynamicResource PoppinsFontFallback}"
+                                  FontSize="14"
                                   ToolTip="Do not apply discount to items that are already discounted"/>
                     </StackPanel>
 
                     <!-- One Time Use -->
-                    <StackPanel>
+                    <StackPanel Margin="0,0,0,15">
                         <CheckBox Content="One-time use per customer"
                                   IsChecked="{Binding IsOneTimeUse}"
-                                  FontSize="{DynamicResource FontSizeSmall}"
-                                  FontFamily="{DynamicResource PoppinsFontFallback}"
+                                  FontSize="14"
                                   ToolTip="Each customer can only use this discount once"/>
                     </StackPanel>
                 </StackPanel>

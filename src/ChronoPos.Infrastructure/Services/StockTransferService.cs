@@ -1,7 +1,9 @@
 using ChronoPos.Application.DTOs;
+using ChronoPos.Application.DTOs.Inventory;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.Logging;
 using ChronoPos.Domain.Entities;
+using ChronoPos.Domain.Enums;
 using ChronoPos.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,15 +17,18 @@ namespace ChronoPos.Infrastructure.Services
         private readonly ChronoPosDbContext _context;
         private readonly IStockTransferRepository _stockTransferRepository;
         private readonly IShopLocationRepository _shopLocationRepository;
+        private readonly IStockLedgerService _stockLedgerService; // ✅ REMOVED nullable
 
         public StockTransferService(
             ChronoPosDbContext context,
             IStockTransferRepository stockTransferRepository,
-            IShopLocationRepository shopLocationRepository)
+            IShopLocationRepository shopLocationRepository,
+            IStockLedgerService stockLedgerService) // ✅ REMOVED default null
         {
             _context = context;
             _stockTransferRepository = stockTransferRepository;
             _shopLocationRepository = shopLocationRepository;
+            _stockLedgerService = stockLedgerService; // ✅ Now guaranteed to be injected
         }
 
         /// <summary>
@@ -239,6 +244,89 @@ namespace ChronoPos.Infrastructure.Services
                 await _context.SaveChangesAsync();
                 AppLogger.LogInfo("CreateStockTransferService", "Successfully saved all transfer items");
 
+                // Create stock ledger entries if transfer is completed during creation
+                if (dto.Status == "Completed")
+                {
+                    AppLogger.LogInfo("CreateStockTransferService", $"Creating stock ledger entries for completed transfer - Items: {dto.Items.Count}", "stock_transfer");
+                    
+                    // Reload transfer with stores for location names
+                    var transferWithStores = await _context.StockTransfers
+                        .Include(st => st.FromStore)
+                        .Include(st => st.ToStore)
+                        .FirstOrDefaultAsync(st => st.TransferId == transfer.TransferId);
+                    
+                    foreach (var itemDto in dto.Items)
+                    {
+                        if (itemDto.QuantitySent > 0)
+                        {
+                            try
+                            {
+                                // Get product to find its ProductUnit (if UomId is specified)
+                                int? productUnitId = null;
+                                if (itemDto.UomId > 0)
+                                {
+                                    var product = await _context.Products
+                                        .Include(p => p.ProductUnits)
+                                        .FirstOrDefaultAsync(p => p.Id == itemDto.ProductId);
+                                        
+                                    if (product != null)
+                                    {
+                                        var productUnit = product.ProductUnits?
+                                            .FirstOrDefault(pu => pu.UnitId == itemDto.UomId);
+                                        productUnitId = productUnit?.Id;
+                                        
+                                        AppLogger.LogInfo("CreateStockTransferService", 
+                                            $"ProductUnit lookup - ProductId: {itemDto.ProductId}, UomId: {itemDto.UomId}, ProductUnitId: {productUnitId}", "stock_transfer");
+                                    }
+                                }
+                                
+                                // Transfer OUT from source location (decrement)
+                                var transferOutDto = new CreateStockLedgerDto
+                                {
+                                    ProductId = itemDto.ProductId,
+                                    UnitId = productUnitId,
+                                    MovementType = StockMovementType.TransferOut,
+                                    Qty = -itemDto.QuantitySent, // NEGATIVE for decrement
+                                    Location = transferWithStores?.FromStore?.Name ?? "Source Store",
+                                    ReferenceType = StockReferenceType.Transfer,
+                                    ReferenceId = transfer.TransferId,
+                                    Note = $"Transfer Out - {transfer.TransferNo}"
+                                };
+                                
+                                AppLogger.LogInfo("CreateStockTransferService", 
+                                    $"Creating TransferOut ledger entry - ProductId: {itemDto.ProductId}, Qty: {transferOutDto.Qty}", "stock_transfer");
+                                await _stockLedgerService.CreateAsync(transferOutDto);
+                                
+                                // Transfer IN to destination location (increment)
+                                var transferInDto = new CreateStockLedgerDto
+                                {
+                                    ProductId = itemDto.ProductId,
+                                    UnitId = productUnitId,
+                                    MovementType = StockMovementType.TransferIn,
+                                    Qty = itemDto.QuantitySent, // POSITIVE for increment
+                                    Location = transferWithStores?.ToStore?.Name ?? "Destination Store",
+                                    ReferenceType = StockReferenceType.Transfer,
+                                    ReferenceId = transfer.TransferId,
+                                    Note = $"Transfer In - {transfer.TransferNo}"
+                                };
+                                
+                                AppLogger.LogInfo("CreateStockTransferService", 
+                                    $"Creating TransferIn ledger entry - ProductId: {itemDto.ProductId}, Qty: {transferInDto.Qty}", "stock_transfer");
+                                await _stockLedgerService.CreateAsync(transferInDto);
+                                
+                                AppLogger.LogInfo("CreateStockTransferService", 
+                                    $"Stock ledger entries created successfully - ProductId: {itemDto.ProductId}, UnitId: {productUnitId}, Qty: {itemDto.QuantitySent}", "stock_transfer");
+                            }
+                            catch (Exception ex)
+                            {
+                                AppLogger.LogError("CreateStockTransferService", ex,
+                                    $"Failed to create stock ledger entries - TransferId: {transfer.TransferId}, ProductId: {itemDto.ProductId}", "stock_transfer");
+                                // Don't throw - ledger is supplementary
+                            }
+                        }
+                    }
+                }
+
                 // Return the created transfer
                 AppLogger.LogInfo("CreateStockTransferService", $"Retrieving created transfer with ID: {transfer.TransferId}");
                 return await GetStockTransferByIdAsync(transfer.TransferId) 
@@ -332,6 +420,9 @@ namespace ChronoPos.Infrastructure.Services
         public async Task<bool> CompleteStockTransferAsync(int transferId)
         {
             var transfer = await _context.StockTransfers
+                .Include(st => st.Items)
+                .Include(st => st.FromStore)
+                .Include(st => st.ToStore)
                 .FirstOrDefaultAsync(st => st.TransferId == transferId);
 
             if (transfer == null || transfer.Status != "Pending")
@@ -342,6 +433,73 @@ namespace ChronoPos.Infrastructure.Services
             transfer.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+            
+            // Create stock ledger entries AFTER saving (to avoid nested transaction conflict)
+            foreach (var item in transfer.Items)
+            {
+                if (item.QuantitySent > 0)
+                {
+                    try
+                    {
+                        // Get product to find its ProductUnit (if UomId is specified)
+                        int? productUnitId = null;
+                        if (item.UomId > 0)
+                        {
+                            var product = await _context.Products
+                                .Include(p => p.ProductUnits)
+                                .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+                                
+                            if (product != null)
+                            {
+                                var productUnit = product.ProductUnits?
+                                    .FirstOrDefault(pu => pu.UnitId == item.UomId);
+                                productUnitId = productUnit?.Id;
+                                
+                                AppLogger.LogInfo("ProductUnit lookup for stock transfer stock ledger", 
+                                    $"ProductId: {item.ProductId}, UomId: {item.UomId}, ProductUnitId: {productUnitId}", "stock_transfer");
+                            }
+                        }
+                        
+                        // Transfer OUT from source location (decrement)
+                        var transferOutDto = new CreateStockLedgerDto
+                        {
+                            ProductId = item.ProductId,
+                            UnitId = productUnitId, // Nullable - can be null for product-level transfers
+                            MovementType = StockMovementType.TransferOut,
+                            Qty = -item.QuantitySent, // NEGATIVE for decrement from source
+                            Location = transfer.FromStore?.Name ?? "Source Store",
+                            ReferenceType = StockReferenceType.Transfer,
+                            ReferenceId = transferId,
+                            Note = $"Transfer Out - {transfer.TransferNo}"
+                        };
+                        await _stockLedgerService.CreateAsync(transferOutDto);
+                        
+                        // Transfer IN to destination location (increment)
+                        var transferInDto = new CreateStockLedgerDto
+                        {
+                            ProductId = item.ProductId,
+                            UnitId = productUnitId, // Nullable - can be null for product-level transfers
+                            MovementType = StockMovementType.TransferIn,
+                            Qty = item.QuantitySent, // POSITIVE for increment to destination
+                            Location = transfer.ToStore?.Name ?? "Destination Store",
+                            ReferenceType = StockReferenceType.Transfer,
+                            ReferenceId = transferId,
+                            Note = $"Transfer In - {transfer.TransferNo}"
+                        };
+                        await _stockLedgerService.CreateAsync(transferInDto);
+                        
+                        AppLogger.LogInfo("Stock ledger entries created for transfer", 
+                            $"ProductId: {item.ProductId}, UnitId: {productUnitId}, Qty: {item.QuantitySent}, TransferNo: {transfer.TransferNo}", "stock_transfer");
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLogger.LogError("Failed to create stock ledger entries for transfer", ex,
+                            $"TransferId: {transferId}, ProductId: {item.ProductId}", "stock_transfer");
+                        // Don't throw - ledger is supplementary
+                    }
+                }
+            }
+            
             return true;
         }
 
@@ -399,6 +557,74 @@ namespace ChronoPos.Infrastructure.Services
             transfer.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+            
+            // Create stock ledger entries AFTER saving (to avoid nested transaction conflict)
+            foreach (var receivedItem in receivedItems)
+            {
+                var item = transfer.Items.FirstOrDefault(i => i.Id == receivedItem.Id);
+                if (item != null && receivedItem.QuantityReceived > 0)
+                {
+                    try
+                    {
+                        // Get product to find its ProductUnit (if UomId is specified)
+                        int? productUnitId = null;
+                        if (item.UomId > 0)
+                        {
+                            var product = await _context.Products
+                                .Include(p => p.ProductUnits)
+                                .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+                                
+                            if (product != null)
+                            {
+                                var productUnit = product.ProductUnits?
+                                    .FirstOrDefault(pu => pu.UnitId == item.UomId);
+                                productUnitId = productUnit?.Id;
+                                
+                                AppLogger.LogInfo("ProductUnit lookup for stock transfer stock ledger", 
+                                    $"ProductId: {item.ProductId}, UomId: {item.UomId}, ProductUnitId: {productUnitId}", "stock_transfer");
+                            }
+                        }
+                        
+                        // Transfer OUT from source location (decrement)
+                        var transferOutDto = new CreateStockLedgerDto
+                        {
+                            ProductId = item.ProductId,
+                            UnitId = productUnitId, // Nullable - can be null for product-level transfers
+                            MovementType = StockMovementType.TransferOut,
+                            Qty = -receivedItem.QuantityReceived, // NEGATIVE for decrement from source
+                            Location = transfer.FromStore?.Name ?? "Source Store",
+                            ReferenceType = StockReferenceType.Transfer,
+                            ReferenceId = transferId,
+                            Note = $"Transfer Out - {transfer.TransferNo}"
+                        };
+                        await _stockLedgerService.CreateAsync(transferOutDto);
+                        
+                        // Transfer IN to destination location (increment)
+                        var transferInDto = new CreateStockLedgerDto
+                        {
+                            ProductId = item.ProductId,
+                            UnitId = productUnitId, // Nullable - can be null for product-level transfers
+                            MovementType = StockMovementType.TransferIn,
+                            Qty = receivedItem.QuantityReceived, // POSITIVE for increment to destination
+                            Location = transfer.ToStore?.Name ?? "Destination Store",
+                            ReferenceType = StockReferenceType.Transfer,
+                            ReferenceId = transferId,
+                            Note = $"Transfer In - {transfer.TransferNo}"
+                        };
+                        await _stockLedgerService.CreateAsync(transferInDto);
+                        
+                        AppLogger.LogInfo("Stock ledger entries created for transfer", 
+                            $"ProductId: {item.ProductId}, UnitId: {productUnitId}, Qty: {receivedItem.QuantityReceived}, TransferNo: {transfer.TransferNo}", "stock_transfer");
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLogger.LogError("Failed to create stock ledger entries for transfer", ex,
+                            $"TransferId: {transferId}, ProductId: {item.ProductId}", "stock_transfer");
+                        // Don't throw - ledger is supplementary
+                    }
+                }
+            }
+            
             return true;
         }
 

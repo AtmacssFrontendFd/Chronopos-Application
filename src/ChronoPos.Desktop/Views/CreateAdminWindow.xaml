@@ -5,11 +5,61 @@
         Height="800" 
         Width="1200"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource PageBackground}"
+        Background="#F9FAFB"
         ResizeMode="NoResize"
         Loaded="Window_Loaded">
     
     <Window.Resources>
+        <!-- Color Resources (defined locally since window loads before theme) -->
+        <SolidColorBrush x:Key="PageBackground" Color="#F9FAFB"/>
+        <SolidColorBrush x:Key="InputBackground" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="PrimaryText" Color="#1F2937"/>
+        <SolidColorBrush x:Key="SecondaryText" Color="#6B7280"/>
+        <SolidColorBrush x:Key="BorderMedium" Color="#D1D5DB"/>
+        <SolidColorBrush x:Key="PrimaryColor" Color="#3B82F6"/>
+        <SolidColorBrush x:Key="PrimaryHover" Color="#2563EB"/>
+        <SolidColorBrush x:Key="SuccessColor" Color="#10B981"/>
+        <SolidColorBrush x:Key="ChronoPosGold" Color="#D4AF37"/>
+        <SolidColorBrush x:Key="SuccessGreen" Color="#10B981"/>
+        <SolidColorBrush x:Key="WhiteText" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="ErrorRed" Color="#EF4444"/>
+        
+        <!-- ChronoPosGoldButton Style (local definition) -->
+        <Style x:Key="ChronoPosGoldButton" TargetType="Button">
+            <Setter Property="Background" Value="#D4AF37"/>
+            <Setter Property="Foreground" Value="#000000"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Height" Value="52"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="8"
+                                BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#C4A030"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#B49028"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="#E5E7EB"/>
+                                <Setter Property="Foreground" Value="#9CA3AF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
         <!-- Proper Input TextBox Style -->
         <Style x:Key="ProperInputTextBox" TargetType="TextBox">
             <Setter Property="Height" Value="48"/>
@@ -227,11 +277,15 @@
                             Padding="14"
                             Margin="0,0,0,15"
                             Visibility="Collapsed"
-                            x:Name="ErrorBorder">
+                            x:Name="ErrorBorder"
+                            MinHeight="50">
                         <TextBlock x:Name="ErrorTextBlock"
+                                   Text=""
                                    Foreground="{StaticResource ErrorRed}"
                                    FontSize="13"
-                                   TextWrapping="Wrap"/>
+                                   FontWeight="Medium"
+                                   TextWrapping="Wrap"
+                                   VerticalAlignment="Center"/>
                     </Border>
 
                     <!-- Success Message -->
@@ -242,11 +296,15 @@
                             Padding="14"
                             Margin="0,0,0,15"
                             Visibility="Collapsed"
-                            x:Name="SuccessBorder">
+                            x:Name="SuccessBorder"
+                            MinHeight="50">
                         <TextBlock x:Name="SuccessTextBlock"
+                                   Text=""
                                    Foreground="{StaticResource SuccessGreen}"
                                    FontSize="13"
-                                   TextWrapping="Wrap"/>
+                                   FontWeight="Medium"
+                                   TextWrapping="Wrap"
+                                   VerticalAlignment="Center"/>
                     </Border>
 
                     <!-- Create Button -->

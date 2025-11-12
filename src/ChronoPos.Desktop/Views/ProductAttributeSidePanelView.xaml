@@ -4,50 +4,32 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="350"
+             d:DesignHeight="450" d:DesignWidth="550"
              FontFamily="{DynamicResource PoppinsFontFallback}"
-             Width="420">
+             Width="550">
 
     <UserControl.Resources>
         <!-- Input Style -->
         <Style x:Key="InputTextBoxStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderNormal}"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,8"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeNormal}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="{DynamicResource BorderCornerRadius}">
-                            <ScrollViewer x:Name="PART_ContentHost" 
-                                        Margin="{TemplateBinding Padding}"
-                                        VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
 
         <!-- ComboBox Style -->
         <Style x:Key="InputComboBoxStyle" TargetType="ComboBox">
-            <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderNormal}"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,8"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeNormal}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Foreground" Value="Black"/>
         </Style>
 
         <!-- Button Style -->
@@ -145,10 +127,10 @@
                     <StackPanel>
                         
                         <!-- Attribute Name -->
-                        <StackPanel>
+                        <StackPanel Margin="0,0,0,15">
                             <TextBlock Text="Attribute Name *" 
                                      FontWeight="SemiBold"
-                                     FontSize="{DynamicResource FontSizeNormal}"
+                                     FontSize="14"
                                      Foreground="{DynamicResource TextPrimary}"
                                      Margin="0,0,0,5"/>
                             <TextBox Text="{Binding AttributeName, UpdateSourceTrigger=PropertyChanged}"
@@ -157,10 +139,10 @@
                         </StackPanel>
 
                         <!-- Attribute Name (Arabic) -->
-                        <StackPanel>
+                        <StackPanel Margin="0,0,0,15">
                             <TextBlock Text="Attribute Name (Arabic)" 
                                      FontWeight="SemiBold"
-                                     FontSize="{DynamicResource FontSizeNormal}"
+                                     FontSize="14"
                                      Foreground="{DynamicResource TextPrimary}"
                                      Margin="0,0,0,5"/>
                             <TextBox Text="{Binding AttributeNameAr, UpdateSourceTrigger=PropertyChanged}"
@@ -171,10 +153,10 @@
                         </StackPanel>
 
                         <!-- Type -->
-                        <StackPanel>
+                        <StackPanel Margin="0,0,0,15">
                             <TextBlock Text="Type *" 
                                      FontWeight="SemiBold"
-                                     FontSize="{DynamicResource FontSizeNormal}"
+                                     FontSize="14"
                                      Foreground="{DynamicResource TextPrimary}"
                                      Margin="0,0,0,5"/>
                             <ComboBox SelectedItem="{Binding SelectedAttributeType}"
@@ -183,22 +165,22 @@
                         </StackPanel>
 
                         <!-- Required -->
-                        <StackPanel>
+                        <StackPanel Margin="0,0,0,15">
                             <CheckBox IsChecked="{Binding IsRequired}"
                                     Content="Required Attribute"
-                                    FontSize="{DynamicResource FontSizeNormal}"
+                                    FontSize="14"
                                     Foreground="{DynamicResource TextPrimary}"/>
                             <TextBlock Text="Check if this attribute is required for all products" 
-                                     FontSize="{DynamicResource FontSizeSmall}"
+                                     FontSize="12"
                                      Foreground="{DynamicResource TextSecondary}"
                                      Margin="20,5,0,0"/>
                         </StackPanel>
 
                         <!-- Status -->
-                        <StackPanel>
+                        <StackPanel Margin="0,0,0,15">
                             <TextBlock Text="Status *" 
                                      FontWeight="SemiBold"
-                                     FontSize="{DynamicResource FontSizeNormal}"
+                                     FontSize="14"
                                      Foreground="{DynamicResource TextPrimary}"
                                      Margin="0,0,0,5"/>
                             <ComboBox SelectedItem="{Binding SelectedAttributeStatus}"
@@ -229,10 +211,10 @@
                     <StackPanel>
                         
                         <!-- Attribute Selection -->
-                        <StackPanel>
+                        <StackPanel Margin="0,0,0,15">
                             <TextBlock Text="Select Attribute *" 
                                      FontWeight="SemiBold"
-                                     FontSize="{DynamicResource FontSizeNormal}"
+                                     FontSize="14"
                                      Foreground="{DynamicResource TextPrimary}"
                                      Margin="0,0,0,5"/>
                             <ComboBox SelectedItem="{Binding SelectedAttributeForValue}"
@@ -242,10 +224,10 @@
                         </StackPanel>
 
                         <!-- Value -->
-                        <StackPanel>
+                        <StackPanel Margin="0,0,0,15">
                             <TextBlock Text="Value *" 
                                      FontWeight="SemiBold"
-                                     FontSize="{DynamicResource FontSizeNormal}"
+                                     FontSize="14"
                                      Foreground="{DynamicResource TextPrimary}"
                                      Margin="0,0,0,5"/>
                             <TextBox Text="{Binding AttributeValue, UpdateSourceTrigger=PropertyChanged}"
@@ -254,10 +236,10 @@
                         </StackPanel>
 
                         <!-- Value (Arabic) -->
-                        <StackPanel>
+                        <StackPanel Margin="0,0,0,15">
                             <TextBlock Text="Value (Arabic)" 
                                      FontWeight="SemiBold"
-                                     FontSize="{DynamicResource FontSizeNormal}"
+                                     FontSize="14"
                                      Foreground="{DynamicResource TextPrimary}"
                                      Margin="0,0,0,5"/>
                             <TextBox Text="{Binding AttributeValueAr, UpdateSourceTrigger=PropertyChanged}"
@@ -268,10 +250,10 @@
                         </StackPanel>
 
                         <!-- Status -->
-                        <StackPanel>
+                        <StackPanel Margin="0,0,0,15">
                             <TextBlock Text="Status *" 
                                      FontWeight="SemiBold"
-                                     FontSize="{DynamicResource FontSizeNormal}"
+                                     FontSize="14"
                                      Foreground="{DynamicResource TextPrimary}"
                                      Margin="0,0,0,5"/>
                             <ComboBox SelectedItem="{Binding SelectedValueStatus}"

@@ -97,6 +97,14 @@
                              Style="{StaticResource InputFieldStyle}"/>
                 </StackPanel>
 
+                <!-- Username -->
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock Text="Username *" 
+                               Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" 
+                             Style="{StaticResource InputFieldStyle}"/>
+                </StackPanel>
+
                 <!-- Email -->
                 <StackPanel Margin="0,0,0,20">
                     <TextBlock Text="Email Address *" 
@@ -105,10 +113,26 @@
                              Style="{StaticResource InputFieldStyle}"/>
                 </StackPanel>
 
-                <!-- Password (only for new users) -->
+                <!-- Password -->
                 <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Password *" 
-                               Style="{StaticResource LabelStyle}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock Text="Password" 
+                                   FontSize="13"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextPrimary}"/>
+                        <TextBlock Text=" *" 
+                                   FontSize="13"
+                                   FontWeight="Medium"
+                                   Foreground="#E53E3E"
+                                   Visibility="{Binding FormTitle, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        <TextBlock Text=" (Leave empty to keep current password)" 
+                                   FontSize="11"
+                                   FontStyle="Italic"
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   VerticalAlignment="Center"
+                                   Margin="5,0,0,0"
+                                   Visibility="{Binding FormTitle, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    </StackPanel>
                     <PasswordBox x:Name="PasswordBox"
                                  PasswordChanged="PasswordBox_PasswordChanged"
                                  Background="{DynamicResource SurfaceBackground}"
@@ -117,13 +141,23 @@
                                  BorderThickness="1"
                                  Padding="12"
                                  FontSize="14"
-                                 MinHeight="40"/>
+                                 MinHeight="40"
+                                 ToolTip="Leave empty to keep existing password when editing"/>
                 </StackPanel>
 
-                <!-- Confirm Password (only for new users) -->
+                <!-- Confirm Password -->
                 <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Confirm Password *" 
-                               Style="{StaticResource LabelStyle}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock Text="Confirm Password" 
+                                   FontSize="13"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextPrimary}"/>
+                        <TextBlock Text=" *" 
+                                   FontSize="13"
+                                   FontWeight="Medium"
+                                   Foreground="#E53E3E"
+                                   Visibility="{Binding FormTitle, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    </StackPanel>
                     <PasswordBox x:Name="ConfirmPasswordBox"
                                  PasswordChanged="ConfirmPasswordBox_PasswordChanged"
                                  Background="{DynamicResource SurfaceBackground}"

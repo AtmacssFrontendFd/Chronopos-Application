@@ -138,7 +138,7 @@ namespace ChronoPos.Desktop.Views
             double closestDistance = double.MaxValue;
 
             // Check all sections
-            string[] sectionNames = { "ProductInfo", "TaxPricing", "Barcodes", "Pictures", "Attributes", "UnitPrices", "ProductBatches" };
+            string[] sectionNames = { "ProductInfo", "TaxPricing", "Barcodes", "Pictures", "Attributes", "UnitPrices", "ProductBatches", "ModifierGroups" };
             
             foreach (var sectionName in sectionNames)
             {
@@ -177,7 +177,7 @@ namespace ChronoPos.Desktop.Views
         {
             // Reset all buttons to unselected state
             var buttonNames = new[] { "ProductInfoButton", "TaxPricingButton", "BarcodesButton", 
-                                     "PicturesButton", "AttributesButton", "UnitPricesButton", "ProductBatchesButton" };
+                                     "PicturesButton", "AttributesButton", "UnitPricesButton", "ProductBatchesButton", "ModifierGroupsButton" };
             
             foreach (var buttonName in buttonNames)
             {

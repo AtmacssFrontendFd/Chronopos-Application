@@ -2,11 +2,15 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Win32;
 using ChronoPos.Desktop.Models.Licensing;
 using ChronoPos.Desktop.Services;
+using ChronoPos.Application.Logging;
+using ChronoPos.Application.Interfaces;
+using ChronoPos.Application.DTOs;
 
 namespace ChronoPos.Desktop.ViewModels
 {
@@ -15,6 +19,9 @@ namespace ChronoPos.Desktop.ViewModels
         private readonly ILicensingService _licensingService;
         private readonly IHostDiscoveryService _hostDiscoveryService;
         private readonly ICameraService _cameraService;
+        private readonly IActiveCurrencyService _activeCurrencyService;
+        private readonly ICompanyService _companyService;
+        private int? _existingCompanyId = null;
 
         [ObservableProperty]
         private int _currentStep = 0; // 0 = Welcome, 1-6 = Steps
@@ -38,7 +45,7 @@ namespace ChronoPos.Desktop.ViewModels
         private string _vatNumber = string.Empty;
 
         [ObservableProperty]
-        private string _contactPerson = string.Empty;
+        private string _supportPerson = string.Empty; // Renamed from ContactPerson
 
         [ObservableProperty]
         private string _email = string.Empty;
@@ -48,6 +55,15 @@ namespace ChronoPos.Desktop.ViewModels
 
         [ObservableProperty]
         private string _address = string.Empty;
+
+        [ObservableProperty]
+        private string _country = string.Empty; // New field
+
+        [ObservableProperty]
+        private string _invoiceNumber = string.Empty; // New field
+
+        [ObservableProperty]
+        private DateTime _invoiceDate = DateTime.Now; // New field
 
         [ObservableProperty]
         private string _emiratesID = string.Empty;
@@ -85,16 +101,88 @@ namespace ChronoPos.Desktop.ViewModels
         [ObservableProperty]
         private bool _isDiscoveringHosts = false;
 
+        /// <summary>
+        /// Gets the active currency symbol for display in UI
+        /// </summary>
+        public string CurrencySymbol => _activeCurrencyService?.CurrencySymbol ?? "$";
+
+        public System.Collections.ObjectModel.ObservableCollection<string> Countries { get; } = new()
+        {
+            "United Arab Emirates", "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda",
+            "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh",
+            "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina",
+            "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia",
+            "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros",
+            "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark", "Djibouti",
+            "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea",
+            "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia",
+            "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti",
+            "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy",
+            "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kosovo", "Kuwait", "Kyrgyzstan",
+            "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg",
+            "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania",
+            "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco",
+            "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua",
+            "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway", "Oman", "Pakistan", "Palau",
+            "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal",
+            "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines",
+            "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles",
+            "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa",
+            "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland",
+            "Syria", "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga",
+            "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine",
+            "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela",
+            "Vietnam", "Yemen", "Zambia", "Zimbabwe"
+        };
+
         public OnboardingViewModel(
             ILicensingService licensingService,
             IHostDiscoveryService hostDiscoveryService,
-            ICameraService cameraService)
+            ICameraService cameraService,
+            IActiveCurrencyService activeCurrencyService,
+            ICompanyService companyService)
         {
             _licensingService = licensingService;
             _hostDiscoveryService = hostDiscoveryService;
             _cameraService = cameraService;
+            _activeCurrencyService = activeCurrencyService;
+            _companyService = companyService;
 
             IsCameraAvailable = _cameraService.IsCameraAvailable();
+            
+            // Load existing company if present
+            _ = LoadExistingCompanyAsync();
+        }
+
+        /// <summary>
+        /// Load existing company data to prefill business information
+        /// </summary>
+        private async Task LoadExistingCompanyAsync()
+        {
+            try
+            {
+                var companies = await _companyService.GetAllAsync();
+                var existingCompany = companies.FirstOrDefault(c => c.Status);
+                
+                if (existingCompany != null)
+                {
+                    _existingCompanyId = existingCompany.Id;
+                    
+                    // Prefill the form with existing company data
+                    BusinessName = existingCompany.CompanyName ?? string.Empty;
+                    TradeLicenseNumber = existingCompany.LicenseNumber ?? string.Empty;
+                    VatNumber = existingCompany.VatTrnNumber ?? string.Empty;
+                    Phone = existingCompany.PhoneNo ?? string.Empty;
+                    Email = existingCompany.EmailOfBusiness ?? string.Empty;
+                    SupportPerson = existingCompany.KeyContactName ?? string.Empty;
+                    
+                    AppLogger.LogInfo($"[ONBOARDING] Loaded existing company: {existingCompany.CompanyName}", filename: "onboarding");
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogError($"[ONBOARDING] Error loading existing company: {ex.Message}", filename: "onboarding");
+            }
         }
 
         [RelayCommand]
@@ -139,6 +227,7 @@ namespace ChronoPos.Desktop.ViewModels
         [RelayCommand]
         private async Task DiscoverHosts()
         {
+            AppLogger.LogInfo("[ONBOARDING] Starting host discovery from UI", filename: "host_discovery");
             IsDiscoveringHosts = true;
             ErrorMessage = string.Empty;
             DiscoveredHosts.Clear();
@@ -146,29 +235,38 @@ namespace ChronoPos.Desktop.ViewModels
             try
             {
                 StatusMessage = "Searching for ChronoPOS hosts on your network...";
+                AppLogger.LogInfo("[ONBOARDING] Calling DiscoverHostsAsync(10)...", filename: "host_discovery");
+                
                 var hosts = await _hostDiscoveryService.DiscoverHostsAsync(10);
+                
+                AppLogger.LogInfo($"[ONBOARDING] Discovery returned {hosts.Count} host(s)", filename: "host_discovery");
                 
                 foreach (var host in hosts)
                 {
                     DiscoveredHosts.Add(host);
+                    AppLogger.LogInfo($"[ONBOARDING] Added to UI collection: {host.HostName} ({host.HostIp})", filename: "host_discovery");
                 }
 
                 if (DiscoveredHosts.Count == 0)
                 {
                     StatusMessage = "No hosts found. Make sure the host device is running and on the same network.";
+                    AppLogger.LogWarning("[ONBOARDING] ⚠️ No hosts found - UI showing empty state", filename: "host_discovery");
                 }
                 else
                 {
                     StatusMessage = $"Found {DiscoveredHosts.Count} host(s)";
+                    AppLogger.LogInfo($"[ONBOARDING] ✅ UI updated with {DiscoveredHosts.Count} host(s)", filename: "host_discovery");
                 }
             }
             catch (Exception ex)
             {
                 ErrorMessage = $"Discovery error: {ex.Message}";
+                AppLogger.LogError("[ONBOARDING] Discovery error in ViewModel", ex, filename: "host_discovery");
             }
             finally
             {
                 IsDiscoveringHosts = false;
+                AppLogger.LogInfo("[ONBOARDING] Discovery UI state reset", filename: "host_discovery");
             }
         }
 
@@ -186,20 +284,98 @@ namespace ChronoPos.Desktop.ViewModels
 
             try
             {
-                // TODO: Implement actual connection handshake
                 StatusMessage = $"Connecting to {SelectedHost.HostName}...";
-                await Task.Delay(2000); // Placeholder
-
-                // For now, just complete the onboarding
+                
+                // Generate client fingerprint
+                var clientFingerprint = MachineFingerprint.Generate();
+                var clientIp = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName())
+                    .AddressList
+                    .FirstOrDefault(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    ?.ToString() ?? "Unknown";
+                
+                // In real implementation, this would be an HTTP call to host's API
+                // For now, we'll simulate the connection by creating a token locally
+                var connectionToken = new ConnectionToken
+                {
+                    Token = Guid.NewGuid().ToString(),
+                    HostIp = SelectedHost.HostIp,
+                    HostName = SelectedHost.HostName,
+                    DatabaseUncPath = $"\\\\{SelectedHost.HostIp}\\ChronoPosDB\\chronopos.db",
+                    DatabaseShareName = "ChronoPosDB",
+                    IssuedAt = DateTime.UtcNow,
+                    ExpiresAt = DateTime.UtcNow.AddDays(365),
+                    ClientFingerprint = clientFingerprint,
+                    PlanId = SelectedHost.PlanId,
+                    MaxPosDevices = SelectedHost.MaxPosDevices
+                };
+                
+                StatusMessage = "Validating network path...";
+                await Task.Delay(500);
+                
+                // Test if database path is accessible
+                var dbSharingService = new DatabaseSharingService();
+                AppLogger.LogInfo($"[ONBOARDING] Validating network path: {connectionToken.DatabaseUncPath}", filename: "host_discovery");
+                var isAccessible = dbSharingService.ValidateNetworkPath(connectionToken.DatabaseUncPath);
+                
+                if (!isAccessible)
+                {
+                    ErrorMessage = $"Cannot access database at {connectionToken.DatabaseUncPath}\n\n" +
+                                 $"Please ensure:\n" +
+                                 $"1. The folder is shared as 'ChronoPosDB' on the host\n" +
+                                 $"2. You have read/write permissions\n" +
+                                 $"3. Windows file sharing is enabled";
+                    return;
+                }
+                
+                StatusMessage = "Saving connection configuration...";
+                
+                // Save connection configuration
+                SaveConnectionConfig(connectionToken);
+                
+                StatusMessage = "Connected successfully!";
+                await Task.Delay(1000);
+                
+                // Complete onboarding
                 CurrentStep = 6; // Success screen
             }
             catch (Exception ex)
             {
                 ErrorMessage = $"Connection failed: {ex.Message}";
+                AppLogger.LogError("[ONBOARDING] Connection to host failed", ex, filename: "host_discovery");
             }
             finally
             {
                 IsLoading = false;
+            }
+        }
+
+        private void SaveConnectionConfig(ConnectionToken token)
+        {
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var chronoPosPath = Path.Combine(appDataPath, "ChronoPos");
+            Directory.CreateDirectory(chronoPosPath);
+            
+            var connectionConfig = new ConnectionConfig
+            {
+                IsClient = true,
+                IsHost = false,
+                HostIp = token.HostIp,
+                DatabasePath = token.DatabaseUncPath,
+                Token = token,
+                ConfiguredAt = DateTime.UtcNow
+            };
+            
+            var configPath = Path.Combine(chronoPosPath, "connection.json");
+            try
+            {
+                var configJson = Newtonsoft.Json.JsonConvert.SerializeObject(connectionConfig, Newtonsoft.Json.Formatting.Indented);
+                File.WriteAllText(configPath, configJson);
+                AppLogger.LogInfo($"[ONBOARDING] Connection config saved: {configPath}", filename: "host_discovery");
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogError("[ONBOARDING] Failed to save connection configuration", ex, configPath, "host_discovery");
+                throw;
             }
         }
 
@@ -269,19 +445,25 @@ namespace ChronoPos.Desktop.ViewModels
 
             try
             {
+                // Create or update company record
+                await CreateOrUpdateCompanyAsync();
+
                 var fingerprint = MachineFingerprint.Generate();
 
                 var salesKeyInfo = new SalesKeyInfo
                 {
                     ScratchCardCode = ScratchCardInfo!.CardCode,
-                    SalespersonId = ScratchCardInfo.SalespersonId,
+                    ApplicationName = ScratchCardInfo.ApplicationName,
                     Customer = new CustomerInfo
                     {
                         BusinessName = BusinessName,
-                        ContactPerson = ContactPerson,
+                        SupportPerson = SupportPerson,
                         Email = Email,
                         Phone = Phone,
                         Address = Address,
+                        Country = Country,
+                        InvoiceNumber = InvoiceNumber,
+                        InvoiceDate = InvoiceDate,
                         TradeLicenseNumber = TradeLicenseNumber,
                         VATNumber = VatNumber,
                         EmiratesID = EmiratesID,
@@ -306,11 +488,83 @@ namespace ChronoPos.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Error generating sales key: {ex.Message}";
+                var errorMessage = ex.Message;
+                if (ex.InnerException != null)
+                {
+                    errorMessage = ex.InnerException.Message;
+                    if (ex.InnerException.InnerException != null)
+                    {
+                        errorMessage = ex.InnerException.InnerException.Message;
+                    }
+                }
+                
+                ErrorMessage = $"Error generating sales key: {errorMessage}";
+                AppLogger.LogError($"[ONBOARDING] Error generating sales key: {ex.Message}\nInner: {ex.InnerException?.Message}\nStack: {ex.StackTrace}", filename: "onboarding");
             }
             finally
             {
                 IsLoading = false;
+            }
+        }
+
+        /// <summary>
+        /// Create new company or update existing company with business information
+        /// </summary>
+        private async Task CreateOrUpdateCompanyAsync()
+        {
+            try
+            {
+                if (_existingCompanyId.HasValue)
+                {
+                    // Update existing company
+                    var updateDto = new UpdateCompanyDto
+                    {
+                        CompanyName = BusinessName,
+                        LicenseNumber = TradeLicenseNumber,
+                        VatTrnNumber = VatNumber,
+                        PhoneNo = Phone,
+                        EmailOfBusiness = Email,
+                        KeyContactName = SupportPerson,
+                        Status = true
+                    };
+
+                    await _companyService.UpdateAsync(_existingCompanyId.Value, updateDto, "System"); // System user during setup
+                    AppLogger.LogInfo($"[ONBOARDING] Updated existing company: {BusinessName}", filename: "onboarding");
+                }
+                else
+                {
+                    // Create new company
+                    var createDto = new CreateCompanyDto
+                    {
+                        CompanyName = BusinessName,
+                        LicenseNumber = TradeLicenseNumber,
+                        VatTrnNumber = VatNumber,
+                        PhoneNo = Phone,
+                        EmailOfBusiness = Email,
+                        KeyContactName = SupportPerson,
+                        Status = true
+                    };
+
+                    var newCompany = await _companyService.CreateAsync(createDto, "System"); // System user during setup
+                    _existingCompanyId = newCompany.Id;
+                    AppLogger.LogInfo($"[ONBOARDING] Created new company: {BusinessName}", filename: "onboarding");
+                }
+            }
+            catch (Exception ex)
+            {
+                var errorDetails = $"Error: {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorDetails += $"\nInner Exception: {ex.InnerException.Message}";
+                    if (ex.InnerException.InnerException != null)
+                    {
+                        errorDetails += $"\nInner Inner Exception: {ex.InnerException.InnerException.Message}";
+                    }
+                }
+                errorDetails += $"\nStack Trace: {ex.StackTrace}";
+                
+                AppLogger.LogError($"[ONBOARDING] Error creating/updating company: {errorDetails}", filename: "onboarding");
+                throw; // Re-throw to be caught by GenerateSalesKey
             }
         }
 
@@ -495,9 +749,9 @@ namespace ChronoPos.Desktop.ViewModels
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(ContactPerson))
+            if (string.IsNullOrWhiteSpace(SupportPerson))
             {
-                ErrorMessage = "Contact person is required.";
+                ErrorMessage = "Support person is required.";
                 return false;
             }
 
@@ -522,6 +776,24 @@ namespace ChronoPos.Desktop.ViewModels
             if (string.IsNullOrWhiteSpace(Address))
             {
                 ErrorMessage = "Address is required.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(Country))
+            {
+                ErrorMessage = "Country is required.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(InvoiceNumber))
+            {
+                ErrorMessage = "Invoice number is required.";
+                return false;
+            }
+
+            if (InvoiceDate == default(DateTime) || InvoiceDate > DateTime.Now)
+            {
+                ErrorMessage = "Valid invoice date is required (cannot be in the future).";
                 return false;
             }
 

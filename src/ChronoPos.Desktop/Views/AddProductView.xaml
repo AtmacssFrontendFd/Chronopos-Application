@@ -19,11 +19,142 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
         <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
-    <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
-    <converters:TaxTypeDisplayConverter x:Key="TaxTypeDisplayConverter"/>
-    <converters:FlowDirectionToGridColumnConverter x:Key="FlowDirectionToGridColumnConverter"/>
+        <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
+        <converters:TaxTypeDisplayConverter x:Key="TaxTypeDisplayConverter"/>
+        <converters:FlowDirectionToGridColumnConverter x:Key="FlowDirectionToGridColumnConverter"/>
         <converters:DaysToExpiryConverter x:Key="DaysToExpiryConverter"/>
         <converters:BatchStatusToColorConverter x:Key="BatchStatusToColorConverter"/>
+        <converters:BoolToYesNoConverter x:Key="BoolToYesNoConverter"/>
+        
+        <!-- Clean Input Field Style (matching Currency panel) -->
+        <Style x:Key="CleanInputStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                        Focusable="false"
+                                        HorizontalScrollBarVisibility="Hidden"
+                                        VerticalScrollBarVisibility="Hidden"
+                                        VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#F5F5F5"/>
+                                <Setter Property="Foreground" Value="#999999"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Clean ComboBox Style -->
+        <Style x:Key="CleanComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        
+        <!-- Clean Label Style -->
+        <Style x:Key="CleanLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+        
+        <!-- Smooth ScrollViewer Style -->
+        <Style x:Key="SmoothScrollViewerStyle" TargetType="ScrollViewer">
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="CanContentScroll" Value="False"/>
+            <Setter Property="PanningMode" Value="VerticalOnly"/>
+            <Setter Property="IsDeferredScrollingEnabled" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollViewer">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ScrollContentPresenter Grid.Column="0"/>
+                            <ScrollBar Grid.Column="1"
+                                      Name="PART_VerticalScrollBar"
+                                      Value="{TemplateBinding VerticalOffset}"
+                                      Maximum="{TemplateBinding ScrollableHeight}"
+                                      ViewportSize="{TemplateBinding ViewportHeight}"
+                                      Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"
+                                      Width="8"
+                                      Margin="4,0,0,0"
+                                      Style="{DynamicResource ModernScrollBarStyle}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Modern Slim ScrollBar Style -->
+        <Style x:Key="ModernScrollBarStyle" TargetType="ScrollBar">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid>
+                            <Border Background="#F0F0F0" 
+                                   CornerRadius="4"
+                                   Opacity="0.3"/>
+                            <Track Name="PART_Track" 
+                                  IsDirectionReversed="True"
+                                  Width="8">
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate>
+                                                <Border Background="#AAAAAA" 
+                                                       CornerRadius="4"
+                                                       Width="8">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Style.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#888888"/>
+                                                                </Trigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         
         <!-- Section Button Style -->
         <Style x:Key="SidebarButtonStyle" TargetType="Button">
@@ -454,6 +585,12 @@
                             Style="{StaticResource SidebarButtonStyle}"
                             Tag="ProductBatches"
                             Click="SidebarButton_Click"/>
+                    
+                    <Button Content="{Binding ModifierGroupsTitle}" 
+                            Name="ModifierGroupsButton"
+                            Style="{StaticResource SidebarButtonStyle}"
+                            Tag="ModifierGroups"
+                            Click="SidebarButton_Click"/>
 
                 </StackPanel>
             </Border>
@@ -468,9 +605,8 @@
                 <!-- Scrollable Content -->
                 <ScrollViewer x:Name="ContentScrollViewer"
                               Grid.Row="0" 
-                              VerticalScrollBarVisibility="Auto" 
-                              HorizontalScrollBarVisibility="Disabled"
-                              Padding="0,0,0,0">
+                              Style="{StaticResource SmoothScrollViewerStyle}"
+                              Padding="0,0,10,0">
                     <StackPanel x:Name="SectionsStackPanel">
                 
                 <!-- Product Information Section -->
@@ -494,18 +630,18 @@
                             <!-- Product Code and Name -->
                             <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,0">
                                 <TextBlock Text="{Binding CodeLabel}" 
-                                           Style="{StaticResource FieldLabelStyle}"/>
+                                           Style="{StaticResource CleanLabelStyle}"/>
                                 <TextBox Text="{Binding Code, UpdateSourceTrigger=PropertyChanged}" 
-                                         Style="{StaticResource FormTextBoxStyle}"
+                                         Style="{StaticResource CleanInputStyle}"
                                          IsReadOnly="True"
-                                         Background="{DynamicResource DisabledBackgroundBrush}"
+                                         Background="#F5F5F5"
                                          ToolTip="{Binding CodeTooltip}"/>
                             </StackPanel>
 
                             <StackPanel Grid.Row="0" Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="{Binding NameLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding NameLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <TextBox Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                         Style="{StaticResource FormTextBoxStyle}"
+                                         Style="{StaticResource CleanInputStyle}"
                                          MaxLength="100"
                                          ToolTip="{Binding NameTooltip}"
                                          x:Name="NameTextBox"/>
@@ -519,7 +655,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     
-                                    <TextBlock Grid.Column="0" Text="{Binding CategoryLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBlock Grid.Column="0" Text="{Binding CategoryLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                     
                                     <Button Grid.Column="1" 
                                             Content="+ Add New"
@@ -528,22 +664,34 @@
                                             Foreground="White"
                                             BorderThickness="0"
                                             Padding="8,4"
-                                            FontSize="{DynamicResource FontSizeVerySmall}"
-                                            FontFamily="{DynamicResource PoppinsFontFallback}"
+                                            FontSize="11"
+                                            FontWeight="SemiBold"
                                             Cursor="Hand"
-                                            ToolTip="Add a new category"/>
+                                            Height="22"
+                                            ToolTip="Add a new category">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}"
+                                                        CornerRadius="3">
+                                                    <ContentPresenter HorizontalAlignment="Center" 
+                                                                    VerticalAlignment="Center"
+                                                                    Margin="{TemplateBinding Padding}"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
                                 </Grid>
                                 
                                 <ComboBox ItemsSource="{Binding Categories}"
                                           SelectedValue="{Binding CategoryId, Mode=TwoWay}"
                                           SelectedValuePath="Id"
                                           DisplayMemberPath="Name"
-                                          Style="{StaticResource FormComboBoxStyle}"/>
+                                          Style="{StaticResource CleanComboBoxStyle}"/>
                             </StackPanel>
 
                             <StackPanel Grid.Row="1" Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="{Binding BrandLabel}" Style="{StaticResource FieldLabelStyle}"/>
-                                <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                                <TextBlock Text="{Binding BrandLabel}" Style="{StaticResource CleanLabelStyle}"/>
+                                <ComboBox Style="{StaticResource CleanComboBoxStyle}"
                                          ItemsSource="{Binding AvailableBrands}"
                                          SelectedItem="{Binding SelectedBrand, Mode=TwoWay}"
                                          DisplayMemberPath="Name">
@@ -552,10 +700,15 @@
 
                             <!-- Description -->
                             <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,0">
-                                <TextBlock Text="{Binding DescriptionLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding DescriptionLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <TextBox Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                         Style="{StaticResource FormTextBoxStyle}"
-                                         Height="80"
+                                         Background="White"
+                                         Foreground="Black"
+                                         BorderBrush="#DDDDDD"
+                                         BorderThickness="1"
+                                         Padding="10,8"
+                                         FontSize="14"
+                                         Height="70"
                                          TextWrapping="Wrap"
                                          AcceptsReturn="True"
                                          VerticalScrollBarVisibility="Auto"
@@ -564,21 +717,21 @@
 
                             <!-- Additional Fields -->
                             <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="{Binding PurchaseUnitLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding PurchaseUnitLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <ComboBox ItemsSource="{Binding UnitsOfMeasurement}"
                                           SelectedValue="{Binding PurchaseUnitId, Mode=TwoWay}"
                                           SelectedValuePath="Id"
                                           DisplayMemberPath="DisplayName"
-                                          Style="{StaticResource FormComboBoxStyle}"/>
+                                          Style="{StaticResource CleanComboBoxStyle}"/>
                             </StackPanel>
 
                             <StackPanel Grid.Row="3" Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="{Binding SellingUnitLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding SellingUnitLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <ComboBox ItemsSource="{Binding UnitsOfMeasurement}"
                                           SelectedValue="{Binding SellingUnitId, Mode=TwoWay}"
                                           SelectedValuePath="Id"
                                           DisplayMemberPath="DisplayName"
-                                          Style="{StaticResource FormComboBoxStyle}"/>
+                                          Style="{StaticResource CleanComboBoxStyle}"/>
                             </StackPanel>
 
                             <!-- Group removed as per requirement -->
@@ -606,6 +759,79 @@
                     <StackPanel>
                         <TextBlock Text="{Binding PricingTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                         
+                        <!-- Active Currency Info Banner -->
+                        <Border Background="{DynamicResource PrimaryLight}" 
+                                BorderBrush="{DynamicResource Primary}"
+                                BorderThickness="1"
+                                Padding="12,8" 
+                                CornerRadius="{DynamicResource BorderCornerRadius}"
+                                Margin="0,0,0,15">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" 
+                                           Text="💱 " 
+                                           FontSize="18" 
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <StackPanel Grid.Column="1" 
+                                            Orientation="Horizontal" 
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="Active Currency: " 
+                                               FontSize="{DynamicResource FontSizeSmall}"
+                                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding CurrencyName}" 
+                                               FontWeight="Bold" 
+                                               FontSize="{DynamicResource FontSizeSmall}"
+                                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                                               Foreground="{DynamicResource TextPrimary}"
+                                               VerticalAlignment="Center"
+                                               Margin="4,0"/>
+                                    <TextBlock Text="(" 
+                                               FontSize="{DynamicResource FontSizeSmall}"
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding CurrencySymbol}" 
+                                               FontWeight="SemiBold"
+                                               FontSize="{DynamicResource FontSizeMedium}"
+                                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                                               Foreground="{DynamicResource Primary}"
+                                               VerticalAlignment="Center"
+                                               Margin="2,0"/>
+                                    <TextBlock Text=" - " 
+                                               FontSize="{DynamicResource FontSizeSmall}"
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding CurrencyCode}" 
+                                               FontWeight="Medium"
+                                               FontSize="{DynamicResource FontSizeSmall}"
+                                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text=")" 
+                                               FontSize="{DynamicResource FontSizeSmall}"
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               VerticalAlignment="Center"/>
+                                    <!-- Exchange Rate Info -->
+                                    <TextBlock Text=" | " 
+                                               FontSize="{DynamicResource FontSizeSmall}"
+                                               Foreground="{DynamicResource TextDisabled}"
+                                               VerticalAlignment="Center"
+                                               Margin="6,0"/>
+                                    <TextBlock Text="{Binding ExchangeRateInfo}" 
+                                               FontSize="{DynamicResource FontSizeSmall}"
+                                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                                               FontStyle="Italic"
+                                               Foreground="{DynamicResource Success}"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -614,22 +840,55 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="{Binding SellingPriceLabel}" Style="{StaticResource FieldLabelStyle}"/>
-                                <TextBox Text="{Binding Price, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                         Style="{StaticResource FormTextBoxStyle}"/>
+                                <TextBlock Text="{Binding SellingPriceLabel}" Style="{StaticResource CleanLabelStyle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" 
+                                             Text="{Binding Price, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                             Style="{StaticResource CleanInputStyle}"
+                                             Margin="0"/>
+                                    <TextBlock Grid.Column="1" 
+                                               Text="{Binding FormattedPrice}" 
+                                               FontWeight="Bold" 
+                                               FontSize="14"
+                                               Foreground="{DynamicResource Success}"
+                                               VerticalAlignment="Center"
+                                               Margin="10,0,0,0"
+                                               ToolTip="Price with active currency"/>
+                                </Grid>
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Margin="5,0,5,0">
-                                <TextBlock Text="{Binding CostPriceLabel}" Style="{StaticResource FieldLabelStyle}"/>
-                                <TextBox Text="{Binding Cost, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                         Style="{StaticResource FormTextBoxStyle}"/>
+                                <TextBlock Text="{Binding CostPriceLabel}" Style="{StaticResource CleanLabelStyle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" 
+                                             Text="{Binding Cost, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                             Style="{StaticResource CleanInputStyle}"
+                                             Margin="0"/>
+                                    <TextBlock Grid.Column="1" 
+                                               Text="{Binding FormattedCost}" 
+                                               FontWeight="Bold" 
+                                               FontSize="14"
+                                               Foreground="{DynamicResource Info}"
+                                               VerticalAlignment="Center"
+                                               Margin="10,0,0,0"
+                                               ToolTip="Cost with active currency"/>
+                                </Grid>
                             </StackPanel>
 
                             <StackPanel Grid.Column="2" Margin="10,0,0,0">
-                                <TextBlock Text="{Binding MarkupPercentLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding MarkupPercentLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <TextBox Text="{Binding Markup, UpdateSourceTrigger=PropertyChanged}" 
-                                         Style="{StaticResource FormTextBoxStyle}"
-                                         IsReadOnly="True"/>
+                                         Style="{StaticResource CleanInputStyle}"
+                                         IsReadOnly="True"
+                                         Background="#F5F5F5"/>
                             </StackPanel>
                         </Grid>
 
@@ -642,11 +901,28 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="{Binding PriceIncludingTaxLabel}" Style="{StaticResource FieldLabelStyle}"/>
-                                <TextBox Text="{Binding TaxInclusivePriceValue, StringFormat=F2}" 
-                                         Style="{StaticResource FormTextBoxStyle}"
-                                         IsReadOnly="True"
-                                         ToolTip="Computed price including selected taxes"/>
+                                <TextBlock Text="{Binding PriceIncludingTaxLabel}" Style="{StaticResource CleanLabelStyle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" 
+                                             Text="{Binding TaxInclusivePriceValue, StringFormat=F2}" 
+                                             Style="{StaticResource CleanInputStyle}"
+                                             IsReadOnly="True"
+                                             Background="#F5F5F5"
+                                             ToolTip="Computed price including selected taxes"
+                                             Margin="0"/>
+                                    <TextBlock Grid.Column="1" 
+                                               Text="{Binding FormattedTaxInclusivePrice}" 
+                                               FontWeight="Bold" 
+                                               FontSize="14"
+                                               Foreground="{DynamicResource Warning}"
+                                               VerticalAlignment="Center"
+                                               Margin="10,0,0,0"
+                                               ToolTip="Tax-inclusive price with active currency"/>
+                                </Grid>
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Margin="5,0,5,0">
@@ -657,7 +933,7 @@
                             </StackPanel>
 
                             <StackPanel Grid.Column="2" Margin="10,0,0,0">
-                                <TextBlock Text="{Binding TaxTypesLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding TaxTypesLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -665,7 +941,7 @@
                                     </Grid.ColumnDefinitions>
                                     <ComboBox ItemsSource="{Binding AvailableTaxTypes}"
                                               SelectedItem="{Binding SelectedTaxType, Mode=TwoWay}"
-                                              Style="{StaticResource FormComboBoxStyle}"
+                                              Style="{StaticResource CleanComboBoxStyle}"
                                               Margin="0,0,5,0">
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate>
@@ -692,7 +968,7 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="{Binding SelectedTaxTypesLabel}" Style="{StaticResource FieldLabelStyle}" Margin="0,10,0,5"/>
+                                <TextBlock Text="{Binding SelectedTaxTypesLabel}" Style="{StaticResource CleanLabelStyle}" Margin="0,10,0,5"/>
                                 <!-- Selected tax types chips -->
                                 <ItemsControl ItemsSource="{Binding SelectedTaxTypes}" Margin="0,5,0,0">
                                     <ItemsControl.ItemsPanel>
@@ -749,7 +1025,7 @@
                                 
                                 <!-- Left side with UOM Label and Add Button -->
                                 <StackPanel Grid.Column="0" Orientation="Horizontal">
-                                    <TextBlock Text="{Binding MultiUOMLabel}" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MultiUOMLabel}" Style="{StaticResource CleanLabelStyle}" VerticalAlignment="Center"/>
                                     <Button Content="+ Add UOM"
                                             Command="{Binding AddProductUnitCommand}"
                                             Style="{StaticResource FormButtonStyle}"
@@ -762,9 +1038,9 @@
                                 
                                 <!-- Right side with Initial Stock Quantity -->
                                 <StackPanel Grid.Column="2" Margin="20,0,0,0">
-                                    <TextBlock Text="{Binding InitialStockLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBlock Text="{Binding InitialStockLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                     <TextBox Text="{Binding InitialStock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                             Style="{StaticResource FormTextBoxStyle}"
+                                             Style="{StaticResource CleanInputStyle}"
                                              Width="150"
                                              HorizontalAlignment="Left"/>
                                 </StackPanel>
@@ -977,11 +1253,10 @@
                                     <!-- Barcode Value Input -->
                                     <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,0">
                                         <TextBlock Text="{Binding BarcodeValueLabel}" 
-                                                   Style="{StaticResource FieldLabelStyle}"/>
+                                                   Style="{StaticResource CleanLabelStyle}"/>
                                         <TextBox Text="{Binding NewBarcode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                                 Style="{StaticResource FormTextBoxStyle}"
-                                                 KeyDown="BarcodeTextBox_KeyDown"
-                                                 Height="35"/>
+                                                 Style="{StaticResource CleanInputStyle}"
+                                                 KeyDown="BarcodeTextBox_KeyDown"/>
                                     </StackPanel>
                                     
                                     <!-- Add Button -->
@@ -1306,9 +1581,9 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="{Binding MaxDiscountLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding MaxDiscountLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <TextBox Text="{Binding MaxDiscount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                         Style="{StaticResource FormTextBoxStyle}"/>
+                                         Style="{StaticResource CleanInputStyle}"/>
                             </StackPanel>
                         </Grid>
 
@@ -1319,7 +1594,7 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="{Binding DiscountsLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding DiscountsLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1327,7 +1602,7 @@
                                     </Grid.ColumnDefinitions>
                                     <ComboBox ItemsSource="{Binding AvailableDiscounts}"
                                               SelectedItem="{Binding SelectedDiscount, Mode=TwoWay}"
-                                              Style="{StaticResource FormComboBoxStyle}"
+                                              Style="{StaticResource CleanComboBoxStyle}"
                                               Margin="0,0,5,0">
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate>
@@ -1363,7 +1638,7 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="{Binding SelectedDiscountsLabel}" Style="{StaticResource FieldLabelStyle}" Margin="0,5,0,5"/>
+                                <TextBlock Text="{Binding SelectedDiscountsLabel}" Style="{StaticResource CleanLabelStyle}" Margin="0,5,0,5"/>
                                 <!-- Selected discounts chips -->
                                 <ItemsControl ItemsSource="{Binding SelectedDiscounts}" Margin="0,0,0,5">
                                     <ItemsControl.ItemsPanel>
@@ -1424,13 +1699,13 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="{Binding AgeRestrictionYearsLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding AgeRestrictionYearsLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <TextBox Text="{Binding AgeRestriction, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                         Style="{StaticResource FormTextBoxStyle}"/>
+                                         Style="{StaticResource CleanInputStyle}"/>
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="{Binding ProductColorLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding ProductColorLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <Border BorderBrush="{DynamicResource BorderLight}" 
                                         BorderThickness="1" 
                                         CornerRadius="{DynamicResource BorderCornerRadius}" 
@@ -1473,56 +1748,56 @@
                             
                             <!-- Store Selection and Initial Stock -->
                             <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="{Binding StoreLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding StoreLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <ComboBox ItemsSource="{Binding AvailableStores}"
                                           SelectedValue="{Binding SelectedStoreId, Mode=TwoWay}"
                                           SelectedValuePath="Id"
                                           DisplayMemberPath="Name"
-                                          Style="{StaticResource FormComboBoxStyle}"/>
+                                          Style="{StaticResource CleanComboBoxStyle}"/>
                             </StackPanel>
                             
                             <StackPanel Grid.Row="0" Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="{Binding InitialStockLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding InitialStockLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <TextBox Text="{Binding InitialStock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                         Style="{StaticResource FormTextBoxStyle}"/>
+                                         Style="{StaticResource CleanInputStyle}"/>
                             </StackPanel>
                             
                             <!-- Stock Levels -->
                             <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="{Binding MinimumStockLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding MinimumStockLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <TextBox Text="{Binding MinimumStock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                         Style="{StaticResource FormTextBoxStyle}"/>
+                                         Style="{StaticResource CleanInputStyle}"/>
                             </StackPanel>
                             
                             <StackPanel Grid.Row="1" Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="{Binding MaximumStockLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding MaximumStockLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <TextBox Text="{Binding MaximumStock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                         Style="{StaticResource FormTextBoxStyle}"/>
+                                         Style="{StaticResource CleanInputStyle}"/>
                             </StackPanel>
                             
                             <!-- Reorder Settings -->
                             <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="{Binding ReorderLevelLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding ReorderLevelLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <TextBox Text="{Binding ReorderLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                         Style="{StaticResource FormTextBoxStyle}"/>
+                                         Style="{StaticResource CleanInputStyle}"/>
                             </StackPanel>
                             
                             <StackPanel Grid.Row="2" Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="{Binding ReorderQuantityLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding ReorderQuantityLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <TextBox Text="{Binding ReorderQuantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                         Style="{StaticResource FormTextBoxStyle}"/>
+                                         Style="{StaticResource CleanInputStyle}"/>
                             </StackPanel>
                             
                             <!-- Average Cost -->
                             <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="{Binding AverageCostLabel}" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="{Binding AverageCostLabel}" Style="{StaticResource CleanLabelStyle}"/>
                                 <TextBox Text="{Binding AverageCost, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                         Style="{StaticResource FormTextBoxStyle}"/>
+                                         Style="{StaticResource CleanInputStyle}"/>
                             </StackPanel>
                             
                             <!-- Stock Options Checkboxes -->
                             <StackPanel Grid.Row="3" Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="" Style="{StaticResource FieldLabelStyle}"/>
+                                <TextBlock Text="" Style="{StaticResource CleanLabelStyle}"/>
                                 <WrapPanel Orientation="Horizontal" IsEnabled="{Binding IsStockFieldsEnabled}">
                                     <CheckBox Content="{Binding AllowNegativeStockLabel2}" 
                                               IsChecked="{Binding AllowNegativeStock, Mode=TwoWay}"
@@ -1813,6 +2088,129 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Modifier Groups Section -->
+                <Border x:Name="ModifierGroupsSection" Style="{StaticResource FormSectionStyle}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding ModifierGroupsTitle}" Style="{StaticResource SectionHeaderStyle}"/>
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Add Modifier Group -->
+                            <Grid Grid.Row="0" Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ComboBox Grid.Column="0"
+                                          ItemsSource="{Binding AvailableModifierGroups}"
+                                          SelectedItem="{Binding SelectedModifierGroup}"
+                                          DisplayMemberPath="Name"
+                                          Margin="0,0,8,0"
+                                          MinHeight="{DynamicResource ButtonHeight}"
+                                          Padding="{DynamicResource DefaultPaddingThickness}"
+                                          BorderBrush="{DynamicResource BorderLight}"
+                                          BorderThickness="1"
+                                          Background="{DynamicResource SurfaceBackground}"
+                                          Foreground="{DynamicResource TextSecondary}"
+                                          FontSize="{DynamicResource FontSizeSmall}"
+                                          FontFamily="{DynamicResource PoppinsFontFallback}"
+                                          FlowDirection="{Binding CurrentFlowDirection}">
+                                </ComboBox>
+
+                                <Button Grid.Column="1"
+                                        Content="Add"
+                                        Command="{Binding AddModifierGroupCommand}"
+                                        Style="{StaticResource FormButtonStyle}"
+                                        Background="{DynamicResource Primary}"
+                                        Foreground="White"
+                                        Width="80"/>
+                            </Grid>
+
+                            <!-- Selected Modifier Groups List -->
+                            <Border Grid.Row="1" 
+                                    BorderBrush="{DynamicResource BorderLight}" 
+                                    BorderThickness="1" 
+                                    CornerRadius="{DynamicResource BorderCornerRadius}"
+                                    Padding="8"
+                                    Background="{DynamicResource SectionBackground}">
+                                <Grid>
+                                    <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                                        <ItemsControl ItemsSource="{Binding SelectedModifierGroups}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{DynamicResource CardBackground}"
+                                                            BorderBrush="{DynamicResource BorderLight}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="4"
+                                                            Padding="12,8"
+                                                            Margin="0,0,0,8">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+
+                                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Name}"
+                                                                           Foreground="{DynamicResource TextPrimary}"
+                                                                           FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                                           FontSize="{DynamicResource FontSizeMedium}"
+                                                                           FontWeight="SemiBold"/>
+                                                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                                    <TextBlock Text="{Binding SelectionType}"
+                                                                               Foreground="{DynamicResource TextSecondary}"
+                                                                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                                               FontSize="{DynamicResource FontSizeSmall}"/>
+                                                                    <TextBlock Text=" • " 
+                                                                               Foreground="{DynamicResource TextSecondary}"
+                                                                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                                               FontSize="{DynamicResource FontSizeSmall}"/>
+                                                                    <TextBlock Foreground="{DynamicResource TextSecondary}"
+                                                                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                                                                               FontSize="{DynamicResource FontSizeSmall}">
+                                                                        <Run Text="{Binding Required, Converter={StaticResource BoolToYesNoConverter}}"/>
+                                                                        <Run Text=" Required"/>
+                                                                    </TextBlock>
+                                                                </StackPanel>
+                                                            </StackPanel>
+
+                                                            <Button Grid.Column="1"
+                                                                    Command="{Binding DataContext.RemoveModifierGroupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                    CommandParameter="{Binding}"
+                                                                    ToolTip="Remove Modifier Group"
+                                                                    Style="{StaticResource CompactButtonStyle}"
+                                                                    Background="#C62828"
+                                                                    Foreground="White"
+                                                                    Width="32" Height="32"
+                                                                    Content="🗑️"
+                                                                    VerticalAlignment="Center"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+
+                                    <!-- No modifier groups message -->
+                                    <TextBlock Text="No modifier groups selected. Add modifier groups from the dropdown above."
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               FontFamily="{DynamicResource PoppinsFontFallback}"
+                                               FontSize="{DynamicResource FontSizeMedium}"
+                                               TextAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Padding="20"
+                                               Visibility="{Binding SelectedModifierGroups.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=0}"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
                 </StackPanel>
             </ScrollViewer>
             
@@ -1936,18 +2334,18 @@
                         <!-- Category Name -->
                         <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
                             <TextBlock Text="{Binding CategoryNameLabel}" 
-                                       Style="{StaticResource FieldLabelStyle}"/>
+                                       Style="{StaticResource CleanLabelStyle}"/>
                             <TextBox Text="{Binding CurrentCategory.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                     Style="{StaticResource FormTextBoxStyle}"
+                                     Style="{StaticResource CleanInputStyle}"
                                      MaxLength="100"/>
                         </StackPanel>
 
                         <!-- Category Name (Arabic) -->
                         <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
                             <TextBlock Text="{Binding CategoryNameArabicLabel}" 
-                                       Style="{StaticResource FieldLabelStyle}"/>
+                                       Style="{StaticResource CleanLabelStyle}"/>
                             <TextBox Text="{Binding CurrentCategory.NameArabic, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                     Style="{StaticResource FormTextBoxStyle}"
+                                     Style="{StaticResource CleanInputStyle}"
                                      MaxLength="100"
                                      FlowDirection="RightToLeft"/>
                         </StackPanel>
@@ -1955,21 +2353,21 @@
                         <!-- Parent Category -->
                         <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
                             <TextBlock Text="{Binding ParentCategoryLabel}" 
-                                       Style="{StaticResource FieldLabelStyle}"/>
+                                       Style="{StaticResource CleanLabelStyle}"/>
                             <ComboBox ItemsSource="{Binding ParentCategories}"
                                       SelectedValue="{Binding CurrentCategory.ParentCategoryId, Mode=TwoWay}"
                                       SelectedValuePath="Id"
                                       DisplayMemberPath="Name"
-                                      Style="{StaticResource FormComboBoxStyle}"
+                                      Style="{StaticResource CleanComboBoxStyle}"
                                       FlowDirection="{Binding CurrentFlowDirection}"/>
                         </StackPanel>
 
                         <!-- Display Order -->
                         <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
                             <TextBlock Text="{Binding DisplayOrderLabel}" 
-                                       Style="{StaticResource FieldLabelStyle}"/>
+                                       Style="{StaticResource CleanLabelStyle}"/>
                             <TextBox Text="{Binding CurrentCategory.DisplayOrder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                     Style="{StaticResource FormTextBoxStyle}"/>
+                                     Style="{StaticResource CleanInputStyle}"/>
                             <TextBlock Text="{Binding DisplayOrderHelp}" 
                                        FontSize="{DynamicResource FontSizeVerySmall}" 
                                        FontFamily="{DynamicResource PoppinsFontFallback}"
@@ -1981,9 +2379,9 @@
                         <!-- Description -->
                         <StackPanel Margin="{DynamicResource DefaultMarginThickness}">
                             <TextBlock Text="{Binding DescriptionLabel}" 
-                                       Style="{StaticResource FieldLabelStyle}"/>
+                                       Style="{StaticResource CleanLabelStyle}"/>
                             <TextBox Text="{Binding CurrentCategory.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                     Style="{StaticResource FormTextBoxStyle}"
+                                     Style="{StaticResource CleanInputStyle}"
                                      Height="80"
                                      TextWrapping="Wrap"
                                      AcceptsReturn="True"

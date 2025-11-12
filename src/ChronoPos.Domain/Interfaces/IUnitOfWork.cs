@@ -23,7 +23,7 @@ public interface IUnitOfWork : IDisposable
     /// <summary>
     /// Customer repository
     /// </summary>
-    IRepository<ChronoPos.Domain.Entities.Customer> Customers { get; }
+    ICustomerRepository Customers { get; }
     
     /// <summary>
     /// Customer Group repository
@@ -69,6 +69,11 @@ public interface IUnitOfWork : IDisposable
     /// Category Discount repository 
     /// </summary>
     ICategoryDiscountRepository CategoryDiscounts { get; }
+    
+    /// <summary>
+    /// Customer Discount repository
+    /// </summary>
+    ICustomerDiscountRepository CustomerDiscounts { get; }
     
     /// <summary>
     /// Selling Price Type repository

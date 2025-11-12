@@ -34,6 +34,9 @@ public partial class UserSidePanelViewModel : ObservableObject
     private string _fullName = string.Empty;
 
     [ObservableProperty]
+    private string _username = string.Empty;
+
+    [ObservableProperty]
     private string _email = string.Empty;
 
     [ObservableProperty]
@@ -82,6 +85,7 @@ public partial class UserSidePanelViewModel : ObservableObject
     private FlowDirection _currentFlowDirection = FlowDirection.LeftToRight;
 
     public bool CanSave => !string.IsNullOrWhiteSpace(FullName) && 
+                           !string.IsNullOrWhiteSpace(Username) && 
                            !string.IsNullOrWhiteSpace(Email) && 
                            SelectedRole != null &&
                            (!_isEditMode || string.IsNullOrWhiteSpace(Password) || Password == ConfirmPassword);
@@ -127,12 +131,14 @@ public partial class UserSidePanelViewModel : ObservableObject
     private void LoadUserData(UserDto user)
     {
         FullName = user.FullName;
+        Username = user.Username;
         Email = user.Email;
         PhoneNo = user.PhoneNo;
         Address = user.Address;
         
         // Don't load password for security reasons
         // Password fields should remain empty during edit
+        // Show placeholder text to indicate password is set
         Password = string.Empty;
         ConfirmPassword = string.Empty;
         
@@ -294,6 +300,7 @@ public partial class UserSidePanelViewModel : ObservableObject
                 var updateDto = new UpdateUserDto
                 {
                     FullName = FullName,
+                    Username = Username,
                     Email = Email,
                     Role = SelectedRole!.RoleName,
                     PhoneNo = PhoneNo,
@@ -320,6 +327,7 @@ public partial class UserSidePanelViewModel : ObservableObject
                 var createDto = new CreateUserDto
                 {
                     FullName = FullName,
+                    Username = Username,
                     Email = Email,
                     Password = Password,
                     Role = SelectedRole!.RoleName,
@@ -376,6 +384,12 @@ public partial class UserSidePanelViewModel : ObservableObject
             return false;
         }
 
+        if (string.IsNullOrWhiteSpace(Username))
+        {
+            ValidationMessage = "Username is required";
+            return false;
+        }
+
         if (string.IsNullOrWhiteSpace(Email))
         {
             ValidationMessage = "Email is required";
@@ -384,7 +398,7 @@ public partial class UserSidePanelViewModel : ObservableObject
 
         if (!_isEditMode && string.IsNullOrWhiteSpace(Password))
         {
-            ValidationMessage = "Password is required";
+            ValidationMessage = "Password is required for new users";
             return false;
         }
 
@@ -392,6 +406,16 @@ public partial class UserSidePanelViewModel : ObservableObject
         {
             ValidationMessage = "Passwords do not match";
             return false;
+        }
+
+        // In edit mode, if password is being changed, confirm it matches
+        if (_isEditMode && !string.IsNullOrWhiteSpace(Password))
+        {
+            if (Password != ConfirmPassword)
+            {
+                ValidationMessage = "Passwords do not match";
+                return false;
+            }
         }
 
         if (SelectedRole == null)
@@ -404,6 +428,7 @@ public partial class UserSidePanelViewModel : ObservableObject
     }
 
     partial void OnFullNameChanged(string value) => OnPropertyChanged(nameof(CanSave));
+    partial void OnUsernameChanged(string value) => OnPropertyChanged(nameof(CanSave));
     partial void OnEmailChanged(string value) => OnPropertyChanged(nameof(CanSave));
     partial void OnPasswordChanged(string value) => OnPropertyChanged(nameof(CanSave));
     partial void OnConfirmPasswordChanged(string value) => OnPropertyChanged(nameof(CanSave));

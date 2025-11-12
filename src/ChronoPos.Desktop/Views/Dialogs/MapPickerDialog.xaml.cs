@@ -55,20 +55,18 @@ public partial class MapPickerDialog : Window
             }
             else
             {
-                MessageBox.Show(
-                    "Invalid coordinates!\n\nLatitude must be between -90 and 90\nLongitude must be between -180 and 180",
+                new MessageDialog(
                     "Invalid Input",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                    "Invalid coordinates!\n\nLatitude must be between -90 and 90\nLongitude must be between -180 and 180",
+                    MessageDialog.MessageType.Warning).ShowDialog();
             }
         }
         else
         {
-            MessageBox.Show(
-                "Please enter valid numeric coordinates.",
+            new MessageDialog(
                 "Invalid Input",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "Please enter valid numeric coordinates.",
+                MessageDialog.MessageType.Warning).ShowDialog();
         }
     }
 

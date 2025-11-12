@@ -3,6 +3,9 @@ using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Constants;
+using ChronoPos.Desktop.Views.Dialogs;
+using ChronoPos.Desktop.Services;
+using ChronoPos.Infrastructure.Services;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -26,6 +29,8 @@ public partial class ProductGroupsViewModel : ObservableObject
     private readonly IProductService _productService;
     private readonly IProductUnitService _productUnitService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ILayoutDirectionService _layoutDirectionService;
+    private readonly IDatabaseLocalizationService _localizationService;
 
     [ObservableProperty]
     private ObservableCollection<ProductGroupDto> _productGroups = new();
@@ -72,6 +77,94 @@ public partial class ProductGroupsViewModel : ObservableObject
     [ObservableProperty]
     private bool canExportProductGroup = false;
 
+    // Localized properties
+    [ObservableProperty]
+    private string _pageTitle = "Product Groups";
+
+    [ObservableProperty]
+    private string _searchPlaceholder = "Search product groups...";
+
+    [ObservableProperty]
+    private string _addButtonText = "Add Product Group";
+
+    [ObservableProperty]
+    private string _refreshButtonText = "Refresh";
+
+    [ObservableProperty]
+    private string _importButtonText = "Import";
+
+    [ObservableProperty]
+    private string _exportButtonText = "Export";
+
+    [ObservableProperty]
+    private string _editButtonText = "Edit";
+
+    [ObservableProperty]
+    private string _deleteButtonText = "Delete";
+
+    [ObservableProperty]
+    private string _clearFiltersText = "Clear Filters";
+
+    [ObservableProperty]
+    private string _activeOnlyText = "Active Only";
+
+    [ObservableProperty]
+    private string _showAllText = "Show All";
+
+    [ObservableProperty]
+    private string _columnActions = "Actions";
+
+    [ObservableProperty]
+    private string _columnActive = "Active";
+
+    [ObservableProperty]
+    private string _columnStatus = "Status";
+
+    [ObservableProperty]
+    private string _columnProducts = "Products";
+
+    [ObservableProperty]
+    private string _columnSkuPrefix = "SKU Prefix";
+
+    [ObservableProperty]
+    private string _columnDescription = "Description";
+
+    [ObservableProperty]
+    private string _columnArabicName = "Arabic Name";
+
+    [ObservableProperty]
+    private string _columnGroupName = "Group Name";
+
+    [ObservableProperty]
+    private string _emptyStateTitle = "No product groups found";
+
+    [ObservableProperty]
+    private string _emptyStateMessage = "Click 'Add Product Group' to create your first group";
+
+    [ObservableProperty]
+    private string _activeText = "Active";
+
+    [ObservableProperty]
+    private string _inactiveText = "Inactive";
+
+    [ObservableProperty]
+    private string _loadingText = "Loading product groups...";
+
+    [ObservableProperty]
+    private string _statusTextOf = "of";
+
+    [ObservableProperty]
+    private string _statusTextProductGroups = "product groups";
+
+    [ObservableProperty]
+    private string _noActiveGroupsText = "No active product groups found";
+
+    [ObservableProperty]
+    private string _noSearchResultsText = "No product groups match your search criteria";
+
+    [ObservableProperty]
+    private string _showingText = "Showing";
+
     /// <summary>
     /// Text for the active filter toggle button
     /// </summary>
@@ -100,7 +193,9 @@ public partial class ProductGroupsViewModel : ObservableObject
         ISellingPriceTypeService sellingPriceTypeService,
         IProductService productService,
         IProductUnitService productUnitService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ILayoutDirectionService layoutDirectionService,
+        IDatabaseLocalizationService localizationService)
     {
         _productGroupService = productGroupService;
         _productGroupItemService = productGroupItemService;
@@ -110,6 +205,19 @@ public partial class ProductGroupsViewModel : ObservableObject
         _productService = productService;
         _productUnitService = productUnitService;
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _layoutDirectionService = layoutDirectionService ?? throw new ArgumentNullException(nameof(layoutDirectionService));
+        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        
+        // Subscribe to direction changes
+        _layoutDirectionService.DirectionChanged += OnDirectionChanged;
+        
+        // Subscribe to language changes
+        _localizationService.LanguageChanged += OnLanguageChanged;
+        
+        // Set initial direction
+        CurrentFlowDirection = _layoutDirectionService.CurrentDirection == LayoutDirection.RightToLeft 
+            ? FlowDirection.RightToLeft 
+            : FlowDirection.LeftToRight;
         
         InitializePermissions();
         
@@ -124,8 +232,13 @@ public partial class ProductGroupsViewModel : ObservableObject
             _productUnitService,
             CloseSidePanel,
             LoadProductGroupsAsync);
-            
-        _ = LoadProductGroupsAsync();
+        
+        // Load localized texts and data
+        _ = Task.Run(async () =>
+        {
+            await LoadLocalizedTextsAsync();
+            await LoadProductGroupsAsync();
+        });
     }
 
     partial void OnSearchTextChanged(string value)
@@ -173,23 +286,23 @@ public partial class ProductGroupsViewModel : ObservableObject
     {
         if (IsLoading)
         {
-            StatusMessage = "Loading product groups...";
+            StatusMessage = LoadingText;
         }
         else if (!HasProductGroups && !string.IsNullOrWhiteSpace(SearchText))
         {
-            StatusMessage = "No product groups match your search criteria";
+            StatusMessage = NoSearchResultsText;
         }
         else if (!HasProductGroups && ShowActiveOnly)
         {
-            StatusMessage = "No active product groups found";
+            StatusMessage = NoActiveGroupsText;
         }
         else if (!HasProductGroups)
         {
-            StatusMessage = "No product groups found";
+            StatusMessage = EmptyStateTitle;
         }
         else
         {
-            StatusMessage = $"Showing {FilteredProductGroups.Count} of {TotalProductGroups} product groups";
+            StatusMessage = $"{ShowingText} {FilteredProductGroups.Count} {StatusTextOf} {TotalProductGroups} {StatusTextProductGroups}";
         }
     }
 
@@ -210,7 +323,12 @@ public partial class ProductGroupsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading product groups: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorDialog = new MessageDialog(
+                "Loading Error",
+                $"An error occurred while loading product groups:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
+            
             StatusMessage = "Error loading product groups";
         }
         finally
@@ -279,7 +397,7 @@ public partial class ProductGroupsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error toggling product group status: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error toggling product group status: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -292,10 +410,7 @@ public partial class ProductGroupsViewModel : ObservableObject
         if (productGroup == null)
             return;
 
-        MessageBox.Show($"Product Group Details:\n\nName: {productGroup.Name}\nSKU Prefix: {productGroup.SkuPrefix}\nProducts: {productGroup.ItemCount}",
-            "Product Group Details",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+        new MessageDialog("Product Group Details", $"Product Group Details:\n\nName: {productGroup.Name}\nSKU Prefix: {productGroup.SkuPrefix}\nProducts: {productGroup.ItemCount}", MessageDialog.MessageType.Info).ShowDialog();
     }
 
     /// <summary>
@@ -332,7 +447,7 @@ public partial class ProductGroupsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading product group details: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            new MessageDialog("Error", $"Error loading product group details: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
         }
     }
 
@@ -343,15 +458,22 @@ public partial class ProductGroupsViewModel : ObservableObject
     private async Task DeleteProductGroupAsync()
     {
         if (SelectedProductGroup == null)
+        {
+            var warningDialog = new MessageDialog(
+                "No Selection",
+                "Please select a product group to delete.",
+                MessageDialog.MessageType.Warning);
+            warningDialog.ShowDialog();
             return;
+        }
 
-        var result = MessageBox.Show(
-            $"Are you sure you want to delete product group '{SelectedProductGroup.Name}'?",
-            "Confirm Delete",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
-
-        if (result == MessageBoxResult.Yes)
+        var confirmDialog = new ConfirmationDialog(
+            "Delete Product Group",
+            $"Are you sure you want to delete product group '{SelectedProductGroup.Name}'?\n\nThis action cannot be undone.",
+            ConfirmationDialog.DialogType.Danger);
+        
+        var result = confirmDialog.ShowDialog();
+        if (result == true)
         {
             try
             {
@@ -359,12 +481,21 @@ public partial class ProductGroupsViewModel : ObservableObject
                 if (success)
                 {
                     await LoadProductGroupsAsync();
-                    MessageBox.Show("Product group deleted successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    
+                    var successDialog = new MessageDialog(
+                        "Success",
+                        "Product group deleted successfully.",
+                        MessageDialog.MessageType.Success);
+                    successDialog.ShowDialog();
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error deleting product group: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                var errorDialog = new MessageDialog(
+                    "Delete Error",
+                    $"An error occurred while deleting the product group:\n\n{ex.Message}",
+                    MessageDialog.MessageType.Error);
+                errorDialog.ShowDialog();
             }
         }
     }
@@ -424,15 +555,23 @@ public partial class ProductGroupsViewModel : ObservableObject
 
                 await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
                 StatusMessage = $"Exported {ProductGroups.Count} product groups successfully";
-                MessageBox.Show($"Exported {ProductGroups.Count} product groups to:\n{saveFileDialog.FileName}", 
-                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                var successDialog = new MessageDialog(
+                    "Export Successful",
+                    $"Successfully exported {ProductGroups.Count} product groups to:\n\n{saveFileDialog.FileName}",
+                    MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error exporting product groups: {ex.Message}";
-            MessageBox.Show($"Error exporting product groups: {ex.Message}", "Export Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            
+            var errorDialog = new MessageDialog(
+                "Export Error",
+                $"An error occurred while exporting product groups:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -448,20 +587,14 @@ public partial class ProductGroupsViewModel : ObservableObject
     {
         try
         {
-            // Show dialog with Download Template and Upload File options
-            var result = MessageBox.Show(
-                "Would you like to download a template first?\n\n" +
-                "• Click 'Yes' to download the CSV template\n" +
-                "• Click 'No' to upload your file directly\n" +
-                "• Click 'Cancel' to exit",
-                "Import Product Groups",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Cancel)
+            // Show custom import dialog
+            var importDialog = new ImportDialog();
+            var dialogResult = importDialog.ShowDialog();
+            
+            if (dialogResult != true)
                 return;
 
-            if (result == MessageBoxResult.Yes)
+            if (importDialog.SelectedAction == ImportDialog.ImportAction.DownloadTemplate)
             {
                 // Download Template
                 var saveFileDialog = new SaveFileDialog
@@ -479,31 +612,40 @@ public partial class ProductGroupsViewModel : ObservableObject
                     templateCsv.AppendLine("Electronics,الكترونيات,Electronic items group,مجموعة الأجهزة الإلكترونية,,,Retail Price,ELEC,Active");
 
                     await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
-                    MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
-                        "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                    
+                    var successDialog = new MessageDialog(
+                        "Template Downloaded",
+                        $"Template downloaded successfully to:\n\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.",
+                        MessageDialog.MessageType.Success);
+                    successDialog.ShowDialog();
                 }
                 return;
             }
-
-            // Upload File
-            var openFileDialog = new OpenFileDialog
+            else if (importDialog.SelectedAction == ImportDialog.ImportAction.UploadFile)
             {
-                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
-                DefaultExt = ".csv"
-            };
-
-            if (openFileDialog.ShowDialog() == true)
-            {
-                IsLoading = true;
-                StatusMessage = "Importing product groups...";
-
-                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
-                if (lines.Length <= 1)
+                // Upload File
+                var openFileDialog = new OpenFileDialog
                 {
-                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    DefaultExt = ".csv"
+                };
+
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    IsLoading = true;
+                    StatusMessage = "Importing product groups...";
+
+                    var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                    if (lines.Length <= 1)
+                    {
+                        var warningDialog = new MessageDialog(
+                            "Import Error",
+                            "The CSV file is empty or contains only headers.",
+                            MessageDialog.MessageType.Warning);
+                        warningDialog.ShowDialog();
+                        IsLoading = false;
+                        return;
+                    }
 
                 int successCount = 0;
                 int errorCount = 0;
@@ -542,29 +684,51 @@ public partial class ProductGroupsViewModel : ObservableObject
                     catch (Exception ex)
                     {
                         errorCount++;
-                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                        var errorMessage = ex.Message;
+                        
+                        // Include inner exception details if available
+                        if (ex.InnerException != null)
+                        {
+                            errorMessage += $" | Inner: {ex.InnerException.Message}";
+                            
+                            // Go deeper if there's another inner exception
+                            if (ex.InnerException.InnerException != null)
+                            {
+                                errorMessage += $" | Details: {ex.InnerException.InnerException.Message}";
+                            }
+                        }
+                        
+                        errors.AppendLine($"Line {i + 1}: {errorMessage}");
                     }
                 }
 
-                await LoadProductGroupsAsync();
+                    await LoadProductGroupsAsync();
 
-                var message = $"Import completed:\n✓ {successCount} product groups imported successfully";
-                if (errorCount > 0)
-                {
-                    message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                    var message = $"Import completed:\n\n✓ {successCount} product groups imported successfully";
+                    if (errorCount > 0)
+                    {
+                        message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                    }
+
+                    var resultDialog = new MessageDialog(
+                        "Import Complete",
+                        message,
+                        errorCount > 0 ? MessageDialog.MessageType.Warning : MessageDialog.MessageType.Success);
+                    resultDialog.ShowDialog();
+                    
+                    StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
                 }
-
-                MessageBox.Show(message, "Import Complete", 
-                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
-                
-                StatusMessage = $"Import completed: {successCount} successful, {errorCount} errors";
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error importing product groups: {ex.Message}";
-            MessageBox.Show($"Error importing product groups: {ex.Message}", "Import Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            
+            var errorDialog = new MessageDialog(
+                "Import Error",
+                $"An error occurred while importing product groups:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
         finally
         {
@@ -623,5 +787,60 @@ public partial class ProductGroupsViewModel : ObservableObject
             CanImportProductGroup = false;
             CanExportProductGroup = false;
         }
+    }
+
+    private void OnDirectionChanged(LayoutDirection newDirection)
+    {
+        CurrentFlowDirection = newDirection == LayoutDirection.RightToLeft 
+            ? FlowDirection.RightToLeft 
+            : FlowDirection.LeftToRight;
+    }
+
+    private async Task LoadLocalizedTextsAsync()
+    {
+        try
+        {
+            PageTitle = await _localizationService.GetTranslationAsync("productgroup.page_title") ?? "Product Groups";
+            SearchPlaceholder = await _localizationService.GetTranslationAsync("productgroup.search_placeholder") ?? "Search product groups...";
+            AddButtonText = await _localizationService.GetTranslationAsync("productgroup.add_product_group") ?? "Add Product Group";
+            RefreshButtonText = await _localizationService.GetTranslationAsync("common.refresh") ?? "Refresh";
+            ImportButtonText = await _localizationService.GetTranslationAsync("common.import") ?? "Import";
+            ExportButtonText = await _localizationService.GetTranslationAsync("common.export") ?? "Export";
+            EditButtonText = await _localizationService.GetTranslationAsync("common.edit") ?? "Edit";
+            DeleteButtonText = await _localizationService.GetTranslationAsync("common.delete") ?? "Delete";
+            ClearFiltersText = await _localizationService.GetTranslationAsync("common.clear_filters") ?? "Clear Filters";
+            ActiveOnlyText = await _localizationService.GetTranslationAsync("productgroup.active_only") ?? "Active Only";
+            ShowAllText = await _localizationService.GetTranslationAsync("productgroup.show_all") ?? "Show All";
+            ColumnActions = await _localizationService.GetTranslationAsync("productgroup.column.actions") ?? "Actions";
+            ColumnActive = await _localizationService.GetTranslationAsync("productgroup.column.active") ?? "Active";
+            ColumnStatus = await _localizationService.GetTranslationAsync("productgroup.column.status") ?? "Status";
+            ColumnProducts = await _localizationService.GetTranslationAsync("productgroup.column.products") ?? "Products";
+            ColumnSkuPrefix = await _localizationService.GetTranslationAsync("productgroup.column.sku_prefix") ?? "SKU Prefix";
+            ColumnDescription = await _localizationService.GetTranslationAsync("productgroup.column.description") ?? "Description";
+            ColumnArabicName = await _localizationService.GetTranslationAsync("productgroup.column.arabic_name") ?? "Arabic Name";
+            ColumnGroupName = await _localizationService.GetTranslationAsync("productgroup.column.group_name") ?? "Group Name";
+            EmptyStateTitle = await _localizationService.GetTranslationAsync("productgroup.empty_state_title") ?? "No product groups found";
+            EmptyStateMessage = await _localizationService.GetTranslationAsync("productgroup.empty_state_message") ?? "Click 'Add Product Group' to create your first group";
+            ActiveText = await _localizationService.GetTranslationAsync("common.active") ?? "Active";
+            InactiveText = await _localizationService.GetTranslationAsync("common.inactive") ?? "Inactive";
+            LoadingText = await _localizationService.GetTranslationAsync("common.loading") ?? "Loading product groups...";
+            StatusTextOf = await _localizationService.GetTranslationAsync("common.of") ?? "of";
+            StatusTextProductGroups = await _localizationService.GetTranslationAsync("productgroup.product_groups") ?? "product groups";
+            NoActiveGroupsText = await _localizationService.GetTranslationAsync("productgroup.no_active_groups") ?? "No active product groups found";
+            NoSearchResultsText = await _localizationService.GetTranslationAsync("productgroup.no_search_results") ?? "No product groups match your search criteria";
+            ShowingText = await _localizationService.GetTranslationAsync("common.showing") ?? "Showing";
+            
+            // Update status message with new translations
+            UpdateStatusMessage();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading localized texts: {ex.Message}");
+        }
+    }
+
+    private async void OnLanguageChanged(object? sender, string languageCode)
+    {
+        await LoadLocalizedTextsAsync();
     }
 }

@@ -35,6 +35,11 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.TaxType> TaxTypes { get; set; }
     public DbSet<Domain.Entities.Brand> Brands { get; set; }
     public DbSet<Domain.Entities.ProductImage> ProductImages { get; set; }
+    public DbSet<Domain.Entities.Currency> Currencies { get; set; }
+    
+    // Company management entities
+    public DbSet<Domain.Entities.Company> Companies { get; set; }
+    public DbSet<Domain.Entities.CompanySettings> CompanySettings { get; set; }
     
     // Stock management entities
     public DbSet<Domain.Entities.StockTransaction> StockTransactions { get; set; }
@@ -70,12 +75,17 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     public DbSet<Domain.Entities.Discount> Discounts { get; set; }
     public DbSet<Domain.Entities.ProductDiscount> ProductDiscounts { get; set; }
     public DbSet<Domain.Entities.CategoryDiscount> CategoryDiscounts { get; set; }
+    public DbSet<Domain.Entities.CustomerDiscount> CustomerDiscounts { get; set; }
     
     // Selling Price Types
     public DbSet<Domain.Entities.SellingPriceType> SellingPriceTypes { get; set; }
 
     // Payment Types
     public DbSet<Domain.Entities.PaymentType> PaymentTypes { get; set; }
+
+    // Service Charge Types
+    public DbSet<Domain.Entities.ServiceChargeType> ServiceChargeTypes { get; set; }
+    public DbSet<Domain.Entities.ServiceChargeOption> ServiceChargeOptions { get; set; }
 
     // Product Attribute system entities
     public DbSet<ProductAttribute> ProductAttributes { get; set; }
@@ -95,6 +105,31 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
     // Restaurant management entities
     public DbSet<Domain.Entities.RestaurantTable> RestaurantTables { get; set; }
     public DbSet<Domain.Entities.Reservation> Reservations { get; set; }
+
+    // Order management entities
+    public DbSet<Domain.Entities.Order> Orders { get; set; }
+    public DbSet<Domain.Entities.OrderItem> OrderItems { get; set; }
+
+    // Product Modifier system entities
+    public DbSet<Domain.Entities.ProductModifier> ProductModifiers { get; set; }
+    public DbSet<Domain.Entities.ProductModifierGroup> ProductModifierGroups { get; set; }
+    public DbSet<Domain.Entities.ProductModifierGroupItem> ProductModifierGroupItems { get; set; }
+    public DbSet<Domain.Entities.ProductModifierLink> ProductModifierLinks { get; set; }
+
+    // Transaction & Sales entities
+    public DbSet<Domain.Entities.Shift> Shifts { get; set; }
+    public DbSet<Domain.Entities.ServiceCharge> ServiceCharges { get; set; }
+    public DbSet<Domain.Entities.Transaction> Transactions { get; set; }
+    public DbSet<Domain.Entities.TransactionProduct> TransactionProducts { get; set; }
+    public DbSet<Domain.Entities.TransactionModifier> TransactionModifiers { get; set; }
+    public DbSet<Domain.Entities.TransactionServiceCharge> TransactionServiceCharges { get; set; }
+    public DbSet<Domain.Entities.RefundTransaction> RefundTransactions { get; set; }
+    public DbSet<Domain.Entities.RefundTransactionProduct> RefundTransactionProducts { get; set; }
+    public DbSet<Domain.Entities.ExchangeTransaction> ExchangeTransactions { get; set; }
+    public DbSet<Domain.Entities.ExchangeTransactionProduct> ExchangeTransactionProducts { get; set; }
+
+    // Stock Ledger
+    public DbSet<Domain.Entities.StockLedger> StockLedgers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -273,6 +308,99 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasIndex(e => e.PaymentCode).IsUnique();
         });
 
+        // Configure ServiceChargeType entity
+        modelBuilder.Entity<Domain.Entities.ServiceChargeType>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("service_charge_type");
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Code).IsRequired().HasMaxLength(50).HasColumnName("code");
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(255).HasColumnName("name");
+            entity.Property(e => e.ChargeOptionScope).HasMaxLength(100).HasColumnName("charge_option_scope");
+            entity.Property(e => e.IsDefault).HasDefaultValue(false).HasColumnName("is_default");
+            entity.Property(e => e.Status).HasDefaultValue(true).HasColumnName("status");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(e => e.DeletedBy).HasColumnName("deleted_by");
+            entity.Property(e => e.DeletedAt).HasColumnName("deleted_at");
+
+            // Indexes
+            entity.HasIndex(e => e.Code).IsUnique();
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.IsDefault);
+
+            // Foreign key relationships
+            entity.HasOne(e => e.CreatedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.CreatedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.UpdatedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.UpdatedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.DeletedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.DeletedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Configure ServiceChargeOption entity
+        modelBuilder.Entity<Domain.Entities.ServiceChargeOption>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("service_charge_option");
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ServiceChargeTypeId).IsRequired().HasColumnName("service_charge_type_id");
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(255).HasColumnName("name");
+            entity.Property(e => e.Cost).HasColumnType("decimal(18,2)").HasColumnName("cost");
+            entity.Property(e => e.Price).HasColumnType("decimal(18,2)").HasColumnName("price");
+            entity.Property(e => e.LanguageId).HasColumnName("language_id");
+            entity.Property(e => e.Status).HasDefaultValue(true).HasColumnName("status");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(e => e.DeletedBy).HasColumnName("deleted_by");
+            entity.Property(e => e.DeletedAt).HasColumnName("deleted_at");
+
+            // Indexes
+            entity.HasIndex(e => e.ServiceChargeTypeId);
+            entity.HasIndex(e => e.LanguageId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => new { e.ServiceChargeTypeId, e.Name });
+
+            // Foreign key relationships
+            entity.HasOne(e => e.ServiceChargeType)
+                  .WithMany(t => t.ServiceChargeOptions)
+                  .HasForeignKey(e => e.ServiceChargeTypeId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Language)
+                  .WithMany()
+                  .HasForeignKey(e => e.LanguageId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.CreatedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.CreatedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.UpdatedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.UpdatedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.DeletedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.DeletedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
         // Configure ProductTax entity
         modelBuilder.Entity<Domain.Entities.ProductTax>(entity =>
         {
@@ -308,6 +436,107 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
 
             // Unique constraint on name
             entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        // Configure Currency entity
+        modelBuilder.Entity<Domain.Entities.Currency>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CurrencyName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.CurrencyCode).IsRequired().HasMaxLength(10);
+            entity.Property(e => e.Symbol).IsRequired().HasMaxLength(10);
+            entity.Property(e => e.ExchangeRate).HasPrecision(10, 4).HasDefaultValue(1.0000m);
+            entity.Property(e => e.IsDefault).HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Unique constraint on currency code
+            entity.HasIndex(e => e.CurrencyCode).IsUnique();
+        });
+
+        // Configure Company entity
+        modelBuilder.Entity<Domain.Entities.Company>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CompanyName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.LogoPath).HasMaxLength(500);
+            entity.Property(e => e.LicenseNumber).HasMaxLength(100);
+            entity.Property(e => e.NumberOfOwners).HasDefaultValue(1);
+            entity.Property(e => e.VatTrnNumber).HasMaxLength(100);
+            entity.Property(e => e.PhoneNo).HasMaxLength(20);
+            entity.Property(e => e.EmailOfBusiness).HasMaxLength(100);
+            entity.Property(e => e.Website).HasMaxLength(200);
+            entity.Property(e => e.KeyContactName).HasMaxLength(100);
+            entity.Property(e => e.KeyContactMobNo).HasMaxLength(20);
+            entity.Property(e => e.KeyContactEmail).HasMaxLength(100);
+            entity.Property(e => e.LocationLatitude).HasMaxLength(50);
+            entity.Property(e => e.LocationLongitude).HasMaxLength(50);
+            entity.Property(e => e.Remarks).HasMaxLength(500);
+            entity.Property(e => e.Status).HasDefaultValue(true);
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.DeletedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Unique constraint on company name
+            entity.HasIndex(e => e.CompanyName).IsUnique();
+        });
+
+        // Configure CompanySettings entity
+        modelBuilder.Entity<Domain.Entities.CompanySettings>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.PrimaryColor).HasMaxLength(20);
+            entity.Property(e => e.SecondaryColor).HasMaxLength(20);
+            entity.Property(e => e.ClientBackupFrequency).HasMaxLength(50);
+            entity.Property(e => e.AtmacssBackupFrequency).HasMaxLength(50);
+            entity.Property(e => e.RefundType).HasMaxLength(50);
+            entity.Property(e => e.AllowReturnCash).HasDefaultValue(false);
+            entity.Property(e => e.AllowCreditNote).HasDefaultValue(false);
+            entity.Property(e => e.AllowExchangeTransaction).HasDefaultValue(false);
+            entity.Property(e => e.HasSkuFormat).HasDefaultValue(false);
+            entity.Property(e => e.HasInvoiceFormat).HasDefaultValue(false);
+            entity.Property(e => e.CompanySubscriptionType).HasMaxLength(50);
+            entity.Property(e => e.NumberOfUsers).HasDefaultValue(1);
+            entity.Property(e => e.SellingType).HasMaxLength(50);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Foreign key relationship with Company
+            entity.HasOne(cs => cs.Company)
+                  .WithMany(c => c.CompanySettings)
+                  .HasForeignKey(cs => cs.CompanyId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Foreign key relationship with Currency
+            entity.HasOne(cs => cs.Currency)
+                  .WithMany()
+                  .HasForeignKey(cs => cs.CurrencyId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Foreign key relationship with Language
+            entity.HasOne(cs => cs.InvoiceDefaultLanguage)
+                  .WithMany()
+                  .HasForeignKey(cs => cs.InvoiceDefaultLanguageId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Foreign key relationships with User
+            entity.HasOne(cs => cs.Creator)
+                  .WithMany()
+                  .HasForeignKey(cs => cs.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(cs => cs.Updater)
+                  .WithMany()
+                  .HasForeignKey(cs => cs.UpdatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(cs => cs.Deleter)
+                  .WithMany()
+                  .HasForeignKey(cs => cs.DeletedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Configure ProductImage entity
@@ -459,6 +688,11 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasMany(e => e.Addresses)
                   .WithOne(a => a.Customer)
                   .HasForeignKey(a => a.CustomerId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.CustomerDiscounts)
+                  .WithOne(cd => cd.Customer)
+                  .HasForeignKey(cd => cd.CustomerId)
                   .OnDelete(DeleteBehavior.Cascade);
 
             // Index on mobile for quick lookup
@@ -1386,6 +1620,54 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasIndex(e => e.DeletedAt);
         });
 
+        // Configure CustomerDiscount entity
+        modelBuilder.Entity<Domain.Entities.CustomerDiscount>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("customer_discount");
+            
+            entity.Property(e => e.CustomerId).IsRequired();
+            entity.Property(e => e.DiscountsId).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Unique constraint to prevent duplicate mappings
+            entity.HasIndex(e => new { e.CustomerId, e.DiscountsId })
+                  .IsUnique()
+                  .HasDatabaseName("uq_customer_discount");
+
+            // Foreign key relationships
+            entity.HasOne(d => d.Customer)
+                  .WithMany(c => c.CustomerDiscounts)
+                  .HasForeignKey(d => d.CustomerId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.Discount)
+                  .WithMany(d => d.CustomerDiscounts)
+                  .HasForeignKey(d => d.DiscountsId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.CreatedByUser)
+                  .WithMany()
+                  .HasForeignKey(d => d.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.UpdatedByUser)
+                  .WithMany()
+                  .HasForeignKey(d => d.UpdatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.DeletedByUser)
+                  .WithMany()
+                  .HasForeignKey(d => d.DeletedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.CustomerId);
+            entity.HasIndex(e => e.DiscountsId);
+            entity.HasIndex(e => e.DeletedAt);
+        });
+
         // Configure ProductCombinationItem entity
         modelBuilder.Entity<Domain.Entities.ProductCombinationItem>(entity =>
         {
@@ -1595,6 +1877,96 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasIndex(e => e.DeletedAt);
         });
 
+        // Configure ProductModifier entity
+        modelBuilder.Entity<Domain.Entities.ProductModifier>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Price).HasPrecision(18, 4);
+            entity.Property(e => e.Cost).HasPrecision(18, 4);
+            entity.Property(e => e.Sku).HasMaxLength(100);
+            entity.Property(e => e.Barcode).HasMaxLength(100);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(pm => pm.TaxType)
+                  .WithMany()
+                  .HasForeignKey(pm => pm.TaxTypeId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(pm => pm.Creator)
+                  .WithMany()
+                  .HasForeignKey(pm => pm.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.Sku).IsUnique();
+            entity.HasIndex(e => e.Barcode).IsUnique();
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.TaxTypeId);
+        });
+
+        // Configure ProductModifierGroup entity
+        modelBuilder.Entity<Domain.Entities.ProductModifierGroup>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.SelectionType).IsRequired().HasMaxLength(50).HasDefaultValue("Multiple");
+            entity.Property(e => e.Required).IsRequired().HasDefaultValue(false);
+            entity.Property(e => e.MinSelections).IsRequired().HasDefaultValue(0);
+            entity.Property(e => e.MaxSelections);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(pmg => pmg.Creator)
+                  .WithMany()
+                  .HasForeignKey(pmg => pmg.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.SelectionType);
+        });
+
+        // Configure ProductModifierGroupItem entity
+        modelBuilder.Entity<Domain.Entities.ProductModifierGroupItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.PriceAdjustment).HasPrecision(18, 4).HasDefaultValue(0);
+            entity.Property(e => e.SortOrder).IsRequired().HasDefaultValue(0);
+            entity.Property(e => e.DefaultSelection).IsRequired().HasDefaultValue(false);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(pmgi => pmgi.Group)
+                  .WithMany(pmg => pmg.GroupItems)
+                  .HasForeignKey(pmgi => pmgi.GroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(pmgi => pmgi.Modifier)
+                  .WithMany()
+                  .HasForeignKey(pmgi => pmgi.ModifierId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Unique constraint on Group-Modifier combination
+            entity.HasIndex(e => new { e.GroupId, e.ModifierId }).IsUnique();
+
+            // Indexes
+            entity.HasIndex(e => e.GroupId);
+            entity.HasIndex(e => e.ModifierId);
+            entity.HasIndex(e => e.SortOrder);
+            entity.HasIndex(e => e.Status);
+        });
+
         // Seed initial data
         SeedData(modelBuilder);
     }
@@ -1699,6 +2071,32 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             new Domain.Entities.Store { Id = 2, Name = "Branch Store", Address = "456 Branch Avenue", PhoneNumber = "+1234567891", Email = "branch@chronopos.com", ManagerName = "Jane Smith", IsActive = true, IsDefault = false, CreatedAt = baseDate, UpdatedAt = baseDate }
         );
 
+        // NOTE: Shift seeding disabled because Users are not seeded (created during onboarding)
+        // Shifts will be created when users start their work day
+        // For now, transactions use ShiftId = 1 as a placeholder
+        
+        // Seed Default Shift (required for transactions) - without foreign key dependencies
+        modelBuilder.Entity<Domain.Entities.Shift>().HasData(
+            new Domain.Entities.Shift 
+            { 
+                ShiftId = 1, 
+                UserId = null, // No user dependency - can be assigned later
+                ShopLocationId = null,
+                StartTime = baseDate,
+                EndTime = null,
+                OpeningCash = 0m,
+                ClosingCash = 0m,
+                ExpectedCash = 0m,
+                CashDifference = 0m,
+                Status = "Open",
+                Notes = "Default shift for transactions",
+                CreatedBy = null,
+                CreatedAt = baseDate,
+                UpdatedBy = null,
+                UpdatedAt = null
+            }
+        );
+
         // Seed TaxTypes
         modelBuilder.Entity<Domain.Entities.TaxType>().HasData(
             new Domain.Entities.TaxType { Id = 1, Name = "VAT", Description = "Value Added Tax", Value = 10.0000m, IsPercentage = true, IncludedInPrice = false, AppliesToBuying = false, AppliesToSelling = true, CalculationOrder = 1, IsActive = true, CreatedAt = baseDate },
@@ -1765,7 +2163,7 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
         // Seed Languages
         modelBuilder.Entity<Domain.Entities.Language>().HasData(
             new Domain.Entities.Language { Id = 1, LanguageName = "English", LanguageCode = "en", IsRtl = false, Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.Language { Id = 2, LanguageName = "اردو", LanguageCode = "ur", IsRtl = true, Status = "Active", CreatedBy = "System", CreatedAt = baseDate }
+            new Domain.Entities.Language { Id = 2, LanguageName = "العربية", LanguageCode = "ar", IsRtl = true, Status = "Active", CreatedBy = "System", CreatedAt = baseDate }
         );
 
         // Seed Language Keywords
@@ -1846,7 +2244,45 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
 
             // UI Buttons
             new Domain.Entities.LanguageKeyword { Id = 48, Key = "btn.back", Description = "Back button" },
-            new Domain.Entities.LanguageKeyword { Id = 49, Key = "btn.refresh", Description = "Refresh button" }
+            new Domain.Entities.LanguageKeyword { Id = 49, Key = "btn.refresh", Description = "Refresh button" },
+
+            // Login Screen
+            new Domain.Entities.LanguageKeyword { Id = 127, Key = "login.title", Description = "Login screen title" },
+            new Domain.Entities.LanguageKeyword { Id = 128, Key = "login.subtitle", Description = "Login screen subtitle" },
+            new Domain.Entities.LanguageKeyword { Id = 129, Key = "login.username", Description = "Username label" },
+            new Domain.Entities.LanguageKeyword { Id = 130, Key = "login.password", Description = "Password label" },
+            new Domain.Entities.LanguageKeyword { Id = 131, Key = "login.username_placeholder", Description = "Username placeholder text" },
+            new Domain.Entities.LanguageKeyword { Id = 132, Key = "login.password_placeholder", Description = "Password placeholder text" },
+            new Domain.Entities.LanguageKeyword { Id = 133, Key = "login.remember_me", Description = "Remember me checkbox" },
+            new Domain.Entities.LanguageKeyword { Id = 134, Key = "login.forgot_password", Description = "Forgot password link" },
+            new Domain.Entities.LanguageKeyword { Id = 135, Key = "login.button", Description = "Login button text" },
+            new Domain.Entities.LanguageKeyword { Id = 136, Key = "login.error_username_required", Description = "Username required error message" },
+            new Domain.Entities.LanguageKeyword { Id = 137, Key = "login.error_password_required", Description = "Password required error message" },
+            new Domain.Entities.LanguageKeyword { Id = 138, Key = "login.error_invalid_credentials", Description = "Invalid credentials error message" },
+            new Domain.Entities.LanguageKeyword { Id = 139, Key = "login.password_reset_success", Description = "Password reset success message" },
+
+            // Forgot Password Screen
+            new Domain.Entities.LanguageKeyword { Id = 140, Key = "forgot_password.title", Description = "Reset password screen title" },
+            new Domain.Entities.LanguageKeyword { Id = 141, Key = "forgot_password.subtitle", Description = "Reset password screen subtitle" },
+            new Domain.Entities.LanguageKeyword { Id = 142, Key = "forgot_password.license_file", Description = "License file label" },
+            new Domain.Entities.LanguageKeyword { Id = 143, Key = "forgot_password.new_password", Description = "New password label" },
+            new Domain.Entities.LanguageKeyword { Id = 144, Key = "forgot_password.confirm_password", Description = "Confirm password label" },
+            new Domain.Entities.LanguageKeyword { Id = 145, Key = "forgot_password.back_to_login", Description = "Back to login button" },
+            new Domain.Entities.LanguageKeyword { Id = 146, Key = "forgot_password.reset_button", Description = "Reset password button" },
+            new Domain.Entities.LanguageKeyword { Id = 147, Key = "forgot_password.browse_button", Description = "Browse license file button" },
+            new Domain.Entities.LanguageKeyword { Id = 148, Key = "forgot_password.success_message", Description = "Password reset success message" },
+            new Domain.Entities.LanguageKeyword { Id = 149, Key = "forgot_password.error_license_required", Description = "License file required error" },
+            new Domain.Entities.LanguageKeyword { Id = 150, Key = "forgot_password.error_password_required", Description = "New password required error" },
+            new Domain.Entities.LanguageKeyword { Id = 151, Key = "forgot_password.error_confirm_password_required", Description = "Confirm password required error" },
+            new Domain.Entities.LanguageKeyword { Id = 152, Key = "forgot_password.error_passwords_mismatch", Description = "Passwords mismatch error" },
+            new Domain.Entities.LanguageKeyword { Id = 153, Key = "forgot_password.error_password_too_short", Description = "Password too short error" },
+            new Domain.Entities.LanguageKeyword { Id = 154, Key = "forgot_password.error_invalid_license", Description = "Invalid license format error" },
+            new Domain.Entities.LanguageKeyword { Id = 155, Key = "forgot_password.error_license_machine_mismatch", Description = "License machine mismatch error" },
+            new Domain.Entities.LanguageKeyword { Id = 156, Key = "forgot_password.error_license_expired", Description = "License expired error" },
+            new Domain.Entities.LanguageKeyword { Id = 157, Key = "forgot_password.error_license_sales_key_mismatch", Description = "License sales key mismatch error" },
+            new Domain.Entities.LanguageKeyword { Id = 158, Key = "forgot_password.verify_license_button", Description = "Verify license button text" },
+            new Domain.Entities.LanguageKeyword { Id = 159, Key = "forgot_password.license_verified_message", Description = "License verified success message" },
+            new Domain.Entities.LanguageKeyword { Id = 160, Key = "forgot_password.error_license_not_verified", Description = "License not verified error message" }
         );
 
         // Seed Users (required by many entities with CreatedBy/UpdatedBy)
@@ -2069,7 +2505,83 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             new Domain.Entities.LabelTranslation { Id = 131, LanguageId = 2, TranslationKey = "settings.client_settings", Value = "کلائنٹ کی ترتیبات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
             new Domain.Entities.LabelTranslation { Id = 132, LanguageId = 2, TranslationKey = "settings.global_settings", Value = "عالمی ترتیبات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
             new Domain.Entities.LabelTranslation { Id = 133, LanguageId = 2, TranslationKey = "settings.others", Value = "دیگر", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
-            new Domain.Entities.LabelTranslation { Id = 134, LanguageId = 2, TranslationKey = "settings.services", Value = "خدمات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate }
+            new Domain.Entities.LabelTranslation { Id = 134, LanguageId = 2, TranslationKey = "settings.services", Value = "خدمات", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+
+            // Login Screen - English
+            new Domain.Entities.LabelTranslation { Id = 200, LanguageId = 1, TranslationKey = "login.title", Value = "Login!", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 201, LanguageId = 1, TranslationKey = "login.subtitle", Value = "Please enter your credentials below to continue", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 202, LanguageId = 1, TranslationKey = "login.username", Value = "Username", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 203, LanguageId = 1, TranslationKey = "login.password", Value = "Password", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 204, LanguageId = 1, TranslationKey = "login.username_placeholder", Value = "Enter your username", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 205, LanguageId = 1, TranslationKey = "login.password_placeholder", Value = "Enter your password", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 206, LanguageId = 1, TranslationKey = "login.remember_me", Value = "Remember me", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 207, LanguageId = 1, TranslationKey = "login.forgot_password", Value = "Forgot Password?", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 208, LanguageId = 1, TranslationKey = "login.button", Value = "Login", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 209, LanguageId = 1, TranslationKey = "login.error_username_required", Value = "Please enter your username or email.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 210, LanguageId = 1, TranslationKey = "login.error_password_required", Value = "Please enter your password.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 211, LanguageId = 1, TranslationKey = "login.error_invalid_credentials", Value = "Invalid username or password.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 224, LanguageId = 1, TranslationKey = "login.password_reset_success", Value = "Password has been reset successfully! Please login with your new password.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+
+            // Login Screen - Arabic
+            new Domain.Entities.LabelTranslation { Id = 212, LanguageId = 2, TranslationKey = "login.title", Value = "تسجيل الدخول!", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 213, LanguageId = 2, TranslationKey = "login.subtitle", Value = "الرجاء إدخال بيانات الاعتماد أدناه للمتابعة", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 214, LanguageId = 2, TranslationKey = "login.username", Value = "اسم المستخدم", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 215, LanguageId = 2, TranslationKey = "login.password", Value = "كلمة المرور", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 216, LanguageId = 2, TranslationKey = "login.username_placeholder", Value = "أدخل اسم المستخدم", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 217, LanguageId = 2, TranslationKey = "login.password_placeholder", Value = "أدخل كلمة المرور", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 218, LanguageId = 2, TranslationKey = "login.remember_me", Value = "تذكرني", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 219, LanguageId = 2, TranslationKey = "login.forgot_password", Value = "نسيت كلمة المرور؟", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 220, LanguageId = 2, TranslationKey = "login.button", Value = "تسجيل الدخول", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 221, LanguageId = 2, TranslationKey = "login.error_username_required", Value = "الرجاء إدخال اسم المستخدم أو البريد الإلكتروني.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 222, LanguageId = 2, TranslationKey = "login.error_password_required", Value = "الرجاء إدخال كلمة المرور.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 223, LanguageId = 2, TranslationKey = "login.error_invalid_credentials", Value = "اسم المستخدم أو كلمة المرور غير صحيحة.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 225, LanguageId = 2, TranslationKey = "login.password_reset_success", Value = "تم إعادة تعيين كلمة المرور بنجاح! يرجى تسجيل الدخول بكلمة المرور الجديدة.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+
+            // Forgot Password Screen - English
+            new Domain.Entities.LabelTranslation { Id = 226, LanguageId = 1, TranslationKey = "forgot_password.title", Value = "Reset Password", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 227, LanguageId = 1, TranslationKey = "forgot_password.subtitle", Value = "Please provide your license file and set a new password", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 228, LanguageId = 1, TranslationKey = "forgot_password.license_file", Value = "License File", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 229, LanguageId = 1, TranslationKey = "forgot_password.new_password", Value = "New Password", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 230, LanguageId = 1, TranslationKey = "forgot_password.confirm_password", Value = "Confirm Password", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 231, LanguageId = 1, TranslationKey = "forgot_password.back_to_login", Value = "← Back to Login", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 232, LanguageId = 1, TranslationKey = "forgot_password.reset_button", Value = "Reset Password", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 233, LanguageId = 1, TranslationKey = "forgot_password.browse_button", Value = "Browse...", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 234, LanguageId = 1, TranslationKey = "forgot_password.success_message", Value = "Password has been reset successfully!", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 235, LanguageId = 1, TranslationKey = "forgot_password.error_license_required", Value = "Please select a license file.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 236, LanguageId = 1, TranslationKey = "forgot_password.error_password_required", Value = "Please enter a new password.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 237, LanguageId = 1, TranslationKey = "forgot_password.error_confirm_password_required", Value = "Please confirm your new password.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 238, LanguageId = 1, TranslationKey = "forgot_password.error_passwords_mismatch", Value = "Passwords do not match.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 239, LanguageId = 1, TranslationKey = "forgot_password.error_password_too_short", Value = "Password must be at least 6 characters long.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 240, LanguageId = 1, TranslationKey = "forgot_password.error_invalid_license", Value = "Invalid license file format.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 241, LanguageId = 1, TranslationKey = "forgot_password.error_license_machine_mismatch", Value = "License is not valid for this machine.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 242, LanguageId = 1, TranslationKey = "forgot_password.error_license_expired", Value = "License has expired. Please contact support.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 243, LanguageId = 1, TranslationKey = "forgot_password.error_license_sales_key_mismatch", Value = "License does not match the sales key for this machine.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 262, LanguageId = 1, TranslationKey = "forgot_password.verify_license_button", Value = "Verify License", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 263, LanguageId = 1, TranslationKey = "forgot_password.license_verified_message", Value = "License verified successfully. You can now set a new password.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 264, LanguageId = 1, TranslationKey = "forgot_password.error_license_not_verified", Value = "Please verify your license first.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+
+            // Forgot Password Screen - Arabic
+            new Domain.Entities.LabelTranslation { Id = 244, LanguageId = 2, TranslationKey = "forgot_password.title", Value = "إعادة تعيين كلمة المرور", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 245, LanguageId = 2, TranslationKey = "forgot_password.subtitle", Value = "يرجى تقديم ملف الترخيص الخاص بك وتعيين كلمة مرور جديدة", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 246, LanguageId = 2, TranslationKey = "forgot_password.license_file", Value = "ملف الترخيص", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 247, LanguageId = 2, TranslationKey = "forgot_password.new_password", Value = "كلمة المرور الجديدة", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 248, LanguageId = 2, TranslationKey = "forgot_password.confirm_password", Value = "تأكيد كلمة المرور", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 249, LanguageId = 2, TranslationKey = "forgot_password.back_to_login", Value = "← العودة لتسجيل الدخول", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 250, LanguageId = 2, TranslationKey = "forgot_password.reset_button", Value = "إعادة تعيين كلمة المرور", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 251, LanguageId = 2, TranslationKey = "forgot_password.browse_button", Value = "تصفح...", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 252, LanguageId = 2, TranslationKey = "forgot_password.success_message", Value = "تم إعادة تعيين كلمة المرور بنجاح!", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 253, LanguageId = 2, TranslationKey = "forgot_password.error_license_required", Value = "يرجى تحديد ملف ترخيص.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 254, LanguageId = 2, TranslationKey = "forgot_password.error_password_required", Value = "يرجى إدخال كلمة مرور جديدة.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 255, LanguageId = 2, TranslationKey = "forgot_password.error_confirm_password_required", Value = "يرجى تأكيد كلمة المرور الجديدة.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 256, LanguageId = 2, TranslationKey = "forgot_password.error_passwords_mismatch", Value = "كلمات المرور غير متطابقة.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 257, LanguageId = 2, TranslationKey = "forgot_password.error_password_too_short", Value = "يجب أن تكون كلمة المرور 6 أحرف على الأقل.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 258, LanguageId = 2, TranslationKey = "forgot_password.error_invalid_license", Value = "تنسيق ملف ترخيص غير صالح.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 259, LanguageId = 2, TranslationKey = "forgot_password.error_license_machine_mismatch", Value = "الترخيص غير صالح لهذا الجهاز.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 260, LanguageId = 2, TranslationKey = "forgot_password.error_license_expired", Value = "انتهت صلاحية الترخيص. يرجى الاتصال بالدعم.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 261, LanguageId = 2, TranslationKey = "forgot_password.error_license_sales_key_mismatch", Value = "الترخيص لا يتطابق مع مفتاح المبيعات لهذا الجهاز.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 265, LanguageId = 2, TranslationKey = "forgot_password.verify_license_button", Value = "تحقق من الترخيص", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 266, LanguageId = 2, TranslationKey = "forgot_password.license_verified_message", Value = "تم التحقق من الترخيص بنجاح. يمكنك الآن تعيين كلمة مرور جديدة.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate },
+            new Domain.Entities.LabelTranslation { Id = 267, LanguageId = 2, TranslationKey = "forgot_password.error_license_not_verified", Value = "يرجى التحقق من الترخيص الخاص بك أولاً.", Status = "Active", CreatedBy = "System", CreatedAt = baseDate }
         );
 
         // Seed Brands
@@ -2113,6 +2625,228 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
                 LogoUrl = "/images/brands/generic-logo.png",
                 CreatedAt = baseDate, 
                 UpdatedAt = baseDate 
+            }
+        );
+
+        // Seed Currencies
+        modelBuilder.Entity<Domain.Entities.Currency>().HasData(
+            new Domain.Entities.Currency 
+            { 
+                Id = 1, 
+                CurrencyName = "US Dollar", 
+                CurrencyCode = "USD", 
+                Symbol = "$",
+                ExchangeRate = 1.0000m,
+                IsDefault = true,
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Currency 
+            { 
+                Id = 2, 
+                CurrencyName = "Euro", 
+                CurrencyCode = "EUR", 
+                Symbol = "€",
+                ExchangeRate = 0.92m,
+                IsDefault = false,
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Currency 
+            { 
+                Id = 3, 
+                CurrencyName = "British Pound", 
+                CurrencyCode = "GBP", 
+                Symbol = "£",
+                ExchangeRate = 0.79m,
+                IsDefault = false,
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Currency 
+            { 
+                Id = 4, 
+                CurrencyName = "UAE Dirham", 
+                CurrencyCode = "AED", 
+                Symbol = "د.إ",
+                ExchangeRate = 3.67m,
+                IsDefault = false,
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Currency 
+            { 
+                Id = 5, 
+                CurrencyName = "Saudi Riyal", 
+                CurrencyCode = "SAR", 
+                Symbol = "﷼",
+                ExchangeRate = 3.75m,
+                IsDefault = false,
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            },
+            new Domain.Entities.Currency 
+            { 
+                Id = 6, 
+                CurrencyName = "Indian Rupee", 
+                CurrencyCode = "INR", 
+                Symbol = "₹",
+                ExchangeRate = 83.12m,
+                IsDefault = false,
+                CreatedAt = baseDate, 
+                UpdatedAt = baseDate 
+            }
+        );
+
+        // Seed Restaurant Tables
+        modelBuilder.Entity<Domain.Entities.RestaurantTable>().HasData(
+            // Ground Floor Tables
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 1, 
+                TableNumber = "T-01", 
+                Capacity = 2, 
+                Location = "Ground Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 2, 
+                TableNumber = "T-02", 
+                Capacity = 4, 
+                Location = "Ground Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 3, 
+                TableNumber = "T-03", 
+                Capacity = 4, 
+                Location = "Ground Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 4, 
+                TableNumber = "T-04", 
+                Capacity = 6, 
+                Location = "Ground Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 5, 
+                TableNumber = "T-05", 
+                Capacity = 2, 
+                Location = "Ground Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 6, 
+                TableNumber = "T-06", 
+                Capacity = 8, 
+                Location = "Ground Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            // First Floor Tables
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 7, 
+                TableNumber = "T-11", 
+                Capacity = 2, 
+                Location = "First Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 8, 
+                TableNumber = "T-12", 
+                Capacity = 4, 
+                Location = "First Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 9, 
+                TableNumber = "T-13", 
+                Capacity = 4, 
+                Location = "First Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 10, 
+                TableNumber = "T-14", 
+                Capacity = 6, 
+                Location = "First Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 11, 
+                TableNumber = "T-15", 
+                Capacity = 2, 
+                Location = "First Floor", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            // Outdoor Patio Tables
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 12, 
+                TableNumber = "T-P1", 
+                Capacity = 4, 
+                Location = "Outdoor Patio", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 13, 
+                TableNumber = "T-P2", 
+                Capacity = 4, 
+                Location = "Outdoor Patio", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 14, 
+                TableNumber = "T-P3", 
+                Capacity = 6, 
+                Location = "Outdoor Patio", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            // VIP Room Tables
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 15, 
+                TableNumber = "T-VIP1", 
+                Capacity = 10, 
+                Location = "VIP Room", 
+                Status = "available", 
+                CreatedAt = baseDate 
+            },
+            new Domain.Entities.RestaurantTable 
+            { 
+                Id = 16, 
+                TableNumber = "T-VIP2", 
+                Capacity = 12, 
+                Location = "VIP Room", 
+                Status = "available", 
+                CreatedAt = baseDate 
             }
         );
 
@@ -2385,6 +3119,619 @@ public class ChronoPosDbContext : DbContext, IChronoPosDbContext
             entity.HasIndex(e => e.ReservationDate);
             entity.HasIndex(e => e.IsDeleted);
             entity.HasIndex(e => new { e.TableId, e.ReservationDate });
+        });
+
+        // Configure Order entity
+        modelBuilder.Entity<Domain.Entities.Order>(entity =>
+        {
+            entity.ToTable("orders");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.TableId).HasColumnName("table_id");
+            entity.Property(e => e.CustomerId).HasColumnName("customer_id");
+            entity.Property(e => e.ReservationId).HasColumnName("reservation_id");
+            entity.Property(e => e.TotalAmount).HasPrecision(10, 2).HasDefaultValue(0.00m).HasColumnName("total_amount");
+            entity.Property(e => e.Discount).HasPrecision(10, 2).HasDefaultValue(0.00m).HasColumnName("discount");
+            entity.Property(e => e.PaymentTypeId).HasColumnName("payment_type_id");
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("pending").HasColumnName("status");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("updated_at");
+
+            // Ignore computed property
+            entity.Ignore(e => e.FinalAmount);
+
+            // Foreign key relationship with RestaurantTable (nullable)
+            entity.HasOne(o => o.Table)
+                  .WithMany()
+                  .HasForeignKey(o => o.TableId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Foreign key relationship with Customer (nullable)
+            entity.HasOne(o => o.Customer)
+                  .WithMany()
+                  .HasForeignKey(o => o.CustomerId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Foreign key relationship with Reservation (nullable)
+            entity.HasOne(o => o.Reservation)
+                  .WithMany()
+                  .HasForeignKey(o => o.ReservationId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Foreign key relationship with PaymentType (nullable)
+            entity.HasOne(o => o.PaymentType)
+                  .WithMany()
+                  .HasForeignKey(o => o.PaymentTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.TableId);
+            entity.HasIndex(e => e.CustomerId);
+            entity.HasIndex(e => e.ReservationId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CreatedAt);
+        });
+
+        // Configure OrderItem entity
+        modelBuilder.Entity<Domain.Entities.OrderItem>(entity =>
+        {
+            entity.ToTable("order_items");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.OrderId).IsRequired().HasColumnName("order_id");
+            entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.MenuItemId).HasColumnName("menu_item_id");
+            entity.Property(e => e.Quantity).IsRequired().HasColumnName("quantity");
+            entity.Property(e => e.Price).HasPrecision(10, 2).IsRequired().HasColumnName("price");
+            entity.Property(e => e.Notes).HasMaxLength(255).HasColumnName("notes");
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("pending").HasColumnName("status");
+
+            // Ignore computed property
+            entity.Ignore(e => e.LineTotal);
+
+            // Foreign key relationship with Order
+            entity.HasOne(oi => oi.Order)
+                  .WithMany(o => o.OrderItems)
+                  .HasForeignKey(oi => oi.OrderId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Foreign key relationship with Product (nullable)
+            entity.HasOne(oi => oi.Product)
+                  .WithMany()
+                  .HasForeignKey(oi => oi.ProductId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Note: MenuItem relationship will be added when MenuItem entity is created
+            // entity.HasOne(oi => oi.MenuItem)
+            //       .WithMany()
+            //       .HasForeignKey(oi => oi.MenuItemId)
+            //       .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.OrderId);
+            entity.HasIndex(e => e.ProductId);
+            entity.HasIndex(e => e.MenuItemId);
+            entity.HasIndex(e => e.Status);
+        });
+
+        // Configure ProductModifier entity
+        modelBuilder.Entity<Domain.Entities.ProductModifier>(entity =>
+        {
+            entity.ToTable("product_modifiers");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100).HasColumnName("name");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Price).HasPrecision(10, 2).HasDefaultValue(0.00m).HasColumnName("price");
+            entity.Property(e => e.Cost).HasPrecision(10, 2).HasDefaultValue(0.00m).HasColumnName("cost");
+            entity.Property(e => e.Sku).HasMaxLength(50).HasColumnName("sku");
+            entity.Property(e => e.Barcode).HasMaxLength(50).HasColumnName("barcode");
+            entity.Property(e => e.TaxTypeId).HasColumnName("tax_type_id");
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Active").HasColumnName("status");
+            entity.Property(e => e.CreatedBy).IsRequired().HasColumnName("created_by");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("updated_at");
+
+            // Foreign key relationship with TaxType (nullable)
+            entity.HasOne(m => m.TaxType)
+                  .WithMany()
+                  .HasForeignKey(m => m.TaxTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Foreign key relationship with User (creator)
+            entity.HasOne(m => m.Creator)
+                  .WithMany()
+                  .HasForeignKey(m => m.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.Sku).IsUnique();
+            entity.HasIndex(e => e.Barcode).IsUnique();
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.TaxTypeId);
+        });
+
+        // Configure ProductModifierGroup entity
+        modelBuilder.Entity<Domain.Entities.ProductModifierGroup>(entity =>
+        {
+            entity.ToTable("product_modifier_groups");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100).HasColumnName("name");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.SelectionType).IsRequired().HasMaxLength(20).HasDefaultValue("Multiple").HasColumnName("selection_type");
+            entity.Property(e => e.Required).HasDefaultValue(false).HasColumnName("required");
+            entity.Property(e => e.MinSelections).HasDefaultValue(0).HasColumnName("min_selections");
+            entity.Property(e => e.MaxSelections).HasColumnName("max_selections");
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Active").HasColumnName("status");
+            entity.Property(e => e.CreatedBy).IsRequired().HasColumnName("created_by");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("updated_at");
+
+            // Foreign key relationship with User (creator)
+            entity.HasOne(g => g.Creator)
+                  .WithMany()
+                  .HasForeignKey(g => g.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.SelectionType);
+            entity.HasIndex(e => e.Required);
+            entity.HasIndex(e => e.Status);
+        });
+
+        // Configure ProductModifierGroupItem entity
+        modelBuilder.Entity<Domain.Entities.ProductModifierGroupItem>(entity =>
+        {
+            entity.ToTable("product_modifier_group_items");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.GroupId).IsRequired().HasColumnName("group_id");
+            entity.Property(e => e.ModifierId).IsRequired().HasColumnName("modifier_id");
+            entity.Property(e => e.PriceAdjustment).HasPrecision(10, 2).HasDefaultValue(0.00m).HasColumnName("price_adjustment");
+            entity.Property(e => e.SortOrder).HasDefaultValue(0).HasColumnName("sort_order");
+            entity.Property(e => e.DefaultSelection).HasDefaultValue(false).HasColumnName("default_selection");
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Active").HasColumnName("status");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+
+            // Foreign key relationship with ProductModifierGroup
+            entity.HasOne(i => i.Group)
+                  .WithMany(g => g.GroupItems)
+                  .HasForeignKey(i => i.GroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Foreign key relationship with ProductModifier
+            entity.HasOne(i => i.Modifier)
+                  .WithMany(m => m.ModifierGroupItems)
+                  .HasForeignKey(i => i.ModifierId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.GroupId);
+            entity.HasIndex(e => e.ModifierId);
+            entity.HasIndex(e => e.SortOrder);
+            entity.HasIndex(e => e.Status);
+            
+            // Composite unique index to prevent duplicate modifier in same group
+            entity.HasIndex(e => new { e.GroupId, e.ModifierId }).IsUnique();
+        });
+
+        // Configure ProductModifierLink entity
+        modelBuilder.Entity<Domain.Entities.ProductModifierLink>(entity =>
+        {
+            entity.ToTable("product_modifier_links");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ProductId).IsRequired().HasColumnName("product_id");
+            entity.Property(e => e.ModifierGroupId).IsRequired().HasColumnName("modifier_group_id");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+
+            // Foreign key relationship with Product
+            entity.HasOne(l => l.Product)
+                  .WithMany()
+                  .HasForeignKey(l => l.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Foreign key relationship with ProductModifierGroup
+            entity.HasOne(l => l.ModifierGroup)
+                  .WithMany()
+                  .HasForeignKey(l => l.ModifierGroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.ProductId);
+            entity.HasIndex(e => e.ModifierGroupId);
+            
+            // Composite unique index to prevent duplicate links
+            entity.HasIndex(e => new { e.ProductId, e.ModifierGroupId }).IsUnique();
+        });
+
+        // Configure Shift entity
+        modelBuilder.Entity<Domain.Entities.Shift>(entity =>
+        {
+            entity.HasKey(e => e.ShiftId);
+            entity.Property(e => e.UserId).IsRequired(false); // Made optional - no user dependency
+            entity.Property(e => e.StartTime).IsRequired();
+            entity.Property(e => e.OpeningCash).HasPrecision(12, 2);
+            entity.Property(e => e.ClosingCash).HasPrecision(12, 2);
+            entity.Property(e => e.ExpectedCash).HasPrecision(12, 2);
+            entity.Property(e => e.CashDifference).HasPrecision(12, 2);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Open");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships - User is optional
+            entity.HasOne(s => s.User)
+                  .WithMany()
+                  .HasForeignKey(s => s.UserId)
+                  .OnDelete(DeleteBehavior.Restrict)
+                  .IsRequired(false);
+
+            entity.HasOne(s => s.ShopLocation)
+                  .WithMany()
+                  .HasForeignKey(s => s.ShopLocationId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.ShopLocationId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.StartTime);
+        });
+
+        // Configure ServiceCharge entity
+        modelBuilder.Entity<Domain.Entities.ServiceCharge>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.NameArabic).HasMaxLength(100);
+            entity.Property(e => e.IsPercentage).IsRequired().HasDefaultValue(true);
+            entity.Property(e => e.Value).IsRequired().HasPrecision(10, 4);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationship with TaxType
+            entity.HasOne(sc => sc.TaxType)
+                  .WithMany()
+                  .HasForeignKey(sc => sc.TaxTypeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            entity.HasIndex(e => e.Name).IsUnique();
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.AutoApply);
+        });
+
+        // Configure Transaction entity
+        modelBuilder.Entity<Domain.Entities.Transaction>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ShiftId).IsRequired();
+            entity.Property(e => e.UserId).IsRequired();
+            entity.Property(e => e.SellingTime).IsRequired();
+            entity.Property(e => e.TotalAmount).HasPrecision(12, 2).IsRequired();
+            entity.Property(e => e.TotalVat).HasPrecision(12, 2).IsRequired();
+            entity.Property(e => e.TotalDiscount).HasPrecision(12, 2).IsRequired();
+            entity.Property(e => e.TotalAppliedVat).HasPrecision(12, 2);
+            entity.Property(e => e.TotalAppliedDiscountValue).HasPrecision(12, 2);
+            entity.Property(e => e.AmountPaidCash).HasPrecision(12, 2);
+            entity.Property(e => e.AmountCreditRemaining).HasPrecision(12, 2);
+            entity.Property(e => e.DiscountValue).HasPrecision(12, 2);
+            entity.Property(e => e.DiscountMaxValue).HasPrecision(12, 2);
+            entity.Property(e => e.Vat).HasPrecision(12, 2);
+            entity.Property(e => e.InvoiceNumber).HasMaxLength(50);
+            // Status values: draft, billed, settled, hold, cancelled, pending_payment, partial_payment, refunded, exchanged
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("draft");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(t => t.Shift)
+                  .WithMany(s => s.Transactions)
+                  .HasForeignKey(t => t.ShiftId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(t => t.Customer)
+                  .WithMany()
+                  .HasForeignKey(t => t.CustomerId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(t => t.User)
+                  .WithMany()
+                  .HasForeignKey(t => t.UserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(t => t.ShopLocation)
+                  .WithMany()
+                  .HasForeignKey(t => t.ShopLocationId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(t => t.Table)
+                  .WithMany()
+                  .HasForeignKey(t => t.TableId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(t => t.Reservation)
+                  .WithMany()
+                  .HasForeignKey(t => t.ReservationId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(t => t.Creator)
+                  .WithMany()
+                  .HasForeignKey(t => t.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.ShiftId);
+            entity.HasIndex(e => e.CustomerId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.InvoiceNumber).IsUnique();
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.SellingTime);
+            entity.HasIndex(e => e.TableId);
+        });
+
+        // Configure TransactionProduct entity
+        modelBuilder.Entity<Domain.Entities.TransactionProduct>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.TransactionId).IsRequired();
+            entity.Property(e => e.ProductId).IsRequired();
+            entity.Property(e => e.BuyerCost).HasPrecision(12, 2).IsRequired();
+            entity.Property(e => e.SellingPrice).HasPrecision(12, 2).IsRequired();
+            entity.Property(e => e.DiscountValue).HasPrecision(12, 2);
+            entity.Property(e => e.DiscountMaxValue).HasPrecision(12, 2);
+            entity.Property(e => e.Vat).HasPrecision(12, 2);
+            entity.Property(e => e.Quantity).HasPrecision(10, 3).IsRequired();
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(tp => tp.Transaction)
+                  .WithMany(t => t.TransactionProducts)
+                  .HasForeignKey(tp => tp.TransactionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(tp => tp.Product)
+                  .WithMany()
+                  .HasForeignKey(tp => tp.ProductId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(tp => tp.ProductUnit)
+                  .WithMany()
+                  .HasForeignKey(tp => tp.ProductUnitId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            entity.HasIndex(e => e.TransactionId);
+            entity.HasIndex(e => e.ProductId);
+            entity.HasIndex(e => e.Status);
+        });
+
+        // Configure TransactionModifier entity
+        modelBuilder.Entity<Domain.Entities.TransactionModifier>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.TransactionProductId).IsRequired();
+            entity.Property(e => e.ProductModifierId).IsRequired();
+            entity.Property(e => e.ExtraPrice).HasPrecision(10, 2).HasDefaultValue(0);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(tm => tm.TransactionProduct)
+                  .WithMany(tp => tp.TransactionModifiers)
+                  .HasForeignKey(tm => tm.TransactionProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(tm => tm.ProductModifier)
+                  .WithMany()
+                  .HasForeignKey(tm => tm.ProductModifierId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.TransactionProductId);
+            entity.HasIndex(e => e.ProductModifierId);
+        });
+
+        // Configure TransactionServiceCharge entity
+        modelBuilder.Entity<Domain.Entities.TransactionServiceCharge>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.TransactionId).IsRequired();
+            entity.Property(e => e.ServiceChargeOptionId).IsRequired(false); // Nullable to support manual/custom service charges
+            entity.Property(e => e.TotalAmount).HasPrecision(12, 2);
+            entity.Property(e => e.TotalVat).HasPrecision(12, 2);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(tsc => tsc.Transaction)
+                  .WithMany(t => t.TransactionServiceCharges)
+                  .HasForeignKey(tsc => tsc.TransactionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(tsc => tsc.ServiceChargeOption)
+                  .WithMany()
+                  .HasForeignKey(tsc => tsc.ServiceChargeOptionId)
+                  .OnDelete(DeleteBehavior.Restrict)
+                  .IsRequired(false); // Allow null ServiceChargeOptionId for manual charges
+
+            // Indexes
+            entity.HasIndex(e => e.TransactionId);
+            entity.HasIndex(e => e.ServiceChargeOptionId);
+        });
+
+        // Configure RefundTransaction entity
+        modelBuilder.Entity<Domain.Entities.RefundTransaction>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.SellingTransactionId).IsRequired();
+            entity.Property(e => e.TotalAmount).HasPrecision(12, 2);
+            entity.Property(e => e.TotalVat).HasPrecision(12, 2);
+            entity.Property(e => e.RefundTime).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(rt => rt.Customer)
+                  .WithMany()
+                  .HasForeignKey(rt => rt.CustomerId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(rt => rt.SellingTransaction)
+                  .WithMany(t => t.RefundTransactions)
+                  .HasForeignKey(rt => rt.SellingTransactionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(rt => rt.Shift)
+                  .WithMany(s => s.RefundTransactions)
+                  .HasForeignKey(rt => rt.ShiftId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(rt => rt.User)
+                  .WithMany()
+                  .HasForeignKey(rt => rt.UserId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            entity.HasIndex(e => e.SellingTransactionId);
+            entity.HasIndex(e => e.CustomerId);
+            entity.HasIndex(e => e.ShiftId);
+            entity.HasIndex(e => e.RefundTime);
+        });
+
+        // Configure RefundTransactionProduct entity
+        modelBuilder.Entity<Domain.Entities.RefundTransactionProduct>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.RefundTransactionId).IsRequired();
+            entity.Property(e => e.TransactionProductId).IsRequired();
+            entity.Property(e => e.TotalQuantityReturned).HasPrecision(10, 3);
+            entity.Property(e => e.TotalVat).HasPrecision(12, 2);
+            entity.Property(e => e.TotalAmount).HasPrecision(12, 2);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(rtp => rtp.RefundTransaction)
+                  .WithMany(rt => rt.RefundTransactionProducts)
+                  .HasForeignKey(rtp => rtp.RefundTransactionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(rtp => rtp.TransactionProduct)
+                  .WithMany(tp => tp.RefundTransactionProducts)
+                  .HasForeignKey(rtp => rtp.TransactionProductId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.RefundTransactionId);
+            entity.HasIndex(e => e.TransactionProductId);
+        });
+
+        // Configure ExchangeTransaction entity
+        modelBuilder.Entity<Domain.Entities.ExchangeTransaction>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.SellingTransactionId).IsRequired();
+            entity.Property(e => e.TotalExchangedAmount).HasPrecision(12, 2);
+            entity.Property(e => e.TotalExchangedVat).HasPrecision(12, 2);
+            entity.Property(e => e.ProductExchangedQuantity).HasPrecision(10, 3);
+            entity.Property(e => e.ExchangeTime).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(et => et.Customer)
+                  .WithMany()
+                  .HasForeignKey(et => et.CustomerId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(et => et.SellingTransaction)
+                  .WithMany(t => t.ExchangeTransactions)
+                  .HasForeignKey(et => et.SellingTransactionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(et => et.Shift)
+                  .WithMany(s => s.ExchangeTransactions)
+                  .HasForeignKey(et => et.ShiftId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            entity.HasIndex(e => e.SellingTransactionId);
+            entity.HasIndex(e => e.CustomerId);
+            entity.HasIndex(e => e.ShiftId);
+            entity.HasIndex(e => e.ExchangeTime);
+        });
+
+        // Configure ExchangeTransactionProduct entity
+        modelBuilder.Entity<Domain.Entities.ExchangeTransactionProduct>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ExchangeTransactionId).IsRequired();
+            entity.Property(e => e.ReturnedQuantity).HasPrecision(10, 3);
+            entity.Property(e => e.NewQuantity).HasPrecision(10, 3);
+            entity.Property(e => e.PriceDifference).HasPrecision(12, 2);
+            entity.Property(e => e.OldProductAmount).HasPrecision(12, 2);
+            entity.Property(e => e.NewProductAmount).HasPrecision(12, 2);
+            entity.Property(e => e.VatDifference).HasPrecision(12, 2);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(etp => etp.ExchangeTransaction)
+                  .WithMany(et => et.ExchangeTransactionProducts)
+                  .HasForeignKey(etp => etp.ExchangeTransactionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(etp => etp.OriginalTransactionProduct)
+                  .WithMany(tp => tp.OriginalExchangeTransactionProducts)
+                  .HasForeignKey(etp => etp.OriginalTransactionProductId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(etp => etp.NewProduct)
+                  .WithMany()
+                  .HasForeignKey(etp => etp.NewProductId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            entity.HasIndex(e => e.ExchangeTransactionId);
+            entity.HasIndex(e => e.OriginalTransactionProductId);
+            entity.HasIndex(e => e.NewProductId);
+        });
+
+        // Configure StockLedger entity
+        modelBuilder.Entity<Domain.Entities.StockLedger>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ProductId).IsRequired();
+            entity.Property(e => e.UnitId).IsRequired(false); // Nullable - product-level adjustments have no unit
+            entity.Property(e => e.MovementType).IsRequired();
+            entity.Property(e => e.Qty).HasPrecision(10, 2).IsRequired();
+            entity.Property(e => e.Balance).HasPrecision(10, 2).IsRequired();
+            entity.Property(e => e.Location).HasMaxLength(200);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(sl => sl.Product)
+                  .WithMany()
+                  .HasForeignKey(sl => sl.ProductId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(sl => sl.Unit)
+                  .WithMany()
+                  .HasForeignKey(sl => sl.UnitId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.ProductId);
+            entity.HasIndex(e => new { e.ProductId, e.CreatedAt });
+            entity.HasIndex(e => e.MovementType);
+            entity.HasIndex(e => e.ReferenceType);
         });
     }
 }

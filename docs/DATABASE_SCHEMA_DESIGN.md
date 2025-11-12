@@ -4,8 +4,8 @@
 
 This document outlines the complete database schema for ChronoPos - a comprehensive Point of Sale system with multi-language support, multi-location capabilities, and advanced business features.
 
-**Database Engine**: MySQL/MariaDB
-**Total Tables**: 80+ tables
+**Database Engine**: MySQL/MariaDB  
+**Total Tables**: 80+ tables  
 **Architecture**: Multi-tenant, Multi-language, Enterprise-grade
 
 ---
@@ -23,8 +23,9 @@ This document outlines the complete database schema for ChronoPos - a comprehens
 ├─────────────────────────────────────────┤
 │           Database Schema               │ ← MySQL Database
 │  ┌─────────────────────────────────────┐ │
-│  │ Authentication & Security Module    │ │
+│  │ System & Administration Module      │ │
 │  │ Multi-language Support Module      │ │
+│  │ User Management & Security Module  │ │
 │  │ Company & Shop Management Module   │ │
 │  │ Product & Inventory Module         │ │
 │  │ Customer & Supplier Module         │ │
@@ -36,3639 +37,2659 @@ This document outlines the complete database schema for ChronoPos - a comprehens
 ```
 
 ---
--- This SQL script is not for use directly(this is the db design for this project i have created and exported as sql for database initializer) create the db just for reference consider it as db diagram using this sql initialize the databaseinitializer class
 
+## 📋 Database Schema Tables
 
+### 🔧 System & Administration
 
-
-CREATE TABLE `activity_logs` (
-  `log_id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `timestamp` datetime DEFAULT (current_timestamp),
-  `log_level` varchar(20),
-  `user_id` bigint,
-  `module` varchar(50),
-  `action` varchar(100),
-  `description` text,
-  `ip_address` varchar(45),
-  `device_info` varchar(255),
-  `status` varchar(20) DEFAULT 'SUCCESS',
-  `reference_id` bigint,
-  `old_values` json,
-  `new_values` json
+#### activity_logs
+Tracks all system activities for auditing and debugging purposes.
+```sql
+CREATE TABLE activity_logs (
+  log_id        bigint PRIMARY KEY AUTO_INCREMENT,
+  timestamp     datetime DEFAULT CURRENT_TIMESTAMP,
+  log_level     varchar(20),                          -- INFO, WARNING, ERROR, DEBUG
+  user_id       bigint,                               -- FK to users table
+  module        varchar(50),                          -- Transaction, Inventory, Login, etc.
+  action        varchar(100),                         -- Short action description
+  description   text,                                 -- Detailed log info
+  ip_address    varchar(45),                          -- IPv4 or IPv6
+  device_info   varchar(255),                         -- POS terminal, OS, browser
+  status        varchar(20) DEFAULT 'SUCCESS',        -- SUCCESS, FAILED
+  reference_id  bigint,                               -- Related record ID (e.g., invoice_id)
+  old_values    json,                                 -- Data before change
+  new_values    json                                  -- Data after change
 );
+```
 
-CREATE TABLE `language` (
-  `id` int PRIMARY KEY,
-  `language_name` varchar(255),
-  `language_code` varchar(255),
-  `is_rtl` boolean,
-  `status` varchar(255),
-  `created_by` varchar(255),
-  `created_at` timestamp,
-  `updated_by` varchar(255),
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` varchar(255)
+#### language
+Stores supported languages for multilingual support.
+```sql
+CREATE TABLE language (
+  id int PRIMARY KEY,
+  language_name varchar(255),
+  language_code varchar(255),
+  is_rtl boolean,
+  status varchar(255),
+  created_by varchar(255),
+  created_at timestamp,
+  updated_by varchar(255),
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by varchar(255)
 );
+```
 
-CREATE TABLE `language_keyword` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `key` varchar(100) UNIQUE,
-  `description` text
+#### language_keyword
+Contains translation keys for multilingual labels.
+```sql
+CREATE TABLE language_keyword (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  key varchar(100) UNIQUE,                            -- e.g., "home.title", "button.save"
+  description text                                    -- Optional: explain where/why it's used
 );
+```
 
-CREATE TABLE `label_translation` (
-  `id` int PRIMARY KEY,
-  `language_id` int UNIQUE,
-  `translation_key` varchar(255),
-  `value` varchar(255),
-  `status` varchar(255),
-  `created_by` varchar(255),
-  `created_at` timestamp,
-  `updated_by` varchar(255),
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` varchar(255)
+#### label_translation
+Stores translated text for multilingual support.
+```sql
+CREATE TABLE label_translation (
+  id int PRIMARY KEY,
+  language_id int UNIQUE,
+  translation_key varchar(255),
+  value varchar(255),
+  status varchar(255),
+  created_by varchar(255),
+  created_at timestamp,
+  updated_by varchar(255),
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by varchar(255)
 );
+```
 
-CREATE TABLE `industry_type` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(100) UNIQUE,
-  `description` text,
-  `status` bool,
-  `created_at` timestamp,
-  `updated_by` varchar(255),
-  `updated_at` timestamp,
-  `deleted_at` timestamp
+#### industry_type
+Defines different industry types for business categorization.
+```sql
+CREATE TABLE industry_type (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  name varchar(100) UNIQUE,                           -- Industry name (e.g., Retail)
+  description text,
+  status bool,
+  created_at timestamp,
+  updated_by varchar(255),
+  updated_at timestamp,
+  deleted_at timestamp
 );
+```
 
-CREATE TABLE `industry_type_access` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `industry_type_id` int UNIQUE,
-  `dashboard_access` boolean DEFAULT false,
-  `reports_access` boolean DEFAULT false,
-  `client_office_access` boolean DEFAULT false,
-  `transactions_access` boolean DEFAULT false,
-  `reservation_access` boolean DEFAULT false,
-  `notifications_access` boolean DEFAULT false,
-  `created_at` timestamp DEFAULT (now())
+#### industry_type_access
+Defines access permissions for different industry types.
+```sql
+CREATE TABLE industry_type_access (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  industry_type_id int UNIQUE,
+  dashboard_access boolean DEFAULT false,
+  reports_access boolean DEFAULT false,
+  client_office_access boolean DEFAULT false,
+  transactions_access boolean DEFAULT false,
+  reservation_access boolean DEFAULT false,
+  notifications_access boolean DEFAULT false,
+  created_at timestamp DEFAULT NOW()
 );
+```
 
-CREATE TABLE `owner` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(100),
-  `email` varchar(100) UNIQUE,
-  `password` varchar(255),
-  `created_at` timestamp DEFAULT (now())
+#### owner
+Stores owner information for the POS system.
+```sql
+CREATE TABLE owner (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  name varchar(100),
+  email varchar(100) UNIQUE,
+  password varchar(255),
+  created_at timestamp DEFAULT NOW()
 );
+```
 
-CREATE TABLE `plan` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(100),
-  `description` text,
-  `price` decimal(10,2),
-  `billing_cycle` enum(monthly,yearly) DEFAULT 'monthly',
-  `max_users` int,
-  `max_outlets` int,
-  `max_products` int,
-  `max_invoices` int,
-  `features` text,
-  `is_active` boolean DEFAULT true,
-  `priority` int,
-  `created_at` timestamp DEFAULT (now())
+#### plan
+Defines subscription plans for the POS system.
+```sql
+CREATE TABLE plan (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  name varchar(100),                                  -- Basic, Standard, Pro
+  description text,
+  price decimal(10,2),
+  billing_cycle enum('monthly', 'yearly') DEFAULT 'monthly',
+  max_users int,
+  max_outlets int,
+  max_products int,
+  max_invoices int,
+  features text,                                      -- JSON or comma-separated
+  is_active boolean DEFAULT true,
+  priority int,
+  created_at timestamp DEFAULT NOW()
 );
+```
 
-CREATE TABLE `company_settings` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `company_id` int,
-  `currency_id` int NOT NULL,
-  `stock_value_id` int,
-  `primary_color` varchar(20),
-  `secondary_color` varchar(20),
-  `client_backup_frequency` varchar(50),
-  `atmacss_backup_frequency` varchar(50),
-  `refund_type` varchar(50),
-  `period_of_validity` int,
-  `allow_return_cash` boolean DEFAULT false,
-  `allow_credit_note` boolean DEFAULT false,
-  `allow_exchange_transaction` boolean DEFAULT false,
-  `has_sku_format` boolean DEFAULT false,
-  `has_invoice_format` boolean DEFAULT false,
-  `company_subscription_type` varchar(50),
-  `invoice_default_language_id` int,
-  `number_of_users` int DEFAULT 1,
-  `invoice_printers` int,
-  `barcode_scanners` int,
-  `normal_printer` int,
-  `barcode_printer` int,
-  `weighing_machine` int,
-  `selling_type` varchar(50),
-  `status` varchar(20),
-  `created_by` int,
-  `created_at` datetime,
-  `updated_by` int,
-  `updated_at` datetime,
-  `deleted_by` int,
-  `deleted_at` datetime
+#### company_settings
+Stores configuration settings for companies using the POS.
+```sql
+CREATE TABLE company_settings (
+  id                           int PRIMARY KEY AUTO_INCREMENT,
+  company_id                   int,   
+  currency_id                  int NOT NULL,          -- FK → currencies
+  stock_value_id               int,        
+  primary_color                varchar(20),           -- Hex or color code
+  secondary_color              varchar(20),           -- Hex or color code
+  client_backup_frequency      varchar(50),           -- e.g., Daily, Weekly
+  atmacss_backup_frequency     varchar(50),           -- Frequency for Atmacss backups
+  refund_type                  varchar(50),           -- e.g., Full, Partial
+  period_of_validity           int,                   -- Days for validity
+  allow_return_cash            boolean DEFAULT false,
+  allow_credit_note            boolean DEFAULT false,
+  allow_exchange_transaction   boolean DEFAULT false,
+  has_sku_format               boolean DEFAULT false,
+  has_invoice_format           boolean DEFAULT false,
+  company_subscription_type    varchar(50),           -- e.g., Trial, Premium
+  invoice_default_language_id  int,                   -- FK → languages
+  number_of_users              int DEFAULT 1,
+  invoice_printers             int,                   -- Count of printers
+  barcode_scanners             int,                   -- Count of scanners
+  normal_printer               int,                   -- Count of report printers
+  barcode_printer              int,                   -- Count of barcode printers
+  weighing_machine             int,                   -- Count of weighing machines
+  selling_type                 varchar(50),           -- e.g., Retail, Wholesale
+  status                       varchar(20),           -- Active/Inactive
+  created_by                   int,
+  created_at                   datetime,
+  updated_by                   int,
+  updated_at                   datetime,
+  deleted_by                   int,
+  deleted_at                   datetime
 );
+```
 
-CREATE TABLE `currencies` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `currency_code` varchar(3) UNIQUE NOT NULL,
-  `currency_name` varchar(100) NOT NULL,
-  `symbol` varchar(10) NOT NULL,
-  `decimal_places` int NOT NULL DEFAULT 2,
-  `country` varchar(100) NOT NULL,
-  `status` boolean NOT NULL DEFAULT true,
-  `created_at` datetime DEFAULT (now()),
-  `updated_at` datetime,
-  `deleted_at` datetime
+#### currencies
+Currency management table.
+```sql
+CREATE TABLE currencies (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  currency_name varchar(100) NOT NULL,
+  currency_code varchar(10) NOT NULL,
+  symbol varchar(10) NOT NULL,
+  image_path varchar(500),
+  exchange_rate decimal(18,4) DEFAULT 1.0000,
+  is_default boolean DEFAULT false,
+  created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
+```
 
-CREATE TABLE `countries` (
-  `country_id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `country_name` varchar(100) NOT NULL,
-  `isd` varchar(10),
-  `currency_code` varchar(3),
-  `currency_symbol` varchar(10),
-  `flag_icon` varchar(255),
-  `country_code4` varchar(4),
-  `status` boolean DEFAULT true,
-  `created_by` bigint,
-  `created_at` datetime DEFAULT (current_timestamp),
-  `updated_by` bigint,
-  `updated_at` datetime,
-  `deleted_by` bigint,
-  `deleted_at` datetime
+---
+
+### 🌍 Geography & Locations
+
+#### countries
+Stores country information for addresses and localization.
+```sql
+CREATE TABLE countries (
+  country_id         bigint PRIMARY KEY AUTO_INCREMENT,                
+  country_name       varchar(100) NOT NULL,               
+  isd                varchar(10),                           
+  currency_code      varchar(3),                            
+  currency_symbol    varchar(10),                           
+  flag_icon          varchar(255),                          
+  country_code4      varchar(4),                            
+  status             boolean DEFAULT true,               
+  created_by         bigint,              
+  created_at         datetime DEFAULT CURRENT_TIMESTAMP,
+  updated_by         bigint,              
+  updated_at         datetime,
+  deleted_by         bigint,              
+  deleted_at         datetime
 );
+```
 
-CREATE TABLE `states` (
-  `state_id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `country_id` bigint NOT NULL,
-  `state_name` varchar(100) NOT NULL,
-  `state_code` varchar(10),
-  `status` boolean DEFAULT true,
-  `created_by` bigint,
-  `created_at` datetime DEFAULT (current_timestamp),
-  `updated_by` bigint,
-  `updated_at` datetime,
-  `deleted_by` bigint,
-  `deleted_at` datetime
+#### states
+Stores state/province information for addresses.
+```sql
+CREATE TABLE states (
+  state_id           bigint PRIMARY KEY AUTO_INCREMENT,                
+  country_id         bigint NOT NULL, 
+  state_name         varchar(100) NOT NULL,               
+  state_code         varchar(10),                           
+  status             boolean DEFAULT true,               
+  created_by         bigint,              
+  created_at         datetime DEFAULT CURRENT_TIMESTAMP,
+  updated_by         bigint,              
+  updated_at         datetime,
+  deleted_by         bigint,              
+  deleted_at         datetime
 );
+```
 
-CREATE TABLE `cities` (
-  `city_id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `state_id` bigint NOT NULL,
-  `city_name` varchar(100) NOT NULL,
-  `postal_code` varchar(20),
-  `status` boolean DEFAULT true,
-  `created_by` bigint,
-  `created_at` datetime DEFAULT (current_timestamp),
-  `updated_by` bigint,
-  `updated_at` datetime,
-  `deleted_by` bigint,
-  `deleted_at` datetime
+#### cities
+Stores city information for addresses.
+```sql
+CREATE TABLE cities (
+  city_id            bigint PRIMARY KEY AUTO_INCREMENT,                
+  state_id           bigint NOT NULL, 
+  city_name          varchar(100) NOT NULL,               
+  postal_code        varchar(20),                           
+  status             boolean DEFAULT true,               
+  created_by         bigint,              
+  created_at         datetime DEFAULT CURRENT_TIMESTAMP,
+  updated_by         bigint,              
+  updated_at         datetime,
+  deleted_by         bigint,              
+  deleted_at         datetime
 );
+```
 
-CREATE TABLE `users` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `deleted` boolean DEFAULT false,
-  `owner_id` bigint,
-  `full_name` varchar(100),
-  `email` varchar(100) UNIQUE,
-  `password` varchar(255),
-  `role` varchar(50),
-  `phone_no` varchar(20),
-  `salary` decimal(10,2),
-  `dob` date,
-  `nationality_status` enum(inactive,active),
-  `role_permission_id` int NOT NULL,
-  `shopid` int NOT NULL,
-  `change_access` boolean DEFAULT false,
-  `shift_type_id` bigint,
-  `address` text,
-  `additional_details` text,
-  `uae_id` varchar(50) UNIQUE,
-  `created_at` timestamp DEFAULT (now())
+---
+
+### 👥 User Management & Security
+
+#### users
+Stores user accounts for the POS system.
+```sql
+CREATE TABLE users (
+  id               bigint PRIMARY KEY AUTO_INCREMENT,
+  deleted          boolean DEFAULT false,
+  owner_id         bigint,
+  full_name        varchar(100),
+  email            varchar(100) UNIQUE,
+  password         varchar(255),
+  role             varchar(50),
+  phone_no         varchar(20),
+  salary           decimal(10,2),
+  dob              date,
+  nationality_status enum('inactive','active'),
+  role_permission_id int NOT NULL,
+  shopid           int NOT NULL,
+  change_access    boolean DEFAULT false,
+  shift_type_id    bigint,                               -- NEW FK
+  address          text,
+  additional_details text,
+  uae_id           varchar(50) UNIQUE,
+  created_at timestamp DEFAULT NOW()
 );
+```
 
-CREATE TABLE `roles` (
-  `role_id` int PRIMARY KEY AUTO_INCREMENT,
-  `role_name` varchar(100) NOT NULL,
-  `description` text,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
+#### roles
+Defines user roles in the system.
+```sql
+CREATE TABLE roles (
+  role_id int PRIMARY KEY AUTO_INCREMENT,
+  role_name varchar(100) NOT NULL,
+  description text,
+  status varchar(20) DEFAULT 'Active',
+  created_by int,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int
 );
+```
 
-CREATE TABLE `permissions` (
-  `permission_id` int PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(100) NOT NULL,
-  `code` varchar(50) UNIQUE NOT NULL,
-  `screen_name` varchar(100) COMMENT 'UI screen this applies to',
-  `type_matrix` varchar(20) COMMENT 'CRUD operations: Create,Read,Update,Delete',
-  `is_parent` boolean DEFAULT false,
-  `parent_permission_id` int COMMENT 'For hierarchical permissions',
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
+#### permissions
+Stores individual system permissions.
+```sql
+CREATE TABLE permissions (
+  permission_id int PRIMARY KEY AUTO_INCREMENT,
+  name varchar(100) NOT NULL,
+  code varchar(50) UNIQUE NOT NULL,
+  screen_name varchar(100),                             -- UI screen this applies to
+  type_matrix varchar(20),                              -- CRUD operations: Create,Read,Update,Delete
+  is_parent boolean DEFAULT false,
+  parent_permission_id int,                             -- For hierarchical permissions
+  status varchar(20) DEFAULT 'Active',
+  created_by int,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int
 );
+```
 
-CREATE TABLE `roles_permission` (
-  `role_permission_id` int PRIMARY KEY AUTO_INCREMENT,
-  `role_id` int NOT NULL,
-  `permission_id` int NOT NULL,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
+#### roles_permission
+Links roles to their permissions.
+```sql
+CREATE TABLE roles_permission (
+  role_permission_id int PRIMARY KEY AUTO_INCREMENT,
+  role_id int NOT NULL,
+  permission_id int NOT NULL,
+  status varchar(20) DEFAULT 'Active',
+  created_by int,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int,
+  UNIQUE KEY unique_role_permission (role_id, permission_id)
 );
+```
 
-CREATE TABLE `user_permission_overrides` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `user_id` int NOT NULL,
-  `permission_id` int NOT NULL,
-  `is_allowed` boolean DEFAULT true,
-  `reason` text,
-  `valid_from` timestamp,
-  `valid_to` timestamp,
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now())
+#### user_permission_overrides
+Stores temporary permission exceptions for users.
+```sql
+CREATE TABLE user_permission_overrides (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  user_id int NOT NULL,
+  permission_id int NOT NULL,
+  is_allowed boolean DEFAULT true,
+  reason text,
+  valid_from timestamp,
+  valid_to timestamp,
+  created_by int,
+  created_at timestamp DEFAULT NOW(),
+  UNIQUE KEY unique_user_permission (user_id, permission_id)
 );
+```
 
--- ✅ ENHANCED: Document Types for Stock Control (CRITICAL MISSING)
-CREATE TABLE `document_types` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `code` varchar(20) UNIQUE NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `name_ar` varchar(100),
-  `stock_direction` ENUM('IN', 'OUT', 'NONE') NOT NULL DEFAULT 'NONE',
-  `editor_type` ENUM('STANDARD', 'INVENTORY', 'LOSS_AND_DAMAGE') DEFAULT 'STANDARD',
-  `is_auto_manufacture_enabled` boolean DEFAULT false,
-  `manufacture_document_type_code` varchar(20),
-  `default_warehouse_id` int,
-  `print_template` varchar(255),
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
+---
+
+### 📦 Product Management
+
+#### category
+Organizes products into hierarchical categories.
+```sql
+CREATE TABLE category (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  name varchar(100) NOT NULL,
+  name_ar varchar(100),
+  parent_id int,
+  description text,
+  image_url text,
+  display_order int DEFAULT 0,
+  status varchar(20) DEFAULT 'Active',
+  created_by int,
+  created_at timestamp DEFAULT NOW(),
+  updated_at timestamp DEFAULT NOW(),
+  INDEX idx_parent_id (parent_id),
+  INDEX idx_display_order (display_order)
 );
+```
 
--- ✅ CRITICAL: Current Stock Levels (MISSING)
-CREATE TABLE `stock_levels` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `shop_location_id` int NOT NULL,
-  `batch_id` int,
-  `current_quantity` decimal(12,4) NOT NULL DEFAULT 0,
-  `reserved_quantity` decimal(12,4) DEFAULT 0,
-  `available_quantity` decimal(12,4) GENERATED ALWAYS AS (current_quantity - reserved_quantity) STORED,
-  `reorder_level` decimal(12,4) DEFAULT 0,
-  `max_stock_level` decimal(12,4),
-  `last_updated` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `created_at` timestamp DEFAULT (now()),
-  UNIQUE KEY `unique_product_location_batch` (`product_id`, `shop_location_id`, `batch_id`)
+#### category_translation
+Provides multilingual support for category names.
+```sql
+CREATE TABLE category_translation (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  category_id int NOT NULL,
+  language_code varchar(10) NOT NULL,
+  name varchar(100) NOT NULL,
+  description text,
+  created_at timestamp DEFAULT NOW(),
+  UNIQUE KEY unique_category_language (category_id, language_code)
 );
+```
 
--- ✅ ENHANCED: Stock History with Document Integration
-CREATE TABLE `stock_history` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `shop_location_id` int NOT NULL,
-  `batch_id` int,
-  `document_id` int,
-  `document_item_id` int,
-  `document_type_id` int,
-  `movement_type` varchar(20) NOT NULL COMMENT 'Purchase, Sale, Transfer, Adjustment, Waste, Return',
-  `quantity_changed` decimal(12,4) NOT NULL,
-  `quantity_before` decimal(12,4) NOT NULL,
-  `quantity_after` decimal(12,4) NOT NULL,
-  `expected_quantity` decimal(12,4) COMMENT 'For inventory counts',
-  `is_matching_expected` boolean DEFAULT true,
-  `cost_price` decimal(12,2),
-  `reference_type` varchar(50) COMMENT 'Transaction, Transfer, Adjustment',
-  `reference_id` int NOT NULL,
-  `notes` text,
-  `created_by` int NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  INDEX `idx_product_location` (`product_id`, `shop_location_id`),
-  INDEX `idx_document` (`document_id`),
-  INDEX `idx_movement_date` (`created_at`)
+#### product
+Core product table with minimal fields.
+```sql
+CREATE TABLE product (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  deleted int NOT NULL DEFAULT 0,
+  created_at timestamp NOT NULL DEFAULT NOW(),
+  updated_at timestamp NOT NULL DEFAULT NOW(),
+  status varchar(20) DEFAULT 'Active',
+  type varchar(20)                                      -- 'Physical', 'Digital', 'Service'
 );
+```
 
--- ✅ ENHANCED: Stock Reservations
-CREATE TABLE `stock_reservations` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `shop_location_id` int NOT NULL,
-  `customer_id` int,
-  `transaction_id` int,
-  `reserved_quantity` decimal(12,4) NOT NULL,
-  `reservation_type` varchar(20) DEFAULT 'SALE' COMMENT 'SALE, TRANSFER, HOLD',
-  `expires_at` timestamp,
-  `status` varchar(20) DEFAULT 'ACTIVE',
-  `created_by` int NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  `released_at` timestamp,
-  `released_by` int,
-  INDEX `idx_product_location` (`product_id`, `shop_location_id`),
-  INDEX `idx_expiry` (`expires_at`)
-);
-
--- ✅ ENHANCED: Stock Valuation Methods
-CREATE TABLE `stock_valuation_methods` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `method_code` varchar(20) UNIQUE NOT NULL,
-  `method_name` varchar(100) NOT NULL,
-  `description` text,
-  `is_active` boolean DEFAULT true,
-  `created_at` timestamp DEFAULT (now())
-);
-
--- Insert default valuation methods
-INSERT INTO `stock_valuation_methods` (`method_code`, `method_name`, `description`) VALUES
-('FIFO', 'First In First Out', 'Oldest stock is consumed first'),
-('LIFO', 'Last In First Out', 'Newest stock is consumed first'),
-('AVERAGE', 'Weighted Average', 'Average cost of all stock'),
-('SPECIFIC', 'Specific Identification', 'Track specific items by serial/batch');
-
--- ✅ ENHANCED: Product with Stock Control
-ALTER TABLE `product` ADD COLUMN `is_service` boolean DEFAULT false AFTER `type`;
-ALTER TABLE `product` ADD COLUMN `track_stock` boolean DEFAULT true AFTER `is_service`;
-ALTER TABLE `product` ADD COLUMN `allow_negative_stock` boolean DEFAULT false AFTER `track_stock`;
-ALTER TABLE `product` ADD COLUMN `stock_valuation_method_id` int DEFAULT 1 AFTER `allow_negative_stock`;
-
--- ✅ ENHANCED: Product Info with Stock Settings
-ALTER TABLE `product_info` ADD COLUMN `min_stock_level` decimal(12,4) DEFAULT 0 AFTER `reorder_level`;
-ALTER TABLE `product_info` ADD COLUMN `max_stock_level` decimal(12,4) AFTER `min_stock_level`;
-ALTER TABLE `product_info` ADD COLUMN `lead_time_days` int DEFAULT 0 AFTER `max_stock_level`;
-ALTER TABLE `product_info` ADD COLUMN `shelf_life_days` int AFTER `expiry_days`;
-
--- ✅ ENHANCED: Stock Movement with Better Tracking
-ALTER TABLE `stock_movement` ADD COLUMN `document_id` int AFTER `reference_id`;
-ALTER TABLE `stock_movement` ADD COLUMN `document_item_id` int AFTER `document_id`;
-ALTER TABLE `stock_movement` ADD COLUMN `previous_quantity` decimal(12,4) AFTER `quantity`;
-ALTER TABLE `stock_movement` ADD COLUMN `new_quantity` decimal(12,4) AFTER `previous_quantity`;
-ALTER TABLE `stock_movement` ADD COLUMN `cost_price` decimal(12,2) AFTER `new_quantity`;
-ALTER TABLE `stock_movement` ADD COLUMN `is_system_generated` boolean DEFAULT true AFTER `cost_price`;
-
--- ✅ ENHANCED: Transactions with Document Type
-ALTER TABLE `transactions` ADD COLUMN `document_type_id` int AFTER `id`;
-ALTER TABLE `transactions` ADD COLUMN `document_number` varchar(50) AFTER `document_type_id`;
-ALTER TABLE `transactions` ADD COLUMN `reference_document_number` varchar(50) AFTER `document_number`;
-ALTER TABLE `transactions` ADD COLUMN `stock_date` timestamp DEFAULT CURRENT_TIMESTAMP AFTER `selling_time`;
-ALTER TABLE `transactions` ADD COLUMN `is_inventory_count` boolean DEFAULT false AFTER `stock_date`;
-
--- ✅ ENHANCED: Transaction Products with UOM Calculations
-ALTER TABLE `transaction_products` ADD COLUMN `expected_quantity` decimal(12,4) DEFAULT 0 AFTER `quantity` COMMENT 'For inventory counts';
-ALTER TABLE `transaction_products` ADD COLUMN `uom_quantity` decimal(12,4) GENERATED ALWAYS AS (
-  quantity * COALESCE((
-    SELECT conversion_factor 
-    FROM unit_option_conversion uoc 
-    JOIN product_variants pv ON uoc.unit_value_from_id = pv.variant_id 
-    WHERE pv.unit_option_id = product_unit_id 
-    LIMIT 1
-  ), 1)
-) STORED COMMENT 'Calculated quantity in base units';
-ALTER TABLE `transaction_products` ADD COLUMN `cost_price` decimal(12,2) AFTER `buyer_cost`;
-ALTER TABLE `transaction_products` ADD COLUMN `batch_id` int AFTER `cost_price`;
-
--- ✅ NEW: Stock Alerts
-CREATE TABLE `stock_alerts` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `shop_location_id` int NOT NULL,
-  `alert_type` ENUM('LOW_STOCK', 'OUT_OF_STOCK', 'OVERSTOCK', 'EXPIRY_WARNING') NOT NULL,
-  `current_quantity` decimal(12,4),
-  `threshold_quantity` decimal(12,4),
-  `alert_message` text,
-  `is_acknowledged` boolean DEFAULT false,
-  `acknowledged_by` int,
-  `acknowledged_at` timestamp,
-  `created_at` timestamp DEFAULT (now()),
-  INDEX `idx_product_location` (`product_id`, `shop_location_id`),
-  INDEX `idx_alert_type` (`alert_type`),
-  INDEX `idx_unacknowledged` (`is_acknowledged`)
-);
-
--- ✅ NEW: Stock Count Sessions
-CREATE TABLE `stock_count_sessions` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `session_number` varchar(50) UNIQUE NOT NULL,
-  `shop_location_id` int NOT NULL,
-  `count_date` date NOT NULL,
-  `count_type` ENUM('FULL', 'PARTIAL', 'CYCLE') DEFAULT 'PARTIAL',
-  `status` ENUM('PLANNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED') DEFAULT 'PLANNED',
-  `planned_by` int NOT NULL,
-  `started_by` int,
-  `completed_by` int,
-  `started_at` timestamp,
-  `completed_at` timestamp,
-  `notes` text,
-  `created_at` timestamp DEFAULT (now())
-);
-
-CREATE TABLE `stock_count_items` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `session_id` int NOT NULL,
-  `product_id` int NOT NULL,
-  `batch_id` int,
-  `expected_quantity` decimal(12,4) NOT NULL,
-  `counted_quantity` decimal(12,4),
-  `variance_quantity` decimal(12,4) GENERATED ALWAYS AS (counted_quantity - expected_quantity) STORED,
-  `variance_value` decimal(12,2),
-  `reason_code` varchar(50),
-  `notes` text,
-  `counted_by` int,
-  `counted_at` timestamp,
-  `is_processed` boolean DEFAULT false,
-  `processed_at` timestamp,
-  INDEX `idx_session` (`session_id`),
-  INDEX `idx_product` (`product_id`)
-);
-
--- ✅ ENHANCED: Add Foreign Key Constraints for Stock Tables
-ALTER TABLE `stock_levels` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-ALTER TABLE `stock_levels` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
-ALTER TABLE `stock_levels` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
-
-ALTER TABLE `stock_history` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-ALTER TABLE `stock_history` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
-ALTER TABLE `stock_history` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
-ALTER TABLE `stock_history` ADD FOREIGN KEY (`document_id`) REFERENCES `transactions` (`id`);
-ALTER TABLE `stock_history` ADD FOREIGN KEY (`document_item_id`) REFERENCES `transaction_products` (`id`);
-ALTER TABLE `stock_history` ADD FOREIGN KEY (`document_type_id`) REFERENCES `document_types` (`id`);
-ALTER TABLE `stock_history` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
-ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`);
-ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`id`);
-ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`released_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `stock_alerts` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-ALTER TABLE `stock_alerts` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
-ALTER TABLE `stock_alerts` ADD FOREIGN KEY (`acknowledged_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `stock_count_sessions` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
-ALTER TABLE `stock_count_sessions` ADD FOREIGN KEY (`planned_by`) REFERENCES `users` (`id`);
-ALTER TABLE `stock_count_sessions` ADD FOREIGN KEY (`started_by`) REFERENCES `users` (`id`);
-ALTER TABLE `stock_count_sessions` ADD FOREIGN KEY (`completed_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `stock_count_items` ADD FOREIGN KEY (`session_id`) REFERENCES `stock_count_sessions` (`id`);
-ALTER TABLE `stock_count_items` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-ALTER TABLE `stock_count_items` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
-ALTER TABLE `stock_count_items` ADD FOREIGN KEY (`counted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `document_types` ADD FOREIGN KEY (`default_warehouse_id`) REFERENCES `shop_locations` (`id`);
-ALTER TABLE `document_types` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-ALTER TABLE `document_types` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-ALTER TABLE `document_types` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `product` ADD FOREIGN KEY (`stock_valuation_method_id`) REFERENCES `stock_valuation_methods` (`id`);
-
-ALTER TABLE `transactions` ADD FOREIGN KEY (`document_type_id`) REFERENCES `document_types` (`id`);
-
-ALTER TABLE `transaction_products` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
-
--- ✅ ENHANCED: Stock Management Triggers
-DELIMITER $$
-
--- Trigger to update stock levels after stock movement
-CREATE TRIGGER `update_stock_levels_after_movement`
-AFTER INSERT ON `stock_movement`
-FOR EACH ROW
-BEGIN
-  DECLARE current_stock DECIMAL(12,4) DEFAULT 0;
+#### product_info
+Extended product information.
+```sql
+CREATE TABLE product_info (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  product_id int NOT NULL UNIQUE,
   
-  -- Get current stock
-  SELECT COALESCE(current_quantity, 0) INTO current_stock
-  FROM stock_levels 
-  WHERE product_id = NEW.product_id 
-    AND shop_location_id = NEW.location_id 
-    AND (batch_id = NEW.batch_id OR (batch_id IS NULL AND NEW.batch_id IS NULL));
+  product_name varchar(100) NOT NULL,
+  product_name_ar varchar(100),
+  alternate_name varchar(100),
+  alternate_name_ar varchar(100),
+  full_description text,
+  full_description_ar text,
+  short_description text,
+  short_description_ar text,
+
+  sku varchar(100) UNIQUE NOT NULL,
+  model_number varchar(100),
+  created_barcode boolean NOT NULL DEFAULT false,
+  has_standard_barcode boolean NOT NULL DEFAULT true,
+
+  category_id int NOT NULL,
+  sub_category_lvl1_id int,
+  sub_category_lvl2_id int,
+  brand_id int,
+
+  product_unit varchar(50) NOT NULL,
+  weight decimal(10,2),
+  dimensions varchar(100),
+  specs_flag boolean NOT NULL DEFAULT true,
+  specs text,
+  color varchar(50),
+
+  reorder_level int NOT NULL DEFAULT 0,
+  store_location varchar(200),
+  can_return boolean NOT NULL DEFAULT false,
+  country_of_origin varchar(100),
   
-  -- Update or insert stock level
-  INSERT INTO stock_levels (product_id, shop_location_id, batch_id, current_quantity)
-  VALUES (NEW.product_id, NEW.location_id, NEW.batch_id, NEW.quantity)
-  ON DUPLICATE KEY UPDATE 
-    current_quantity = current_quantity + NEW.quantity,
-    last_updated = CURRENT_TIMESTAMP;
-    
-  -- Create stock history record
-  INSERT INTO stock_history (
-    product_id, shop_location_id, batch_id, movement_type,
-    quantity_changed, quantity_before, quantity_after,
-    reference_type, reference_id, created_by
-  ) VALUES (
-    NEW.product_id, NEW.location_id, NEW.batch_id, NEW.movement_type,
-    NEW.quantity, current_stock, current_stock + NEW.quantity,
-    NEW.reference_type, NEW.reference_id, NEW.created_by
-  );
-  
-  -- Check for stock alerts
-  CALL check_stock_alerts(NEW.product_id, NEW.location_id);
-END$$
+  -- New fields added
+  supplier_id int,
+  shop_location_id int,
+  stock_unit_id int,
+  purchase_unit_id int,
+  selling_unit_id int,
+  with_expiry_date boolean DEFAULT false,
+  expiry_days int,                                      -- For products with expiry
+  has_warranty boolean DEFAULT false,
+  warranty_period int,                                  -- In months
+  warranty_type_id int,
+  price_type varchar(20),                               -- 'Fixed', 'Variable', 'Tiered'
 
--- Trigger to create stock movement from transaction products
-CREATE TRIGGER `create_stock_movement_from_transaction`
-AFTER INSERT ON `transaction_products`
-FOR EACH ROW
-BEGIN
-  DECLARE doc_stock_direction VARCHAR(10);
-  DECLARE movement_qty DECIMAL(12,4);
-  DECLARE is_service_product BOOLEAN DEFAULT FALSE;
-  
-  -- Check if product is a service
-  SELECT is_service INTO is_service_product
-  FROM product WHERE id = NEW.product_id;
-  
-  -- Only process if not a service
-  IF NOT is_service_product THEN
-    -- Get document stock direction
-    SELECT dt.stock_direction INTO doc_stock_direction
-    FROM transactions t
-    JOIN document_types dt ON t.document_type_id = dt.id
-    WHERE t.id = NEW.transaction_id;
-    
-    -- Calculate movement quantity based on direction
-    SET movement_qty = CASE 
-      WHEN doc_stock_direction = 'OUT' THEN -NEW.uom_quantity
-      WHEN doc_stock_direction = 'IN' THEN NEW.uom_quantity
-      ELSE 0
-    END;
-    
-    -- Create stock movement if quantity is not zero
-    IF movement_qty != 0 THEN
-      INSERT INTO stock_movement (
-        product_id, batch_id, uom_id, movement_type, quantity,
-        reference_type, reference_id, location_id, document_id, document_item_id,
-        previous_quantity, new_quantity, cost_price, created_by
-      ) VALUES (
-        NEW.product_id, NEW.batch_id, NEW.product_unit_id, 
-        CASE WHEN doc_stock_direction = 'OUT' THEN 'Sale' ELSE 'Purchase' END,
-        movement_qty, 'Transaction', NEW.transaction_id, NEW.shop_location_id,
-        NEW.transaction_id, NEW.id, 0, 0, NEW.cost_price, NEW.created_by
-      );
-    END IF;
-  END IF;
-END$$
-
--- Procedure to check stock alerts
-CREATE PROCEDURE `check_stock_alerts`(IN p_product_id INT, IN p_location_id INT)
-BEGIN
-  DECLARE current_stock DECIMAL(12,4);
-  DECLARE reorder_level DECIMAL(12,4);
-  DECLARE max_level DECIMAL(12,4);
-  
-  -- Get current stock and levels
-  SELECT 
-    COALESCE(sl.current_quantity, 0),
-    COALESCE(pi.reorder_level, 0),
-    COALESCE(pi.max_stock_level, 999999)
-  INTO current_stock, reorder_level, max_level
-  FROM product p
-  JOIN product_info pi ON p.id = pi.product_id
-  LEFT JOIN stock_levels sl ON p.id = sl.product_id AND sl.shop_location_id = p_location_id
-  WHERE p.id = p_product_id;
-  
-  -- Check for low stock
-  IF current_stock <= reorder_level AND current_stock > 0 THEN
-    INSERT IGNORE INTO stock_alerts (product_id, shop_location_id, alert_type, current_quantity, threshold_quantity, alert_message)
-    VALUES (p_product_id, p_location_id, 'LOW_STOCK', current_stock, reorder_level, 'Stock level is below reorder point');
-  END IF;
-  
-  -- Check for out of stock
-  IF current_stock <= 0 THEN
-    INSERT IGNORE INTO stock_alerts (product_id, shop_location_id, alert_type, current_quantity, threshold_quantity, alert_message)
-    VALUES (p_product_id, p_location_id, 'OUT_OF_STOCK', current_stock, 0, 'Product is out of stock');
-  END IF;
-  
-  -- Check for overstock
-  IF current_stock > max_level THEN
-    INSERT IGNORE INTO stock_alerts (product_id, shop_location_id, alert_type, current_quantity, threshold_quantity, alert_message)
-    VALUES (p_product_id, p_location_id, 'OVERSTOCK', current_stock, max_level, 'Stock level exceeds maximum limit');
-  END IF;
-END$$
-
--- Function to get available stock
-CREATE FUNCTION `get_available_stock`(p_product_id INT, p_location_id INT) 
-RETURNS DECIMAL(12,4)
-READS SQL DATA
-DETERMINISTIC
-BEGIN
-  DECLARE available_qty DECIMAL(12,4) DEFAULT 0;
-  
-  SELECT COALESCE(available_quantity, 0) INTO available_qty
-  FROM stock_levels 
-  WHERE product_id = p_product_id AND shop_location_id = p_location_id;
-  
-  RETURN available_qty;
-END$$
-
--- Function to check if stock reduction is allowed
-CREATE FUNCTION `can_reduce_stock`(p_product_id INT, p_location_id INT, p_quantity DECIMAL(12,4))
-RETURNS BOOLEAN
-READS SQL DATA
-DETERMINISTIC
-BEGIN
-  DECLARE current_stock DECIMAL(12,4) DEFAULT 0;
-  DECLARE allow_negative BOOLEAN DEFAULT FALSE;
-  
-  -- Get current stock and negative stock setting
-  SELECT 
-    COALESCE(sl.available_quantity, 0),
-    COALESCE(p.allow_negative_stock, FALSE)
-  INTO current_stock, allow_negative
-  FROM product p
-  LEFT JOIN stock_levels sl ON p.id = sl.product_id AND sl.shop_location_id = p_location_id
-  WHERE p.id = p_product_id;
-  
-  -- Allow if sufficient stock or negative stock is allowed
-  RETURN (current_stock >= p_quantity) OR allow_negative;
-END$$
-
-DELIMITER ;
-
--- ✅ Insert Default Document Types
-INSERT INTO `document_types` (`code`, `name`, `name_ar`, `stock_direction`, `editor_type`, `status`) VALUES
-('SALE', 'Sales Invoice', 'فاتورة مبيعات', 'OUT', 'STANDARD', 'Active'),
-('PURCHASE', 'Purchase Order', 'أمر شراء', 'IN', 'STANDARD', 'Active'),
-('RETURN_SALE', 'Sales Return', 'مرتجع مبيعات', 'IN', 'STANDARD', 'Active'),
-('RETURN_PURCHASE', 'Purchase Return', 'مرتجع مشتريات', 'OUT', 'STANDARD', 'Active'),
-('INVENTORY', 'Stock Count', 'جرد المخزون', 'NONE', 'INVENTORY', 'Active'),
-('ADJUSTMENT_IN', 'Stock Adjustment In', 'تعديل مخزون داخل', 'IN', 'STANDARD', 'Active'),
-('ADJUSTMENT_OUT', 'Stock Adjustment Out', 'تعديل مخزون خارج', 'OUT', 'LOSS_AND_DAMAGE', 'Active'),
-('TRANSFER_OUT', 'Transfer Out', 'تحويل خارج', 'OUT', 'STANDARD', 'Active'),
-('TRANSFER_IN', 'Transfer In', 'تحويل داخل', 'IN', 'STANDARD', 'Active'),
-('WASTE', 'Waste/Damage', 'تالف/هدر', 'OUT', 'LOSS_AND_DAMAGE', 'Active');
-
-CREATE TABLE `user_permission_overrides` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `user_id` int NOT NULL,
-  `permission_id` int NOT NULL,
-  `is_allowed` boolean DEFAULT true,
-  `reason` text,
-  `valid_from` timestamp,
-  `valid_to` timestamp,
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now())
+  created_at timestamp NOT NULL DEFAULT NOW(),
+  updated_at timestamp NOT NULL DEFAULT NOW()
 );
---category module
+```
 
-CREATE TABLE `category` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(100) NOT NULL,
-  `name_ar` varchar(100),
-  `parent_id` int,
-  `description` text,
-  `image_url` text,
-  `display_order` int DEFAULT 0,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_at` timestamp DEFAULT (now())
+#### product_quantity_history
+Tracks product stock quantity history.
+```sql
+CREATE TABLE product_quantity_history (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  product_id int,
+  quantity decimal(10,2),                               -- Stock Quantity
+  reorder_level int,                                    -- Reorder Level
+  created_at timestamp DEFAULT NOW()
 );
+```
 
-CREATE TABLE `category_translation` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `category_id` int NOT NULL,
-  `language_code` varchar(10) NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `description` text,
-  `created_at` timestamp DEFAULT (now())
+#### brand
+Stores product brand information.
+```sql
+CREATE TABLE brand (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  deleted int,
+  name varchar(100) NOT NULL UNIQUE,                    -- Brand Name
+  name_arabic varchar(100),                             -- Optional translated name
+  description text,                                     -- Optional brand details
+  logo_url text,                                        -- Optional brand logo
+  created_at timestamp DEFAULT NOW(),
+  updated_at timestamp DEFAULT NOW()
 );
+```
 
---product module
-CREATE TABLE `product` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `deleted` int NOT NULL DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT (now()),
-  `updated_at` timestamp NOT NULL DEFAULT (now()),
-  `status` varchar(20) DEFAULT 'Active',
-  `type` varchar(20) COMMENT '''Physical'', ''Digital'', ''Service'''
+#### product_attributes
+Defines product attributes like size, color etc.
+```sql
+CREATE TABLE product_attributes (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  name varchar(100) NOT NULL,
+  name_ar varchar(100),
+  is_required boolean DEFAULT false,
+  type varchar(20),                                     -- 'Color', 'Size', 'Material', 'Custom'
+  status varchar(20) DEFAULT 'Active',
+  created_by int NOT NULL,
+  created_at timestamp DEFAULT NOW(),
+  updated_at timestamp DEFAULT NOW()
 );
+```
 
-CREATE TABLE `product_info` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int UNIQUE NOT NULL,
-  `product_name` varchar(100) NOT NULL,
-  `product_name_ar` varchar(100),
-  `alternate_name` varchar(100),
-  `alternate_name_ar` varchar(100),
-  `full_description` text,
-  `full_description_ar` text,
-  `short_description` text,
-  `short_description_ar` text,
-  `sku` varchar(100) UNIQUE NOT NULL,
-  `model_number` varchar(100),
-  `created_barcode` boolean NOT NULL DEFAULT false,
-  `has_standard_barcode` boolean NOT NULL DEFAULT true,
-  `category_id` int NOT NULL,
-  `sub_category_lvl1_id` int,
-  `sub_category_lvl2_id` int,
-  `brand_id` int,
-  `product_unit` varchar(50) NOT NULL,
-  `weight` decimal(10,2),
-  `dimensions` varchar(100),
-  `specs_flag` boolean NOT NULL DEFAULT true,
-  `specs` text,
-  `color` varchar(50),
-  `reorder_level` int NOT NULL DEFAULT 0,
-  `store_location` varchar(200),
-  `can_return` boolean NOT NULL DEFAULT false,
-  `country_of_origin` varchar(100),
-  `supplier_id` int,
-  `shop_location_id` int,
-  `stock_unit_id` int,
-  `purchase_unit_id` int,
-  `selling_unit_id` int,
-  `with_expiry_date` boolean DEFAULT false,
-  `expiry_days` int COMMENT 'For products with expiry',
-  `has_warranty` boolean DEFAULT false,
-  `warranty_period` int COMMENT 'In months',
-  `warranty_type_id` int,
-  `price_type` varchar(20) COMMENT '''Fixed'', ''Variable'', ''Tiered''',
-  `created_at` timestamp NOT NULL DEFAULT (now()),
-  `updated_at` timestamp NOT NULL DEFAULT (now())
+#### product_attribute_values
+Stores possible values for each attribute.
+```sql
+CREATE TABLE product_attribute_values (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  attribute_id int NOT NULL,
+  value varchar(100) NOT NULL,
+  value_ar varchar(100),
+  status varchar(20) DEFAULT 'Active',
+  created_at timestamp DEFAULT NOW()
 );
+```
 
-CREATE TABLE `product_quantity_history` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int,
-  `quantity` decimal(10,2),
-  `reorder_level` int,
-  `created_at` timestamp DEFAULT (now())
+#### product_attribute_options
+Links products to their attribute options.
+```sql
+CREATE TABLE product_attribute_options (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  product_id int NOT NULL,
+  attribute_id int NOT NULL,
+  value_id int NOT NULL,
+  price_adjustment decimal(10,2) DEFAULT 0,
+  status varchar(20) DEFAULT 'Active',
+  created_at timestamp DEFAULT NOW(),
+  UNIQUE KEY unique_product_attribute_value (product_id, attribute_id, value_id)
 );
+```
 
-CREATE TABLE `brand` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `deleted` int,
-  `name` varchar(100) UNIQUE NOT NULL,
-  `name_arabic` varchar(100),
-  `description` text,
-  `logo_url` text,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_at` timestamp DEFAULT (now())
+#### product_combinations
+Stores predefined combinations of attributes.
+```sql
+CREATE TABLE product_combinations (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  product_id int NOT NULL,
+  combination_string varchar(255) NOT NULL,
+  sku varchar(100),
+  barcode varchar(50),
+  price decimal(12,2),
+  cost_price decimal(12,2),
+  quantity decimal(12,4) DEFAULT 0,
+  image_url text,
+  is_active boolean DEFAULT true,
+  created_at timestamp DEFAULT NOW(),
+  INDEX idx_product_id (product_id),
+  INDEX idx_sku (sku),
+  INDEX idx_barcode (barcode)
 );
+```
 
-CREATE TABLE `product_attributes` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(100) NOT NULL,
-  `name_ar` varchar(100),
-  `is_required` boolean DEFAULT false,
-  `type` varchar(20) COMMENT '''Color'', ''Size'', ''Material'', ''Custom''',
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_at` timestamp DEFAULT (now())
+#### product_combination_items
+Stores components of each product combination.
+```sql
+CREATE TABLE product_combination_items (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  combination_id int NOT NULL,
+  attribute_id int NOT NULL,
+  value_id int NOT NULL,
+  created_at timestamp DEFAULT NOW(),
+  INDEX idx_combination_id (combination_id),
+  UNIQUE KEY unique_combination_attribute (combination_id, attribute_id)
 );
+```
 
-CREATE TABLE `product_attribute_values` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `attribute_id` int NOT NULL,
-  `value` varchar(100) NOT NULL,
-  `value_ar` varchar(100),
-  `status` varchar(20) DEFAULT 'Active',
-  `created_at` timestamp DEFAULT (now())
+#### product_barcodes
+Stores multiple barcode support per product.
+```sql
+CREATE TABLE product_barcodes (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  product_id int NOT NULL,
+  barcode varchar(100) UNIQUE NOT NULL,
+  barcode_type varchar(20) NOT NULL DEFAULT 'ean',
+  created_at timestamp NOT NULL DEFAULT NOW()
 );
+```
 
-CREATE TABLE `product_attribute_options` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `attribute_id` int NOT NULL,
-  `value_id` int NOT NULL,
-  `price_adjustment` decimal(10,2) DEFAULT 0,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_at` timestamp DEFAULT (now())
+#### product_images
+Stores product images with ordering support.
+```sql
+CREATE TABLE product_images (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  product_id int NOT NULL,
+  image_url text NOT NULL,
+  alt_text varchar(255),
+  sort_order int NOT NULL DEFAULT 0,
+  is_primary boolean DFEFAULT false,
+  created_at timestamp NOT NULL DEFAULT NOW()
 );
+```
 
-CREATE TABLE `product_combinations` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `combination_string` varchar(255) NOT NULL,
-  `sku` varchar(100),
-  `barcode` varchar(50),
-  `price` decimal(12,2),
-  `cost_price` decimal(12,2),
-  `quantity` decimal(12,4) DEFAULT 0,
-  `image_url` text,
-  `is_active` boolean DEFAULT true,
-  `created_at` timestamp DEFAULT (now())
+#### product_modifiers
+Stores individual product modifiers/add-ons.
+```sql
+CREATE TABLE product_modifiers (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  name varchar(100) NOT NULL,
+  description text,
+  price decimal(10,2) DEFAULT 0,
+  cost decimal(10,2) DEFAULT 0,
+  sku varchar(50),
+  barcode varchar(50),
+  tax_type_id int,
+  status varchar(20) DEFAULT 'Active',
+  created_by int NOT NULL,
+  created_at timestamp DEFAULT NOW(),
+  updated_at timestamp DEFAULT NOW()
 );
+```
 
-CREATE TABLE `product_combination_items` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `combination_id` int NOT NULL,
-  `attribute_id` int NOT NULL,
-  `value_id` int NOT NULL,
-  `created_at` timestamp DEFAULT (now())
+#### product_modifier_groups
+Stores groups of modifiers (e.g., Pizza Toppings).
+```sql
+CREATE TABLE product_modifier_groups (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  name varchar(100) NOT NULL,
+  description text,
+  selection_type varchar(20),                           -- 'Single', 'Multiple'
+  required boolean DEFAULT false,
+  min_selections int DEFAULT 0,
+  max_selections int,
+  status varchar(20) DEFAULT 'Active',
+  created_by int NOT NULL,
+  created_at timestamp DEFAULT NOW(),
+  updated_at timestamp DEFAULT NOW()
 );
---auto generated barcodes
-CREATE TABLE `product_barcodes` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `barcode` varchar(100) UNIQUE NOT NULL,
-  `barcode_type` varchar(20) NOT NULL DEFAULT 'ean',
-  `created_at` timestamp NOT NULL DEFAULT (now())
-);
+```
 
-CREATE TABLE `product_images` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `image_url` text NOT NULL,
-  `alt_text` varchar(255),
-  `sort_order` int NOT NULL DEFAULT 0,
-  `is_primary` boolean DEFAULT false,
-  `created_at` timestamp NOT NULL DEFAULT (now())
+#### product_modifier_group_items
+Links modifiers to modifier groups.
+```sql
+CREATE TABLE product_modifier_group_items (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  group_id int NOT NULL,
+  modifier_id int NOT NULL,
+  price_adjustment decimal(10,2) DEFAULT 0,
+  sort_order int DEFAULT 0,
+  default_selection boolean DEFAULT false,
+  status varchar(20) DEFAULT 'Active',
+  created_at timestamp DEFAULT NOW()
 );
+```
 
-CREATE TABLE `product_modifiers` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(100) NOT NULL,
-  `description` text,
-  `price` decimal(10,2) DEFAULT 0,
-  `cost` decimal(10,2) DEFAULT 0,
-  `sku` varchar(50),
-  `barcode` varchar(50),
-  `tax_type_id` int,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_at` timestamp DEFAULT (now())
+#### product_modifier_links
+Links products to modifier groups.
+```sql
+CREATE TABLE product_modifier_links (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  product_id int NOT NULL,
+  modifier_group_id int NOT NULL,
+  created_at timestamp DEFAULT NOW(),
+  UNIQUE KEY unique_product_modifier_group (product_id, modifier_group_id)
 );
+```
 
-CREATE TABLE `product_modifier_groups` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(100) NOT NULL,
-  `description` text,
-  `selection_type` varchar(20) COMMENT '''Single'', ''Multiple''',
-  `required` boolean DEFAULT false,
-  `min_selections` int DEFAULT 0,
-  `max_selections` int,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_at` timestamp DEFAULT (now())
+#### modifiers
+Master table for product modifiers.
+```sql
+CREATE TABLE modifiers (
+  id            int PRIMARY KEY AUTO_INCREMENT,
+  name          varchar(100) NOT NULL,
+  description   text,
+  extra_price   decimal(10,2) NOT NULL DEFAULT 0.00,
+  is_active     boolean NOT NULL DEFAULT true,
+  deleted       int NOT NULL DEFAULT 0,
+  created_by    int NOT NULL,
+  created_at    timestamp NOT NULL DEFAULT NOW(),
+  updated_at    timestamp NOT NULL DEFAULT NOW()
 );
+```
 
-CREATE TABLE `product_modifier_group_items` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `group_id` int NOT NULL,
-  `product_unit_id` int NOT NULL,
-  `price_adjustment` decimal(10,2) DEFAULT 0,
-  `sort_order` int DEFAULT 0,
-  `default_selection` boolean DEFAULT false,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_at` timestamp DEFAULT (now())
-);
+---
 
-CREATE TABLE `product_modifier_links` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `modifier_group_id` int NOT NULL,
-  `created_at` timestamp DEFAULT (now())
-);
+### 📊 Inventory Management
 
-CREATE TABLE `modifiers` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(100) NOT NULL,
-  `description` text,
-  `extra_price` decimal(10,2) NOT NULL DEFAULT 0,
-  `is_active` boolean NOT NULL DEFAULT true,
-  `deleted` int NOT NULL DEFAULT 0,
-  `created_by` int NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT (now()),
-  `updated_at` timestamp NOT NULL DEFAULT (now())
+#### product_batches
+Tracks batch information for inventory.
+```sql
+CREATE TABLE product_batches (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  product_id int NOT NULL,
+  batch_no varchar(50) NOT NULL,
+  manufacture_date date,
+  expiry_date date,
+  quantity decimal(12,4) NOT NULL,
+  uom_id int NOT NULL,
+  cost_price decimal(12,2),
+  landed_cost decimal(12,2),
+  status varchar(20) DEFAULT 'Active',
+  created_at timestamp DEFAULT NOW(),
+  UNIQUE KEY unique_product_batch (product_id, batch_no),
+  INDEX idx_expiry_date (expiry_date)
 );
+```
 
-CREATE TABLE `product_batches` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `batch_no` varchar(50) NOT NULL,
-  `manufacture_date` date,
-  `expiry_date` date,
-  `quantity` decimal(12,4) NOT NULL,
-  `uom_id` int NOT NULL,
-  `cost_price` decimal(12,2),
-  `landed_cost` decimal(12,2),
-  `status` varchar(20) DEFAULT 'Active',
-  `created_at` timestamp DEFAULT (now())
+#### stock_movement
+Tracks detailed stock movements.
+```sql
+CREATE TABLE stock_movement (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  product_id int NOT NULL,
+  batch_id int,
+  uom_id int NOT NULL,
+  movement_type varchar(20),                            -- 'Purchase', 'Sale', 'Transfer', 'Adjustment', 'Waste'
+  quantity decimal(12,4) NOT NULL,
+  reference_type varchar(50),                           -- 'PurchaseOrder', 'Sale', 'Transfer', 'Adjustment'
+  reference_id int NOT NULL,
+  location_id int,
+  notes text,
+  created_by int NOT NULL,
+  created_at timestamp DEFAULT NOW(),
+  INDEX idx_product_id (product_id),
+  INDEX idx_reference_type (reference_type),
+  INDEX idx_reference_id (reference_id)
 );
---stock module
-CREATE TABLE `stock_movement` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `batch_id` int,
-  `uom_id` int NOT NULL,
-  `movement_type` varchar(20) COMMENT '''Purchase'', ''Sale'', ''Transfer'', ''Adjustment'', ''Waste''',
-  `quantity` decimal(12,4) NOT NULL,
-  `reference_type` varchar(50) COMMENT '''PurchaseOrder'', ''Sale'', ''Transfer'', ''Adjustment''',
-  `reference_id` int NOT NULL,
-  `location_id` int,
-  `notes` text,
-  `created_by` int NOT NULL,
-  `created_at` timestamp DEFAULT (now())
-);
+```
 
-CREATE TABLE `stock_transfer` (
-  `transfer_id` int PRIMARY KEY AUTO_INCREMENT,
-  `transfer_no` varchar(30) UNIQUE NOT NULL,
-  `transfer_date` date NOT NULL,
-  `from_store_id` int NOT NULL,
-  `to_store_id` int NOT NULL,
-  `status` varchar(20) DEFAULT 'Pending',
-  `remarks` text,
-  `created_by` int NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT (now()),
-  `updated_at` timestamp NOT NULL DEFAULT (now())
+#### goods_received
+Goods receipt management.
+```sql
+CREATE TABLE goods_received (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  grn_no varchar(50) NOT NULL,
+  supplier_id bigint NOT NULL,
+  store_id int NOT NULL,
+  invoice_no varchar(50),
+  invoice_date datetime,
+  received_date datetime NOT NULL DEFAULT CURRENT_DATE,
+  total_amount decimal(12,2) DEFAULT 0,
+  remarks varchar(255),
+  status varchar(20) DEFAULT 'Pending',
+  created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
-CREATE TABLE `goods_return` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `return_no` VARCHAR(50) UNIQUE NOT NULL,       -- e.g., GR-2025-0001
-    `supplier_id` INT NOT NULL,                    -- FK to suppliers
-    `store_id` INT NOT NULL,                       -- FK to stores
-    `reference_grn_id` INT,                        -- Optional: link to original GRN
-    `return_date` DATE NOT NULL,
-    `total_amount` DECIMAL(12,2) DEFAULT 0,
-    `status` VARCHAR(20) DEFAULT 'Pending',        -- Pending / Posted / Cancelled
-    `remarks` VARCHAR(255),
-    `created_by` INT NOT NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+```
 
+#### goods_received_items
+GRN line items.
+```sql
+CREATE TABLE goods_received_items (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  grn_id int NOT NULL,
+  product_id int NOT NULL,
+  batch_id int,
+  batch_no varchar(50),
+  manufacture_date datetime,
+  expiry_date datetime,
+  quantity decimal(12,4) NOT NULL,
+  uom_id bigint NOT NULL,
+  cost_price decimal(12,2) NOT NULL,
+  landed_cost decimal(12,2),
+  line_total decimal(12,2),
+  created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+```
+
+#### goods_returns
+Return to supplier tracking.
+```sql
+CREATE TABLE goods_returns (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  return_no varchar(50) NOT NULL,
+  supplier_id bigint NOT NULL,
+  store_id int NOT NULL,
+  reference_grn_id int,
+  return_date datetime NOT NULL,
+  total_amount decimal(12,2) DEFAULT 0,
+  status varchar(20) DEFAULT 'Pending',
+  remarks varchar(255),
+  is_totally_replaced boolean DEFAULT false,
+  created_by int NOT NULL,
+  created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+```
+
+#### goods_return_items
+Return line items.
+```sql
 CREATE TABLE goods_return_items (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    return_id INT NOT NULL,                       -- FK to goods_return.id
-    product_id INT NOT NULL,                      -- FK to products.id
-    batch_id INT,                                 -- FK to product_batches.id (optional)
-    batch_no VARCHAR(50),                         -- For reference / manual entry
-    expiry_date DATE,                             -- Optional, auto-filled from batch
-    quantity DECIMAL(12,4) NOT NULL,
-    uom_id INT NOT NULL,                          -- Unit of Measure
-    cost_price DECIMAL(12,2) NOT NULL,           -- Per unit
-    line_total DECIMAL(12,2) GENERATED ALWAYS AS (quantity * cost_price) STORED,
-    reason VARCHAR(255),                          -- Damaged, expired, etc.
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (return_id) REFERENCES goods_return(id)
+  id int PRIMARY KEY AUTO_INCREMENT,
+  return_id int NOT NULL,
+  product_id int NOT NULL,
+  batch_id int,
+  batch_no varchar(50),
+  expiry_date datetime,
+  quantity decimal(12,4) NOT NULL,
+  uom_id bigint NOT NULL,
+  cost_price decimal(12,2) NOT NULL,
+  line_total decimal(12,2),
+  reason varchar(255),
+  already_replaced_quantity decimal(12,4) DEFAULT 0,
+  is_totally_replaced boolean DEFAULT false,
+  created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
-
-CREATE TABLE `stock_transfer_item` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `transfer_id` int NOT NULL,
-  `product_id` int NOT NULL,
-  `uom_id` int NOT NULL,
-  `batch_no` varchar(50),
-  `expiry_date` date,
-  `quantity_sent` decimal(10,3) NOT NULL,
-  `quantity_received` decimal(10,3) DEFAULT 0,
-  `damaged_qty` decimal(10,3) DEFAULT 0,
-  `status` varchar(20) DEFAULT 'Pending',
-  `remarks_line` text
-);
-CREATE TABLE GoodsReplace (
-  Id INTEGER PRIMARY KEY AUTOINCREMENT,
-  ReplaceNo VARCHAR(30) UNIQUE NOT NULL,
-  SupplierId INT NOT NULL,
-  StoreId INT NOT NULL,
-  ReferenceReturnId INT,         -- links to GoodsReturns.Id if replacement is against a return
-  ReplaceDate DATETIME NOT NULL,
-  TotalAmount DECIMAL(12,2) DEFAULT 0,
-  Status VARCHAR(20) DEFAULT 'Pending',   -- Pending / Posted / Cancelled
-  Remarks TEXT,
-  CreatedBy INT NOT NULL,
-  CreatedAt DATETIME DEFAULT (datetime('now')),
-  UpdatedAt DATETIME DEFAULT (datetime('now'))
-);
-
-CREATE TABLE GoodsReplaceItems (
-  Id INTEGER PRIMARY KEY AUTOINCREMENT,
-  ReplaceId INT NOT NULL,               -- FK → GoodsReplace.Id
-  ProductId INT NOT NULL,
-  UomId BIGINT NOT NULL,                -- Changed to long
-  BatchNo VARCHAR(50),
-  ExpiryDate DATE,
-  Quantity DECIMAL(10,3) NOT NULL,      -- replaced quantity
-  Rate DECIMAL(10,2) NOT NULL,
-  Amount DECIMAL(12,2) GENERATED ALWAYS AS (Quantity * Rate) STORED,
-  ReferenceReturnItemId INT,            -- link to GoodsRetproducturnItems.Id (optional)
-  RemarksLine TEXT,
-  CreatedAt DATETIME DEFAULT (datetime('now'))
-);
-
-CREATE TABLE `stock_adjustment` (
-  `adjustment_id` int PRIMARY KEY AUTO_INCREMENT,
-  `adjustment_no` varchar(30) UNIQUE NOT NULL,
-  `adjustment_date` date NOT NULL,
-  `store_location_id` int NOT NULL,
-  `reason_id` int NOT NULL,
-  `status` varchar(20) DEFAULT 'Pending',
-  `remarks` text,
-  `created_by` int NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT (now()),
-  `updated_at` timestamp NOT NULL DEFAULT (now())
-);
-
-CREATE TABLE `stock_adjustment_reasons` (
-  `stock_adjustment_reasons_id` int PRIMARY KEY,
-  `name` varchar(255),
-  `description` varchar(255),
-  `status` varchar(255),
-  `created_by` int,
-  `created_at` timestamp,
-  `updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp
-);
-
-CREATE TABLE `stock_adjustment_item` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `adjustment_id` int NOT NULL,
-  `product_id` int NOT NULL,
-  `uom_id` int NOT NULL,
-  `batch_no` varchar(50),
-  `expiry_date` date,
-  `quantity_before` decimal(10,3) NOT NULL,
-  `quantity_after` decimal(10,3) NOT NULL,
-  `difference_qty` decimal(10,3) NOT NULL,
-  `reason_line` varchar(100),
-  `remarks_line` text
-);
-
-CREATE TABLE `stock_ledger` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `unit_id` int NOT NULL,
-  `movement_type` varchar(20) NOT NULL,
-  `qty` decimal(10,2) NOT NULL,
-  `balance` decimal(10,2) NOT NULL,
-  `location` varchar(200),
-  `reference_type` varchar(50),
-  `reference_id` int,
-  `created_at` timestamp NOT NULL DEFAULT (now())
-);
---supplier module
-CREATE TABLE `supplier` (
-  `supplier_id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `shop_id` bigint,
-  `company_name` varchar(100) NOT NULL,
-  `logo_picture` varchar(255),
-  `license_number` varchar(50),
-  `owner_name` varchar(100),
-  `owner_mobile` varchar(20),
-  `vat_trn_number` varchar(50),
-  `email` varchar(100) UNIQUE,
-  `address_line1` varchar(255) NOT NULL,
-  `address_line2` varchar(255),
-  `building` varchar(100),
-  `area` varchar(100),
-  `po_box` varchar(20),
-  `city` varchar(100),
-  `state` varchar(100),
-  `country` varchar(100),
-  `website` varchar(100),
-  `key_contact_name` varchar(100),
-  `key_contact_mobile` varchar(20),
-  `key_contact_email` varchar(100),
-  `mobile` varchar(20),
-  `location_latitude` decimal(10,8),
-  `location_longitude` decimal(11,8),
-  `company_phone_number` varchar(20),
-  `gstin` varchar(20),
-  `pan` varchar(20),
-  `payment_terms` varchar(50),
-  `opening_balance` decimal(12,2) DEFAULT 0,
-  `balance_type` enum(credit,debit) DEFAULT 'credit',
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` bigint,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` bigint,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` bigint
-);
-
-CREATE TABLE `supplier_translation` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `supplier_id` bigint NOT NULL,
-  `language_id` int NOT NULL,
-  `supplier_name_ar` varchar(100),
-  `address_line1_ar` varchar(255),
-  `address_line2_ar` varchar(255),
-  `building_ar` varchar(100),
-  `area_ar` varchar(100),
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` bigint,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` bigint,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` bigint
-);
-
-CREATE TABLE `supplier_bank_accounts` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `supplier_id` bigint NOT NULL,
-  `bank_name` varchar(100) NOT NULL,
-  `account_number` varchar(50) NOT NULL,
-  `iban_ifsc` varchar(50),
-  `swift_code` varchar(20),
-  `branch_name` varchar(100),
-  `account_type` varchar(50) COMMENT 'Current/Savings/etc.',
-  `branch_address` text,
-  `bank_key_person_name` varchar(100),
-  `bank_key_contacts` varchar(100),
-  `notes` text,
-  `is_primary` boolean DEFAULT false,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` bigint,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` bigint,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` bigint
-);
-
-CREATE TABLE `supplier_purchase` (
-  `purchase_id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `supplier_id` bigint NOT NULL,
-  `invoice_no` varchar(50) NOT NULL,
-  `invoice_date` date NOT NULL,
-  `due_date` date,
-  `total_amount` decimal(12,2) NOT NULL,
-  `tax_amount` decimal(12,2),
-  `discount_amount` decimal(12,2),
-  `paid_amount` decimal(12,2) DEFAULT 0,
-  `due_amount` decimal(12,2),
-  `status` enum(paid,partial,unpaid,cancelled) DEFAULT 'unpaid',
-  `payment_terms` varchar(100),
-  `delivery_terms` varchar(100),
-  `remarks` text,
-  `created_by` bigint,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` bigint,
-  `updated_at` timestamp DEFAULT (now())
-);
-
-CREATE TABLE `supplier_purchase_item` (
-  `item_id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `purchase_id` bigint NOT NULL,
-  `product_id` int NOT NULL,
-  `product_variant_id` int,
-  `quantity` decimal(10,3) NOT NULL,
-  `unit_price` decimal(10,2) NOT NULL,
-  `tax_rate` decimal(5,2),
-  `discount_rate` decimal(5,2),
-  `total_price` decimal(12,2) NOT NULL,
-  `received_quantity` decimal(10,3),
-  `status` varchar(20) DEFAULT 'Active'
-);
-
-
---warranty tables can be used in different tables like product, sales, etc.
-CREATE TABLE `warranty_type` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(100) NOT NULL,
-  `name_ar` varchar(100),
-  `is_additional` boolean DEFAULT false,
-  `cost` decimal(10,2) COMMENT 'Only when is_additional=true',
-  `description` text,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp NOT NULL DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `product_warranty` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `warranty_type_id` int NOT NULL,
-  `duration_months` int NOT NULL,
-  `terms_conditions` text,
-  `is_included` boolean DEFAULT true,
-  `created_by` int NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp NOT NULL DEFAULT (now())
-);
-
-CREATE TABLE `sales_warranty` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `sale_id` int NOT NULL,
-  `product_id` int NOT NULL,
-  `warranty_type_id` int NOT NULL,
-  `duration_months` int NOT NULL,
-  `start_date` date NOT NULL,
-  `end_date` date NOT NULL,
-  `cost` decimal(10,2) DEFAULT 0,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_at` timestamp DEFAULT (now())
-);
-
-CREATE TABLE `warranty_claims` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `sales_warranty_id` int NOT NULL,
-  `claim_date` date NOT NULL,
-  `description` text NOT NULL,
-  `resolution` text,
-  `status` varchar(20) DEFAULT 'Pending',
-  `resolved_by` int,
-  `resolved_at` timestamp,
-  `created_at` timestamp DEFAULT (now())
-);
-
-CREATE TABLE `product_variants` (
-  `variant_id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `unit_option_id` int NOT NULL,
-  `value` decimal(12,4) NOT NULL,
-  `label` varchar(100) NOT NULL,
-  `barcode` varchar(50) UNIQUE,
-  `price` decimal(12,2) NOT NULL,
-  `cost_price` decimal(12,2) NOT NULL,
-  `stock_quantity` decimal(12,4) DEFAULT 0,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
---companies module
-CREATE TABLE `companies` (
-  `company_id` int PRIMARY KEY AUTO_INCREMENT,
-  `company_name` varchar(100) NOT NULL,
-  `logo_picture` varchar(255),
-  `license_number` varchar(50) UNIQUE,
-  `vat_trn_number` varchar(50),
-  `phone_number` varchar(20),
-  `email` varchar(100) UNIQUE,
-  `website` varchar(100),
-  `key_contact_name` varchar(100),
-  `key_contact_mobile` varchar(20),
-  `key_contact_email` varchar(100),
-  `location_latitude` decimal(10,8),
-  `location_longitude` decimal(11,8),
-  `remarks` text,
-  `status` varchar(20) DEFAULT 'active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `company_owners` (
-  `owner_id` int PRIMARY KEY AUTO_INCREMENT,
-  `company_id` int,
-  `owner_first_name` varchar(50) NOT NULL,
-  `owner_last_name` varchar(50) NOT NULL,
-  `auth_number` varchar(50),
-  `owner_mobile` varchar(20),
-  `owner_uae_id` varchar(50),
-  `owner_email` varchar(100),
-  `status` varchar(20) DEFAULT 'active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `company_addresses` (
-  `company_address_id` int PRIMARY KEY AUTO_INCREMENT,
-  `company_id` int,
-  `address_line1` varchar(255) NOT NULL,
-  `address_line2` varchar(255),
-  `area` varchar(100),
-  `po_box` varchar(20),
-  `city` varchar(100),
-  `state_id` int,
-  `country_id` int,
-  `is_billing_address` boolean DEFAULT false,
-  `location_latitude` decimal(10,8),
-  `location_longitude` decimal(11,8),
-  `status` varchar(20) DEFAULT 'active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `company_bank_accounts` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `company_id` int,
-  `company_address_id` int,
-  `account_type` varchar(50) COMMENT 'Current/Savings/etc.',
-  `account_name` varchar(100) NOT NULL,
-  `account_number` varchar(50) NOT NULL,
-  `iban` varchar(50),
-  `swift_code` varchar(20),
-  `branch_name` varchar(100),
-  `branch_address` text,
-  `status` varchar(20) DEFAULT 'active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `license_info` (
-  `id` uuid PRIMARY KEY DEFAULT (uuid_generate_v4()),
-  `company_id` int,
-  `license_key` varchar(100) UNIQUE NOT NULL,
-  `organization_name` varchar(255),
-  `issued_to` varchar(255),
-  `issued_on` timestamp NOT NULL,
-  `valid_until` timestamp NOT NULL,
-  `device_limit` int,
-  `allowed_macs` text COMMENT 'Comma-separated MAC addresses',
-  `allowed_ips` text COMMENT 'Comma-separated IP addresses',
-  `license_type` varchar(50) COMMENT 'PER_DEVICE/PER_LOCATION/UNLIMITED',
-  `is_active` boolean DEFAULT true,
-  `plan_id` int,
-  `notes` text,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_at` timestamp DEFAULT (now())
-);
-
-CREATE TABLE `license_modules` (
-  `id` uuid PRIMARY KEY DEFAULT (uuid_generate_v4()),
-  `license_id` uuid,
-  `module_name` varchar(100) NOT NULL,
-  `is_enabled` boolean DEFAULT true,
-  `created_at` timestamp DEFAULT (now())
-);
-
-CREATE TABLE `license_device_usage` (
-  `id` uuid PRIMARY KEY DEFAULT (uuid_generate_v4()),
-  `license_id` uuid,
-  `mac_address` varchar(50) NOT NULL,
-  `ip_address` varchar(50),
-  `device_name` varchar(100),
-  `last_checked_in` timestamp,
-  `created_at` timestamp DEFAULT (now())
-);
---customer module
-CREATE TABLE `customer` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `customer_full_name` varchar(150),
-  `business_full_name` varchar(150),
-  `is_business` boolean,
-  `business_type_id` int,
-  `customer_balance_amount` decimal,
-  `license_no` varchar(50),
-  `trn_no` varchar(50),
-  `mobile_no` varchar(20),
-  `home_phone` varchar(20),
-  `office_phone` varchar(20),
-  `contact_mobile_no` varchar(20),
-  `credit_allowed` boolean,
-  `credit_amount_max` decimal,
-  `credit_days` int,
-  `credit_reference1_name` varchar(150),
-  `credit_reference2_name` varchar(150),
-  `key_contact_name` varchar(150),
-  `key_contact_mobile` varchar(20),
-  `key_contact_email` varchar(100),
-  `finance_person_name` varchar(150),
-  `finance_person_mobile` varchar(20),
-  `finance_person_email` varchar(100),
-  `official_email` varchar(100),
-  `post_dated_cheques_allowed` boolean,
-  `shop_id` int,
-  `status` varchar(20),
-  `created_by` int,
-  `created_at` timestamp,
-  `updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `business_type_master` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `business_type_name` varchar(100),
-  `business_type_name_ar` varchar(100),
-  `status` varchar(20),
-  `created_by` int,
-  `created_at` timestamp,
-  `updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `customer_address` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `customer_id` int,
-  `address_line1` varchar(255),
-  `address_line2` varchar(255),
-  `po_box` varchar(50),
-  `area` varchar(100),
-  `city` varchar(100),
-  `state_id` int,
-  `country_id` int,
-  `landmark` varchar(255),
-  `latitude` decimal,
-  `longitude` decimal,
-  `is_billing` boolean,
-  `status` varchar(20),
-  `created_by` int,
-  `created_at` timestamp,
-  `updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `customer_address_translation` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `customer_address_id` int,
-  `language_id` int,
-  `address_line1` varchar(255),
-  `address_line2` varchar(255),
-  `area` varchar(100),
-  `status` varchar(20),
-  `created_by` int,
-  `created_at` timestamp,
-  `updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `customers_groups` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(100),
-  `name_ar` varchar(100),
-  `selling_price_type_id` int,
-  `discount_id` int,
-  `discount_value` decimal,
-  `discount_max_value` decimal,
-  `is_percentage` boolean,
-  `status` varchar(20),
-  `created_by` int,
-  `created_at` timestamp,
-  `updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-
-
---discounts tables
-CREATE TABLE `discounts` (
-  `id` INT PRIMARY KEY AUTO_INCREMENT,
-  `discount_name` VARCHAR(150) NOT NULL,
-  `discount_name_ar` VARCHAR(150),
-  `discount_description` VARCHAR(150),
-  `discount_code` VARCHAR(50) UNIQUE NOT NULL,
-  
-  -- % or fixed amount
-  `discount_type` ENUM('PERCENTAGE','FIXED') NOT NULL,
-  `discount_value` DECIMAL(10,2) NOT NULL,
-  
-  -- Business rules
-  `max_discount_amount` DECIMAL(10,2),         -- cap per discount
-  `min_purchase_amount` DECIMAL(10,2),         -- eligibility condition
-  
-  -- Validity
-  `start_date` DATE NOT NULL,
-  `end_date` DATE NOT NULL,
-  
-  -- Scope of discount
-  `applicable_on` ENUM('product','category','customer','order') NOT NULL,
-  `applicable_id` INT,                         -- links to product_id, category_id, etc.
-  
-  -- Multiple discount handling
-  `priority` INT DEFAULT 0,                    -- higher = applied first
-  `is_stackable` BOOLEAN DEFAULT FALSE,        -- can combine with others?
-  
-  -- System flags
-  `is_active` BOOLEAN DEFAULT TRUE,
-  
-  -- Audit fields
-  `created_by` INT,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `updated_by` INT,
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `deleted_at` TIMESTAMP NULL,
-  `deleted_by` INT,
-  
-  -- Optional for multi-store/currency
-  `store_id` INT,
-  `currency_code` CHAR(3) DEFAULT 'USD'
-);
-
--- Useful indexes
-CREATE INDEX idx_discount_date ON discounts (start_date, end_date);
-CREATE INDEX idx_discount_scope ON discounts (applicable_on, applicable_id);
-
-CREATE TABLE `product_discount` (
-  `id` INT PRIMARY KEY AUTO_INCREMENT,
-  `product_id` INT NOT NULL,
-  `discounts_id` INT NOT NULL,
-  
-  -- Audit
-  `created_by` INT,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `updated_by` INT,
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `deleted_at` TIMESTAMP NULL,
-  `deleted_by` INT,
-  
-  -- Prevent duplicate mapping
-  UNIQUE KEY uq_product_discount (product_id, discounts_id)
-);
-
--- Indexes for faster joins
-CREATE INDEX idx_product_discount ON product_discount (product_id, discounts_id);
-
-CREATE TABLE `customers_group_relation` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `customer_id` int,
-  `customer_group_id` int,
-  `status` varchar(20),
-  `created_by` int,
-  `created_at` timestamp,
-  `updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `customer_balance` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `customer_id` int,
-  `new_balance` decimal,
-  `last_update` timestamp,
-  `status` varchar(20),
-  `created_by` int,
-  `created_at` timestamp,
-  `updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
---transaction module
-CREATE TABLE `transactions` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `shift_id` int NOT NULL,
-  `customer_id` int,
-  `user_id` int NOT NULL,
-  `shop_location_id` int,
-  `selling_time` timestamp NOT NULL DEFAULT (now()),
-  `total_amount` decimal(12,2) NOT NULL DEFAULT 0,
-  `total_vat` decimal(12,2) NOT NULL DEFAULT 0,
-  `total_discount` decimal(12,2) NOT NULL DEFAULT 0,
-  `total_applied_vat` decimal(12,2) DEFAULT 0,
-  `total_applied_discount_value` decimal(12,2) DEFAULT 0,
-  `amount_paid_cash` decimal(12,2) DEFAULT 0,
-  `amount_credit_remaining` decimal(12,2) DEFAULT 0,
-  `credit_days` int DEFAULT 0,
-  `is_percentage_discount` boolean DEFAULT false,
-  `discount_value` decimal(12,2) DEFAULT 0,
-  `discount_max_value` decimal(12,2) DEFAULT 0,
-  `vat` decimal(12,2) DEFAULT 0,
-  `discount_note` text,
-  `invoice_number` varchar(50) UNIQUE,
-  `status` enum(pending,paid,cancelled) DEFAULT 'pending',
-  `created_by` int NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `transaction_products` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `transaction_id` int NOT NULL,
-  `product_id` int NOT NULL,
-  `shop_location_id` int,
-  `buyer_cost` decimal(12,2) NOT NULL DEFAULT 0,
-  `selling_price` decimal(12,2) NOT NULL,
-  `product_unit_id` int,
-  `is_percentage_discount` boolean DEFAULT false,
-  `discount_value` decimal(12,2) DEFAULT 0,
-  `discount_max_value` decimal(12,2) DEFAULT 0,
-  `vat` decimal(12,2) DEFAULT 0,
-  `quantity` decimal(10,3) NOT NULL,
-  `status` enum(active,returned,exchanged) DEFAULT 'active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `transaction_modifiers` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `transaction_product_id` int NOT NULL,
-  `product_modifier_id` int NOT NULL,
-  `extra_price` decimal(10,2) NOT NULL DEFAULT 0,
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now())
-);
-
-CREATE TABLE `transaction_service_charges` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `transaction_id` int NOT NULL,
-  `service_charge_id` int NOT NULL,
-  `total_amount` decimal(12,2) DEFAULT 0,
-  `total_vat` decimal(12,2) DEFAULT 0,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now())
-);
-
-CREATE TABLE `refund_transactions` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `customer_id` int,
-  `selling_transaction_id` int NOT NULL,
-  `shift_id` int,
-  `user_id` int,
-  `total_amount` decimal(12,2) DEFAULT 0,
-  `total_vat` decimal(12,2) DEFAULT 0,
-  `is_cash` boolean DEFAULT true,
-  `refund_time` timestamp DEFAULT (now()),
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now())
-);
-
-CREATE TABLE `refund_transaction_products` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `refund_transaction_id` int NOT NULL,
-  `transaction_product_id` int NOT NULL,
-  `total_quantity_returned` decimal(10,3) DEFAULT 0,
-  `total_vat` decimal(12,2) DEFAULT 0,
-  `total_amount` decimal(12,2) DEFAULT 0,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now())
-);
-
-CREATE TABLE `exchange_transactions` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `customer_id` int,
-  `selling_transaction_id` int NOT NULL,
-  `shift_id` int,
-  `total_exchanged_amount` decimal(12,2) DEFAULT 0,
-  `total_exchanged_vat` decimal(12,2) DEFAULT 0,
-  `product_exchanged_quantity` decimal(10,3) DEFAULT 0,
-  `exchange_time` timestamp DEFAULT (now()),
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now())
-);
-
-CREATE TABLE `customer_payments` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `customer_id` int,
-  `shift_id` int,
-  `amount_paid` decimal(12,2) DEFAULT 0,
-  `cheque_number` varchar(50),
-  `cheque_date` date,
-  `cheque_bank_name` varchar(100),
-  `payment_time` timestamp DEFAULT (now()),
-  `is_paid` boolean DEFAULT true,
-  `payment_type` varchar(20),
-  `ref_payment_id` int,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now())
-);
-
-CREATE TABLE `Payment_Options` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(255) NOT NULL,
-  `payment_code` varchar(50) NOT NULL,
-  `name_ar` varchar(255),
-  `status` boolean NOT NULL DEFAULT true,
-  `created_by` int,
-  `created_at` datetime,
-  `updated_by` int,
-  `updated_at` datetime,
-  `deleted_by` int,
-  `deleted_at` datetime
-);
-
-CREATE TABLE `payment_transaction` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `sales_id` int,
-  `payment_method_id` int NOT NULL,
-  `amount` decimal(12,2) NOT NULL,
-  `transaction_reference` varchar(100),
-  `notes` text,
-  `created_at` timestamp DEFAULT (now())
-);
-
-CREATE TABLE `tax_types` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(100) NOT NULL,
-  `description` text,
-  `value` decimal(10,4) NOT NULL,
-  `included_in_price` boolean DEFAULT false,
-  `is_percentage` boolean DEFAULT true,
-  `applies_to_buying` boolean DEFAULT false,
-  `applies_to_selling` boolean DEFAULT true,
-  `status` boolean DEFAULT true,
-  `created_by` bigint,
-  `created_at` datetime DEFAULT (current_timestamp),
-  `updated_by` bigint,
-  `updated_at` datetime,
-  `deleted_by` bigint,
-  `deleted_at` datetime
-);
-
-CREATE TABLE `product_taxes` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `product_id` bigint NOT NULL,
-  `tax_type_id` bigint NOT NULL
-);
-
-CREATE TABLE `service_charges` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(100),
-  `description` text,
-  `charge_type` enum(flat,percentage),
-  `charge_value` decimal(10,2),
-  `charge_value_arabic` decimal(10,2),
-  `apply_to` enum(invoice,product,category,order),
-  `is_taxable` boolean DEFAULT false,
-  `is_active` boolean DEFAULT true,
-  `created_by` varchar(255),
-  `created_at` timestamp,
-  `updated_by` varchar(255),
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` varchar(255)
-);
-
-CREATE TABLE `service_charge_types` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `service_charge_type_code` varchar(20) UNIQUE NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `description` text,
-  `calculation_method` varchar(20) DEFAULT 'PERCENT',
-  `rate_value` decimal(10,2),
-  `status` boolean DEFAULT true,
-  `created_by` bigint,
-  `created_at` datetime DEFAULT (current_timestamp),
-  `updated_by` bigint,
-  `updated_at` datetime,
-  `deleted_by` bigint,
-  `deleted_at` datetime
-);
-
-CREATE TABLE `service_charge_types_translations` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `language_id` bigint NOT NULL,
-  `service_charge_type_id` bigint NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `status` boolean DEFAULT true,
-  `created_by` bigint,
-  `created_at` datetime DEFAULT (current_timestamp),
-  `updated_by` bigint,
-  `updated_at` datetime,
-  `deleted_by` bigint,
-  `deleted_at` datetime
-);
-
-CREATE TABLE `service_charge_options` (
-  `service_charge_option_id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `service_charge_type_id` bigint NOT NULL,
-  `cost` decimal(10,2),
-  `language_id` bigint NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `price` decimal(10,2),
-  `status` boolean DEFAULT true,
-  `created_by` bigint,
-  `created_at` datetime DEFAULT (current_timestamp),
-  `updated_by` bigint,
-  `updated_at` datetime,
-  `deleted_by` bigint,
-  `deleted_at` datetime
-);
-
-CREATE TABLE `service_charge_options_translations` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `language_id` bigint NOT NULL,
-  `service_charge_option_id` bigint NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `status` boolean DEFAULT true,
-  `created_by` bigint,
-  `created_at` datetime DEFAULT (current_timestamp),
-  `updated_by` bigint,
-  `updated_at` datetime,
-  `deleted_by` bigint,
-  `deleted_at` datetime
-);
---shift tables
-CREATE TABLE `shift_types` (
-  `shift_type_id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `shift_name` varchar(100) NOT NULL,
-  `shop_location_id` bigint NOT NULL,
-  `start_time` time NOT NULL,
-  `end_time` time NOT NULL,
-  `status` boolean DEFAULT true COMMENT 'Active/Inactive',
-  `created_by` bigint NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` bigint,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` bigint
-);
-
-CREATE TABLE `shifts` (
-  `shift_id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `shift_type_id` bigint,
-  `cashbox_id` bigint NOT NULL,
-  `start_balance` decimal(12,2) DEFAULT 0,
-  `end_balance` decimal(12,2) DEFAULT 0,
-  `open_date_time` timestamp NOT NULL,
-  `close_date_time` timestamp,
-  `status` varchar(20) DEFAULT 'Scheduled' COMMENT 'Scheduled/In-Progress/Completed/Closed',
-  `created_by` bigint NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` bigint,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` bigint
-);
-
-CREATE TABLE `shift_user` (
-  `shift_user_id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `shift_id` bigint NOT NULL,
-  `user_id` bigint NOT NULL,
-  `status` varchar(20) DEFAULT 'Active' COMMENT 'Active/Replaced/Cancelled',
-  `created_by` bigint NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` bigint,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` bigint
-);
-
-CREATE TABLE `shift_transactions` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `shift_id` bigint NOT NULL,
-  `transaction_type` varchar(50) NOT NULL COMMENT 'Open/Close/Adjustment',
-  `amount` decimal(12,2) NOT NULL,
-  `notes` text,
-  `created_by` bigint NOT NULL,
-  `created_at` timestamp DEFAULT (now())
-);
---cashbox tables
-CREATE TABLE `cash_box` (
-  `cash_box_id` int PRIMARY KEY AUTO_INCREMENT,
-  `shop_location_id` int NOT NULL,
-  `shift_id` int NOT NULL,
-  `cash_box_name` varchar(100) NOT NULL,
-  `status` varchar(20) DEFAULT 'Active' COMMENT 'Open/Closed/Inactive',
-  `created_by` int NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `cash_in_out` (
-  `cash_in_id` int PRIMARY KEY AUTO_INCREMENT,
-  `cash_box_id` int NOT NULL,
-  `payment_id` int NOT NULL,
-  `reason` varchar(255),
-  `amount_out` decimal(12,2) DEFAULT 0,
-  `amount_in` decimal(12,2) DEFAULT 0,
-  `note` text,
-  `status` varchar(20) DEFAULT 'Completed' COMMENT 'Completed/Pending/Cancelled',
-  `created_by` int NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `cash_box_balance` (
-  `cash_box_id` int PRIMARY KEY,
-  `current_balance` decimal(12,2) NOT NULL,
-  `last_updated` timestamp DEFAULT (now())
-);
---proggram module
-CREATE TABLE `Programs` (
-  `Program_ID` int PRIMARY KEY AUTO_INCREMENT,
-  `vat` decimal(10,2),
-  `is_percentage_discount` boolean,
-  `discount_value` decimal(10,2),
-  `discount_max_value` decimal(10,2),
-  `discount_note` varchar(255),
-  `total_applied_vat` decimal(10,2),
-  `total_applied_discounts_value` decimal(10,2),
-  `Name` varchar(150),
-  `Description` text,
-  `Start_Date` date,
-  `End_Date` date,
-  `Program_Price` decimal(10,2),
-  `Number_of_Meals` int,
-  `Status` varchar(20),
-  `created_by` int,
-  `created_at` timestamp,
-  `Updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `Program_Translations` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `Program_id` int,
-  `language_id` int,
-  `name` varchar(150),
-  `description` text,
-  `Status` varchar(20),
-  `created_by` int,
-  `created_at` timestamp,
-  `Updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `Program_Meals` (
-  `Program_Meals_ID` int PRIMARY KEY AUTO_INCREMENT,
-  `Program_ID` int,
-  `Name` varchar(150),
-  `Time` time,
-  `Status` varchar(20),
-  `created_by` int,
-  `created_at` timestamp,
-  `Updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `Program_Products` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `program_id` int,
-  `product_id` int,
-  `product_unit_id` int,
-  `quantity` int,
-  `price` decimal(10,2),
-  `vat` decimal(10,2),
-  `is_percentage_discount` boolean,
-  `discount_value` decimal(10,2),
-  `discount_max_value` decimal(10,2),
-  `discount_note` varchar(255),
-  `Status` varchar(20),
-  `created_by` int,
-  `created_at` timestamp,
-  `Updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `Program_Subscriptions` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `program_id` int,
-  `Customer_ID` int,
-  `Status` varchar(20),
-  `created_by` int,
-  `created_at` timestamp,
-  `Updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `Program_Order_Delivery` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `program_id` int,
-  `customer_id` int,
-  `delivery_status` varchar(20),
-  `send_time` datetime,
-  `Status` varchar(20),
-  `created_by` int,
-  `created_at` timestamp,
-  `Updated_by` int,
-  `updated_at` timestamp,
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
---shop tables
-CREATE TABLE `shop` (
-  `shop_id` int PRIMARY KEY AUTO_INCREMENT,
-  `company_id` int NOT NULL,
-  `industry_type_id` int,
-  `name` varchar(100) NOT NULL,
-  `pos_id` varchar(50) COMMENT 'POS system identifier',
-  `pos_name` varchar(100),
-  `number_of_locations_allowed` int DEFAULT 1,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `shop_locations` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `shop_id` int NOT NULL,
-  `location_type` varchar(50) NOT NULL COMMENT 'Retail/Warehouse/etc.',
-  `location_name` varchar(100) NOT NULL,
-  `manager_id` int,
-  `address_line1` varchar(255) NOT NULL,
-  `address_line2` varchar(255),
-  `building` varchar(100),
-  `area` varchar(100),
-  `po_box` varchar(20),
-  `city` varchar(100),
-  `state_id` int,
-  `country_id` int,
-  `landline_number` varchar(20),
-  `mobile_number` varchar(20),
-  `location_latitude` decimal(10,8),
-  `location_longitude` decimal(11,8),
-  `can_sell` boolean DEFAULT true,
-  `language_id` int,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `shop_location_translation_ar` (
-  `id` int PRIMARY KEY AUTO_INCREMENT, 
-  `shop_location_id` int NOT NULL,
-  `language_id` int NOT NULL,
-  `name_ar` varchar(100),
-  `address_line1_ar` varchar(255),
-  `address_line2_ar` varchar(255),
-  `building_ar` varchar(100),
-  `area_ar` varchar(100),
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `shop_users` (
-  `shop_users_id` int PRIMARY KEY AUTO_INCREMENT,
-  `shop_id` int NOT NULL,
-  `user_id` int NOT NULL,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `shop_type` (
-  `shop_type_id` int PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(100) NOT NULL,
-  `default_selling_price_type_id` int,
-  `start_time` time COMMENT 'Default opening time',
-  `end_time` time COMMENT 'Default closing time',
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `uom` (
-  `id` bigint PRIMARY KEY,
-  `name` varchar(50),
-  `abbreviation` varchar(10),
-  `base_uom_id` bigint,
-  `conversion_factor` decimal(10,4),
-  `is_active` boolean,
-  `created_at` datetime,
-  `updated_at` datetime
-);
-
-CREATE TABLE `unit_options` (
-  `units_options_id` int PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(50) NOT NULL,
-  `description` varchar(255),
-  `category_title` varchar(50),
-  `type` varchar(20) NOT NULL COMMENT '''Base'' or ''Derived''',
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
-
-CREATE TABLE `product_unit` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `unit_name` varchar(50) NOT NULL,
-  `unit_symbol` varchar(10) NOT NULL,
-  `parent_unit_id` int,
-  `qty_in_parent` int NOT NULL DEFAULT 1,
-  `is_base` boolean NOT NULL DEFAULT false,
-  `created_at` timestamp NOT NULL DEFAULT (now())
-);
-
-CREATE TABLE `unit_prices` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `unit_id` int NOT NULL,
-  `color` varchar(50),
-  `cost` decimal(10,2) NOT NULL,
-  `selling_price_id` int NOT NULL,
-  `price_type` varchar(50) NOT NULL DEFAULT 'Retail',
-  `discount_allowed` boolean NOT NULL DEFAULT false,
-  `created_at` timestamp NOT NULL DEFAULT (now()),
-  `updated_at` timestamp NOT NULL DEFAULT (now())
-);
-
-CREATE TABLE `selling_price_types` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `type_name` varchar(100) NOT NULL,
-  `arabic_name` varchar(100) NOT NULL,
-  `description` text,
-  `status` boolean DEFAULT true,
-  `created_by` bigint,
-  `created_at` datetime DEFAULT (current_timestamp),
-  `updated_by` bigint,
-  `updated_at` datetime,
-  `deleted_by` bigint,
-  `deleted_at` datetime
-);
-
-CREATE TABLE `unit_option_conversion` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `unit_option_id` int NOT NULL,
-  `unit_value_from_id` int NOT NULL,
-  `unit_value_to_id` int NOT NULL,
-  `unit_conversion_rate` decimal(12,6) NOT NULL,
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
-);
---reservation module only for restaurant type shops
-CREATE TABLE `reservation` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `deleted` int,
-  `customer_id` int,
-  `table_number` int,
-  `number_of_persons` int,
-  `reservation_date` date,
-  `reservation_time` time,
-  `deposit_fee` decimal(10,2),
-  `payment_method` int NOT NULL,
-  `status` enum(confirmed,waiting,cancelled) DEFAULT 'waiting',
-  `notes` text,
-  `created_at` timestamp DEFAULT (now())
-);
-
-CREATE TABLE `Tranasaction_types` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `type_name` varchar(255) NOT NULL,
-  `type_name_ar` varchar(255) NOT NULL,
-  `description` text,
-  `status` varchar(50),
-  `created_by` bigint,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` bigint,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` bigint
-);
-
-CREATE UNIQUE INDEX `roles_permission_index_0` ON `roles_permission` (`role_id`, `permission_id`);
-
-CREATE UNIQUE INDEX `user_permission_overrides_index_1` ON `user_permission_overrides` (`user_id`, `permission_id`);
-
-CREATE INDEX `category_index_2` ON `category` (`parent_id`);
-
-CREATE INDEX `category_index_3` ON `category` (`display_order`);
-
-CREATE UNIQUE INDEX `category_translation_index_4` ON `category_translation` (`category_id`, `language_code`);
-
-CREATE UNIQUE INDEX `product_attribute_options_index_5` ON `product_attribute_options` (`product_id`, `attribute_id`, `value_id`);
-
-CREATE INDEX `product_combinations_index_6` ON `product_combinations` (`product_id`);
-
-CREATE INDEX `product_combinations_index_7` ON `product_combinations` (`sku`);
-
-CREATE INDEX `product_combinations_index_8` ON `product_combinations` (`barcode`);
-
-CREATE INDEX `product_combination_items_index_9` ON `product_combination_items` (`combination_id`);
-
-CREATE UNIQUE INDEX `product_combination_items_index_10` ON `product_combination_items` (`combination_id`, `attribute_id`);
-
-CREATE UNIQUE INDEX `product_modifier_links_index_11` ON `product_modifier_links` (`product_id`, `modifier_group_id`);
-
-CREATE UNIQUE INDEX `product_batches_index_12` ON `product_batches` (`product_id`, `batch_no`);
-
-CREATE INDEX `product_batches_index_13` ON `product_batches` (`expiry_date`);
-
-CREATE INDEX `stock_movement_index_14` ON `stock_movement` (`product_id`);
-
-CREATE INDEX `stock_movement_index_15` ON `stock_movement` (`reference_type`);
-
-CREATE INDEX `stock_movement_index_16` ON `stock_movement` (`reference_id`);
-
-CREATE INDEX `supplier_index_17` ON `supplier` (`company_name`);
-
-CREATE INDEX `supplier_index_18` ON `supplier` (`vat_trn_number`);
-
-CREATE INDEX `supplier_index_19` ON `supplier` (`email`);
-
-CREATE UNIQUE INDEX `supplier_translation_index_20` ON `supplier_translation` (`supplier_id`, `language_id`);
-
-CREATE INDEX `supplier_bank_accounts_index_21` ON `supplier_bank_accounts` (`supplier_id`, `account_number`);
-
-CREATE UNIQUE INDEX `supplier_purchase_index_22` ON `supplier_purchase` (`invoice_no`);
-
-CREATE INDEX `supplier_purchase_index_23` ON `supplier_purchase` (`supplier_id`);
-
-CREATE INDEX `supplier_purchase_index_24` ON `supplier_purchase` (`invoice_date`);
-
-CREATE UNIQUE INDEX `product_warranty_index_25` ON `product_warranty` (`product_id`, `warranty_type_id`);
-
-CREATE INDEX `sales_warranty_index_26` ON `sales_warranty` (`sale_id`, `product_id`);
-
-CREATE INDEX `sales_warranty_index_27` ON `sales_warranty` (`end_date`);
-
-CREATE INDEX `product_variants_index_28` ON `product_variants` (`product_id`);
-
-CREATE INDEX `product_variants_index_29` ON `product_variants` (`unit_option_id`);
-
-CREATE INDEX `product_variants_index_30` ON `product_variants` (`barcode`);
-
-CREATE UNIQUE INDEX `shift_user_index_31` ON `shift_user` (`shift_id`, `user_id`);
-
-CREATE INDEX `cash_box_index_32` ON `cash_box` (`shop_location_id`);
-
-CREATE INDEX `cash_box_index_33` ON `cash_box` (`shift_id`);
-
-CREATE INDEX `cash_in_out_index_34` ON `cash_in_out` (`cash_box_id`);
-
-CREATE INDEX `cash_in_out_index_35` ON `cash_in_out` (`payment_id`);
-
-CREATE INDEX `cash_in_out_index_36` ON `cash_in_out` (`created_at`);
-
-CREATE INDEX `shop_locations_index_37` ON `shop_locations` (`shop_id`);
-
-CREATE INDEX `shop_locations_index_38` ON `shop_locations` (`location_type`);
-
-CREATE UNIQUE INDEX `shop_location_translation_ar_index_39` ON `shop_location_translation_ar` (`shop_location_id`, `language_id`);
-
-CREATE UNIQUE INDEX `shop_users_index_40` ON `shop_users` (`shop_id`, `user_id`);
-
-CREATE UNIQUE INDEX `unit_option_conversion_index_41` ON `unit_option_conversion` (`unit_value_from_id`, `unit_value_to_id`);
-
-CREATE INDEX `unit_option_conversion_index_42` ON `unit_option_conversion` (`unit_option_id`);
-
-ALTER TABLE `language` COMMENT = 'Supported languages with full audit tracking';
-
-ALTER TABLE `label_translation` COMMENT = 'Stores translated labels/text for multilingual support with full audit tracking';
-
-ALTER TABLE `roles` COMMENT = 'Defines different user roles in the system';
-
-ALTER TABLE `permissions` COMMENT = 'Individual system permissions';
-
-ALTER TABLE `roles_permission` COMMENT = 'Links roles to their permissions';
-
-ALTER TABLE `user_permission_overrides` COMMENT = 'Temporary permission exceptions for users';
-
-ALTER TABLE `category` COMMENT = 'Product category hierarchy';
-
-ALTER TABLE `category_translation` COMMENT = 'Multilingual category names';
-
-ALTER TABLE `product` COMMENT = 'Core product table with minimal fields';
-
-ALTER TABLE `product_info` COMMENT = 'Extended product information';
-
-ALTER TABLE `product_attributes` COMMENT = 'Defines product attributes like size, color etc.';
-
-ALTER TABLE `product_attribute_values` COMMENT = 'Possible values for each attribute';
-
-ALTER TABLE `product_attribute_options` COMMENT = 'Links products to their attribute options';
-
-ALTER TABLE `product_combinations` COMMENT = 'Predefined combinations of attributes';
-
-ALTER TABLE `product_combination_items` COMMENT = 'Components of each product combination';
-
-ALTER TABLE `product_barcodes` COMMENT = 'Multiple barcode support per product';
-
-ALTER TABLE `product_images` COMMENT = 'Product images with ordering support';
-
-ALTER TABLE `product_modifiers` COMMENT = 'Individual product modifiers/add-ons';
-
-ALTER TABLE `product_modifier_groups` COMMENT = 'Groups of modifiers (e.g., Pizza Toppings)';
-
-ALTER TABLE `product_modifier_group_items` COMMENT = 'Links modifiers to modifier groups';
-
-ALTER TABLE `product_modifier_links` COMMENT = 'Links products to modifier groups';
-
-ALTER TABLE `product_batches` COMMENT = 'Batch tracking for inventory';
-
-ALTER TABLE `stock_movement` COMMENT = 'Detailed stock movement tracking';
-
-ALTER TABLE `stock_transfer` COMMENT = 'Inventory transfers between locations';
-
-ALTER TABLE `stock_transfer_item` COMMENT = 'Line items for stock transfers';
-
-ALTER TABLE `stock_adjustment` COMMENT = 'Records for inventory adjustments';
-
-ALTER TABLE `stock_adjustment_reasons` COMMENT = 'Tracks reasons for inventory adjustments';
-
-ALTER TABLE `stock_adjustment_item` COMMENT = 'Line items for stock adjustments';
-
-ALTER TABLE `stock_ledger` COMMENT = 'Stock movement history ledger';
-
-ALTER TABLE `supplier` COMMENT = 'Supplier master data with complete contact and financial information';
-
-ALTER TABLE `supplier_translation` COMMENT = 'Multilingual supplier information';
-
-ALTER TABLE `supplier_bank_accounts` COMMENT = 'Supplier banking information with multiple account support';
-
-ALTER TABLE `supplier_purchase` COMMENT = 'Supplier purchase orders/invoices';
-
-ALTER TABLE `warranty_type` COMMENT = 'Master table for all warranty types';
-
-ALTER TABLE `product_warranty` COMMENT = 'Links products to their available warranties';
-
-ALTER TABLE `sales_warranty` COMMENT = 'Tracks warranties actually sold to customers';
-
-ALTER TABLE `warranty_claims` COMMENT = 'Tracks customer warranty claims';
-
-ALTER TABLE `product_variants` COMMENT = 'Different packaging/sizing variants of products';
-
-ALTER TABLE `companies` COMMENT = 'Main company information table';
-
-ALTER TABLE `company_owners` COMMENT = 'Company owners/partners information';
-
-ALTER TABLE `company_addresses` COMMENT = 'Physical addresses for companies';
-
-ALTER TABLE `company_bank_accounts` COMMENT = 'Bank account information for companies';
-
-ALTER TABLE `license_info` COMMENT = 'License information for software access';
-
-ALTER TABLE `license_modules` COMMENT = 'Enabled modules for each license';
-
-ALTER TABLE `license_device_usage` COMMENT = 'Track per-device usage for licensing compliance';
-
-ALTER TABLE `shift_types` COMMENT = 'Template shifts for locations';
-
-ALTER TABLE `shifts` COMMENT = 'Actual shift instances with financial tracking';
-
-ALTER TABLE `shift_user` COMMENT = 'Assigns users to specific shifts';
-
-ALTER TABLE `shift_transactions` COMMENT = 'Detailed shift financial transactions';
-
-ALTER TABLE `cash_box` COMMENT = 'Physical cash boxes at each location';
-
-ALTER TABLE `cash_in_out` COMMENT = 'Records all cash movements in/out of boxes';
-
-ALTER TABLE `cash_box_balance` COMMENT = 'Calculated current balance for each cash box';
-
-ALTER TABLE `shop` COMMENT = 'Main shop/store information';
-
-ALTER TABLE `shop_locations` COMMENT = 'Physical locations for shops';
-
-ALTER TABLE `shop_location_translation_ar` COMMENT = 'Arabic translations for location information';
-
-ALTER TABLE `shop_users` COMMENT = 'Assigns users to specific shops';
-
-ALTER TABLE `shop_type` COMMENT = 'Defines different types of shops/stores';
-
-ALTER TABLE `uom` COMMENT = 'Units of measurement with conversion support';
-
-ALTER TABLE `unit_options` COMMENT = 'Master table for all unit types (kg, liter, etc.)';
-
-ALTER TABLE `unit_option_conversion` COMMENT = 'Defines conversion rules between product variants';
-
-ALTER TABLE `activity_logs` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
-
-ALTER TABLE `label_translation` ADD FOREIGN KEY (`language_id`) REFERENCES `language` (`id`);
-
-ALTER TABLE `industry_type_access` ADD FOREIGN KEY (`industry_type_id`) REFERENCES `industry_type` (`id`);
-
-ALTER TABLE `company_settings` ADD FOREIGN KEY (`currency_id`) REFERENCES `currencies` (`id`);
-
-ALTER TABLE `company_settings` ADD FOREIGN KEY (`invoice_default_language_id`) REFERENCES `language` (`id`);
-
-ALTER TABLE `company_settings` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `company_settings` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `company_settings` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `countries` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `countries` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `countries` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `states` ADD FOREIGN KEY (`country_id`) REFERENCES `countries` (`country_id`);
-
-ALTER TABLE `states` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `states` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `states` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `cities` ADD FOREIGN KEY (`state_id`) REFERENCES `states` (`state_id`);
-
-ALTER TABLE `cities` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `cities` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `cities` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `users` ADD FOREIGN KEY (`owner_id`) REFERENCES `owner` (`id`);
-
-ALTER TABLE `users` ADD FOREIGN KEY (`role_permission_id`) REFERENCES `roles_permission` (`role_permission_id`);
-
-ALTER TABLE `users` ADD FOREIGN KEY (`shopid`) REFERENCES `shop` (`shop_id`);
-
-ALTER TABLE `users` ADD FOREIGN KEY (`shift_type_id`) REFERENCES `shift_types` (`shift_type_id`);
-
-ALTER TABLE `roles` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `roles` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `roles` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `permissions` ADD FOREIGN KEY (`parent_permission_id`) REFERENCES `permissions` (`permission_id`);
-
-ALTER TABLE `permissions` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `permissions` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `permissions` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `roles_permission` ADD FOREIGN KEY (`role_id`) REFERENCES `roles` (`role_id`);
-
-ALTER TABLE `roles_permission` ADD FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`permission_id`);
-
-ALTER TABLE `roles_permission` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `roles_permission` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `roles_permission` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `user_permission_overrides` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
-
-ALTER TABLE `user_permission_overrides` ADD FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`permission_id`);
-
-ALTER TABLE `user_permission_overrides` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `category` ADD FOREIGN KEY (`parent_id`) REFERENCES `category` (`id`);
-
-ALTER TABLE `category` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `category_translation` ADD FOREIGN KEY (`category_id`) REFERENCES `category` (`id`);
-
-ALTER TABLE `product_info` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `product_info` ADD FOREIGN KEY (`category_id`) REFERENCES `category` (`id`);
-
-ALTER TABLE `product_info` ADD FOREIGN KEY (`sub_category_lvl1_id`) REFERENCES `category` (`id`);
-
-ALTER TABLE `product_info` ADD FOREIGN KEY (`sub_category_lvl2_id`) REFERENCES `category` (`id`);
-
-ALTER TABLE `product_info` ADD FOREIGN KEY (`brand_id`) REFERENCES `brand` (`id`);
-
-ALTER TABLE `product_info` ADD FOREIGN KEY (`supplier_id`) REFERENCES `supplier` (`supplier_id`);
-
-ALTER TABLE `product_info` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
-
-ALTER TABLE `product_info` ADD FOREIGN KEY (`stock_unit_id`) REFERENCES `uom` (`id`);
-
-ALTER TABLE `product_info` ADD FOREIGN KEY (`purchase_unit_id`) REFERENCES `uom` (`id`);
-
-ALTER TABLE `product_info` ADD FOREIGN KEY (`selling_unit_id`) REFERENCES `uom` (`id`);
-
-ALTER TABLE `product_info` ADD FOREIGN KEY (`warranty_type_id`) REFERENCES `warranty_type` (`id`);
-
-ALTER TABLE `product_quantity_history` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `product_attributes` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `product_attribute_values` ADD FOREIGN KEY (`attribute_id`) REFERENCES `product_attributes` (`id`);
-
-ALTER TABLE `product_attribute_options` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `product_attribute_options` ADD FOREIGN KEY (`attribute_id`) REFERENCES `product_attributes` (`id`);
-
-ALTER TABLE `product_attribute_options` ADD FOREIGN KEY (`value_id`) REFERENCES `product_attribute_values` (`id`);
-
-ALTER TABLE `product_combinations` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `product_combination_items` ADD FOREIGN KEY (`combination_id`) REFERENCES `product_combinations` (`id`);
-
-ALTER TABLE `product_combination_items` ADD FOREIGN KEY (`attribute_id`) REFERENCES `product_attributes` (`id`);
-
-ALTER TABLE `product_combination_items` ADD FOREIGN KEY (`value_id`) REFERENCES `product_attribute_values` (`id`);
-
-ALTER TABLE `product_barcodes` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `product_images` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `product_modifiers` ADD FOREIGN KEY (`tax_type_id`) REFERENCES `tax_types` (`id`);
-
-ALTER TABLE `product_modifiers` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `product_modifier_groups` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `product_modifier_group_items` ADD FOREIGN KEY (`group_id`) REFERENCES `product_modifier_groups` (`id`);
-
-ALTER TABLE `product_modifier_group_items` ADD FOREIGN KEY (`modifier_id`) REFERENCES `product_modifiers` (`id`);
-
-ALTER TABLE `product_modifier_links` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `product_modifier_links` ADD FOREIGN KEY (`modifier_group_id`) REFERENCES `product_modifier_groups` (`id`);
-
-ALTER TABLE `modifiers` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `product_batches` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `product_batches` ADD FOREIGN KEY (`uom_id`) REFERENCES `uom` (`id`);
-
-ALTER TABLE `stock_movement` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `stock_movement` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
-
-ALTER TABLE `stock_movement` ADD FOREIGN KEY (`uom_id`) REFERENCES `uom` (`id`);
-
-ALTER TABLE `stock_movement` ADD FOREIGN KEY (`location_id`) REFERENCES `shop_locations` (`id`);
-
-ALTER TABLE `stock_movement` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `stock_transfer` ADD FOREIGN KEY (`from_store_id`) REFERENCES `shop` (`shop_id`);
-
-ALTER TABLE `stock_transfer` ADD FOREIGN KEY (`to_store_id`) REFERENCES `shop` (`shop_id`);
-
-ALTER TABLE `stock_transfer` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `stock_transfer_item` ADD FOREIGN KEY (`transfer_id`) REFERENCES `stock_transfer` (`transfer_id`);
-
-ALTER TABLE `stock_transfer_item` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `stock_transfer_item` ADD FOREIGN KEY (`uom_id`) REFERENCES `uom` (`id`);
-
-ALTER TABLE `stock_adjustment` ADD FOREIGN KEY (`store_location_id`) REFERENCES `shop` (`shop_id`);
-
-ALTER TABLE `stock_adjustment` ADD FOREIGN KEY (`reason_id`) REFERENCES `stock_adjustment_reasons` (`stock_adjustment_reasons_id`);
-
-ALTER TABLE `stock_adjustment` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `stock_adjustment_item` ADD FOREIGN KEY (`adjustment_id`) REFERENCES `stock_adjustment` (`adjustment_id`);
-
-ALTER TABLE `stock_adjustment_item` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `stock_adjustment_item` ADD FOREIGN KEY (`uom_id`) REFERENCES `uom` (`id`);
-
-ALTER TABLE `stock_ledger` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `stock_ledger` ADD FOREIGN KEY (`unit_id`) REFERENCES `product_unit` (`id`);
-
-ALTER TABLE `supplier` ADD FOREIGN KEY (`shop_id`) REFERENCES `shop` (`shop_id`);
-
-ALTER TABLE `supplier` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `supplier` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `supplier` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `supplier_translation` ADD FOREIGN KEY (`supplier_id`) REFERENCES `supplier` (`supplier_id`);
-
-ALTER TABLE `supplier_translation` ADD FOREIGN KEY (`language_id`) REFERENCES `language` (`id`);
-
-ALTER TABLE `supplier_translation` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `supplier_translation` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `supplier_translation` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `supplier_bank_accounts` ADD FOREIGN KEY (`supplier_id`) REFERENCES `supplier` (`supplier_id`);
-
-ALTER TABLE `supplier_bank_accounts` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `supplier_bank_accounts` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `supplier_bank_accounts` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `supplier_purchase` ADD FOREIGN KEY (`supplier_id`) REFERENCES `supplier` (`supplier_id`);
-
-ALTER TABLE `supplier_purchase` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `supplier_purchase` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `supplier_purchase_item` ADD FOREIGN KEY (`purchase_id`) REFERENCES `supplier_purchase` (`purchase_id`);
-
-ALTER TABLE `supplier_purchase_item` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `supplier_purchase_item` ADD FOREIGN KEY (`product_variant_id`) REFERENCES `product_variants` (`variant_id`);
-
-ALTER TABLE `warranty_type` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `warranty_type` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `warranty_type` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `product_warranty` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `product_warranty` ADD FOREIGN KEY (`warranty_type_id`) REFERENCES `warranty_type` (`id`);
-
-ALTER TABLE `product_warranty` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `product_warranty` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `sales_warranty` ADD FOREIGN KEY (`sale_id`) REFERENCES `transactions` (`id`);
-
-ALTER TABLE `sales_warranty` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `sales_warranty` ADD FOREIGN KEY (`warranty_type_id`) REFERENCES `warranty_type` (`id`);
-
-ALTER TABLE `warranty_claims` ADD FOREIGN KEY (`sales_warranty_id`) REFERENCES `sales_warranty` (`id`);
-
-ALTER TABLE `warranty_claims` ADD FOREIGN KEY (`resolved_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `product_variants` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `product_variants` ADD FOREIGN KEY (`unit_option_id`) REFERENCES `unit_options` (`units_options_id`);
-
-ALTER TABLE `product_variants` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `product_variants` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `product_variants` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `companies` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `companies` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `companies` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `company_owners` ADD FOREIGN KEY (`company_id`) REFERENCES `companies` (`company_id`);
-
-ALTER TABLE `company_owners` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `company_owners` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `company_owners` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `company_addresses` ADD FOREIGN KEY (`company_id`) REFERENCES `companies` (`company_id`);
-
-ALTER TABLE `company_addresses` ADD FOREIGN KEY (`state_id`) REFERENCES `states` (`state_id`);
-
-ALTER TABLE `company_addresses` ADD FOREIGN KEY (`country_id`) REFERENCES `countries` (`country_id`);
-
-ALTER TABLE `company_addresses` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `company_addresses` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `company_addresses` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `company_bank_accounts` ADD FOREIGN KEY (`company_id`) REFERENCES `companies` (`company_id`);
-
-ALTER TABLE `company_bank_accounts` ADD FOREIGN KEY (`company_address_id`) REFERENCES `company_addresses` (`company_address_id`);
-
-ALTER TABLE `company_bank_accounts` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `company_bank_accounts` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `company_bank_accounts` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `license_info` ADD FOREIGN KEY (`company_id`) REFERENCES `companies` (`company_id`);
-
-ALTER TABLE `license_info` ADD FOREIGN KEY (`plan_id`) REFERENCES `plan` (`id`);
-
-ALTER TABLE `license_modules` ADD FOREIGN KEY (`license_id`) REFERENCES `license_info` (`id`);
-
-ALTER TABLE `license_device_usage` ADD FOREIGN KEY (`license_id`) REFERENCES `license_info` (`id`);
-
-ALTER TABLE `customer` ADD FOREIGN KEY (`business_type_id`) REFERENCES `business_type_master` (`id`);
-
-ALTER TABLE `customer` ADD FOREIGN KEY (`shop_id`) REFERENCES `shop` (`shop_id`);
-
-ALTER TABLE `customer` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customer` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customer` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `business_type_master` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `business_type_master` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `business_type_master` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customer_address` ADD FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`);
-
-ALTER TABLE `customer_address` ADD FOREIGN KEY (`state_id`) REFERENCES `states` (`state_id`);
-
-ALTER TABLE `customer_address` ADD FOREIGN KEY (`country_id`) REFERENCES `countries` (`country_id`);
-
-ALTER TABLE `customer_address` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customer_address` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customer_address` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customer_address_translation` ADD FOREIGN KEY (`customer_address_id`) REFERENCES `customer_address` (`id`);
-
-ALTER TABLE `customer_address_translation` ADD FOREIGN KEY (`language_id`) REFERENCES `language` (`id`);
-
-ALTER TABLE `customer_address_translation` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customer_address_translation` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customer_address_translation` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customers_groups` ADD FOREIGN KEY (`selling_price_type_id`) REFERENCES `selling_price_types` (`id`);
-
-ALTER TABLE `customers_groups` ADD FOREIGN KEY (`discount_id`) REFERENCES `discounts` (`id`);
-
-ALTER TABLE `customers_groups` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customers_groups` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customers_groups` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `discounts` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `discounts` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `discounts` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `product_discount` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `product_discount` ADD FOREIGN KEY (`discounts_id`) REFERENCES `discounts` (`id`);
-
-ALTER TABLE `product_discount` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `product_discount` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `product_discount` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customers_group_relation` ADD FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`);
-
-ALTER TABLE `customers_group_relation` ADD FOREIGN KEY (`customer_group_id`) REFERENCES `customers_groups` (`id`);
-
-ALTER TABLE `customers_group_relation` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customers_group_relation` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customers_group_relation` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customer_balance` ADD FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`);
-
-ALTER TABLE `customer_balance` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customer_balance` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customer_balance` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `transactions` ADD FOREIGN KEY (`shift_id`) REFERENCES `shifts` (`shift_id`);
-
-ALTER TABLE `transactions` ADD FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`);
-
-ALTER TABLE `transactions` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
-
-ALTER TABLE `transactions` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop` (`shop_id`);
-
-ALTER TABLE `transactions` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `transactions` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `transactions` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `transaction_products` ADD FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`id`);
-
-ALTER TABLE `transaction_products` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `transaction_products` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop` (`shop_id`);
-
-ALTER TABLE `transaction_products` ADD FOREIGN KEY (`product_unit_id`) REFERENCES `unit_options` (`units_options_id`);
-
-ALTER TABLE `transaction_products` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `transaction_products` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `transaction_products` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `transaction_modifiers` ADD FOREIGN KEY (`transaction_product_id`) REFERENCES `transaction_products` (`id`);
-
-ALTER TABLE `transaction_modifiers` ADD FOREIGN KEY (`product_modifier_id`) REFERENCES `modifiers` (`id`);
-
-ALTER TABLE `transaction_modifiers` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `transaction_service_charges` ADD FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`id`);
-
-ALTER TABLE `transaction_service_charges` ADD FOREIGN KEY (`service_charge_id`) REFERENCES `service_charges` (`id`);
-
-ALTER TABLE `transaction_service_charges` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `refund_transactions` ADD FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`);
-
-ALTER TABLE `refund_transactions` ADD FOREIGN KEY (`selling_transaction_id`) REFERENCES `transactions` (`id`);
-
-ALTER TABLE `refund_transactions` ADD FOREIGN KEY (`shift_id`) REFERENCES `shifts` (`shift_id`);
-
-ALTER TABLE `refund_transactions` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
-
-ALTER TABLE `refund_transactions` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `refund_transaction_products` ADD FOREIGN KEY (`refund_transaction_id`) REFERENCES `refund_transactions` (`id`);
-
-ALTER TABLE `refund_transaction_products` ADD FOREIGN KEY (`transaction_product_id`) REFERENCES `transaction_products` (`id`);
-
-ALTER TABLE `refund_transaction_products` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `exchange_transactions` ADD FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`);
-
-ALTER TABLE `exchange_transactions` ADD FOREIGN KEY (`selling_transaction_id`) REFERENCES `transactions` (`id`);
-
-ALTER TABLE `exchange_transactions` ADD FOREIGN KEY (`shift_id`) REFERENCES `shifts` (`shift_id`);
-
-ALTER TABLE `exchange_transactions` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `customer_payments` ADD FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`);
-
-ALTER TABLE `customer_payments` ADD FOREIGN KEY (`shift_id`) REFERENCES `shifts` (`shift_id`);
-
-ALTER TABLE `customer_payments` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `payment_transaction` ADD FOREIGN KEY (`sales_id`) REFERENCES `transactions` (`id`);
-
-ALTER TABLE `payment_transaction` ADD FOREIGN KEY (`payment_method_id`) REFERENCES `Payment_Options` (`id`);
-
-ALTER TABLE `tax_types` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `tax_types` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `tax_types` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `product_taxes` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `product_taxes` ADD FOREIGN KEY (`tax_type_id`) REFERENCES `tax_types` (`id`);
-
-ALTER TABLE `service_charge_types` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `service_charge_types` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `service_charge_types` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `service_charge_types_translations` ADD FOREIGN KEY (`language_id`) REFERENCES `language` (`id`);
-
-ALTER TABLE `service_charge_types_translations` ADD FOREIGN KEY (`service_charge_type_id`) REFERENCES `service_charge_types` (`id`);
-
-ALTER TABLE `service_charge_types_translations` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `service_charge_types_translations` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `service_charge_types_translations` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `service_charge_options` ADD FOREIGN KEY (`service_charge_type_id`) REFERENCES `service_charge_types` (`id`);
-
-ALTER TABLE `service_charge_options` ADD FOREIGN KEY (`language_id`) REFERENCES `language` (`id`);
-
-ALTER TABLE `service_charge_options` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `service_charge_options` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `service_charge_options` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `service_charge_options_translations` ADD FOREIGN KEY (`language_id`) REFERENCES `language` (`id`);
-
-ALTER TABLE `service_charge_options_translations` ADD FOREIGN KEY (`service_charge_option_id`) REFERENCES `service_charge_options` (`service_charge_option_id`);
-
-ALTER TABLE `service_charge_options_translations` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `service_charge_options_translations` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `service_charge_options_translations` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shift_types` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
-
-ALTER TABLE `shift_types` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shift_types` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shift_types` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shifts` ADD FOREIGN KEY (`shift_type_id`) REFERENCES `shift_types` (`shift_type_id`);
-
-ALTER TABLE `shifts` ADD FOREIGN KEY (`cashbox_id`) REFERENCES `cash_box` (`cash_box_id`);
-
-ALTER TABLE `shifts` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shifts` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shifts` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shift_user` ADD FOREIGN KEY (`shift_id`) REFERENCES `shifts` (`shift_id`);
-
-ALTER TABLE `shift_user` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shift_user` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shift_user` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shift_user` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shift_transactions` ADD FOREIGN KEY (`shift_id`) REFERENCES `shifts` (`shift_id`);
-
-ALTER TABLE `shift_transactions` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `cash_box` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
-
-ALTER TABLE `cash_box` ADD FOREIGN KEY (`shift_id`) REFERENCES `shifts` (`shift_id`);
-
-ALTER TABLE `cash_box` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `cash_box` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `cash_box` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `cash_in_out` ADD FOREIGN KEY (`cash_box_id`) REFERENCES `cash_box` (`cash_box_id`);
-
-ALTER TABLE `cash_in_out` ADD FOREIGN KEY (`payment_id`) REFERENCES `Payment_Options` (`id`);
-
-ALTER TABLE `cash_in_out` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `cash_in_out` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `cash_in_out` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `cash_box_balance` ADD FOREIGN KEY (`cash_box_id`) REFERENCES `cash_box` (`cash_box_id`);
-
-ALTER TABLE `Programs` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Programs` ADD FOREIGN KEY (`Updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Programs` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Program_Translations` ADD FOREIGN KEY (`Program_id`) REFERENCES `Programs` (`Program_ID`);
-
-ALTER TABLE `Program_Translations` ADD FOREIGN KEY (`language_id`) REFERENCES `language` (`id`);
-
-ALTER TABLE `Program_Translations` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Program_Translations` ADD FOREIGN KEY (`Updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Program_Translations` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Program_Meals` ADD FOREIGN KEY (`Program_ID`) REFERENCES `Programs` (`Program_ID`);
-
-ALTER TABLE `Program_Meals` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Program_Meals` ADD FOREIGN KEY (`Updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Program_Meals` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Program_Products` ADD FOREIGN KEY (`program_id`) REFERENCES `Programs` (`Program_ID`);
-
-ALTER TABLE `Program_Products` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `Program_Products` ADD FOREIGN KEY (`product_unit_id`) REFERENCES `product_unit` (`id`);
-
-ALTER TABLE `Program_Products` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Program_Products` ADD FOREIGN KEY (`Updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Program_Products` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Program_Subscriptions` ADD FOREIGN KEY (`program_id`) REFERENCES `Programs` (`Program_ID`);
-
-ALTER TABLE `Program_Subscriptions` ADD FOREIGN KEY (`Customer_ID`) REFERENCES `customer` (`id`);
-
-ALTER TABLE `Program_Subscriptions` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Program_Subscriptions` ADD FOREIGN KEY (`Updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Program_Subscriptions` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Program_Order_Delivery` ADD FOREIGN KEY (`program_id`) REFERENCES `Programs` (`Program_ID`);
-
-ALTER TABLE `Program_Order_Delivery` ADD FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`);
-
-ALTER TABLE `Program_Order_Delivery` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Program_Order_Delivery` ADD FOREIGN KEY (`Updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `Program_Order_Delivery` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop` ADD FOREIGN KEY (`company_id`) REFERENCES `companies` (`company_id`);
-
-ALTER TABLE `shop` ADD FOREIGN KEY (`industry_type_id`) REFERENCES `industry_type` (`id`);
-
-ALTER TABLE `shop` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop_locations` ADD FOREIGN KEY (`shop_id`) REFERENCES `shop` (`shop_id`);
-
-ALTER TABLE `shop_locations` ADD FOREIGN KEY (`manager_id`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop_locations` ADD FOREIGN KEY (`state_id`) REFERENCES `states` (`state_id`);
-
-ALTER TABLE `shop_locations` ADD FOREIGN KEY (`country_id`) REFERENCES `countries` (`country_id`);
-
-ALTER TABLE `shop_locations` ADD FOREIGN KEY (`language_id`) REFERENCES `language` (`id`);
-
-ALTER TABLE `shop_locations` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop_locations` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop_locations` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop_location_translation_ar` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
-
-ALTER TABLE `shop_location_translation_ar` ADD FOREIGN KEY (`language_id`) REFERENCES `language` (`id`);
-
-ALTER TABLE `shop_location_translation_ar` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop_location_translation_ar` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop_location_translation_ar` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop_users` ADD FOREIGN KEY (`shop_id`) REFERENCES `shop` (`shop_id`);
-
-ALTER TABLE `shop_users` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop_users` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop_users` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop_users` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop_type` ADD FOREIGN KEY (`default_selling_price_type_id`) REFERENCES `selling_price_types` (`id`);
-
-ALTER TABLE `shop_type` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop_type` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `shop_type` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `uom` ADD FOREIGN KEY (`base_uom_id`) REFERENCES `uom` (`id`);
-
-ALTER TABLE `unit_options` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `unit_options` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `unit_options` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `product_unit` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `product_unit` ADD FOREIGN KEY (`parent_unit_id`) REFERENCES `product_unit` (`id`);
-
-ALTER TABLE `unit_prices` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-
-ALTER TABLE `unit_prices` ADD FOREIGN KEY (`unit_id`) REFERENCES `product_unit` (`id`);
-
-ALTER TABLE `unit_prices` ADD FOREIGN KEY (`selling_price_id`) REFERENCES `selling_price_types` (`id`);
-
-ALTER TABLE `selling_price_types` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `selling_price_types` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `selling_price_types` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `unit_option_conversion` ADD FOREIGN KEY (`unit_option_id`) REFERENCES `unit_options` (`units_options_id`);
-
-ALTER TABLE `unit_option_conversion` ADD FOREIGN KEY (`unit_value_from_id`) REFERENCES `product_variants` (`variant_id`);
-
-ALTER TABLE `unit_option_conversion` ADD FOREIGN KEY (`unit_value_to_id`) REFERENCES `product_variants` (`variant_id`);
-
-ALTER TABLE `unit_option_conversion` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `unit_option_conversion` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `unit_option_conversion` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `reservation` ADD FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`);
-
-ALTER TABLE `reservation` ADD FOREIGN KEY (`payment_method`) REFERENCES `Payment_Options` (`id`);
-
-
----
-
-## 📊 Database Relationships & Constraints
-
-### **Key Relationships**
-
-#### **User & Authentication Flow**
-```
-users ←→ roles_permission ←→ roles ←→ permissions
-   ↓
-activity_logs (audit trail)
 ```
 
-#### **Product Hierarchy**
-```
-product → product_info → category (hierarchical)
-   ↓            ↓
-product_combinations → product_attributes
-   ↓
-stock_movement → stock_ledger
-```
-
-#### **Transaction Flow**
-```
-customer → transactions → transaction_products → product
-    ↓           ↓
-payment_transaction → Payment_Options
-    ↓
-refund_transactions / exchange_transactions
-```
-
-#### **Multi-Location Structure**
-```
-companies → shop → shop_locations
-    ↓         ↓         ↓
-users → shifts → cash_box
-```
-
----
-
-## 🔍 Indexing Strategy
-
-### **Critical Indexes for Performance**
-
+#### goods_replaces
+Replacement goods tracking.
 ```sql
--- High-frequency lookup indexes
-CREATE INDEX idx_product_sku ON product_info(sku);
-CREATE INDEX idx_product_barcode ON product_barcodes(barcode);
-CREATE INDEX idx_customer_mobile ON customer(mobile_no);
-CREATE INDEX idx_transaction_invoice ON transactions(invoice_number);
-CREATE INDEX idx_transaction_date ON transactions(selling_time);
+CREATE TABLE goods_replaces (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  replace_no varchar(30) NOT NULL,
+  supplier_id int NOT NULL,
+  store_id int NOT NULL,
+  reference_return_id int,
+  replace_date datetime NOT NULL,
+  total_amount decimal(12,2) DEFAULT 0,
+  status varchar(20) DEFAULT 'Pending',
+  remarks varchar(255),
+  created_by int NOT NULL,
+  created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+```
 
--- Search and filter indexes
-CREATE INDEX idx_product_category ON product_info(category_id);
-CREATE INDEX idx_product_supplier ON product_info(supplier_id);
-CREATE INDEX idx_stock_movement_product ON stock_movement(product_id);
-CREATE INDEX idx_stock_movement_date ON stock_movement(created_at);
+#### goods_replace_items
+Replacement line items.
+```sql
+CREATE TABLE goods_replace_items (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  replace_id int NOT NULL,
+  product_id int NOT NULL,
+  uom_id bigint NOT NULL,
+  batch_no varchar(50),
+  expiry_date datetime,
+  quantity decimal(12,4) NOT NULL,
+  rate decimal(12,2) NOT NULL,
+  amount decimal(12,2),
+  reference_return_item_id int,
+  remarks_line varchar(255),
+  created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+```
 
--- Foreign key performance indexes
-CREATE INDEX idx_transaction_customer ON transactions(customer_id);
-CREATE INDEX idx_transaction_products_txn ON transaction_products(transaction_id);
-CREATE INDEX idx_payment_transaction_sale ON payment_transaction(sales_id);
+#### stock_transfers
+Inter-location transfers.
+```sql
+CREATE TABLE stock_transfers (
+  transfer_id int PRIMARY KEY AUTO_INCREMENT,
+  transfer_no varchar(30) NOT NULL,
+  transfer_date datetime NOT NULL,
+  from_store_id int NOT NULL,
+  to_store_id int NOT NULL,
+  status varchar(20) DEFAULT 'Pending',
+  remarks text,
+  created_by int NOT NULL,
+  created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_by int,
+  updated_at datetime
+);
+```
+
+#### stock_transfer_items
+Stock transfer line items.
+```sql
+CREATE TABLE stock_transfer_items (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  transfer_id int NOT NULL,
+  product_id int NOT NULL,
+  uom_id bigint NOT NULL,
+  batch_no varchar(50),
+  expiry_date datetime,
+  quantity_sent decimal(12,4) NOT NULL,
+  quantity_received decimal(12,4) DEFAULT 0,
+  damaged_qty decimal(12,4) DEFAULT 0,
+  status varchar(20) DEFAULT 'Pending',
+  remarks_line text
+);
+```
+
+#### stock_adjustments
+Stock adjustment records.
+```sql
+CREATE TABLE stock_adjustments (
+  adjustment_id int PRIMARY KEY AUTO_INCREMENT,
+  adjustment_no varchar(30) NOT NULL,
+  adjustment_date datetime NOT NULL,
+  store_location_id int NOT NULL,
+  reason_id int NOT NULL,
+  status varchar(20) DEFAULT 'Pending',
+  remarks text,
+  created_by int NOT NULL,
+  created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_by int,
+  updated_at datetime
+);
+```
+
+#### stock_adjustment_reasons
+Adjustment reason codes.
+```sql
+CREATE TABLE stock_adjustment_reasons (
+  stock_adjustment_reasons_id int PRIMARY KEY AUTO_INCREMENT,
+  name varchar(255) NOT NULL,
+  description varchar(255),
+  status varchar(255) DEFAULT 'Active',
+  created_by int,
+  created_at datetime DEFAULT CURRENT_TIMESTAMP,
+  updated_by int,
+  updated_at datetime,
+  deleted_at datetime
+);
+```
+
+#### stock_adjustment_items
+Stock adjustment line items.
+```sql
+CREATE TABLE stock_adjustment_items (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  adjustment_id int NOT NULL,
+  product_id int NOT NULL,
+  uom_id bigint NOT NULL,
+  batch_no varchar(50),
+  expiry_date datetime,
+  quantity_before decimal(12,4) NOT NULL,
+  quantity_after decimal(12,4) NOT NULL,
+  difference_qty decimal(12,4) NOT NULL,
+  conversion_factor decimal(12,4) DEFAULT 1,
+  reason_line varchar(100),
+  remarks_line text
+);
+```
+
+#### stock_ledger
+Stock movement history ledger.
+```sql
+CREATE TABLE stock_ledger (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  product_id int NOT NULL,
+  unit_id int NOT NULL,
+  movement_type varchar(20) NOT NULL,
+  qty decimal(10,2) NOT NULL,
+  balance decimal(10,2) NOT NULL,
+  location varchar(200),
+  reference_type varchar(50),
+  reference_id int,
+  created_at timestamp NOT NULL DEFAULT NOW()
+);
 ```
 
 ---
 
-## 📈 Performance Considerations
+### 🏢 Supplier Management
 
-### **Database Optimization Strategies**
-
-#### **1. Partitioning Strategy**
+#### supplier
+Master table for supplier information.
 ```sql
--- Partition large tables by date
-ALTER TABLE transactions PARTITION BY RANGE (YEAR(selling_time));
-ALTER TABLE activity_logs PARTITION BY RANGE (YEAR(timestamp));
-ALTER TABLE stock_movement PARTITION BY RANGE (YEAR(created_at));
+CREATE TABLE supplier (
+  supplier_id bigint PRIMARY KEY AUTO_INCREMENT,
+  shop_id bigint,
+  company_name varchar(100) NOT NULL,
+  logo_picture varchar(255),
+  license_number varchar(50),
+  owner_name varchar(100),
+  owner_mobile varchar(20),
+  vat_trn_number varchar(50),
+  email varchar(100) UNIQUE,
+  address_line1 varchar(255) NOT NULL,
+  address_line2 varchar(255),
+  building varchar(100),
+  area varchar(100),
+  po_box varchar(20),
+  city varchar(100),
+  state varchar(100),
+  country varchar(100),
+  website varchar(100),
+  key_contact_name varchar(100),
+  key_contact_mobile varchar(20),
+  key_contact_email varchar(100),
+  mobile varchar(20),
+  location_latitude decimal(10,8),
+  location_longitude decimal(11,8),
+  company_phone_number varchar(20),
+  gstin varchar(20),
+  pan varchar(20),
+  payment_terms varchar(50),
+  opening_balance decimal(12,2) DEFAULT 0.00,
+  balance_type enum('credit', 'debit') DEFAULT 'credit',
+  status varchar(20) DEFAULT 'Active',
+  created_by bigint,
+  created_at timestamp DEFAULT NOW(),
+  updated_by bigint,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by bigint,
+  INDEX idx_company_name (company_name),
+  INDEX idx_vat_trn_number (vat_trn_number),
+  INDEX idx_email (email)
+);
 ```
 
-#### **2. Archival Strategy**
+#### supplier_translation
+Multilingual supplier information.
 ```sql
--- Soft delete pattern implemented across all tables
--- Use 'deleted_at' timestamp for archival
--- Periodic cleanup jobs for old data
+CREATE TABLE supplier_translation (
+  id bigint PRIMARY KEY AUTO_INCREMENT,
+  supplier_id bigint NOT NULL,
+  language_id int NOT NULL,
+  supplier_name_ar varchar(100),
+  address_line1_ar varchar(255),
+  address_line2_ar varchar(255),
+  building_ar varchar(100),
+  area_ar varchar(100),
+  status varchar(20) DEFAULT 'Active',
+  created_by bigint,
+  created_at timestamp DEFAULT NOW(),
+  updated_by bigint,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by bigint,
+  UNIQUE KEY unique_supplier_language (supplier_id, language_id)
+);
 ```
 
-#### **3. Read Replicas**
+#### supplier_bank_accounts
+Supplier banking information with multiple account support.
 ```sql
--- Configure read replicas for reporting queries
--- Separate OLTP and OLAP workloads
--- Real-time dashboard from read replicas
+CREATE TABLE supplier_bank_accounts (
+  id bigint PRIMARY KEY AUTO_INCREMENT,
+  supplier_id bigint NOT NULL,
+  bank_name varchar(100) NOT NULL,
+  account_number varchar(50) NOT NULL,
+  iban_ifsc varchar(50),
+  swift_code varchar(20),
+  branch_name varchar(100),
+  account_type varchar(50),                             -- Current/Savings/etc.
+  branch_address text,
+  bank_key_person_name varchar(100),
+  bank_key_contacts varchar(100),
+  notes text,
+  is_primary boolean DEFAULT false,
+  status varchar(20) DEFAULT 'Active',
+  created_by bigint,
+  created_at timestamp DEFAULT NOW(),
+  updated_by bigint,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by bigint,
+  INDEX idx_supplier_account (supplier_id, account_number)
+);
+```
+
+#### supplier_purchase
+Supplier purchase orders/invoices.
+```sql
+CREATE TABLE supplier_purchase (
+  purchase_id bigint PRIMARY KEY AUTO_INCREMENT,
+  supplier_id bigint NOT NULL,
+  invoice_no varchar(50) NOT NULL,
+  invoice_date date NOT NULL,
+  due_date date,
+  total_amount decimal(12,2) NOT NULL,
+  tax_amount decimal(12,2),
+  discount_amount decimal(12,2),
+  paid_amount decimal(12,2) DEFAULT 0.00,
+  due_amount decimal(12,2),
+  status enum('paid', 'partial', 'unpaid', 'cancelled') DEFAULT 'unpaid',
+  payment_terms varchar(100),
+  delivery_terms varchar(100),
+  remarks text,
+  created_by bigint,
+  created_at timestamp DEFAULT NOW(),
+  updated_by bigint,
+  updated_at timestamp DEFAULT NOW(),
+  UNIQUE KEY unique_invoice_no (invoice_no),
+  INDEX idx_supplier_id (supplier_id),
+  INDEX idx_invoice_date (invoice_date)
+);
+```
+
+#### supplier_purchase_item
+Items in supplier purchases with receipt tracking.
+```sql
+CREATE TABLE supplier_purchase_item (
+  item_id bigint PRIMARY KEY AUTO_INCREMENT,
+  purchase_id bigint NOT NULL,
+  product_id int NOT NULL,
+  product_variant_id int,
+  quantity decimal(10,3) NOT NULL,
+  unit_price decimal(10,2) NOT NULL,
+  tax_rate decimal(5,2),
+  discount_rate decimal(5,2),
+  total_price decimal(12,2) NOT NULL,
+  received_quantity decimal(10,3),
+  status varchar(20) DEFAULT 'Active'
+);
 ```
 
 ---
 
-## 🛡️ Security Features
+### 🛡️ Warranty Management
 
-### **Data Protection Measures**
-
-#### **1. Column-Level Security**
-- Sensitive fields (passwords, financial data) encrypted at application layer
-- PII data (phone numbers, emails) with restricted access
-- Audit trail for all sensitive data access
-
-#### **2. Row-Level Security**
-- Multi-tenant isolation by company_id
-- Shop-level data segregation
-- User-based data access controls
-
-#### **3. Audit & Compliance**
-- Complete audit trail in activity_logs
-- Change tracking with old_values/new_values JSON
-- Compliance with data retention policies
-
----
-
-## 🚀 Deployment Recommendations
-
-### **Production Database Setup**
-
-#### **1. Hardware Requirements**
-- **CPU**: 8+ cores for production workload
-- **RAM**: 32GB+ with proper buffer pool sizing
-- **Storage**: SSD with 20,000+ IOPS
-- **Network**: Gigabit connection for multi-location sync
-
-#### **2. MySQL Configuration**
+#### warranty_type
+Master table for all warranty types.
 ```sql
--- Key MySQL settings for POS workload
-innodb_buffer_pool_size = 24G
-innodb_log_file_size = 2G
-innodb_flush_log_at_trx_commit = 2
-query_cache_type = 1
-query_cache_size = 512M
-max_connections = 500
+CREATE TABLE warranty_type (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  name varchar(100) NOT NULL,
+  name_ar varchar(100),
+  is_additional boolean DEFAULT false,
+  cost decimal(10,2),                                   -- Only when is_additional=true
+  description text,
+  status varchar(20) DEFAULT 'Active',
+  created_by int NOT NULL,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp NOT NULL DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int
+);
 ```
 
-#### **3. Backup Strategy**
-- **Hot Backups**: mysqldump with --single-transaction
-- **Point-in-time Recovery**: Binary log backup every 15 minutes
-- **Cross-location Replication**: Master-slave setup for disaster recovery
-
----
-
-## 📚 Migration Guide
-
-### **From Simple SQLite to Enterprise MySQL**
-
-#### **Phase 1: Data Structure Migration**
-```csharp
-// EF Core model updates to match new schema
-public class ChronoPosDbContext : DbContext
-{
-    // Map existing entities to new structure
-    // Add new entities for advanced features
-    // Configure relationships and constraints
-}
-```
-
-#### **Phase 2: Data Migration Scripts**
+#### product_warranty
+Links products to their available warranties.
 ```sql
--- Migrate existing data to new structure
-INSERT INTO product (type, status)
-SELECT 'Physical', 'Active' FROM legacy_products;
-
-INSERT INTO product_info (product_id, product_name, sku, category_id)
-SELECT p.id, lp.name, lp.sku, lp.category_id
-FROM product p JOIN legacy_products lp ON p.id = lp.id;
+CREATE TABLE product_warranty (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  product_id int NOT NULL,
+  warranty_type_id int NOT NULL,
+  duration_months int NOT NULL,
+  terms_conditions text,
+  is_included boolean DEFAULT true,
+  created_by int NOT NULL,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp NOT NULL DEFAULT NOW(),
+  UNIQUE KEY unique_product_warranty (product_id, warranty_type_id)
+);
 ```
 
-#### **Phase 3: Application Layer Updates**
-```csharp
-// Update repositories to use new schema
-// Implement multi-language support
-// Add new business logic for advanced features
-// Update UI to support new functionality
+#### sales_warranty
+Tracks warranties actually sold to customers.
+```sql
+CREATE TABLE sales_warranty (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  sale_id int NOT NULL,
+  product_id int NOT NULL,
+  warranty_type_id int NOT NULL,
+  duration_months int NOT NULL,
+  start_date date NOT NULL,
+  end_date date NOT NULL,
+  cost decimal(10,2) DEFAULT 0,
+  status varchar(20) DEFAULT 'Active',
+  created_at timestamp DEFAULT NOW(),
+  INDEX idx_sale_product (sale_id, product_id),
+  INDEX idx_end_date (end_date)
+);
+```
+
+#### warranty_claims
+Tracks customer warranty claims.
+```sql
+CREATE TABLE warranty_claims (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  sales_warranty_id int NOT NULL,
+  claim_date date NOT NULL,
+  description text NOT NULL,
+  resolution text,
+  status varchar(20) DEFAULT 'Pending',
+  resolved_by int,
+  resolved_at timestamp,
+  created_at timestamp DEFAULT NOW()
+);
+```
+
+#### product_variants
+Different packaging/sizing variants of products.
+```sql
+CREATE TABLE product_variants (
+  variant_id int PRIMARY KEY AUTO_INCREMENT,
+  product_id int NOT NULL,
+  unit_option_id int NOT NULL,
+  value decimal(12,4) NOT NULL,
+  label varchar(100) NOT NULL,
+  barcode varchar(50) UNIQUE,
+  price decimal(12,2) NOT NULL,
+  cost_price decimal(12,2) NOT NULL,
+  stock_quantity decimal(12,4) DEFAULT 0,
+  status varchar(20) DEFAULT 'Active',
+  created_by int NOT NULL,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int,
+  INDEX idx_product_id (product_id),
+  INDEX idx_unit_option_id (unit_option_id),
+  INDEX idx_barcode (barcode)
+);
 ```
 
 ---
 
-## 🎯 Implementation Roadmap
+### 🏪 Company Management
 
-### **Database Implementation Priority**
-
-#### **Week 1-2: Core Foundation**
-1. Authentication & Security tables
-2. Company & Shop management
-3. Basic Product & Category structure
-4. Simple transaction processing
-
-#### **Week 3-4: Advanced Features**
-1. Stock management with full audit trail
-2. Supplier management
-3. Multi-language support
-4. Advanced product attributes
-
-#### **Week 5-6: Business Logic**
-1. Complex transaction processing
-2. Payment gateway integration
-3. Returns & exchange processing
-4. Shift & cash management
-
-#### **Week 7-8: Specialized Modules**
-1. Restaurant & reservation system
-2. Program/subscription management
-3. Advanced reporting structure
-4. Performance optimization
-
-**This comprehensive database schema provides the foundation for a world-class, enterprise-grade POS system! 🚀**
-
--- ✅ ENHANCED: Document Types for Stock Control (CRITICAL MISSING)
-CREATE TABLE `document_types` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `code` varchar(20) UNIQUE NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `name_ar` varchar(100),
-  `stock_direction` ENUM('IN', 'OUT', 'NONE') NOT NULL DEFAULT 'NONE',
-  `editor_type` ENUM('STANDARD', 'INVENTORY', 'LOSS_AND_DAMAGE') DEFAULT 'STANDARD',
-  `is_auto_manufacture_enabled` boolean DEFAULT false,
-  `manufacture_document_type_code` varchar(20),
-  `default_warehouse_id` int,
-  `print_template` varchar(255),
-  `status` varchar(20) DEFAULT 'Active',
-  `created_by` int,
-  `created_at` timestamp DEFAULT (now()),
-  `updated_by` int,
-  `updated_at` timestamp DEFAULT (now()),
-  `deleted_at` timestamp,
-  `deleted_by` int
+#### companies
+Main company information table.
+```sql
+CREATE TABLE companies (
+  company_id int PRIMARY KEY AUTO_INCREMENT,
+  company_name varchar(100) NOT NULL,
+  logo_picture varchar(255),
+  license_number varchar(50) UNIQUE,
+  vat_trn_number varchar(50),
+  phone_number varchar(20),
+  email varchar(100) UNIQUE,
+  website varchar(100),
+  key_contact_name varchar(100),
+  key_contact_mobile varchar(20),
+  key_contact_email varchar(100),
+  location_latitude decimal(10,8),
+  location_longitude decimal(11,8),
+  remarks text,
+  status varchar(20) DEFAULT 'active',
+  created_by int,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int
 );
+```
 
--- ✅ CRITICAL: Current Stock Levels (MISSING)
-CREATE TABLE `stock_levels` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `shop_location_id` int NOT NULL,
-  `batch_id` int,
-  `current_quantity` decimal(12,4) NOT NULL DEFAULT 0,
-  `reserved_quantity` decimal(12,4) DEFAULT 0,
-  `available_quantity` decimal(12,4) GENERATED ALWAYS AS (current_quantity - reserved_quantity) STORED,
-  `reorder_level` decimal(12,4) DEFAULT 0,
-  `max_stock_level` decimal(12,4),
-  `last_updated` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `created_at` timestamp DEFAULT (now()),
-  UNIQUE KEY `unique_product_location_batch` (`product_id`, `shop_location_id`, `batch_id`)
+#### company_owners
+Company owners/partners information.
+```sql
+CREATE TABLE company_owners (
+  owner_id int PRIMARY KEY AUTO_INCREMENT,
+  company_id int,
+  owner_first_name varchar(50) NOT NULL,
+  owner_last_name varchar(50) NOT NULL,
+  auth_number varchar(50),
+  owner_mobile varchar(20),
+  owner_uae_id varchar(50),
+  owner_email varchar(100),
+  status varchar(20) DEFAULT 'active',
+  created_by int,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int
 );
+```
 
--- ✅ ENHANCED: Stock History with Document Integration
-CREATE TABLE `stock_history` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `shop_location_id` int NOT NULL,
-  `batch_id` int,
-  `document_id` int,
-  `document_item_id` int,
-  `document_type_id` int,
-  `movement_type` varchar(20) NOT NULL COMMENT 'Purchase, Sale, Transfer, Adjustment, Waste, Return',
-  `quantity_changed` decimal(12,4) NOT NULL,
-  `quantity_before` decimal(12,4) NOT NULL,
-  `quantity_after` decimal(12,4) NOT NULL,
-  `expected_quantity` decimal(12,4) COMMENT 'For inventory counts',
-  `is_matching_expected` boolean DEFAULT true,
-  `cost_price` decimal(12,2),
-  `reference_type` varchar(50) COMMENT 'Transaction, Transfer, Adjustment',
-  `reference_id` int NOT NULL,
-  `notes` text,
-  `created_by` int NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  INDEX `idx_product_location` (`product_id`, `shop_location_id`),
-  INDEX `idx_document` (`document_id`),
-  INDEX `idx_movement_date` (`created_at`)
+#### company_addresses
+Physical addresses for companies.
+```sql
+CREATE TABLE company_addresses (
+  company_address_id int PRIMARY KEY AUTO_INCREMENT,
+  company_id int,
+  address_line1 varchar(255) NOT NULL,
+  address_line2 varchar(255),
+  area varchar(100),
+  po_box varchar(20),
+  city varchar(100),
+  state_id int,
+  country_id int,
+  is_billing_address boolean DEFAULT false,
+  location_latitude decimal(10,8),
+  location_longitude decimal(11,8),
+  status varchar(20) DEFAULT 'active',
+  created_by int,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int
 );
+```
 
--- ✅ ENHANCED: Stock Reservations
-CREATE TABLE `stock_reservations` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `shop_location_id` int NOT NULL,
-  `customer_id` int,
-  `transaction_id` int,
-  `reserved_quantity` decimal(12,4) NOT NULL,
-  `reservation_type` varchar(20) DEFAULT 'SALE' COMMENT 'SALE, TRANSFER, HOLD',
-  `expires_at` timestamp,
-  `status` varchar(20) DEFAULT 'ACTIVE',
-  `created_by` int NOT NULL,
-  `created_at` timestamp DEFAULT (now()),
-  `released_at` timestamp,
-  `released_by` int,
-  INDEX `idx_product_location` (`product_id`, `shop_location_id`),
-  INDEX `idx_expiry` (`expires_at`)
+#### company_bank_accounts
+Bank account information for companies.
+```sql
+CREATE TABLE company_bank_accounts (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  company_id int,
+  company_address_id int,
+  account_type varchar(50),                             -- Current/Savings/etc.
+  account_name varchar(100) NOT NULL,
+  account_number varchar(50) NOT NULL,
+  iban varchar(50),
+  swift_code varchar(20),
+  branch_name varchar(100),
+  branch_address text,
+  status varchar(20) DEFAULT 'active',
+  created_by int,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int
 );
+```
 
--- ✅ ENHANCED: Stock Valuation Methods
-CREATE TABLE `stock_valuation_methods` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `method_code` varchar(20) UNIQUE NOT NULL,
-  `method_name` varchar(100) NOT NULL,
-  `description` text,
-  `is_active` boolean DEFAULT true,
-  `created_at` timestamp DEFAULT (now())
+---
+
+### 📄 License Management
+
+#### license_info
+License information for software access.
+```sql
+CREATE TABLE license_info (
+  id varchar(36) PRIMARY KEY,                          -- UUID
+  company_id int,
+  license_key varchar(100) UNIQUE NOT NULL,
+  organization_name varchar(255),
+  issued_to varchar(255),
+  issued_on timestamp NOT NULL,
+  valid_until timestamp NOT NULL,
+  device_limit int,
+  allowed_macs text,                                   -- Comma-separated MAC addresses
+  allowed_ips text,                                    -- Comma-separated IP addresses
+  license_type varchar(50),                            -- PER_DEVICE/PER_LOCATION/UNLIMITED
+  is_active boolean DEFAULT true,
+  plan_id int,
+  notes text,
+  created_at timestamp DEFAULT NOW(),
+  updated_at timestamp DEFAULT NOW()
 );
+```
 
--- ✅ NEW: Stock Alerts
-CREATE TABLE `stock_alerts` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `product_id` int NOT NULL,
-  `shop_location_id` int NOT NULL,
-  `alert_type` ENUM('LOW_STOCK', 'OUT_OF_STOCK', 'OVERSTOCK', 'EXPIRY_WARNING') NOT NULL,
-  `current_quantity` decimal(12,4),
-  `threshold_quantity` decimal(12,4),
-  `alert_message` text,
-  `is_acknowledged` boolean DEFAULT false,
-  `acknowledged_by` int,
-  `acknowledged_at` timestamp,
-  `created_at` timestamp DEFAULT (now()),
-  INDEX `idx_product_location` (`product_id`, `shop_location_id`),
-  INDEX `idx_alert_type` (`alert_type`),
-  INDEX `idx_unacknowledged` (`is_acknowledged`)
+#### license_modules
+Enabled modules for each license.
+```sql
+CREATE TABLE license_modules (
+  id varchar(36) PRIMARY KEY,                          -- UUID
+  license_id varchar(36),
+  module_name varchar(100) NOT NULL,
+  is_enabled boolean DEFAULT true,
+  created_at timestamp DEFAULT NOW()
 );
+```
 
--- ✅ NEW: Stock Count Sessions
-CREATE TABLE `stock_count_sessions` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `session_number` varchar(50) UNIQUE NOT NULL,
-  `shop_location_id` int NOT NULL,
-  `count_date` date NOT NULL,
-  `count_type` ENUM('FULL', 'PARTIAL', 'CYCLE') DEFAULT 'PARTIAL',
-  `status` ENUM('PLANNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED') DEFAULT 'PLANNED',
-  `planned_by` int NOT NULL,
-  `started_by` int,
-  `completed_by` int,
-  `started_at` timestamp,
-  `completed_at` timestamp,
-  `notes` text,
-  `created_at` timestamp DEFAULT (now())
+#### license_device_usage
+Track per-device usage for licensing compliance.
+```sql
+CREATE TABLE license_device_usage (
+  id varchar(36) PRIMARY KEY,                          -- UUID
+  license_id varchar(36),
+  mac_address varchar(50) NOT NULL,
+  ip_address varchar(50),
+  device_name varchar(100),
+  last_checked_in timestamp,
+  created_at timestamp DEFAULT NOW()
 );
+```
 
-CREATE TABLE `stock_count_items` (
-  `id` int PRIMARY KEY AUTO_INCREMENT,
-  `session_id` int NOT NULL,
-  `product_id` int NOT NULL,
-  `batch_id` int,
-  `expected_quantity` decimal(12,4) NOT NULL,
-  `counted_quantity` decimal(12,4),
-  `variance_quantity` decimal(12,4) GENERATED ALWAYS AS (counted_quantity - expected_quantity) STORED,
-  `variance_value` decimal(12,2),
-  `reason_code` varchar(50),
-  `notes` text,
-  `counted_by` int,
-  `counted_at` timestamp,
-  `is_processed` boolean DEFAULT false,
-  `processed_at` timestamp,
-  INDEX `idx_session` (`session_id`),
-  INDEX `idx_product` (`product_id`)
+---
+
+### 👤 Customer Management
+
+#### customer
+Stores customer information for the POS system.
+```sql
+CREATE TABLE customer (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  customer_full_name varchar(150),
+  business_full_name varchar(150),
+  is_business boolean,
+  business_type_id int,
+  customer_balance_amount decimal,
+  license_no varchar(50),
+  trn_no varchar(50),
+  mobile_no varchar(20),
+  home_phone varchar(20),
+  office_phone varchar(20),
+  contact_mobile_no varchar(20),
+  credit_allowed boolean,
+  credit_amount_max decimal,
+  credit_days int,
+  credit_reference1_name varchar(150),
+  credit_reference2_name varchar(150),
+  key_contact_name varchar(150),
+  key_contact_mobile varchar(20),
+  key_contact_email varchar(100),
+  finance_person_name varchar(150),
+  finance_person_mobile varchar(20),
+  finance_person_email varchar(100),
+  official_email varchar(100),
+  post_dated_cheques_allowed boolean,
+  shop_id int,
+  status varchar(20),
+  created_by int,
+  created_at timestamp,
+  updated_by int,
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by int
 );
+```
 
--- ✅ ENHANCED: Product with Stock Control
-ALTER TABLE `product` ADD COLUMN `is_service` boolean DEFAULT false AFTER `type`;
-ALTER TABLE `product` ADD COLUMN `track_stock` boolean DEFAULT true AFTER `is_service`;
-ALTER TABLE `product` ADD COLUMN `allow_negative_stock` boolean DEFAULT false AFTER `track_stock`;
-ALTER TABLE `product` ADD COLUMN `stock_valuation_method_id` int DEFAULT 1 AFTER `allow_negative_stock`;
+#### business_type_master
+Defines types of businesses for customer categorization.
+```sql
+CREATE TABLE business_type_master (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  business_type_name varchar(100),
+  business_type_name_ar varchar(100),
+  status varchar(20),
+  created_by int,
+  created_at timestamp,
+  updated_by int,
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by int
+);
+```
 
--- ✅ ENHANCED: Product Info with Stock Settings
-ALTER TABLE `product_info` ADD COLUMN `min_stock_level` decimal(12,4) DEFAULT 0 AFTER `reorder_level`;
-ALTER TABLE `product_info` ADD COLUMN `max_stock_level` decimal(12,4) AFTER `min_stock_level`;
-ALTER TABLE `product_info` ADD COLUMN `lead_time_days` int DEFAULT 0 AFTER `max_stock_level`;
-ALTER TABLE `product_info` ADD COLUMN `shelf_life_days` int AFTER `expiry_days`;
+#### customer_address
+Stores customer address information.
+```sql
+CREATE TABLE customer_address (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  customer_id int,
+  address_line1 varchar(255),
+  address_line2 varchar(255),
+  po_box varchar(50),
+  area varchar(100),
+  city varchar(100),
+  state_id int,
+  country_id int,
+  landmark varchar(255),
+  latitude decimal,
+  longitude decimal,
+  is_billing boolean,
+  status varchar(20),
+  created_by int,
+  created_at timestamp,
+  updated_by int,
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by int
+);
+```
 
--- ✅ ENHANCED: Stock Movement with Better Tracking
-ALTER TABLE `stock_movement` ADD COLUMN `document_id` int AFTER `reference_id`;
-ALTER TABLE `stock_movement` ADD COLUMN `document_item_id` int AFTER `document_id`;
-ALTER TABLE `stock_movement` ADD COLUMN `previous_quantity` decimal(12,4) AFTER `quantity`;
-ALTER TABLE `stock_movement` ADD COLUMN `new_quantity` decimal(12,4) AFTER `previous_quantity`;
-ALTER TABLE `stock_movement` ADD COLUMN `cost_price` decimal(12,2) AFTER `new_quantity`;
-ALTER TABLE `stock_movement` ADD COLUMN `is_system_generated` boolean DEFAULT true AFTER `cost_price`;
+#### customer_address_translation
+Provides multilingual support for customer addresses.
+```sql
+CREATE TABLE customer_address_translation (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  customer_address_id int,
+  language_id int,
+  address_line1 varchar(255),
+  address_line2 varchar(255),
+  area varchar(100),
+  status varchar(20),
+  created_by int,
+  created_at timestamp,
+  updated_by int,
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by int
+);
+```
 
--- ✅ ENHANCED: Transactions with Document Type
-ALTER TABLE `transactions` ADD COLUMN `document_type_id` int AFTER `id`;
-ALTER TABLE `transactions` ADD COLUMN `document_number` varchar(50) AFTER `document_type_id`;
-ALTER TABLE `transactions` ADD COLUMN `reference_document_number` varchar(50) AFTER `document_number`;
-ALTER TABLE `transactions` ADD COLUMN `stock_date` timestamp DEFAULT CURRENT_TIMESTAMP AFTER `selling_time`;
-ALTER TABLE `transactions` ADD COLUMN `is_inventory_count` boolean DEFAULT false AFTER `stock_date`;
+#### customers_groups
+Defines customer groups for pricing and promotions.
+```sql
+CREATE TABLE customers_groups (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  name varchar(100),
+  name_ar varchar(100),
+  selling_price_type_id int,
+  discount_id int,
+  discount_value decimal,
+  discount_max_value decimal,
+  is_percentage boolean,
+  status varchar(20),
+  created_by int,
+  created_at timestamp,
+  updated_by int,
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by int
+);
+```
 
--- ✅ ENHANCED: Transaction Products with UOM Calculations
-ALTER TABLE `transaction_products` ADD COLUMN `expected_quantity` decimal(12,4) DEFAULT 0 AFTER `quantity` COMMENT 'For inventory counts';
-ALTER TABLE `transaction_products` ADD COLUMN `uom_quantity` decimal(12,4) GENERATED ALWAYS AS (
-  quantity * COALESCE((
-    SELECT conversion_factor 
-    FROM unit_option_conversion uoc 
-    JOIN product_variants pv ON uoc.unit_value_from_id = pv.variant_id 
-    WHERE pv.unit_option_id = product_unit_id 
-    LIMIT 1
-  ), 1)
-) STORED COMMENT 'Calculated quantity in base units';
-ALTER TABLE `transaction_products` ADD COLUMN `cost_price` decimal(12,2) AFTER `buyer_cost`;
-ALTER TABLE `transaction_products` ADD COLUMN `batch_id` int AFTER `cost_price`;
+#### customers_group_relation
+Links customers to customer groups.
+```sql
+CREATE TABLE customers_group_relation (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  customer_id int,
+  customer_group_id int,
+  status varchar(20),
+  created_by int,
+  created_at timestamp,
+  updated_by int,
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by int
+);
+```
 
--- Insert default valuation methods
-INSERT INTO `stock_valuation_methods` (`method_code`, `method_name`, `description`) VALUES
-('FIFO', 'First In First Out', 'Oldest stock is consumed first'),
-('LIFO', 'Last In First Out', 'Newest stock is consumed first'),
-('AVERAGE', 'Weighted Average', 'Average cost of all stock'),
-('SPECIFIC', 'Specific Identification', 'Track specific items by serial/batch');
+#### customer_balance
+Tracks customer account balances.
+```sql
+CREATE TABLE customer_balance (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  customer_id int,
+  new_balance decimal,
+  last_update timestamp,
+  status varchar(20),
+  created_by int,
+  created_at timestamp,
+  updated_by int,
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by int
+);
+```
 
--- Insert Default Document Types
-INSERT INTO `document_types` (`code`, `name`, `name_ar`, `stock_direction`, `editor_type`, `status`) VALUES
-('SALE', 'Sales Invoice', 'فاتورة مبيعات', 'OUT', 'STANDARD', 'Active'),
-('PURCHASE', 'Purchase Order', 'أمر شراء', 'IN', 'STANDARD', 'Active'),
-('RETURN_SALE', 'Sales Return', 'مرتجع مبيعات', 'IN', 'STANDARD', 'Active'),
-('RETURN_PURCHASE', 'Purchase Return', 'مرتجع مشتريات', 'OUT', 'STANDARD', 'Active'),
-('INVENTORY', 'Stock Count', 'جرد المخزون', 'NONE', 'INVENTORY', 'Active'),
-('ADJUSTMENT_IN', 'Stock Adjustment In', 'تعديل مخزون داخل', 'IN', 'STANDARD', 'Active'),
-('ADJUSTMENT_OUT', 'Stock Adjustment Out', 'تعديل مخزون خارج', 'OUT', 'LOSS_AND_DAMAGE', 'Active'),
-('TRANSFER_OUT', 'Transfer Out', 'تحويل خارج', 'OUT', 'STANDARD', 'Active'),
-('TRANSFER_IN', 'Transfer In', 'تحويل داخل', 'IN', 'STANDARD', 'Active'),
-('WASTE', 'Waste/Damage', 'تالف/هدر', 'OUT', 'LOSS_AND_DAMAGE', 'Active');
+#### discounts
+Stores discount rules and promotions.
+```sql
+CREATE TABLE discounts (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  discount_name varchar(150),                           -- Display name of the discount
+  discount_name_ar varchar(150),                        -- Arabic name
+  discount_code varchar(50) UNIQUE,                     -- Optional coupon/code for identification
+  discount_type varchar(20),                            -- 'Percentage' or 'Fixed'
+  discount_value decimal(10,2),                         -- Value in percentage or amount
+  max_discount_amount decimal(10,2),                    -- Maximum discount limit (if applicable)
+  min_purchase_amount decimal(10,2),                    -- Minimum bill amount to apply discount
+  start_date date,                                      -- Validity start date
+  end_date date,                                        -- Validity end date
+  applicable_on varchar(50),                            -- 'All', 'Category', 'Item', 'CustomerGroup'
+  applicable_id int,                                    -- Links to category/item/group table based on applicable_on
+  is_active boolean DEFAULT true,
+  created_by int,
+  created_at timestamp,
+  updated_by int,
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by int
+);
+```
 
--- ✅ COMPREHENSIVE FOREIGN KEY RELATIONSHIPS
--- Stock Management Foreign Keys
-ALTER TABLE `stock_levels` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-ALTER TABLE `stock_levels` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
-ALTER TABLE `stock_levels` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
+#### product_discounts
+Product-specific discounts.
+```sql
+CREATE TABLE product_discounts (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  product_id int NOT NULL,
+  discounts_id int NOT NULL,
+  created_by int,
+  created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_by int,
+  updated_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at datetime,
+  deleted_by int
+);
+```
 
-ALTER TABLE `stock_history` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-ALTER TABLE `stock_history` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
-ALTER TABLE `stock_history` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
-ALTER TABLE `stock_history` ADD FOREIGN KEY (`document_id`) REFERENCES `transactions` (`id`);
-ALTER TABLE `stock_history` ADD FOREIGN KEY (`document_item_id`) REFERENCES `transaction_products` (`id`);
-ALTER TABLE `stock_history` ADD FOREIGN KEY (`document_type_id`) REFERENCES `document_types` (`id`);
-ALTER TABLE `stock_history` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
+#### category_discounts
+Category-level discounts.
+```sql
+CREATE TABLE category_discounts (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  category_id int NOT NULL,
+  discounts_id int NOT NULL,
+  created_by int,
+  created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_by int,
+  updated_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at datetime,
+  deleted_by int
+);
+```
 
-ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
-ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`);
-ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`id`);
-ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-ALTER TABLE `stock_reservations` ADD FOREIGN KEY (`released_by`) REFERENCES `users` (`id`);
+#### customer_discounts
+Customer-specific discounts.
+```sql
+CREATE TABLE customer_discounts (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  customer_id int NOT NULL,
+  discount_id int NOT NULL,
+  created_by int,
+  created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_by int,
+  updated_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at datetime,
+  deleted_by int
+);
+```
 
-ALTER TABLE `stock_alerts` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-ALTER TABLE `stock_alerts` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
-ALTER TABLE `stock_alerts` ADD FOREIGN KEY (`acknowledged_by`) REFERENCES `users` (`id`);
+#### shop_discounts
+Shop-specific discounts.
+```sql
+CREATE TABLE shop_discounts (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  store_id int NOT NULL,
+  discount_id int NOT NULL,
+  created_by int,
+  created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_by int,
+  updated_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at datetime,
+  deleted_by int
+);
+```
 
-ALTER TABLE `stock_count_sessions` ADD FOREIGN KEY (`shop_location_id`) REFERENCES `shop_locations` (`id`);
-ALTER TABLE `stock_count_sessions` ADD FOREIGN KEY (`planned_by`) REFERENCES `users` (`id`);
-ALTER TABLE `stock_count_sessions` ADD FOREIGN KEY (`started_by`) REFERENCES `users` (`id`);
-ALTER TABLE `stock_count_sessions` ADD FOREIGN KEY (`completed_by`) REFERENCES `users` (`id`);
+---
 
-ALTER TABLE `stock_count_items` ADD FOREIGN KEY (`session_id`) REFERENCES `stock_count_sessions` (`id`);
-ALTER TABLE `stock_count_items` ADD FOREIGN KEY (`product_id`) REFERENCES `product` (`id`);
-ALTER TABLE `stock_count_items` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
-ALTER TABLE `stock_count_items` ADD FOREIGN KEY (`counted_by`) REFERENCES `users` (`id`);
+### 💰 Sales & Transactions
 
-ALTER TABLE `document_types` ADD FOREIGN KEY (`default_warehouse_id`) REFERENCES `shop_locations` (`id`);
-ALTER TABLE `document_types` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-ALTER TABLE `document_types` ADD FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
-ALTER TABLE `document_types` ADD FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`);
+#### transactions
+Core sales transaction header table.
+```sql
+CREATE TABLE transactions (
+  id                int PRIMARY KEY AUTO_INCREMENT,
+  shift_id          int NOT NULL,
+  customer_id       int,
+  user_id           int NOT NULL,
+  shop_location_id  int,
+  
+  selling_time      timestamp NOT NULL DEFAULT NOW(),
+  total_amount      decimal(12,2) NOT NULL DEFAULT 0,
+  total_vat         decimal(12,2) NOT NULL DEFAULT 0,
+  total_discount    decimal(12,2) NOT NULL DEFAULT 0,
+  total_applied_vat decimal(12,2) DEFAULT 0,
+  total_applied_discount_value decimal(12,2) DEFAULT 0,
+  
+  amount_paid_cash  decimal(12,2) DEFAULT 0,
+  amount_credit_remaining decimal(12,2) DEFAULT 0,
+  credit_days       int DEFAULT 0,
+  
+  is_percentage_discount boolean DEFAULT false,
+  discount_value    decimal(12,2) DEFAULT 0,
+  discount_max_value decimal(12,2) DEFAULT 0,
+  vat               decimal(12,2) DEFAULT 0,
+  discount_note     text,
+  invoice_number    varchar(50) UNIQUE,                 -- Format: DDMMYYtransactionID
+  
+  status            enum('pending','paid','cancelled') DEFAULT 'pending',
+  
+  created_by        int NOT NULL,
+  created_at        timestamp NOT NULL DEFAULT NOW(),
+  updated_by        int,
+  updated_at        timestamp,
+  deleted_at        timestamp,
+  deleted_by        int
+);
+```
 
-ALTER TABLE `product` ADD FOREIGN KEY (`stock_valuation_method_id`) REFERENCES `stock_valuation_methods` (`id`);
-ALTER TABLE `transactions` ADD FOREIGN KEY (`document_type_id`) REFERENCES `document_types` (`id`);
-ALTER TABLE `transaction_products` ADD FOREIGN KEY (`batch_id`) REFERENCES `product_batches` (`id`);
+#### transaction_products
+Line items for sales transactions.
+```sql
+CREATE TABLE transaction_products (
+  id                  int PRIMARY KEY AUTO_INCREMENT,
+  transaction_id      int NOT NULL,
+  product_id          int NOT NULL,
+  shop_location_id    int,
+  
+  buyer_cost          decimal(12,2) NOT NULL DEFAULT 0,
+  selling_price       decimal(12,2) NOT NULL,
+  product_unit_id     int,
+  
+  is_percentage_discount boolean DEFAULT false,
+  discount_value      decimal(12,2) DEFAULT 0,
+  discount_max_value  decimal(12,2) DEFAULT 0,
+  vat                 decimal(12,2) DEFAULT 0,
+  quantity            decimal(10,3) NOT NULL,
+  
+  status              enum('active','returned','exchanged') DEFAULT 'active',
+  
+  created_by          int,
+  created_at          timestamp DEFAULT NOW(),
+  updated_by          int,
+  updated_at          timestamp,
+  deleted_at          timestamp,
+  deleted_by          int
+);
+```
 
--- Enhanced Stock Movement Foreign Keys
-ALTER TABLE `stock_movement` ADD FOREIGN KEY (`document_id`) REFERENCES `transactions` (`id`);
-ALTER TABLE `stock_movement` ADD FOREIGN KEY (`document_item_id`) REFERENCES `transaction_products` (`id`);
+#### transaction_modifiers
+Product modifiers applied to transaction items.
+```sql
+CREATE TABLE transaction_modifiers (
+  id                      int PRIMARY KEY AUTO_INCREMENT,
+  transaction_product_id  int NOT NULL,
+  product_modifier_id     int NOT NULL,
+  extra_price             decimal(10,2) NOT NULL DEFAULT 0.00,
+  created_by              int,
+  created_at              timestamp DEFAULT NOW()
+);
+```
 
--- User Permission Foreign Keys
-ALTER TABLE `user_permission_overrides` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
-ALTER TABLE `user_permission_overrides` ADD FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`permission_id`);
-ALTER TABLE `user_permission_overrides` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
+#### transaction_service_charges
+Service charges applied to transactions.
+```sql
+CREATE TABLE transaction_service_charges (
+  id                  int PRIMARY KEY AUTO_INCREMENT,
+  transaction_id      int NOT NULL,
+  service_charge_id   int NOT NULL,
+  total_amount        decimal(12,2) DEFAULT 0,
+  total_vat           decimal(12,2) DEFAULT 0,
+  status              varchar(20) DEFAULT 'Active',
+  created_by          int,
+  created_at          timestamp DEFAULT NOW()
+);
+```
+
+#### refund_transactions
+Records for refunded transactions.
+```sql
+CREATE TABLE refund_transactions (
+  id                     int PRIMARY KEY AUTO_INCREMENT,
+  customer_id            int,
+  selling_transaction_id int NOT NULL,
+  shift_id               int,
+  user_id                int,
+  total_amount           decimal(12,2) DEFAULT 0,
+  total_vat              decimal(12,2) DEFAULT 0,
+  is_cash                boolean DEFAULT true,
+  refund_time            timestamp DEFAULT NOW(),
+  status                 varchar(20) DEFAULT 'Active',
+  created_by             int,
+  created_at             timestamp DEFAULT NOW()
+);
+```
+
+#### refund_transaction_products
+Line items for refunded products.
+```sql
+CREATE TABLE refund_transaction_products (
+  id                      int PRIMARY KEY AUTO_INCREMENT,
+  refund_transaction_id   int NOT NULL,
+  transaction_product_id  int NOT NULL,
+  total_quantity_returned decimal(10,3) DEFAULT 0,
+  total_vat               decimal(12,2) DEFAULT 0,
+  total_amount            decimal(12,2) DEFAULT 0,
+  status                  varchar(20) DEFAULT 'Active',
+  created_by              int,
+  created_at              timestamp DEFAULT NOW()
+);
+```
+
+#### exchange_transactions
+Records for product exchanges.
+```sql
+CREATE TABLE exchange_transactions (
+  id                        int PRIMARY KEY AUTO_INCREMENT,
+  customer_id               int,
+  selling_transaction_id    int NOT NULL,
+  shift_id                  int,
+  total_exchanged_amount    decimal(12,2) DEFAULT 0,
+  total_exchanged_vat       decimal(12,2) DEFAULT 0,
+  product_exchanged_quantity decimal(10,3) DEFAULT 0,
+  exchange_time             timestamp DEFAULT NOW(),
+  status                    varchar(20) DEFAULT 'Active',
+  created_by                int,
+  created_at                timestamp DEFAULT NOW()
+);
+```
+
+#### customer_payments
+Records customer payments and account credits.
+```sql
+CREATE TABLE customer_payments (
+  id              int PRIMARY KEY AUTO_INCREMENT,
+  customer_id     int,
+  shift_id        int,
+  amount_paid     decimal(12,2) DEFAULT 0,
+  cheque_number   varchar(50),
+  cheque_date     date,
+  cheque_bank_name varchar(100),
+  payment_time    timestamp DEFAULT NOW(),
+  is_paid         boolean DEFAULT true,
+  payment_type    varchar(20),
+  ref_payment_id  int,
+  status          varchar(20) DEFAULT 'Active',
+  created_by      int,
+  created_at      timestamp DEFAULT NOW()
+);
+```
+
+---
+
+### 💳 Financial Management
+
+#### payment_types
+Payment method definitions.
+```sql
+CREATE TABLE payment_types (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  business_id int NOT NULL,
+  name varchar(255) NOT NULL,
+  payment_code varchar(50) NOT NULL,
+  status boolean DEFAULT true NOT NULL,
+  change_allowed boolean DEFAULT false,
+  customer_required boolean DEFAULT false,
+  mark_transaction_as_paid boolean DEFAULT true,
+  shortcut_key varchar(10),
+  is_refundable boolean DEFAULT true,
+  is_split_allowed boolean DEFAULT true,
+  created_by int,
+  created_at datetime DEFAULT CURRENT_TIMESTAMP,
+  updated_by int,
+  updated_at datetime DEFAULT CURRENT_TIMESTAMP,
+  deleted_by int,
+  deleted_at datetime,
+  UNIQUE KEY unique_business_payment_code (business_id, payment_code)
+);
+```
+
+#### payment_transaction
+Records payment transactions.
+```sql
+CREATE TABLE payment_transaction (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  sales_id int,
+  payment_method_id  int NOT NULL,
+  amount decimal(12,2) NOT NULL,
+  transaction_reference varchar(100),
+  notes text,
+  created_at timestamp DEFAULT NOW()
+);
+```
+
+#### tax_types
+Defines tax types and rates.
+```sql
+CREATE TABLE tax_types (
+  id                  bigint PRIMARY KEY AUTO_INCREMENT,
+  name                varchar(100) NOT NULL,
+  description         text,
+  value               decimal(10,4) NOT NULL,           -- Tax rate or fixed value
+  included_in_price   boolean DEFAULT false,
+  is_percentage       boolean DEFAULT true,
+  applies_to_buying   boolean DEFAULT false,
+  applies_to_selling  boolean DEFAULT true,
+  status              boolean DEFAULT true,
+  created_by          bigint,
+  created_at          datetime DEFAULT CURRENT_TIMESTAMP,
+  updated_by          bigint,
+  updated_at          datetime,
+  deleted_by          bigint,
+  deleted_at          datetime
+);
+```
+
+#### product_taxes
+Links products to applicable tax types.
+```sql
+CREATE TABLE product_taxes (
+  id          bigint PRIMARY KEY AUTO_INCREMENT,
+  product_id  bigint NOT NULL,
+  tax_type_id bigint NOT NULL
+);
+```
+
+#### service_charges
+Defines service charges that can be applied to transactions.
+```sql
+CREATE TABLE service_charges (
+  id              int PRIMARY KEY AUTO_INCREMENT,
+  name            varchar(100),                         -- e.g., Service Fee, Delivery Fee
+  description     text,                                 -- Optional: Explanation of the charge
+  charge_type     enum('flat', 'percentage'),           -- Flat amount or percentage
+  charge_value    decimal(10,2),                        -- The amount (e.g., 50.00 or 5.00%)
+  charge_value_arabic    decimal(10,2),
+  apply_to        enum('invoice', 'product', 'category', 'order'), -- Where it applies
+  is_taxable      boolean DEFAULT false,                -- Whether this service charge is taxable
+  is_active       boolean DEFAULT true,
+  created_by varchar(255),
+  created_at timestamp,
+  updated_by varchar(255),
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by varchar(255)
+);
+```
+
+#### service_charge_types
+Master table for service charge types.
+```sql
+CREATE TABLE service_charge_types (
+  id   bigint PRIMARY KEY AUTO_INCREMENT,
+  service_charge_type_code varchar(20) NOT NULL UNIQUE, -- Short code (e.g., 'SC_TAX', 'SC_DEL')
+  name                     varchar(100) NOT NULL,       -- Descriptive name (e.g., 'Delivery Charge', 'Service Tax')
+  description              text,                         -- Optional extra details
+  calculation_method       varchar(20) DEFAULT 'PERCENT', -- PERCENT or FIXED
+  rate_value               decimal(10,2),                -- Value (e.g., 5.00 for 5% or fixed amount)
+  status                   boolean DEFAULT true,         -- Active/inactive flag
+  created_by               bigint,                       -- User ID who created
+  created_at               datetime DEFAULT CURRENT_TIMESTAMP, -- Creation time
+  updated_by               bigint,                       -- User ID who last updated
+  updated_at               datetime,                     -- Last update time
+  deleted_by               bigint,                       -- User ID who deleted
+  deleted_at               datetime                      -- Soft delete timestamp
+);
+```
+
+#### service_charge_types_translations
+Multilingual support for service charge types.
+```sql
+CREATE TABLE service_charge_types_translations (
+  id                      bigint PRIMARY KEY AUTO_INCREMENT,
+  language_id             bigint NOT NULL,              -- FK to languages table
+  service_charge_type_id  bigint NOT NULL,              -- FK to main service charge type
+  name                    varchar(100) NOT NULL,        -- Translated name
+  status                  boolean DEFAULT true,         -- Active/inactive translation
+  created_by              bigint,                       -- User who created this translation
+  created_at              datetime DEFAULT CURRENT_TIMESTAMP, -- Creation timestamp
+  updated_by              bigint,                       -- User who last updated
+  updated_at              datetime,                     -- Last update timestamp
+  deleted_by              bigint,                       -- User who deleted
+  deleted_at              datetime                      -- Soft delete timestamp
+);
+```
+
+#### service_charge_options
+Configuration options for service charges.
+```sql
+CREATE TABLE service_charge_options (
+  service_charge_option_id bigint PRIMARY KEY AUTO_INCREMENT,
+  service_charge_type_id   bigint NOT NULL,             -- FK to main service charge type
+  cost                     decimal(10,2),               -- Internal cost
+  language_id              bigint NOT NULL,             -- Default language for this option entry
+  name                     varchar(100) NOT NULL,       -- Default name
+  price                    decimal(10,2),               -- Selling price for this option
+  status                   boolean DEFAULT true,        -- Active/inactive flag
+  created_by               bigint,                      -- Created by user
+  created_at               datetime DEFAULT CURRENT_TIMESTAMP, -- Creation time
+  updated_by               bigint,                      -- Last updated by user
+  updated_at               datetime,                    -- Last update time
+  deleted_by               bigint,                      -- Deleted by user
+  deleted_at               datetime                     -- Soft delete time
+);
+```
+
+#### service_charge_options_translations
+Multilingual support for service charge options.
+```sql
+CREATE TABLE service_charge_options_translations (
+  id                        bigint PRIMARY KEY AUTO_INCREMENT,
+  language_id               bigint NOT NULL,            -- FK to languages
+  service_charge_option_id  bigint NOT NULL,            -- FK to main option
+  name                      varchar(100) NOT NULL,      -- Translated name
+  status                    boolean DEFAULT true,       -- Active/inactive
+  created_by                bigint,                     -- Created by user
+  created_at                datetime DEFAULT CURRENT_TIMESTAMP, -- Creation time
+  updated_by                bigint,                     -- Last updated by user
+  updated_at                datetime,                   -- Last update time
+  deleted_by                bigint,                     -- Deleted by user
+  deleted_at                datetime                    -- Soft delete time
+);
+```
+
+---
+
+### ⏰ Shift & Cash Management
+
+#### shift_types
+Template shifts for locations.
+```sql
+CREATE TABLE shift_types (
+  shift_type_id bigint PRIMARY KEY AUTO_INCREMENT,
+  shift_name varchar(100) NOT NULL,
+  shop_location_id bigint NOT NULL,
+  start_time time NOT NULL,
+  end_time time NOT NULL,
+  status boolean DEFAULT true,                          -- Active/Inactive
+  created_by bigint NOT NULL,
+  created_at timestamp DEFAULT NOW(),
+  updated_by bigint,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by bigint
+);
+```
+
+#### shifts
+Actual shift instances with financial tracking.
+```sql
+CREATE TABLE shifts (
+  shift_id bigint PRIMARY KEY AUTO_INCREMENT,
+  shift_type_id bigint,
+  cashbox_id bigint NOT NULL,
+  start_balance decimal(12,2) DEFAULT 0.00,
+  end_balance decimal(12,2) DEFAULT 0.00,
+  open_date_time timestamp NOT NULL,
+  close_date_time timestamp,
+  status varchar(20) DEFAULT 'Scheduled',               -- Scheduled/In-Progress/Completed/Closed
+  created_by bigint NOT NULL,
+  created_at timestamp DEFAULT NOW(),
+  updated_by bigint,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by bigint
+);
+```
+
+#### shift_user
+Assigns users to specific shifts.
+```sql
+CREATE TABLE shift_user (
+  shift_user_id bigint PRIMARY KEY AUTO_INCREMENT,
+  shift_id bigint NOT NULL,
+  user_id bigint NOT NULL,
+  status varchar(20) DEFAULT 'Active',                  -- Active/Replaced/Cancelled
+  created_by bigint NOT NULL,
+  created_at timestamp DEFAULT NOW(),
+  updated_by bigint,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by bigint,
+  UNIQUE KEY unique_shift_user (shift_id, user_id)
+);
+```
+
+#### shift_transactions
+Detailed shift financial transactions.
+```sql
+CREATE TABLE shift_transactions (
+  id bigint PRIMARY KEY AUTO_INCREMENT,
+  shift_id bigint NOT NULL,
+  transaction_type varchar(50) NOT NULL,                -- Open/Close/Adjustment
+  amount decimal(12,2) NOT NULL,
+  notes text,
+  created_by bigint NOT NULL,
+  created_at timestamp DEFAULT NOW()
+);
+```
+
+#### cash_box
+Physical cash boxes at each location.
+```sql
+CREATE TABLE cash_box (
+  cash_box_id int PRIMARY KEY AUTO_INCREMENT,
+  shop_location_id int NOT NULL,
+  shift_id int NOT NULL,
+  cash_box_name varchar(100) NOT NULL,
+  status varchar(20) DEFAULT 'Active',                  -- Open/Closed/Inactive
+  created_by int NOT NULL,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int,
+  INDEX idx_shop_location_id (shop_location_id),
+  INDEX idx_shift_id (shift_id)
+);
+```
+
+#### cash_in_out
+Records all cash movements in/out of boxes.
+```sql
+CREATE TABLE cash_in_out (
+  cash_in_id int PRIMARY KEY AUTO_INCREMENT,
+  cash_box_id int NOT NULL,
+  payment_id int NOT NULL,
+  reason varchar(255),
+  amount_out decimal(12,2) DEFAULT 0.00,
+  amount_in decimal(12,2) DEFAULT 0.00,
+  note text,
+  status varchar(20) DEFAULT 'Completed',               -- Completed/Pending/Cancelled
+  created_by int NOT NULL,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int,
+  INDEX idx_cash_box_id (cash_box_id),
+  INDEX idx_payment_id (payment_id),
+  INDEX idx_created_at (created_at)
+);
+```
+
+#### cash_box_balance
+Calculated current balance for each cash box.
+```sql
+CREATE TABLE cash_box_balance (
+  cash_box_id int PRIMARY KEY,
+  current_balance decimal(12,2) NOT NULL,
+  last_updated timestamp DEFAULT NOW()
+);
+```
+
+---
+
+### 🏬 Shop & Location Management
+
+#### shop
+Main shop/store information table.
+```sql
+CREATE TABLE shop (
+  shop_id int PRIMARY KEY AUTO_INCREMENT,
+  company_id int NOT NULL,
+  industry_type_id int,
+  name varchar(100) NOT NULL,
+  pos_id varchar(50),                                   -- POS system identifier
+  pos_name varchar(100),
+  number_of_locations_allowed int DEFAULT 1,
+  status varchar(20) DEFAULT 'Active',
+  created_by int,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int
+);
+```
+
+#### stores
+Store location details.
+```sql
+CREATE TABLE stores (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  name varchar(100) NOT NULL,
+  address varchar(200),
+  phone_number varchar(50),
+  email varchar(100),
+  manager_name varchar(100),
+  is_active boolean DEFAULT true,
+  is_default boolean DEFAULT false,
+  created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+```
+
+#### shop_locations
+Physical locations for shops (stores, warehouses, etc.).
+```sql
+CREATE TABLE shop_locations (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  shop_id int NOT NULL,
+  location_type varchar(50) NOT NULL,                   -- Retail/Warehouse/etc.
+  location_name varchar(100) NOT NULL,
+  manager_id int,
+  address_line1 varchar(255) NOT NULL,
+  address_line2 varchar(255),
+  building varchar(100),
+  area varchar(100),
+  po_box varchar(20),
+  city varchar(100),
+  state_id int,
+  country_id int,
+  landline_number varchar(20),
+  mobile_number varchar(20),
+  location_latitude decimal(10,8),
+  location_longitude decimal(11,8),
+  can_sell boolean DEFAULT true,
+  language_id int,
+  status varchar(20) DEFAULT 'Active',
+  created_by int,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int,
+  INDEX idx_shop_id (shop_id),
+  INDEX idx_location_type (location_type)
+);
+```
+
+#### shop_location_translation_ar
+Arabic translations for location information.
+```sql
+CREATE TABLE shop_location_translation_ar (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  shop_location_id int NOT NULL,
+  language_id int NOT NULL,
+  name_ar varchar(100),
+  address_line1_ar varchar(255),
+  address_line2_ar varchar(255),
+  building_ar varchar(100),
+  area_ar varchar(100),
+  status varchar(20) DEFAULT 'Active',
+  created_by int,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int,
+  UNIQUE KEY unique_shop_location_language (shop_location_id, language_id)
+);
+```
+
+#### shop_users
+Assigns users to specific shops.
+```sql
+CREATE TABLE shop_users (
+  shop_users_id int PRIMARY KEY AUTO_INCREMENT,
+  shop_id int NOT NULL,
+  user_id int NOT NULL,
+  status varchar(20) DEFAULT 'Active',
+  created_by int,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int,
+  UNIQUE KEY unique_shop_user (shop_id, user_id)
+);
+```
+
+#### shop_type
+Defines different types of shops/stores.
+```sql
+CREATE TABLE shop_type (
+  shop_type_id int PRIMARY KEY AUTO_INCREMENT,
+  name varchar(100) NOT NULL,
+  default_selling_price_type_id int,
+  start_time time,                                      -- Default opening time
+  end_time time,                                        -- Default closing time
+  status varchar(20) DEFAULT 'Active',
+  created_by int,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int
+);
+```
+
+---
+
+### 🍽️ Restaurant Features
+
+#### restaurant_tables
+Table management.
+```sql
+CREATE TABLE restaurant_tables (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  table_number varchar(10),
+  capacity int,
+  status enum('available','reserved','occupied','cleaning') DEFAULT 'available',
+  location varchar(50),
+  created_at timestamp DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### reservation
+Manages table reservations for restaurants.
+```sql
+CREATE TABLE reservation (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  deleted int,
+  customer_id int,                                      -- Foreign key to Customer
+  table_number int,                                     -- Table number assigned/reserved
+  number_of_persons int,                                -- Total guests for reservation
+  reservation_date date,                                -- Date of reservation
+  reservation_time time,                                -- Time of reservation (24-hour)
+  deposit_fee decimal(10, 2),                           -- Advance payment
+  payment_method  int NOT NULL,
+  status enum('confirmed', 'waiting', 'cancelled') DEFAULT 'waiting', -- Reservation status
+  notes text,                                           -- Optional notes or special requests
+  created_at timestamp DEFAULT NOW()
+);
+```
+
+---
+
+### 📊 Unit of Measure (UoM) Management
+
+#### uom
+Master table for units of measurement with conversion support.
+```sql
+CREATE TABLE uom (
+  id bigint PRIMARY KEY,
+  name varchar(50),
+  abbreviation varchar(10),
+  base_uom_id bigint,
+  conversion_factor decimal(10,4),
+  is_active boolean,
+  created_at datetime,
+  updated_at datetime
+);
+```
+
+#### unit_options
+Master table for all unit types (kg, liter, etc.).
+```sql
+CREATE TABLE unit_options (
+  units_options_id int PRIMARY KEY AUTO_INCREMENT,
+  name varchar(50) NOT NULL,
+  description varchar(255),
+  category_title varchar(50),
+  type varchar(20) NOT NULL,                            -- 'Base' or 'Derived'
+  status varchar(20) DEFAULT 'Active',
+  created_by int NOT NULL,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int
+);
+```
+
+#### product_unit
+Defines packaging units for products.
+```sql
+CREATE TABLE product_unit (
+  id              int PRIMARY KEY AUTO_INCREMENT,
+  product_id      int NOT NULL,
+  unit_name       varchar(50) NOT NULL,
+  unit_symbol     varchar(10) NOT NULL,
+  parent_unit_id  int,
+  qty_in_parent   int NOT NULL DEFAULT 1,
+  is_base         boolean NOT NULL DEFAULT false,
+  created_at      timestamp NOT NULL DEFAULT NOW()
+);
+```
+
+#### unit_prices
+Pricing information by unit.
+```sql
+CREATE TABLE unit_prices (
+  id              int PRIMARY KEY AUTO_INCREMENT,
+  product_id      int NOT NULL,
+  unit_id         int NOT NULL,
+  color           varchar(50),
+  cost            decimal(10,2) NOT NULL,
+  selling_price_id   int NOT NULL,
+  price_type      varchar(50) NOT NULL DEFAULT 'Retail',
+  discount_allowed boolean NOT NULL DEFAULT false,
+  created_at      timestamp NOT NULL DEFAULT NOW(),
+  updated_at      timestamp NOT NULL DEFAULT NOW()
+);
+```
+
+#### unit_option_conversion
+Defines conversion rules between product variants.
+```sql
+CREATE TABLE unit_option_conversion (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  unit_option_id int NOT NULL,
+  unit_value_from_id int NOT NULL,
+  unit_value_to_id int NOT NULL,
+  unit_conversion_rate decimal(12,6) NOT NULL,
+  status varchar(20) DEFAULT 'Active',
+  created_by int NOT NULL,
+  created_at timestamp DEFAULT NOW(),
+  updated_by int,
+  updated_at timestamp DEFAULT NOW(),
+  deleted_at timestamp,
+  deleted_by int,
+  UNIQUE KEY unique_unit_conversion (unit_value_from_id, unit_value_to_id),
+  INDEX idx_unit_option_id (unit_option_id)
+);
+```
+
+---
+
+### 📅 Programs & Subscriptions
+
+#### Programs
+Defines subscription programs for customers.
+```sql
+CREATE TABLE Programs (
+  Program_ID int PRIMARY KEY AUTO_INCREMENT,
+  vat decimal(10,2),
+  is_percentage_discount boolean,
+  discount_value decimal(10,2),
+  discount_max_value decimal(10,2),
+  discount_note varchar(255),
+  total_applied_vat decimal(10,2),
+  total_applied_discounts_value decimal(10,2),
+  Name varchar(150),
+  Description text,
+  Start_Date date,
+  End_Date date,
+  Program_Price decimal(10,2),
+  Number_of_Meals int,
+  Status varchar(20),
+  created_by int,
+  created_at timestamp,
+  Updated_by int,
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by int
+);
+```
+
+#### Program_Translations
+Multilingual support for program information.
+```sql
+CREATE TABLE Program_Translations (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  Program_id int,
+  language_id int,
+  name varchar(150),
+  description text,
+  Status varchar(20),
+  created_by int,
+  created_at timestamp,
+  Updated_by int,
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by int
+);
+```
+
+#### Program_Meals
+Defines meals included in programs.
+```sql
+CREATE TABLE Program_Meals (
+  Program_Meals_ID int PRIMARY KEY AUTO_INCREMENT,
+  Program_ID int,
+  Name varchar(150),
+  Time time,
+  Status varchar(20),
+  created_by int,
+  created_at timestamp,
+  Updated_by int,
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by int
+);
+```
+
+#### Program_Products
+Products included in subscription programs.
+```sql
+CREATE TABLE Program_Products (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  program_id int,
+  product_id int,
+  product_unit_id int,
+  quantity int,
+  price decimal(10,2),
+  vat decimal(10,2),
+  is_percentage_discount boolean,
+  discount_value decimal(10,2),
+  discount_max_value decimal(10,2),
+  discount_note varchar(255),
+  Status varchar(20),
+  created_by int,
+  created_at timestamp,
+  Updated_by int,
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by int
+);
+```
+
+#### Program_Subscriptions
+Customer subscriptions to programs.
+```sql
+CREATE TABLE Program_Subscriptions (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  program_id int,
+  Customer_ID int,
+  Status varchar(20),
+  created_by int,
+  created_at timestamp,
+  Updated_by int,
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by int
+);
+```
+
+#### Program_Order_Delivery
+Tracks delivery of program orders.
+```sql
+CREATE TABLE Program_Order_Delivery (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  program_id int,
+  customer_id int,
+  delivery_status varchar(20),
+  send_time datetime,
+  Status varchar(20),
+  created_by int,
+  created_at timestamp,
+  Updated_by int,
+  updated_at timestamp,
+  deleted_at timestamp,
+  deleted_by int
+);
+```
+
+---
+
+### 📈 Additional Features
+
+#### product_groups
+Product grouping for bundles.
+```sql
+CREATE TABLE product_groups (
+  id int PRIMARY KEY AUTO_INCREMENT,
+  name varchar(255) NOT NULL,
+  name_ar varchar(255),
+  description text,
+  description_ar text,
+  discount_id int,
+  tax_type_id int,
+  price_type_id bigint,
+  sku_prefix varchar(50),
+  status varchar(50) DEFAULT 'Active',
+  created_date datetime DEFAULT CURRENT_TIMESTAMP,
+  modified_date datetime,
+  created_by int,
+  modified_by int,
+  is_deleted boolean DEFAULT false,
+  deleted_date datetime,
+  deleted_by int
+);
+```
+
+#### selling_price_types
+Defines different price types (Retail, Wholesale, etc.).
+```sql
+CREATE TABLE selling_price_types (
+  id bigint PRIMARY KEY AUTO_INCREMENT,
+  type_name              varchar(100) NOT NULL,        -- Name (e.g., 'Retail', 'Wholesale', 'Member')
+  arabic_name             varchar(100) NOT NULL,        -- Name (e.g., 'Retail', 'Wholesale', 'Member')
+  description            text,                          -- Optional details about price type
+  status                 boolean DEFAULT true,          -- Active/inactive flag
+  created_by             bigint,                        -- User ID who created
+  created_at             datetime DEFAULT CURRENT_TIMESTAMP, -- Creation time
+  updated_by             bigint,                        -- User ID who last updated
+  updated_at             datetime,                      -- Last update time
+  deleted_by             bigint,                        -- User ID who deleted
+  deleted_at             datetime                       -- Soft delete timestamp
+);
+```
+
+#### Tranasaction_types
+Defines types of transactions.
+```sql
+CREATE TABLE Tranasaction_types (
+  id            int PRIMARY KEY AUTO_INCREMENT,
+  type_name     varchar(255) NOT NULL,                 -- Type Name
+  type_name_ar  varchar(255) NOT NULL,                 -- Type Name AR
+  description   text,                                  -- Description
+  status        varchar(50),                           -- Status
+  created_by    bigint,                                -- FK to users.id (optional)
+  created_at    timestamp DEFAULT NOW(),
+  updated_by    bigint,                                -- FK to users.id (optional)
+  updated_at    timestamp DEFAULT NOW(),
+  deleted_at    timestamp,                             -- nullable (soft delete)
+  deleted_by    bigint                                 -- FK to users.id (optional)
+);
+```
+
+---
+
+## 🔗 Key Relationships
+
+### Core Entity Relationships
+```
+Companies (1) ──→ (N) Shops ──→ (N) Shop_Locations
+    │                              │
+    └──→ (N) Users ←──────────────┘
+    
+Products (1) ──→ (N) Product_Info
+    │
+    ├──→ (N) Product_Variants
+    ├──→ (N) Product_Barcodes
+    ├──→ (N) Product_Images
+    └──→ (N) Stock_Movement
+
+Customers (1) ──→ (N) Transactions ──→ (N) Transaction_Products
+    │                    │
+    └──→ (N) Reservations └──→ (N) Payment_Transactions
+
+Suppliers (1) ──→ (N) Supplier_Purchase ──→ (N) Goods_Received
+```
+
+### Multi-language Support
+```
+Language (1) ──→ (N) Label_Translation
+    │
+    ├──→ (N) Category_Translation
+    ├──→ (N) Product_Translation
+    ├──→ (N) Supplier_Translation
+    └──→ (N) Customer_Address_Translation
+```
+
+---
+
+## 🛠️ Technical Features
+
+### Audit Trail
+- All major tables include audit fields: `created_by`, `created_at`, `updated_by`, `updated_at`, `deleted_by`, `deleted_at`
+- Comprehensive activity logging in `activity_logs` table
+- Soft delete support across all entities
+
+### Multi-language Support
+- Dedicated translation tables for all user-facing content
+- RTL (Right-to-Left) language support
+- Language-specific formatting and display options
+
+### Multi-tenant Architecture
+- Company-based data isolation
+- Shop-level user access control
+- Location-based inventory management
+
+### Financial Controls
+- Multiple currency support
+- Flexible tax calculation system
+- Comprehensive discount and promotion engine
+- Advanced pricing models (retail, wholesale, member)
+
+### Inventory Management
+- Batch tracking with expiry dates
+- Multi-location stock management
+- Automated stock movement tracking
+- Comprehensive transfer and adjustment workflows
+
+---
+
+## 📊 Performance Considerations
+
+### Indexing Strategy
+- Primary keys on all tables
+- Foreign key constraints for referential integrity
+- Composite indexes on frequently queried combinations
+- Unique constraints on business keys (SKU, barcode, email)
+
+### Partitioning Recommendations
+- Consider partitioning large transaction tables by date
+- Archive old activity logs periodically
+- Implement read replicas for reporting queries
+
+---
+
+## 🔒 Security Features
+
+### Access Control
+- Role-based permission system
+- Hierarchical permission structure
+- Temporary permission overrides
+- Industry-specific access controls
+
+### Data Protection
+- Encrypted sensitive fields (passwords, financial data)
+- Audit trail for all data modifications
+- Soft delete for data recovery
+- License-based feature access control
+
+---
+
+## 🚀 Implementation Notes
+
+### Database Engine Requirements
+- MySQL 8.0+ or MariaDB 10.5+
+- InnoDB storage engine for ACID compliance
+- UTF-8 character set for multilingual support
+- JSON data type support for flexible configurations
+
+### Migration Strategy
+- Use Entity Framework Core migrations
+- Implement database seeding for master data
+- Version control for schema changes
+- Backup and rollback procedures
+
+### Monitoring & Maintenance
+- Regular index optimization
+- Query performance monitoring
+- Automated backup schedules
+- Data archival policies for historical data

@@ -1,0 +1,306 @@
+<UserControl x:Class="ChronoPos.Desktop.Views.ReservationSidePanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="450"
+             Background="White">
+    
+    <UserControl.Resources>
+        <!-- Converters -->
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+        
+        <!-- ComboBox Item Template for Customers -->
+        <DataTemplate x:Key="CustomerItemTemplate">
+            <StackPanel Orientation="Vertical" Margin="4">
+                <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="13"/>
+                <TextBlock Text="{Binding PrimaryMobile}" FontSize="11" Foreground="#666" Margin="0,2,0,0"/>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- ComboBox Item Template for Tables -->
+        <DataTemplate x:Key="TableItemTemplate">
+            <StackPanel Orientation="Horizontal" Margin="4">
+                <TextBlock Text="{Binding TableNumber, StringFormat='Table {0}'}" FontWeight="SemiBold" FontSize="13" Width="80"/>
+                <TextBlock Text="{Binding Location}" FontSize="11" Foreground="#666" Margin="8,0"/>
+                <TextBlock Text="{Binding Capacity, StringFormat='(Cap: {0})'}" FontSize="11" Foreground="#999" Margin="4,0"/>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- TimeSpan Converter for Display -->
+        <Style TargetType="ComboBox" x:Key="FormComboBoxStyle">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="Background" Value="White"/>
+        </Style>
+
+        <Style TargetType="TextBox" x:Key="FormTextBoxStyle">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <Style TargetType="DatePicker" x:Key="FormDatePickerStyle">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="Background" Value="White"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <!-- Main Content -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="24,20">
+                
+                <!-- Header -->
+                <Grid Margin="0,0,0,20">
+                    <TextBlock Text="{Binding FormTitle}" 
+                               FontSize="22" 
+                               FontWeight="Bold" 
+                               Foreground="#2C3E50"/>
+                    <Button Content="✕" 
+                            HorizontalAlignment="Right"
+                            Width="32" 
+                            Height="32"
+                            FontSize="18"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Command="{Binding CloseCommand}"/>
+                </Grid>
+
+                <!-- Validation Message -->
+                <Border Background="#FFF3CD" 
+                        BorderBrush="#FFD700" 
+                        BorderThickness="1" 
+                        CornerRadius="4" 
+                        Padding="12,8"
+                        Margin="0,0,0,16"
+                        Visibility="{Binding ValidationMessage, Converter={StaticResource StringToVisibilityConverter}}">
+                    <TextBlock Text="{Binding ValidationMessage}" 
+                               FontSize="13" 
+                               Foreground="#856404"
+                               TextWrapping="Wrap"/>
+                </Border>
+
+                <!-- Conflict Message -->
+                <Border Background="{Binding HasConflict, Converter={StaticResource BoolToColorConverter}, ConverterParameter='#FFEBEE|#E8F5E9'}"
+                        BorderBrush="{Binding HasConflict, Converter={StaticResource BoolToColorConverter}, ConverterParameter='#EF5350|#66BB6A'}"
+                        BorderThickness="1" 
+                        CornerRadius="4" 
+                        Padding="12,8"
+                        Margin="0,0,0,16"
+                        Visibility="{Binding ConflictMessage, Converter={StaticResource StringToVisibilityConverter}}">
+                    <TextBlock Text="{Binding ConflictMessage}" 
+                               FontSize="13" 
+                               Foreground="{Binding HasConflict, Converter={StaticResource BoolToColorConverter}, ConverterParameter='#C62828|#2E7D32'}"
+                               TextWrapping="Wrap"/>
+                </Border>
+
+                <!-- Customer Section -->
+                <TextBlock Text="Customer *" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#555"/>
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <ComboBox Grid.Column="0"
+                              ItemsSource="{Binding Customers}"
+                              SelectedItem="{Binding SelectedCustomer}"
+                              DisplayMemberPath="DisplayName"
+                              Style="{StaticResource FormComboBoxStyle}"/>
+                    
+                    <Button Grid.Column="1" 
+                            Content="🔍" 
+                            Width="38" 
+                            Height="38"
+                            Margin="8,0,0,0"
+                            Command="{Binding SearchCustomersCommand}"
+                            ToolTip="Search Customers"/>
+                </Grid>
+
+                <!-- Table Section -->
+                <TextBlock Text="Table *" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#555"/>
+                <ComboBox ItemsSource="{Binding Tables}"
+                          SelectedItem="{Binding SelectedTable}"
+                          ItemTemplate="{StaticResource TableItemTemplate}"
+                          Style="{StaticResource FormComboBoxStyle}"
+                          Margin="0,0,0,16"/>
+
+                <!-- Date Section -->
+                <TextBlock Text="Reservation Date *" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#555"/>
+                <DatePicker SelectedDate="{Binding ReservationDate}"
+                            Style="{StaticResource FormDatePickerStyle}"
+                            Margin="0,0,0,16"/>
+
+                <!-- Time Section -->
+                <TextBlock Text="Reservation Time *" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#555"/>
+                <ComboBox ItemsSource="{Binding TimeSlots}"
+                          SelectedItem="{Binding ReservationTime}"
+                          Style="{StaticResource FormComboBoxStyle}"
+                          Margin="0,0,0,16">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding StringFormat='hh\\:mm'}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <!-- Duration and Persons Row -->
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Duration -->
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Duration (Hours) *" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#555"/>
+                        <ComboBox ItemsSource="{Binding DurationOptions}"
+                                  SelectedItem="{Binding DurationHours}"
+                                  Style="{StaticResource FormComboBoxStyle}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding StringFormat='{}{0} hour(s)'}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- Number of Persons -->
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Number of Persons *" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#555"/>
+                        <TextBox Text="{Binding NumberOfPersons, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource FormTextBoxStyle}"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Deposit and Payment Type Row -->
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Deposit Fee -->
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Deposit Fee" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#555"/>
+                        <TextBox Text="{Binding DepositFee, UpdateSourceTrigger=PropertyChanged, StringFormat='N2'}"
+                                 Style="{StaticResource FormTextBoxStyle}"/>
+                    </StackPanel>
+
+                    <!-- Payment Type -->
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Payment Type" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#555"/>
+                        <ComboBox ItemsSource="{Binding PaymentTypes}"
+                                  SelectedItem="{Binding SelectedPaymentType}"
+                                  DisplayMemberPath="Name"
+                                  Style="{StaticResource FormComboBoxStyle}"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Status Section -->
+                <TextBlock Text="Status *" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#555"/>
+                <ComboBox ItemsSource="{Binding StatusOptions}"
+                          SelectedItem="{Binding SelectedStatus}"
+                          Style="{StaticResource FormComboBoxStyle}"
+                          Margin="0,0,0,16">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <!-- Notes Section -->
+                <TextBlock Text="Notes" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#555"/>
+                <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}"
+                         TextWrapping="Wrap"
+                         AcceptsReturn="True"
+                         Height="100"
+                         Padding="10,8"
+                         FontSize="13"
+                         BorderBrush="#E0E0E0"
+                         Background="White"
+                         VerticalScrollBarVisibility="Auto"
+                         Margin="0,0,0,24"/>
+
+                <!-- Action Buttons -->
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0"
+                            Content="Cancel"
+                            Height="42"
+                            FontSize="14"
+                            Background="White"
+                            BorderBrush="#E0E0E0"
+                            BorderThickness="1"
+                            Cursor="Hand"
+                            Command="{Binding CancelCommand}"/>
+
+                    <Button Grid.Column="2"
+                            Content="{Binding SaveButtonText}"
+                            Height="42"
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            Background="#4CAF50"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Command="{Binding SaveCommand}"
+                            IsEnabled="{Binding CanSave}"/>
+                </Grid>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Loading Overlay -->
+        <Border Background="#CC000000" 
+                Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="🔄" 
+                           FontSize="48" 
+                           HorizontalAlignment="Center"
+                           Foreground="White">
+                    <TextBlock.RenderTransform>
+                        <RotateTransform x:Name="LoadingRotation" CenterX="24" CenterY="24"/>
+                    </TextBlock.RenderTransform>
+                    <TextBlock.Triggers>
+                        <EventTrigger RoutedEvent="Loaded">
+                            <BeginStoryboard>
+                                <Storyboard RepeatBehavior="Forever">
+                                    <DoubleAnimation Storyboard.TargetProperty="(TextBlock.RenderTransform).(RotateTransform.Angle)"
+                                                   From="0" To="360" Duration="0:0:1.5"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </TextBlock.Triggers>
+                </TextBlock>
+                <TextBlock Text="Processing..." 
+                           FontSize="16" 
+                           Foreground="White" 
+                           Margin="0,16,0,0"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:converters="clr-namespace:ChronoPos.Desktop.Converters"
              mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="400"
+             d:DesignHeight="600" d:DesignWidth="600"
              Background="{DynamicResource SidePanelBackground}"
              FontFamily="{DynamicResource PoppinsFontFallback}">
 
@@ -15,32 +15,14 @@
         <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
 
         <Style x:Key="SidePanelTextBoxStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeMedium}"/>
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFontFallback}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="{DynamicResource BorderCornerRadius}">
-                            <ScrollViewer x:Name="PART_ContentHost"
-                                        Margin="{TemplateBinding Padding}"
-                                        VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="{DynamicResource Primary}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
 
         <Style x:Key="PrimaryButtonStyle" TargetType="Button">
@@ -124,9 +106,9 @@
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
                     <!-- Category Name -->
-                    <StackPanel Margin="0,0,0,20">
+                    <StackPanel Margin="0,0,0,15">
                         <TextBlock Text="Category Name *"
-                                   FontSize="{DynamicResource FontSizeMedium}"
+                                   FontSize="14"
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimary}"
                                    Margin="0,0,0,8"/>
@@ -136,9 +118,9 @@
                     </StackPanel>
 
                     <!-- Arabic Name -->
-                    <StackPanel Margin="0,0,0,20">
+                    <StackPanel Margin="0,0,0,15">
                         <TextBlock Text="Arabic Name"
-                                   FontSize="{DynamicResource FontSizeMedium}"
+                                   FontSize="14"
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimary}"
                                    Margin="0,0,0,8"/>
@@ -149,9 +131,9 @@
                     </StackPanel>
 
                     <!-- Description -->
-                    <StackPanel Margin="0,0,0,20">
+                    <StackPanel Margin="0,0,0,15">
                         <TextBlock Text="Description"
-                                   FontSize="{DynamicResource FontSizeMedium}"
+                                   FontSize="14"
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimary}"
                                    Margin="0,0,0,8"/>
@@ -165,9 +147,9 @@
                     </StackPanel>
 
                     <!-- Parent Category -->
-                    <StackPanel Margin="0,0,0,20" Visibility="{Binding ShowParentSelection, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel Margin="0,0,0,15" Visibility="{Binding ShowParentSelection, Converter={StaticResource BoolToVisibilityConverter}}">
                         <TextBlock Text="Parent Category"
-                                   FontSize="{DynamicResource FontSizeMedium}"
+                                   FontSize="14"
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimary}"
                                    Margin="0,0,0,8"/>
@@ -179,24 +161,24 @@
                                   BorderBrush="{DynamicResource BorderLight}"
                                   BorderThickness="1"
                                   Padding="12,8"
-                                  FontSize="{DynamicResource FontSizeMedium}"
+                                  FontSize="14"
                                   Height="40"/>
                     </StackPanel>
 
                     <!-- Is Active -->
-                    <StackPanel Margin="0,0,0,20">
+                    <StackPanel Margin="0,0,0,15">
                         <CheckBox IsChecked="{Binding IsActive}"
                                   Content="Active"
-                                  FontSize="{DynamicResource FontSizeMedium}"
+                                  FontSize="14"
                                   FontWeight="SemiBold"
                                   Foreground="{DynamicResource TextPrimary}"
                                   Margin="0,10,0,0"/>
                     </StackPanel>
 
                     <!-- Category Discounts Section -->
-                    <StackPanel Margin="0,0,0,20">
+                    <StackPanel Margin="0,0,0,15">
                         <TextBlock Text="Category Discounts"
-                                   FontSize="{DynamicResource FontSizeLarge}"
+                                   FontSize="18"
                                    FontWeight="Bold"
                                    Foreground="{DynamicResource TextPrimary}"
                                    Margin="0,0,0,10"/>

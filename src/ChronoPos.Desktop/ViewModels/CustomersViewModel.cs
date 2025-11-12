@@ -3,6 +3,8 @@ using CommunityToolkit.Mvvm.Input;
 using ChronoPos.Application.Interfaces;
 using ChronoPos.Application.DTOs;
 using ChronoPos.Application.Constants;
+using ChronoPos.Application.Logging;
+using ChronoPos.Desktop.Views.Dialogs;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -18,6 +20,8 @@ public partial class CustomersViewModel : ObservableObject
     private readonly ICustomerService _customerService;
     private readonly ICustomerGroupService _customerGroupService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IDiscountService _discountService;
+    private readonly Dictionary<int, string> _discountCache = new();
 
     [ObservableProperty]
     private ObservableCollection<CustomerDto> _customers = new();
@@ -58,6 +62,9 @@ public partial class CustomersViewModel : ObservableObject
     [ObservableProperty]
     private bool canExportCustomer = false;
 
+    [ObservableProperty]
+    private bool _hasAnyCustomerWithDiscounts = false;
+
     /// <summary>
     /// Text for the active filter toggle button
     /// </summary>
@@ -73,14 +80,21 @@ public partial class CustomersViewModel : ObservableObject
     /// </summary>
     public Action? GoBackAction { get; set; }
 
+    /// <summary>
+    /// Action to show customer transactions (set by parent)
+    /// </summary>
+    public Action<int, string>? ShowCustomerTransactionsAction { get; set; }
+
     public CustomersViewModel(
         ICustomerService customerService, 
         ICustomerGroupService customerGroupService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IDiscountService discountService)
     {
         _customerService = customerService;
         _customerGroupService = customerGroupService;
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _discountService = discountService ?? throw new ArgumentNullException(nameof(discountService));
         
         // Initialize side panel view model
         SidePanelViewModel = new CustomerSidePanelViewModel(
@@ -133,13 +147,58 @@ public partial class CustomersViewModel : ObservableObject
     {
         try
         {
+            AppLogger.LogSeparator("LOADING CUSTOMERS", "customer_discounts");
+            
+            // Load discount cache first
+            await LoadDiscountCacheAsync();
+            
+            AppLogger.Log($"Discount cache loaded with {_discountCache.Count} discounts", filename: "customer_discounts");
+            
             var customers = await _customerService.GetAllCustomersAsync();
-            Customers = new ObservableCollection<CustomerDto>(customers);
+            
+            AppLogger.Log($"Loaded {customers.Count()} customers from service", filename: "customer_discounts");
+            
+            // Clear and repopulate customers with discount information
+            Customers.Clear();
+            int customersWithDiscounts = 0;
+            
+            foreach (var customer in customers)
+            {
+                // Debug: Check SelectedDiscountIds
+                var discountIds = customer.SelectedDiscountIds ?? new List<int>();
+                AppLogger.Log($"Customer '{customer.CustomerFullName}' (ID: {customer.Id}) has {discountIds.Count} discount IDs: [{string.Join(", ", discountIds)}]", filename: "customer_discounts");
+                
+                // Load discount count for each customer
+                customer.ActiveDiscountCount = customer.SelectedDiscountIds?.Count ?? 0;
+                
+                // Build discount pills from the customer's selected discount IDs
+                customer.DiscountPills = BuildDiscountPills(customer);
+                
+                AppLogger.Log($"Customer '{customer.CustomerFullName}' built {customer.DiscountPills.Count} discount pills: [{string.Join(", ", customer.DiscountPills)}]", filename: "customer_discounts");
+                
+                if (customer.SelectedDiscountIds != null && customer.SelectedDiscountIds.Any())
+                {
+                    customersWithDiscounts++;
+                }
+                
+                Customers.Add(customer);
+            }
+            
+            // Update visibility flag for discount column
+            HasAnyCustomerWithDiscounts = customersWithDiscounts > 0;
+            
+            AppLogger.Log($"{customersWithDiscounts} customers have discounts. Column visibility: {HasAnyCustomerWithDiscounts}", filename: "customer_discounts");
+            
             FilterCustomers();
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading customers: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            AppLogger.LogError("Error loading customers", ex, filename: "customer_discounts");
+            var errorDialog = new MessageDialog(
+                "Loading Error",
+                $"An error occurred while loading customers:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
     }
 
@@ -175,23 +234,33 @@ public partial class CustomersViewModel : ObservableObject
         var targetCustomer = customer ?? SelectedCustomer;
         if (targetCustomer?.Id > 0)
         {
-            var result = MessageBox.Show(
-                $"Are you sure you want to delete the customer '{targetCustomer.DisplayName}'?",
-                "Confirm Deletion",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
+            var confirmDialog = new ConfirmationDialog(
+                "Delete Customer",
+                $"Are you sure you want to delete the customer '{targetCustomer.DisplayName}'?\n\nThis action cannot be undone.",
+                ConfirmationDialog.DialogType.Danger);
+            
+            var result = confirmDialog.ShowDialog();
+            if (result == true)
             {
                 try
                 {
                     await _customerService.DeleteCustomerAsync(targetCustomer.Id);
-                    MessageBox.Show("Customer deleted successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    
+                    var successDialog = new MessageDialog(
+                        "Success",
+                        "Customer deleted successfully!",
+                        MessageDialog.MessageType.Success);
+                    successDialog.ShowDialog();
+                    
                     await LoadCustomersAsync();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error deleting customer: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    var errorDialog = new MessageDialog(
+                        "Delete Error",
+                        $"An error occurred while deleting the customer:\n\n{ex.Message}",
+                        MessageDialog.MessageType.Error);
+                    errorDialog.ShowDialog();
                 }
             }
         }
@@ -222,6 +291,21 @@ public partial class CustomersViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Command to view customer transactions
+    /// </summary>
+    [RelayCommand]
+    private void ViewCustomerTransactions()
+    {
+        if (SelectedCustomer?.Id != null)
+        {
+            ShowCustomerTransactionsAction?.Invoke(
+                SelectedCustomer.Id, 
+                SelectedCustomer.CustomerFullName ?? "Unknown Customer"
+            );
+        }
+    }
+
+    /// <summary>
     /// Command to export customers to CSV
     /// </summary>
     [RelayCommand]
@@ -239,34 +323,60 @@ public partial class CustomersViewModel : ObservableObject
             if (saveFileDialog.ShowDialog() == true)
             {
                 var csv = new StringBuilder();
-                csv.AppendLine("Id,CustomerFullName,BusinessFullName,IsBusiness,MobileNo,OfficialEmail,CustomerGroupName,Status,CreditAllowed,CreditAmountMax,TrnNo,CustomerBalanceAmount,CreatedAt");
+                // Include ALL customer fields that are asked in the form
+                csv.AppendLine("CustomerFullName,BusinessFullName,IsBusiness,BusinessTypeName,LicenseNo,TrnNo," +
+                              "MobileNo,HomePhone,OfficePhone,ContactMobileNo,OfficialEmail," +
+                              "CreditAllowed,CreditAmountMax,CreditDays,CreditReference1Name,CreditReference2Name," +
+                              "KeyContactName,KeyContactMobile,KeyContactEmail," +
+                              "FinancePersonName,FinancePersonMobile,FinancePersonEmail," +
+                              "PostDatedChequesAllowed,CustomerGroupName,CustomerBalanceAmount,Status");
 
                 foreach (var customer in Customers)
                 {
-                    csv.AppendLine($"{customer.Id}," +
-                                 $"\"{customer.CustomerFullName}\"," +
+                    csv.AppendLine($"\"{customer.CustomerFullName}\"," +
                                  $"\"{customer.BusinessFullName}\"," +
                                  $"{customer.IsBusiness}," +
+                                 $"\"{customer.BusinessTypeName ?? ""}\"," +
+                                 $"\"{customer.LicenseNo}\"," +
+                                 $"\"{customer.TrnNo}\"," +
                                  $"\"{customer.MobileNo}\"," +
+                                 $"\"{customer.HomePhone}\"," +
+                                 $"\"{customer.OfficePhone}\"," +
+                                 $"\"{customer.ContactMobileNo}\"," +
                                  $"\"{customer.OfficialEmail}\"," +
-                                 $"\"{customer.CustomerGroupName ?? ""}\"," +
-                                 $"\"{customer.Status}\"," +
                                  $"{customer.CreditAllowed}," +
                                  $"{customer.CreditAmountMax ?? 0}," +
-                                 $"\"{customer.TrnNo}\"," +
+                                 $"{customer.CreditDays ?? 0}," +
+                                 $"\"{customer.CreditReference1Name}\"," +
+                                 $"\"{customer.CreditReference2Name}\"," +
+                                 $"\"{customer.KeyContactName}\"," +
+                                 $"\"{customer.KeyContactMobile}\"," +
+                                 $"\"{customer.KeyContactEmail}\"," +
+                                 $"\"{customer.FinancePersonName}\"," +
+                                 $"\"{customer.FinancePersonMobile}\"," +
+                                 $"\"{customer.FinancePersonEmail}\"," +
+                                 $"{customer.PostDatedChequesAllowed}," +
+                                 $"\"{customer.CustomerGroupName ?? ""}\"," +
                                  $"{customer.CustomerBalanceAmount}," +
-                                 $"\"{customer.CreatedAt:yyyy-MM-dd HH:mm:ss}\"");
+                                 $"\"{customer.Status}\"");
                 }
 
                 await File.WriteAllTextAsync(saveFileDialog.FileName, csv.ToString());
-                MessageBox.Show($"Exported {Customers.Count} customers to:\n{saveFileDialog.FileName}", 
-                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                var successDialog = new MessageDialog(
+                    "Export Successful",
+                    $"Successfully exported {Customers.Count} customers to:\n\n{saveFileDialog.FileName}",
+                    MessageDialog.MessageType.Success);
+                successDialog.ShowDialog();
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error exporting customers: {ex.Message}", "Export Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorDialog = new MessageDialog(
+                "Export Error",
+                $"An error occurred while exporting customers:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
     }
 
@@ -278,20 +388,14 @@ public partial class CustomersViewModel : ObservableObject
     {
         try
         {
-            // Show dialog with Download Template and Upload File options
-            var result = MessageBox.Show(
-                "Would you like to download a template first?\n\n" +
-                "• Click 'Yes' to download the CSV template\n" +
-                "• Click 'No' to upload your file directly\n" +
-                "• Click 'Cancel' to exit",
-                "Import Customers",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Cancel)
+            // Show custom import dialog
+            var importDialog = new ImportDialog();
+            var dialogResult = importDialog.ShowDialog();
+            
+            if (dialogResult != true)
                 return;
 
-            if (result == MessageBoxResult.Yes)
+            if (importDialog.SelectedAction == ImportDialog.ImportAction.DownloadTemplate)
             {
                 // Download Template
                 var saveFileDialog = new SaveFileDialog
@@ -304,32 +408,51 @@ public partial class CustomersViewModel : ObservableObject
                 if (saveFileDialog.ShowDialog() == true)
                 {
                     var templateCsv = new StringBuilder();
-                    templateCsv.AppendLine("CustomerId,FirstName,LastName,Email,Mobile,CustomerType,CompanyName,VatTrnNumber,LicenseNumber,AddressLine1,AddressLine2,Building,Area,PoBox,City,State,Country,OpeningBalance,BalanceType,Status,CreditLimit");
-                    templateCsv.AppendLine("0,John,Doe,john.doe@example.com,1234567890,Individual,,,123 Main St,Apt 4B,Building A,Downtown,12345,New York,NY,USA,0,Credit,true,5000");
+                    // Include ALL customer fields that match the export template
+                    templateCsv.AppendLine("CustomerFullName,BusinessFullName,IsBusiness,BusinessTypeName,LicenseNo,TrnNo," +
+                                          "MobileNo,HomePhone,OfficePhone,ContactMobileNo,OfficialEmail," +
+                                          "CreditAllowed,CreditAmountMax,CreditDays,CreditReference1Name,CreditReference2Name," +
+                                          "KeyContactName,KeyContactMobile,KeyContactEmail," +
+                                          "FinancePersonName,FinancePersonMobile,FinancePersonEmail," +
+                                          "PostDatedChequesAllowed,CustomerGroupName,CustomerBalanceAmount,Status");
+                    templateCsv.AppendLine("John Doe,Doe Enterprises,true,Retail,LIC123,TRN123456," +
+                                          "1234567890,0987654321,1122334455,9988776655,john@example.com," +
+                                          "true,5000,30,Reference One,Reference Two," +
+                                          "Jane Doe,5551234567,jane@example.com," +
+                                          "Finance Manager,5559876543,finance@example.com," +
+                                          "true,VIP,0,Active");
 
                     await File.WriteAllTextAsync(saveFileDialog.FileName, templateCsv.ToString());
-                    MessageBox.Show($"Template downloaded successfully to:\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.", 
-                        "Template Downloaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                    
+                    var successDialog = new MessageDialog(
+                        "Template Downloaded",
+                        $"Template downloaded successfully to:\n\n{saveFileDialog.FileName}\n\nPlease fill in your data and use the Import function again to upload it.",
+                        MessageDialog.MessageType.Success);
+                    successDialog.ShowDialog();
                 }
                 return;
             }
-
-            // Upload File
-            var openFileDialog = new OpenFileDialog
+            else if (importDialog.SelectedAction == ImportDialog.ImportAction.UploadFile)
             {
-                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
-                DefaultExt = ".csv"
-            };
-
-            if (openFileDialog.ShowDialog() == true)
-            {
-                var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
-                if (lines.Length <= 1)
+                // Upload File
+                var openFileDialog = new OpenFileDialog
                 {
-                    MessageBox.Show("The CSV file is empty or contains only headers.", "Import Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                    Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                    DefaultExt = ".csv"
+                };
+
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    var lines = await File.ReadAllLinesAsync(openFileDialog.FileName);
+                    if (lines.Length <= 1)
+                    {
+                        var warningDialog = new MessageDialog(
+                            "Import Error",
+                            "The CSV file is empty or contains only headers.",
+                            MessageDialog.MessageType.Warning);
+                        warningDialog.ShowDialog();
+                        return;
+                    }
 
                 int successCount = 0;
                 int errorCount = 0;
@@ -344,24 +467,40 @@ public partial class CustomersViewModel : ObservableObject
                         if (string.IsNullOrWhiteSpace(line)) continue;
 
                         var values = ParseCsvLine(line);
-                        if (values.Length < 13)
+                        if (values.Length < 25)
                         {
                             errorCount++;
-                            errors.AppendLine($"Line {i + 1}: Invalid format (expected 13 columns)");
+                            errors.AppendLine($"Line {i + 1}: Invalid format (expected 25 columns)");
                             continue;
                         }
 
                         var customerDto = new CustomerDto
                         {
-                            CustomerFullName = values[1].Trim('"'),
-                            BusinessFullName = values[2].Trim('"'),
-                            IsBusiness = bool.Parse(values[3]),
-                            MobileNo = values[4].Trim('"'),
-                            OfficialEmail = values[5].Trim('"'),
-                            Status = values[7].Trim('"'),
-                            CreditAllowed = bool.Parse(values[8]),
-                            CreditAmountMax = string.IsNullOrWhiteSpace(values[9]) ? null : decimal.Parse(values[9]),
-                            TrnNo = values[10].Trim('"')
+                            CustomerFullName = values[0].Trim('"'),
+                            BusinessFullName = values[1].Trim('"'),
+                            IsBusiness = bool.Parse(values[2]),
+                            BusinessTypeName = values[3].Trim('"'),
+                            LicenseNo = values[4].Trim('"'),
+                            TrnNo = values[5].Trim('"'),
+                            MobileNo = values[6].Trim('"'),
+                            HomePhone = values[7].Trim('"'),
+                            OfficePhone = values[8].Trim('"'),
+                            ContactMobileNo = values[9].Trim('"'),
+                            OfficialEmail = values[10].Trim('"'),
+                            CreditAllowed = bool.Parse(values[11]),
+                            CreditAmountMax = string.IsNullOrWhiteSpace(values[12]) ? null : decimal.Parse(values[12]),
+                            CreditDays = string.IsNullOrWhiteSpace(values[13]) ? null : int.Parse(values[13]),
+                            CreditReference1Name = values[14].Trim('"'),
+                            CreditReference2Name = values[15].Trim('"'),
+                            KeyContactName = values[16].Trim('"'),
+                            KeyContactMobile = values[17].Trim('"'),
+                            KeyContactEmail = values[18].Trim('"'),
+                            FinancePersonName = values[19].Trim('"'),
+                            FinancePersonMobile = values[20].Trim('"'),
+                            FinancePersonEmail = values[21].Trim('"'),
+                            PostDatedChequesAllowed = bool.Parse(values[22]),
+                            CustomerBalanceAmount = string.IsNullOrWhiteSpace(values[24]) ? 0 : decimal.Parse(values[24]),
+                            Status = values[25].Trim('"')
                         };
 
                         await _customerService.CreateCustomerAsync(customerDto);
@@ -370,26 +509,47 @@ public partial class CustomersViewModel : ObservableObject
                     catch (Exception ex)
                     {
                         errorCount++;
-                        errors.AppendLine($"Line {i + 1}: {ex.Message}");
+                        var errorMessage = ex.Message;
+                        
+                        // Include inner exception details if available
+                        if (ex.InnerException != null)
+                        {
+                            errorMessage += $" | Inner: {ex.InnerException.Message}";
+                            
+                            // Go deeper if there's another inner exception
+                            if (ex.InnerException.InnerException != null)
+                            {
+                                errorMessage += $" | Details: {ex.InnerException.InnerException.Message}";
+                            }
+                        }
+                        
+                        errors.AppendLine($"Line {i + 1}: {errorMessage}");
                     }
                 }
 
-                await LoadCustomersAsync();
+                    await LoadCustomersAsync();
 
-                var message = $"Import completed:\n✓ {successCount} customers imported successfully";
-                if (errorCount > 0)
-                {
-                    message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                    var message = $"Import completed:\n\n✓ {successCount} customers imported successfully";
+                    if (errorCount > 0)
+                    {
+                        message += $"\n✗ {errorCount} errors occurred\n\nErrors:\n{errors}";
+                    }
+
+                    var resultDialog = new MessageDialog(
+                        "Import Complete",
+                        message,
+                        errorCount > 0 ? MessageDialog.MessageType.Warning : MessageDialog.MessageType.Success);
+                    resultDialog.ShowDialog();
                 }
-
-                MessageBox.Show(message, "Import Complete", 
-                    MessageBoxButton.OK, errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error importing customers: {ex.Message}", "Import Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorDialog = new MessageDialog(
+                "Import Error",
+                $"An error occurred while importing customers:\n\n{ex.Message}",
+                MessageDialog.MessageType.Error);
+            errorDialog.ShowDialog();
         }
     }
 
@@ -447,7 +607,7 @@ public partial class CustomersViewModel : ObservableObject
             {
                 // Revert the change if update failed
                 targetCustomer.Status = targetCustomer.Status == "Active" ? "Inactive" : "Active";
-                MessageBox.Show($"Error updating customer status: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                new MessageDialog("Error", $"Error updating customer status: {ex.Message}", MessageDialog.MessageType.Error).ShowDialog();
             }
         }
     }
@@ -469,11 +629,11 @@ public partial class CustomersViewModel : ObservableObject
     {
         try
         {
-            CanCreateCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS, TypeMatrix.CREATE);
-            CanEditCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS, TypeMatrix.UPDATE);
-            CanDeleteCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS, TypeMatrix.DELETE);
-            CanImportCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS, TypeMatrix.IMPORT);
-            CanExportCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS_ADD_OPTIONS, TypeMatrix.EXPORT);
+            CanCreateCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS, TypeMatrix.CREATE);
+            CanEditCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS, TypeMatrix.UPDATE);
+            CanDeleteCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS, TypeMatrix.DELETE);
+            CanImportCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS, TypeMatrix.IMPORT);
+            CanExportCustomer = _currentUserService.HasPermission(ScreenNames.CUSTOMERS, TypeMatrix.EXPORT);
         }
         catch (Exception)
         {
@@ -482,6 +642,75 @@ public partial class CustomersViewModel : ObservableObject
             CanDeleteCustomer = false;
             CanImportCustomer = false;
             CanExportCustomer = false;
+        }
+    }
+
+    private async Task LoadDiscountCacheAsync()
+    {
+        try
+        {
+            AppLogger.Log("Loading discount cache...", filename: "customer_discounts");
+            var discounts = await _discountService.GetActiveDiscountsAsync();
+            _discountCache.Clear();
+            
+            AppLogger.Log($"Retrieved {discounts.Count()} active discounts", filename: "customer_discounts");
+            
+            foreach (var discount in discounts)
+            {
+                var displayText = $"{discount.DiscountName} {discount.FormattedDiscountValue}";
+                _discountCache[discount.Id] = displayText;
+                AppLogger.Log($"  - Discount ID {discount.Id}: {displayText}", filename: "customer_discounts");
+            }
+            
+            AppLogger.Log($"Discount cache populated with {_discountCache.Count} items", filename: "customer_discounts");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Error loading discount cache", ex, filename: "customer_discounts");
+        }
+    }
+    
+    private List<string> BuildDiscountPills(CustomerDto customer)
+    {
+        if (customer.SelectedDiscountIds == null || !customer.SelectedDiscountIds.Any())
+        {
+            AppLogger.Log($"BuildDiscountPills: Customer {customer.Id} has no discount IDs", filename: "customer_discounts");
+            return new List<string>();
+        }
+
+        try
+        {
+            AppLogger.Log($"BuildDiscountPills: Customer {customer.Id} building pills for {customer.SelectedDiscountIds.Count} discount IDs", filename: "customer_discounts");
+            
+            var discountPills = new List<string>();
+            
+            foreach (var discountId in customer.SelectedDiscountIds.Take(5)) // Show up to 5 discount pills
+            {
+                AppLogger.Log($"  - Looking up discount ID {discountId} in cache (cache has {_discountCache.Count} items)", filename: "customer_discounts");
+                
+                if (_discountCache.TryGetValue(discountId, out var discountText))
+                {
+                    AppLogger.Log($"  - Found discount ID {discountId}: {discountText}", filename: "customer_discounts");
+                    discountPills.Add(discountText);
+                }
+                else
+                {
+                    AppLogger.LogWarning($"  - Discount ID {discountId} NOT FOUND in cache", filename: "customer_discounts");
+                }
+            }
+
+            if (customer.SelectedDiscountIds.Count > 5)
+            {
+                discountPills.Add($"+{customer.SelectedDiscountIds.Count - 5} more");
+            }
+
+            AppLogger.Log($"BuildDiscountPills: Returning {discountPills.Count} pills", filename: "customer_discounts");
+            return discountPills;
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"BuildDiscountPills: Error for customer {customer.Id}", ex, filename: "customer_discounts");
+            return new List<string> { "Discounts available" };
         }
     }
 }
